@@ -1,0 +1,240 @@
+---
+globs: *.tsx
+alwaysApply: false
+---
+# Form System Rules
+
+When working with forms in `.tsx` files, **ALWAYS** follow the custom form system documented in `docs/FORMS.md`.
+
+## Required: Use Custom Form Hooks
+
+❌ **NEVER** use `useForm` from `@tanstack/react-form` directly
+✅ **ALWAYS** use `useAppForm` from `@/hooks/form`
+
+```tsx
+// ❌ Wrong
+import { useForm } from '@tanstack/react-form'
+const form = useForm({ ... })
+
+// ✅ Correct
+import { useAppForm } from '@/hooks/form'
+const form = useAppForm({ ... })
+```
+
+## Required: Use Validation Helpers
+
+❌ **NEVER** manually write Zod validation in validators
+✅ **ALWAYS** use `createZodValidator` helper
+
+```tsx
+// ❌ Wrong
+validators={{
+  onChange: ({ value }) => {
+    const result = schema.shape.name.safeParse(value)
+    return result.success ? undefined : result.error.issues[0]?.message
+  }
+}}
+
+// ✅ Correct
+import { createZodValidator } from '@/lib/form-validation'
+validators={{
+  onChange: createZodValidator(schema.shape.name)
+}}
+```
+
+## Required: Use Pre-bound Field Components
+
+❌ **NEVER** use raw HTML inputs or shadcn-ui components directly in forms
+✅ **ALWAYS** use pre-bound field components like `field.TextField`
+
+```tsx
+// ❌ Wrong
+<form.Field name="email">
+  {(field) => (
+    <Input
+      value={field.state.value}
+      onChange={(e) => field.handleChange(e.target.value)}
+    />
+  )}
+</form.Field>
+
+// ✅ Correct
+<form.AppField name="email">
+  {(field) => <field.TextField label="Email" type="email" />}
+</form.AppField>
+```
+
+## Required: Use Pre-bound Submit Button
+
+❌ **NEVER** manually check form state for submit button
+✅ **ALWAYS** use pre-bound `form.SubmitButton`
+
+```tsx
+// ❌ Wrong
+<form.Subscribe selector={(state) => state.canSubmit}>
+  {(canSubmit) => (
+    <Button type="submit" disabled={!canSubmit}>Submit</Button>
+  )}
+</form.Subscribe>
+
+// ✅ Correct
+<form.AppForm>
+  <form.SubmitButton>Submit</form.SubmitButton>
+</form.AppForm>
+```
+
+## Required: Zod v4 Syntax
+
+This project uses **Zod v4** which follows the Standard Schema specification.
+
+❌ **NEVER** use `result.error.errors` (Zod v3 syntax)
+✅ **ALWAYS** use `result.error.issues` (Zod v4 syntax)
+
+```tsx
+// ❌ Wrong (Zod v3)
+result.error.errors[0]?.message
+
+// ✅ Correct (Zod v4)
+result.error.issues[0]?.message
+```
+
+## Required: Form Submission Pattern
+
+✅ **ALWAYS** use this exact pattern for form submission:
+
+```tsx
+<form onSubmit={(e) => {
+  e.preventDefault()
+  e.stopPropagation()
+  form.handleSubmit()
+}}>
+  {/* fields */}
+</form>
+```
+
+## Required: Form Validation Pattern
+
+✅ **ALWAYS** use `validateForm` helper in onSubmit:
+
+```tsx
+import { validateForm } from '@/lib/form-validation'
+
+const form = useAppForm({
+  defaultValues: { ... },
+  onSubmit: async ({ value }) => {
+    const data = validateForm(schema, value) // Throws if invalid, returns typed data
+    // Use data (it's fully typed!)
+  }
+})
+```
+
+## Required: Async Validation Pattern
+
+✅ **ALWAYS** use `createAsyncValidator` for async validation:
+
+```tsx
+import { createAsyncValidator } from '@/lib/form-validation'
+
+<form.AppField
+  name="email"
+  validators={{
+    onChange: createZodValidator(schema.shape.email),
+    ...createAsyncValidator(async (value: string) => {
+      const exists = await checkEmailExists(value)
+      return exists ? 'Email already taken' : undefined
+    }, 500), // debounce in ms
+  }}
+>
+  {(field) => <field.TextField label="Email" />}
+</form.AppField>
+```
+
+## Available Pre-bound Components
+
+Current field components:
+- `field.TextField` - Text, email, password, number inputs
+
+Current form components:
+- `form.SubmitButton` - Submit button with loading states
+
+## When to Create Custom Field Components
+
+If you need a field type not in the list above (e.g., TextArea, Select, Checkbox):
+
+1. Create it in `src/components/form/YourFieldName.tsx`
+2. Use `useFieldContext` from `@/hooks/form`
+3. Follow the pattern in `TextField.tsx`
+4. Add to `fieldComponents` in `src/hooks/form.ts`
+5. Add export to `src/components/form/index.ts`
+
+See `docs/FORMS.md` section "Adding More Field Components" for details.
+
+## Form Component Structure
+
+✅ **ALWAYS** structure forms like this:
+
+```tsx
+export function MyForm() {
+  // 1. Define schema
+  const schema = z.object({
+    name: z.string().min(3),
+  })
+
+  // 2. Create form
+  const form = useAppForm({
+    defaultValues: { name: '' },
+    onSubmit: async ({ value }) => {
+      const data = validateForm(schema, value)
+      // Handle submission
+    },
+  })
+
+  // 3. Return JSX
+  return (
+    <form onSubmit={(e) => {
+      e.preventDefault()
+      e.stopPropagation()
+      form.handleSubmit()
+    }}>
+      <form.AppField
+        name="name"
+        validators={{ onChange: createZodValidator(schema.shape.name) }}
+      >
+        {(field) => <field.TextField label="Name" />}
+      </form.AppField>
+      
+      <form.AppForm>
+        <form.SubmitButton />
+      </form.AppForm>
+    </form>
+  )
+}
+```
+
+## Import Patterns
+
+✅ Prefer barrel imports:
+
+```tsx
+import {
+  useAppForm,
+  createZodValidator,
+  createAsyncValidator,
+  validateForm,
+} from '@/components/form'
+```
+
+Or individual imports:
+
+```tsx
+import { useAppForm } from '@/hooks/form'
+import { createZodValidator, validateForm } from '@/lib/form-validation'
+```
+
+## Documentation References
+
+When working with forms:
+- **Forms**: See `docs/FORMS.md` for complete documentation
+- **Examples**: See `src/components/form/ExampleUserForm.tsx` and `SimplifiedLoginForm.tsx`
+- **Quick Reference**: See `src/components/form/QuickReference.tsx`
+- **General Setup**: See `README.md` sections on Forms

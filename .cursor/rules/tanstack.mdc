@@ -1,0 +1,209 @@
+---
+globs: *.tsx
+alwaysApply: false
+---
+# TanStack Ecosystem
+
+This project uses multiple TanStack libraries. Follow the official documentation and best practices for each.
+
+## TanStack Router
+
+File-based routing system. Routes are managed as files in `src/routes/`.
+
+### Adding Routes
+
+Create a new file in `src/routes/` and TanStack Router will automatically generate the route.
+
+### Links
+
+```tsx
+import { Link } from '@tanstack/react-router'
+
+<Link to="/about">About</Link>
+```
+
+### Layouts
+
+The root layout is in `src/routes/__root.tsx`. Content appears where `<Outlet />` is placed.
+
+### Data Loading
+
+Use loaders for route-based data fetching:
+
+```tsx
+export const Route = createFileRoute('/users')({
+  loader: async () => {
+    const response = await fetch('/api/users')
+    return response.json()
+  },
+  component: UsersPage,
+})
+```
+
+Resources:
+- [TanStack Router Docs](https://tanstack.com/router/latest)
+
+## TanStack Query
+
+For data fetching, caching, and synchronization.
+
+### Setup
+
+Already configured in the project. Query client is in the root provider.
+
+### Basic Usage
+
+```tsx
+import { useQuery } from '@tanstack/react-query'
+
+function Users() {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['users'],
+    queryFn: async () => {
+      const res = await fetch('/api/users')
+      return res.json()
+    },
+  })
+  
+  if (isLoading) return <div>Loading...</div>
+  if (error) return <div>Error: {error.message}</div>
+  
+  return <div>{/* Render users */}</div>
+}
+```
+
+### Mutations
+
+```tsx
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+
+function CreateUser() {
+  const queryClient = useQueryClient()
+  
+  const mutation = useMutation({
+    mutationFn: async (newUser) => {
+      const res = await fetch('/api/users', {
+        method: 'POST',
+        body: JSON.stringify(newUser),
+      })
+      return res.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] })
+    },
+  })
+  
+  return (
+    <button onClick={() => mutation.mutate({ name: 'John' })}>
+      Create User
+    </button>
+  )
+}
+```
+
+Resources:
+- [TanStack Query Docs](https://tanstack.com/query/latest)
+
+## TanStack Store
+
+For state management with derived state support.
+
+### Basic Usage
+
+```tsx
+import { Store } from '@tanstack/store'
+import { useStore } from '@tanstack/react-store'
+
+const countStore = new Store(0)
+
+function Counter() {
+  const count = useStore(countStore)
+  
+  return (
+    <button onClick={() => countStore.setState((n) => n + 1)}>
+      Count: {count}
+    </button>
+  )
+}
+```
+
+### Derived State
+
+```tsx
+import { Store, Derived } from '@tanstack/store'
+
+const countStore = new Store(0)
+
+const doubledStore = new Derived({
+  fn: () => countStore.state * 2,
+  deps: [countStore],
+})
+doubledStore.mount()
+
+function Counter() {
+  const count = useStore(countStore)
+  const doubled = useStore(doubledStore)
+  
+  return <div>Count: {count}, Doubled: {doubled}</div>
+}
+```
+
+Resources:
+- [TanStack Store Docs](https://tanstack.com/store/latest)
+
+## TanStack Table
+
+For building powerful data tables.
+
+### Basic Usage
+
+```tsx
+import { useReactTable, getCoreRowModel, flexRender } from '@tanstack/react-table'
+
+function DataTable({ data, columns }) {
+  const table = useReactTable({
+    data,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+  })
+  
+  return (
+    <table>
+      <thead>
+        {table.getHeaderGroups().map((headerGroup) => (
+          <tr key={headerGroup.id}>
+            {headerGroup.headers.map((header) => (
+              <th key={header.id}>
+                {flexRender(header.column.columnDef.header, header.getContext())}
+              </th>
+            ))}
+          </tr>
+        ))}
+      </thead>
+      <tbody>
+        {table.getRowModel().rows.map((row) => (
+          <tr key={row.id}>
+            {row.getVisibleCells().map((cell) => (
+              <td key={cell.id}>
+                {flexRender(cell.column.columnDef.cell, cell.getContext())}
+              </td>
+            ))}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  )
+}
+```
+
+Resources:
+- [TanStack Table Docs](https://tanstack.com/table/latest)
+
+## General Best Practices
+
+- **Query Keys**: Use descriptive array-based query keys: `['users', userId]`
+- **Error Handling**: Always handle loading and error states
+- **Type Safety**: Leverage TypeScript for all TanStack libraries
+- **Devtools**: Use TanStack devtools for debugging (already configured)
+- **Optimistic Updates**: Use for better UX in mutations
+- **Suspense**: Consider using React Suspense for data fetching

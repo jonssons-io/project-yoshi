@@ -1,0 +1,192 @@
+---
+alwaysApply: true
+---
+# Project Guidelines
+
+This project uses TanStack ecosystem (Router, Query, Form, Store) with React, TypeScript, shadcn-ui, and Tailwind CSS.
+
+## Package Manager
+
+This project uses **npm** (not pnpm or yarn).
+
+When adding shadcn-ui components:
+
+```bash
+npx shadcn@latest add component-name --yes
+```
+
+## Component Naming Conventions
+
+- **Form components**: Should be named `*Form` (e.g., `LoginForm`, `UserRegistrationForm`)
+- **Field components**: Should be named `*Field` (e.g., `TextField`, `SelectField`)
+- **UI components**: Use PascalCase (e.g., `Button`, `Card`, `Header`)
+
+## Import Patterns
+
+### Path Aliases
+
+Use `@/` path alias for imports:
+
+```tsx
+// ✅ Correct
+import { Button } from '@/components/ui/button'
+import { useAppForm } from '@/hooks/form'
+import { cn } from '@/lib/utils'
+
+// ❌ Wrong
+import { Button } from '../../../components/ui/button'
+```
+
+### Import Organization
+
+Organize imports in this order:
+
+1. External libraries (React, third-party packages)
+2. Internal modules (hooks, utils, components)
+3. Types and interfaces
+4. Styles
+
+```tsx
+// External
+import { useState } from 'react'
+import { z } from 'zod'
+
+// Internal
+import { useAppForm } from '@/hooks/form'
+import { Button } from '@/components/ui/button'
+
+// Types
+import type { FormData } from '@/types'
+
+// Styles (if any)
+import './styles.css'
+```
+
+## Code Quality
+
+### TypeScript
+
+- **Always use TypeScript strict mode**
+- Use `type` for object types, `interface` for extendable contracts
+- Use `z.infer<typeof schema>` for form data types
+- Prefer explicit return types for exported functions
+- Use `satisfies` operator when you want both type checking and inference
+
+```tsx
+// ✅ Good
+const config = {
+  name: 'app',
+  version: 1,
+} satisfies Config
+
+// Type inference example
+const schema = z.object({
+  name: z.string(),
+})
+type FormData = z.infer<typeof schema>
+```
+
+### Component Structure
+
+```tsx
+// 1. Imports
+import { useState } from 'react'
+
+// 2. Types
+interface MyComponentProps {
+  title: string
+  onSubmit: () => void
+}
+
+// 3. Component
+export function MyComponent({ title, onSubmit }: MyComponentProps) {
+  // Hooks
+  const [state, setState] = useState(false)
+  
+  // Event handlers
+  const handleClick = () => {
+    setState(true)
+    onSubmit()
+  }
+  
+  // Render
+  return (
+    <div>
+      <h1>{title}</h1>
+      <button onClick={handleClick}>Click</button>
+    </div>
+  )
+}
+```
+
+### Documentation
+
+- Add JSDoc comments for exported functions/components
+- Include parameter descriptions and return types
+- Document complex logic with inline comments
+
+```tsx
+/**
+ * Creates a new user account
+ * 
+ * @param email - User's email address
+ * @param password - User's password (min 8 characters)
+ * @returns Promise with the created user ID
+ * 
+ * @example
+ * ```tsx
+ * const userId = await createUser('user@example.com', 'password123')
+ * ```
+ */
+export async function createUser(email: string, password: string): Promise<string> {
+  // Implementation
+}
+```
+
+### Best Practices
+
+- Keep components small and focused (single responsibility)
+- Extract reusable logic into custom hooks
+- Use meaningful variable and function names
+- Avoid magic numbers and strings (use constants)
+- Keep validation schemas close to the forms that use them
+- Prefer composition over inheritance
+- Use early returns to reduce nesting
+
+```tsx
+// ✅ Good - Early return
+function processUser(user: User | null) {
+  if (!user) return null
+  if (!user.isActive) return null
+  
+  return user.name
+}
+
+// ❌ Bad - Nested conditions
+function processUser(user: User | null) {
+  if (user) {
+    if (user.isActive) {
+      return user.name
+    }
+  }
+  return null
+}
+```
+
+## Testing
+
+This project uses Vitest for testing:
+
+```bash
+npm run test
+```
+
+## Linting & Formatting
+
+This project uses Biome for linting and formatting:
+
+```bash
+npm run lint      # Check for linting errors
+npm run format    # Format code
+npm run check     # Check and fix
+```

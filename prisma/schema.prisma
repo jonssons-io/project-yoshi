@@ -1,0 +1,79 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum CategoryType {
+  INCOME
+  EXPENSE
+}
+
+model Budget {
+  id          String        @id @default(cuid())
+  name        String
+  startDate   DateTime
+  userId      String        // Clerk user ID
+  createdAt   DateTime      @default(now())
+
+  // Relations
+  categories  Category[]
+  transactions Transaction[]
+  accounts    Account[]
+
+  @@index([userId])
+}
+
+model Category {
+  id          String        @id @default(cuid())
+  name        String
+  type        CategoryType
+  budgetId    String
+
+  // Relations
+  budget      Budget        @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+
+  @@index([budgetId])
+  @@index([type])
+}
+
+model Account {
+  id                  String        @id @default(cuid())
+  name                String
+  externalIdentifier  String?       // Optional external account number
+  initialBalance      Float         @default(0)
+  budgetId            String
+  createdAt           DateTime      @default(now())
+
+  // Relations
+  budget              Budget        @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  transactions        Transaction[]
+
+  @@index([budgetId])
+}
+
+model Transaction {
+  id          String    @id @default(cuid())
+  name        String
+  amount      Float
+  date        DateTime
+  notes       String?
+  categoryId  String
+  accountId   String
+  budgetId    String
+  createdAt   DateTime  @default(now())
+
+  // Relations
+  category    Category  @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  account     Account   @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  budget      Budget    @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+
+  @@index([budgetId])
+  @@index([categoryId])
+  @@index([accountId])
+  @@index([date])
+}
