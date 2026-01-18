@@ -20,7 +20,7 @@ const config: runtime.GetPrismaClientConfig = {
   "clientVersion": "7.2.0",
   "engineVersion": "0c8ef2ce45c83248ab3df073180d5eda9e8be7a3",
   "activeProvider": "postgresql",
-  "inlineSchema": "generator client {\n  provider = \"prisma-client\"\n  output   = \"../src/generated/prisma\"\n}\n\ndatasource db {\n  provider = \"postgresql\"\n}\n\nenum CategoryType {\n  INCOME\n  EXPENSE\n}\n\nmodel Budget {\n  id        String   @id @default(cuid())\n  name      String\n  startDate DateTime\n  userId    String // Clerk user ID\n  createdAt DateTime @default(now())\n\n  // Relations\n  categories   Category[]\n  transactions Transaction[]\n  accounts     Account[]\n\n  @@index([userId])\n}\n\nmodel Category {\n  id       String       @id @default(cuid())\n  name     String\n  type     CategoryType\n  budgetId String\n\n  // Relations\n  budget       Budget        @relation(fields: [budgetId], references: [id], onDelete: Cascade)\n  transactions Transaction[]\n\n  @@index([budgetId])\n  @@index([type])\n}\n\nmodel Account {\n  id                 String   @id @default(cuid())\n  name               String\n  externalIdentifier String? // Optional external account number\n  initialBalance     Float    @default(0)\n  budgetId           String\n  createdAt          DateTime @default(now())\n\n  // Relations\n  budget       Budget        @relation(fields: [budgetId], references: [id], onDelete: Cascade)\n  transactions Transaction[]\n\n  @@index([budgetId])\n}\n\nmodel Transaction {\n  id         String   @id @default(cuid())\n  name       String\n  amount     Float\n  date       DateTime\n  notes      String?\n  categoryId String\n  accountId  String\n  budgetId   String\n  createdAt  DateTime @default(now())\n\n  // Relations\n  category Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)\n  account  Account  @relation(fields: [accountId], references: [id], onDelete: Restrict)\n  budget   Budget   @relation(fields: [budgetId], references: [id], onDelete: Cascade)\n\n  @@index([budgetId])\n  @@index([categoryId])\n  @@index([accountId])\n  @@index([date])\n}\n",
+  "inlineSchema": "generator client {\n  provider = \"prisma-client\"\n  output   = \"../src/generated/prisma\"\n}\n\ndatasource db {\n  provider = \"postgresql\"\n}\n\nenum CategoryType {\n  INCOME\n  EXPENSE\n}\n\nenum RecurrenceType {\n  NONE\n  WEEKLY\n  MONTHLY\n  QUARTERLY\n  YEARLY\n  CUSTOM\n}\n\n// A Household is the top-level organizational unit\n// Multiple users can belong to a household and share budgets, accounts, and categories\nmodel Household {\n  id        String   @id @default(cuid())\n  name      String\n  createdAt DateTime @default(now())\n\n  // Relations\n  users      HouseholdUser[]\n  budgets    Budget[]\n  categories Category[]\n  accounts   Account[]\n\n  @@index([createdAt])\n}\n\n// Join table for many-to-many relationship between Users and Households\n// A user can belong to multiple households\nmodel HouseholdUser {\n  id          String   @id @default(cuid())\n  userId      String // Clerk user ID\n  householdId String\n  joinedAt    DateTime @default(now())\n\n  // Relations\n  household Household @relation(fields: [householdId], references: [id], onDelete: Cascade)\n\n  @@unique([userId, householdId])\n  @@index([userId])\n  @@index([householdId])\n}\n\nmodel Budget {\n  id          String   @id @default(cuid())\n  name        String\n  startDate   DateTime\n  householdId String\n  createdAt   DateTime @default(now())\n\n  // Relations\n  household    Household        @relation(fields: [householdId], references: [id], onDelete: Cascade)\n  categories   BudgetCategory[] // Many-to-many with Category\n  accounts     BudgetAccount[] // Many-to-many with Account\n  transactions Transaction[]\n  bills        Bill[]\n\n  @@index([householdId])\n  @@index([createdAt])\n}\n\nmodel Category {\n  id          String       @id @default(cuid())\n  name        String\n  type        CategoryType\n  householdId String\n  createdAt   DateTime     @default(now())\n\n  // Relations\n  household    Household        @relation(fields: [householdId], references: [id], onDelete: Cascade)\n  budgets      BudgetCategory[] // Many-to-many with Budget\n  transactions Transaction[]\n  bills        Bill[]\n\n  @@index([householdId])\n  @@index([type])\n}\n\nmodel Account {\n  id                 String   @id @default(cuid())\n  name               String\n  externalIdentifier String? // Optional external account number\n  initialBalance     Float    @default(0)\n  householdId        String\n  createdAt          DateTime @default(now())\n\n  // Relations\n  household    Household       @relation(fields: [householdId], references: [id], onDelete: Cascade)\n  budgets      BudgetAccount[] // Many-to-many with Budget\n  transactions Transaction[]\n  bills        Bill[]\n\n  @@index([householdId])\n}\n\n// Join table for Budget ↔ Category many-to-many relationship\nmodel BudgetCategory {\n  id         String @id @default(cuid())\n  budgetId   String\n  categoryId String\n\n  // Relations\n  budget   Budget   @relation(fields: [budgetId], references: [id], onDelete: Cascade)\n  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)\n\n  @@unique([budgetId, categoryId])\n  @@index([budgetId])\n  @@index([categoryId])\n}\n\n// Join table for Budget ↔ Account many-to-many relationship\nmodel BudgetAccount {\n  id        String @id @default(cuid())\n  budgetId  String\n  accountId String\n\n  // Relations\n  budget  Budget  @relation(fields: [budgetId], references: [id], onDelete: Cascade)\n  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)\n\n  @@unique([budgetId, accountId])\n  @@index([budgetId])\n  @@index([accountId])\n}\n\nmodel Transaction {\n  id         String   @id @default(cuid())\n  name       String\n  amount     Float\n  date       DateTime\n  notes      String?\n  categoryId String\n  accountId  String\n  budgetId   String\n  billId     String? // Optional link to bill\n  createdAt  DateTime @default(now())\n\n  // Relations\n  category Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)\n  account  Account  @relation(fields: [accountId], references: [id], onDelete: Restrict)\n  budget   Budget   @relation(fields: [budgetId], references: [id], onDelete: Cascade)\n  bill     Bill?    @relation(fields: [billId], references: [id], onDelete: SetNull)\n\n  @@index([budgetId])\n  @@index([categoryId])\n  @@index([accountId])\n  @@index([billId])\n  @@index([date])\n}\n\nmodel Bill {\n  id                 String         @id @default(cuid())\n  name               String\n  recipient          String\n  accountId          String\n  startDate          DateTime // First payment date\n  recurrenceType     RecurrenceType @default(NONE)\n  customIntervalDays Int? // For CUSTOM recurrence\n  estimatedAmount    Float\n  lastPaymentDate    DateTime? // Final payment date (for loans, etc.)\n  categoryId         String\n  budgetId           String\n  isArchived         Boolean        @default(false)\n  createdAt          DateTime       @default(now())\n\n  // Relations\n  account      Account       @relation(fields: [accountId], references: [id], onDelete: Restrict)\n  category     Category      @relation(fields: [categoryId], references: [id], onDelete: Restrict)\n  budget       Budget        @relation(fields: [budgetId], references: [id], onDelete: Cascade)\n  transactions Transaction[]\n\n  @@index([budgetId])\n  @@index([accountId])\n  @@index([categoryId])\n  @@index([isArchived])\n  @@index([startDate])\n}\n",
   "runtimeDataModel": {
     "models": {},
     "enums": {},
@@ -28,7 +28,7 @@ const config: runtime.GetPrismaClientConfig = {
   }
 }
 
-config.runtimeDataModel = JSON.parse("{\"models\":{\"Budget\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"startDate\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"userId\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"categories\",\"kind\":\"object\",\"type\":\"Category\",\"relationName\":\"BudgetToCategory\"},{\"name\":\"transactions\",\"kind\":\"object\",\"type\":\"Transaction\",\"relationName\":\"BudgetToTransaction\"},{\"name\":\"accounts\",\"kind\":\"object\",\"type\":\"Account\",\"relationName\":\"AccountToBudget\"}],\"dbName\":null},\"Category\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"type\",\"kind\":\"enum\",\"type\":\"CategoryType\"},{\"name\":\"budgetId\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"budget\",\"kind\":\"object\",\"type\":\"Budget\",\"relationName\":\"BudgetToCategory\"},{\"name\":\"transactions\",\"kind\":\"object\",\"type\":\"Transaction\",\"relationName\":\"CategoryToTransaction\"}],\"dbName\":null},\"Account\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"externalIdentifier\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"initialBalance\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"budgetId\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"budget\",\"kind\":\"object\",\"type\":\"Budget\",\"relationName\":\"AccountToBudget\"},{\"name\":\"transactions\",\"kind\":\"object\",\"type\":\"Transaction\",\"relationName\":\"AccountToTransaction\"}],\"dbName\":null},\"Transaction\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"amount\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"notes\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"categoryId\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"accountId\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"budgetId\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"category\",\"kind\":\"object\",\"type\":\"Category\",\"relationName\":\"CategoryToTransaction\"},{\"name\":\"account\",\"kind\":\"object\",\"type\":\"Account\",\"relationName\":\"AccountToTransaction\"},{\"name\":\"budget\",\"kind\":\"object\",\"type\":\"Budget\",\"relationName\":\"BudgetToTransaction\"}],\"dbName\":null}},\"enums\":{},\"types\":{}}")
+config.runtimeDataModel = JSON.parse("{\"models\":{\"Household\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"users\",\"kind\":\"object\",\"type\":\"HouseholdUser\",\"relationName\":\"HouseholdToHouseholdUser\"},{\"name\":\"budgets\",\"kind\":\"object\",\"type\":\"Budget\",\"relationName\":\"BudgetToHousehold\"},{\"name\":\"categories\",\"kind\":\"object\",\"type\":\"Category\",\"relationName\":\"CategoryToHousehold\"},{\"name\":\"accounts\",\"kind\":\"object\",\"type\":\"Account\",\"relationName\":\"AccountToHousehold\"}],\"dbName\":null},\"HouseholdUser\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"userId\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"householdId\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"joinedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"household\",\"kind\":\"object\",\"type\":\"Household\",\"relationName\":\"HouseholdToHouseholdUser\"}],\"dbName\":null},\"Budget\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"startDate\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"householdId\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"household\",\"kind\":\"object\",\"type\":\"Household\",\"relationName\":\"BudgetToHousehold\"},{\"name\":\"categories\",\"kind\":\"object\",\"type\":\"BudgetCategory\",\"relationName\":\"BudgetToBudgetCategory\"},{\"name\":\"accounts\",\"kind\":\"object\",\"type\":\"BudgetAccount\",\"relationName\":\"BudgetToBudgetAccount\"},{\"name\":\"transactions\",\"kind\":\"object\",\"type\":\"Transaction\",\"relationName\":\"BudgetToTransaction\"},{\"name\":\"bills\",\"kind\":\"object\",\"type\":\"Bill\",\"relationName\":\"BillToBudget\"}],\"dbName\":null},\"Category\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"type\",\"kind\":\"enum\",\"type\":\"CategoryType\"},{\"name\":\"householdId\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"household\",\"kind\":\"object\",\"type\":\"Household\",\"relationName\":\"CategoryToHousehold\"},{\"name\":\"budgets\",\"kind\":\"object\",\"type\":\"BudgetCategory\",\"relationName\":\"BudgetCategoryToCategory\"},{\"name\":\"transactions\",\"kind\":\"object\",\"type\":\"Transaction\",\"relationName\":\"CategoryToTransaction\"},{\"name\":\"bills\",\"kind\":\"object\",\"type\":\"Bill\",\"relationName\":\"BillToCategory\"}],\"dbName\":null},\"Account\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"externalIdentifier\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"initialBalance\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"householdId\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"household\",\"kind\":\"object\",\"type\":\"Household\",\"relationName\":\"AccountToHousehold\"},{\"name\":\"budgets\",\"kind\":\"object\",\"type\":\"BudgetAccount\",\"relationName\":\"AccountToBudgetAccount\"},{\"name\":\"transactions\",\"kind\":\"object\",\"type\":\"Transaction\",\"relationName\":\"AccountToTransaction\"},{\"name\":\"bills\",\"kind\":\"object\",\"type\":\"Bill\",\"relationName\":\"AccountToBill\"}],\"dbName\":null},\"BudgetCategory\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"budgetId\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"categoryId\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"budget\",\"kind\":\"object\",\"type\":\"Budget\",\"relationName\":\"BudgetToBudgetCategory\"},{\"name\":\"category\",\"kind\":\"object\",\"type\":\"Category\",\"relationName\":\"BudgetCategoryToCategory\"}],\"dbName\":null},\"BudgetAccount\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"budgetId\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"accountId\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"budget\",\"kind\":\"object\",\"type\":\"Budget\",\"relationName\":\"BudgetToBudgetAccount\"},{\"name\":\"account\",\"kind\":\"object\",\"type\":\"Account\",\"relationName\":\"AccountToBudgetAccount\"}],\"dbName\":null},\"Transaction\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"amount\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"notes\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"categoryId\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"accountId\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"budgetId\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"billId\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"category\",\"kind\":\"object\",\"type\":\"Category\",\"relationName\":\"CategoryToTransaction\"},{\"name\":\"account\",\"kind\":\"object\",\"type\":\"Account\",\"relationName\":\"AccountToTransaction\"},{\"name\":\"budget\",\"kind\":\"object\",\"type\":\"Budget\",\"relationName\":\"BudgetToTransaction\"},{\"name\":\"bill\",\"kind\":\"object\",\"type\":\"Bill\",\"relationName\":\"BillToTransaction\"}],\"dbName\":null},\"Bill\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"recipient\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"accountId\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"startDate\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"recurrenceType\",\"kind\":\"enum\",\"type\":\"RecurrenceType\"},{\"name\":\"customIntervalDays\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"estimatedAmount\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"lastPaymentDate\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"categoryId\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"budgetId\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"isArchived\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"account\",\"kind\":\"object\",\"type\":\"Account\",\"relationName\":\"AccountToBill\"},{\"name\":\"category\",\"kind\":\"object\",\"type\":\"Category\",\"relationName\":\"BillToCategory\"},{\"name\":\"budget\",\"kind\":\"object\",\"type\":\"Budget\",\"relationName\":\"BillToBudget\"},{\"name\":\"transactions\",\"kind\":\"object\",\"type\":\"Transaction\",\"relationName\":\"BillToTransaction\"}],\"dbName\":null}},\"enums\":{},\"types\":{}}")
 
 async function decodeBase64AsWasm(wasmBase64: string): Promise<WebAssembly.Module> {
   const { Buffer } = await import('node:buffer')
@@ -58,8 +58,8 @@ export interface PrismaClientConstructor {
    * @example
    * ```
    * const prisma = new PrismaClient()
-   * // Fetch zero or more Budgets
-   * const budgets = await prisma.budget.findMany()
+   * // Fetch zero or more Households
+   * const households = await prisma.household.findMany()
    * ```
    * 
    * Read more in our [docs](https://pris.ly/d/client).
@@ -80,8 +80,8 @@ export interface PrismaClientConstructor {
  * @example
  * ```
  * const prisma = new PrismaClient()
- * // Fetch zero or more Budgets
- * const budgets = await prisma.budget.findMany()
+ * // Fetch zero or more Households
+ * const households = await prisma.household.findMany()
  * ```
  * 
  * Read more in our [docs](https://pris.ly/d/client).
@@ -175,6 +175,26 @@ export interface PrismaClient<
   }>>
 
       /**
+   * `prisma.household`: Exposes CRUD operations for the **Household** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more Households
+    * const households = await prisma.household.findMany()
+    * ```
+    */
+  get household(): Prisma.HouseholdDelegate<ExtArgs, { omit: OmitOpts }>;
+
+  /**
+   * `prisma.householdUser`: Exposes CRUD operations for the **HouseholdUser** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more HouseholdUsers
+    * const householdUsers = await prisma.householdUser.findMany()
+    * ```
+    */
+  get householdUser(): Prisma.HouseholdUserDelegate<ExtArgs, { omit: OmitOpts }>;
+
+  /**
    * `prisma.budget`: Exposes CRUD operations for the **Budget** model.
     * Example usage:
     * ```ts
@@ -205,6 +225,26 @@ export interface PrismaClient<
   get account(): Prisma.AccountDelegate<ExtArgs, { omit: OmitOpts }>;
 
   /**
+   * `prisma.budgetCategory`: Exposes CRUD operations for the **BudgetCategory** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more BudgetCategories
+    * const budgetCategories = await prisma.budgetCategory.findMany()
+    * ```
+    */
+  get budgetCategory(): Prisma.BudgetCategoryDelegate<ExtArgs, { omit: OmitOpts }>;
+
+  /**
+   * `prisma.budgetAccount`: Exposes CRUD operations for the **BudgetAccount** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more BudgetAccounts
+    * const budgetAccounts = await prisma.budgetAccount.findMany()
+    * ```
+    */
+  get budgetAccount(): Prisma.BudgetAccountDelegate<ExtArgs, { omit: OmitOpts }>;
+
+  /**
    * `prisma.transaction`: Exposes CRUD operations for the **Transaction** model.
     * Example usage:
     * ```ts
@@ -213,6 +253,16 @@ export interface PrismaClient<
     * ```
     */
   get transaction(): Prisma.TransactionDelegate<ExtArgs, { omit: OmitOpts }>;
+
+  /**
+   * `prisma.bill`: Exposes CRUD operations for the **Bill** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more Bills
+    * const bills = await prisma.bill.findMany()
+    * ```
+    */
+  get bill(): Prisma.BillDelegate<ExtArgs, { omit: OmitOpts }>;
 }
 
 export function getPrismaClientClass(): PrismaClientConstructor {

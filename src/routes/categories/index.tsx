@@ -6,6 +6,7 @@ import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useUser } from '@clerk/clerk-react'
 import { useTRPC } from '@/integrations/trpc/react'
 import { useQuery, useMutation } from '@tanstack/react-query'
+import { useSelectedHousehold } from '@/hooks/use-selected-household'
 import { CategoryForm } from '@/components/categories/CategoryForm'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -33,65 +34,51 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { useState } from 'react'
-import { PlusIcon, TrashIcon, PencilIcon, ArrowLeftIcon } from 'lucide-react'
-import { z } from 'zod'
-
-// Search params schema
-const categoriesSearchSchema = z.object({
-  budgetId: z.string().optional(),
-})
+import { PlusIcon, TrashIcon, PencilIcon } from 'lucide-react'
 
 export const Route = createFileRoute('/categories/')({
   component: CategoriesPage,
-  validateSearch: (search) => categoriesSearchSchema.parse(search),
 })
 
 // TODO: Remove this once Clerk is properly configured
 const MOCK_USER_ID = 'demo-user-123'
 
 function CategoriesPage() {
-  const { budgetId } = Route.useSearch()
   const navigate = useNavigate()
   const { user } = useUser()
+  const { selectedHouseholdId } = useSelectedHousehold()
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
-  const [editingCategory, setEditingCategory] = useState<{
-    id: string
-    name: string
-    type: 'INCOME' | 'EXPENSE'
-  } | null>(null)
+  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null)
   const [filter, setFilter] = useState<'ALL' | 'INCOME' | 'EXPENSE'>('ALL')
 
   const trpc = useTRPC()
   const userId = user?.id ?? MOCK_USER_ID
 
-  // If no budgetId, redirect to budgets page
-  if (!budgetId) {
-    return (
-      <div className="container py-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>No Budget Selected</CardTitle>
-            <CardDescription>
-              Please select a budget to manage categories
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button asChild>
-              <Link to="/budgets">Go to Budgets</Link>
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
+  // Fetch full category details when editing (including budget links)
+  const { data: editingCategory } = useQuery({
+    ...trpc.categories.getById.queryOptions({
+      id: editingCategoryId!,
+      userId,
+    }),
+    enabled: !!editingCategoryId,
+  })
 
   const { data: categories, isLoading, refetch } = useQuery({
     ...trpc.categories.list.queryOptions({
-      budgetId,
+      householdId: selectedHouseholdId!,
       userId,
       type: filter === 'ALL' ? undefined : filter,
     }),
-    enabled: true,
+    enabled: !!selectedHouseholdId,
+  })
+
+  // Fetch budgets for linking when creating categories
+  const { data: budgets } = useQuery({
+    ...trpc.budgets.list.queryOptions({
+      householdId: selectedHouseholdId!,
+      userId,
+    }),
+    enabled: !!selectedHouseholdId,
   })
 
   const { mutate: createCategory } = useMutation({
@@ -106,7 +93,7 @@ function CategoriesPage() {
     ...trpc.categories.update.mutationOptions(),
     onSuccess: () => {
       refetch()
-      setEditingCategory(null)
+      setEditingCategoryId(null)
     },
   })
 
@@ -119,6 +106,26 @@ function CategoriesPage() {
       alert(error instanceof Error ? error.message : 'Failed to delete category')
     },
   })
+
+  if (!selectedHouseholdId) {
+    return (
+      <div className="container py-8">
+        <Card>
+          <CardHeader>
+            <CardTitle>No Household Selected</CardTitle>
+            <CardDescription>
+              Please select or create a household first to manage categories
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button asChild>
+              <Link to="/households">Go to Households</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
 
   if (isLoading) {
     return (
@@ -136,12 +143,6 @@ function CategoriesPage() {
   return (
     <div className="container py-8">
       <div className="mb-6">
-        <Button asChild variant="ghost" size="sm" className="mb-4">
-          <Link to="/budgets/$budgetId" params={{ budgetId }}>
-            <ArrowLeftIcon className="mr-2 h-4 w-4" />
-            Back to Budget
-          </Link>
-        </Button>
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold">Categories</h1>
@@ -168,12 +169,13 @@ function CategoriesPage() {
                 onSubmit={async (data) => {
                   createCategory({
                     ...data,
-                    budgetId,
+                    householdId: selectedHouseholdId!,
                     userId,
                   })
                 }}
                 onCancel={() => setCreateDialogOpen(false)}
                 submitLabel="Create Category"
+                budgets={budgets ?? []}
               />
             </DialogContent>
           </Dialog>
@@ -247,13 +249,7 @@ function CategoriesPage() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() =>
-                          setEditingCategory({
-                            id: category.id,
-                            name: category.name,
-                            type: category.type,
-                          })
-                        }
+                        onClick={() => setEditingCategoryId(category.id)}
                       >
                         <PencilIcon className="h-4 w-4" />
                       </Button>
@@ -292,19 +288,20 @@ function CategoriesPage() {
 
       {/* Edit Category Dialog */}
       <Dialog
-        open={!!editingCategory}
-        onOpenChange={(open) => !open && setEditingCategory(null)}
+        open={!!editingCategoryId}
+        onOpenChange={(open) => !open && setEditingCategoryId(null)}
       >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Edit Category</DialogTitle>
-            <DialogDescription>Update category information</DialogDescription>
+            <DialogDescription>Update category information and budget access</DialogDescription>
           </DialogHeader>
           {editingCategory && (
             <CategoryForm
               defaultValues={{
                 name: editingCategory.name,
                 type: editingCategory.type,
+                budgetIds: editingCategory.budgets.map(b => b.budgetId),
               }}
               onSubmit={async (data) => {
                 updateCategory({
@@ -313,8 +310,9 @@ function CategoriesPage() {
                   ...data,
                 })
               }}
-              onCancel={() => setEditingCategory(null)}
+              onCancel={() => setEditingCategoryId(null)}
               submitLabel="Update Category"
+              budgets={budgets ?? []}
             />
           )}
         </DialogContent>

@@ -84,41 +84,7 @@ function BudgetDetailPage() {
         </p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-3">
-        <Card>
-          <CardHeader>
-            <CardTitle>Categories</CardTitle>
-            <CardDescription>Income and expense categories</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="text-4xl font-bold">{budget.categories.length}</div>
-              <Button asChild className="w-full">
-                <Link to="/categories" search={{ budgetId }}>
-                  Manage Categories
-                </Link>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Accounts</CardTitle>
-            <CardDescription>Financial accounts</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="text-4xl font-bold">{budget.accounts.length}</div>
-              <Button asChild className="w-full">
-                <Link to="/accounts" search={{ budgetId }}>
-                  Manage Accounts
-                </Link>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
+      <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle>Transactions</CardTitle>
@@ -135,12 +101,30 @@ function BudgetDetailPage() {
             </div>
           </CardContent>
         </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Bills</CardTitle>
+            <CardDescription>Recurring and one-time bills</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="text-4xl font-bold">{budget._count.bills || 0}</div>
+              <Button asChild className="w-full">
+                <Link to="/bills" search={{ budgetId }}>
+                  Manage Bills
+                </Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       <div className="mt-6">
         <Card>
           <CardHeader>
             <CardTitle>Quick Actions</CardTitle>
+            <CardDescription>Manage your budget data</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-2">
@@ -150,13 +134,18 @@ function BudgetDetailPage() {
                 </Link>
               </Button>
               <Button asChild variant="outline">
-                <Link to="/categories" search={{ budgetId }}>
-                  Add Category
+                <Link to="/bills" search={{ budgetId }}>
+                  Add Bill
                 </Link>
               </Button>
               <Button asChild variant="outline">
-                <Link to="/accounts" search={{ budgetId }}>
-                  Add Account
+                <Link to="/categories">
+                  Manage Categories
+                </Link>
+              </Button>
+              <Button asChild variant="outline">
+                <Link to="/accounts">
+                  Manage Accounts
                 </Link>
               </Button>
             </div>

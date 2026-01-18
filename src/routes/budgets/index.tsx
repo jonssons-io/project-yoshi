@@ -6,6 +6,7 @@ import { createFileRoute, Link } from '@tanstack/react-router'
 import { useUser } from '@clerk/clerk-react'
 import { useTRPC } from '@/integrations/trpc/react'
 import { useQuery, useMutation } from '@tanstack/react-query'
+import { useSelectedHousehold } from '@/hooks/use-selected-household'
 import { BudgetForm } from '@/components/budgets/BudgetForm'
 import { Button } from '@/components/ui/button'
 import {
@@ -45,14 +46,18 @@ function BudgetsPage() {
   } | null>(null)
 
   const trpc = useTRPC()
+  const { selectedHouseholdId } = useSelectedHousehold()
 
   // Use Clerk user ID if available, otherwise use mock ID
   const userId = user?.id ?? MOCK_USER_ID
   const isAuthReady = isLoaded || !user
 
   const { data: budgets, isLoading, refetch, error, status, fetchStatus } = useQuery({
-    ...trpc.budgets.list.queryOptions({ userId }),
-    enabled: isAuthReady,
+    ...trpc.budgets.list.queryOptions({
+      householdId: selectedHouseholdId!,
+      userId,
+    }),
+    enabled: isAuthReady && !!selectedHouseholdId,
   })
 
   // Debug logging
@@ -99,6 +104,26 @@ function BudgetsPage() {
         <div className="flex items-center justify-center">
           <p className="text-muted-foreground">Loading user...</p>
         </div>
+      </div>
+    )
+  }
+
+  if (!selectedHouseholdId) {
+    return (
+      <div className="container py-8">
+        <Card>
+          <CardHeader>
+            <CardTitle>No Household Selected</CardTitle>
+            <CardDescription>
+              Please select or create a household first to manage budgets
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button asChild>
+              <Link to="/households">Go to Households</Link>
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     )
   }
@@ -164,6 +189,7 @@ function BudgetsPage() {
               onSubmit={async (data) => {
                 createBudget({
                   ...data,
+                  householdId: selectedHouseholdId!,
                   userId,
                 })
               }}

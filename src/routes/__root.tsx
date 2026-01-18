@@ -7,7 +7,15 @@ import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { TanStackDevtools } from '@tanstack/react-devtools'
 import { QueryClientProvider } from '@tanstack/react-query'
 
-import Header from '../components/Header'
+import { AppSidebar } from '../components/app-sidebar'
+import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar'
+import { Separator } from '@/components/ui/separator'
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbList,
+  BreadcrumbPage,
+} from '@/components/ui/breadcrumb'
 
 import ClerkProvider from '../integrations/clerk/provider'
 
@@ -42,7 +50,7 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
         content: 'width=device-width, initial-scale=1',
       },
       {
-        title: 'TanStack Start Starter',
+        title: 'Yoshi Budget App',
       },
     ],
     links: [
@@ -68,8 +76,26 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <QueryClientProvider client={context.queryClient}>
           <TRPCProvider trpcClient={trpcClient} queryClient={context.queryClient}>
             <ClerkProvider>
-              <Header />
-              {children}
+              <SidebarProvider>
+                <AppSidebar />
+                <SidebarInset>
+                  <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
+                    <SidebarTrigger className="-ml-1" />
+                    <Separator
+                      orientation="vertical"
+                      className="mr-2 data-[orientation=vertical]:h-4"
+                    />
+                    <Breadcrumb>
+                      <BreadcrumbList>
+                        <BreadcrumbItem>
+                          <BreadcrumbPage>Yoshi Budget App</BreadcrumbPage>
+                        </BreadcrumbItem>
+                      </BreadcrumbList>
+                    </Breadcrumb>
+                  </header>
+                  {children}
+                </SidebarInset>
+              </SidebarProvider>
               <TanStackDevtools
                 config={{
                   position: 'bottom-right',

@@ -6,39 +6,49 @@ import type { TRPCRouterRecord } from '@trpc/server'
 
 /**
  * Category router for managing income/expense categories
+ * Categories are household-level, shared across all household members
  */
 export const categoriesRouter = {
   /**
-   * List all categories for a budget
+   * List all categories for a household
    */
   list: protectedProcedure
     .input(
       z.object({
-        budgetId: z.string(),
-        userId: z.string(),
+        householdId: z.string(),
+        userId: z.string(), // For access verification
         type: z.enum(['INCOME', 'EXPENSE']).optional(),
+        budgetId: z.string().optional(), // Optional: filter by budget linkage
       }),
     )
     .query(async ({ ctx, input }) => {
-      // Verify budget ownership
-      const budget = await ctx.prisma.budget.findFirst({
+      // Verify user has access to this household
+      const householdUser = await ctx.prisma.householdUser.findFirst({
         where: {
-          id: input.budgetId,
+          householdId: input.householdId,
           userId: input.userId,
         },
       })
 
-      if (!budget) {
+      if (!householdUser) {
         throw new TRPCError({
-          code: 'NOT_FOUND',
-          message: 'Budget not found',
+          code: 'FORBIDDEN',
+          message: 'You do not have access to this household',
         })
       }
 
       return ctx.prisma.category.findMany({
         where: {
-          budgetId: input.budgetId,
+          householdId: input.householdId,
           ...(input.type && { type: input.type }),
+          // If budgetId provided, only return categories linked to that budget
+          ...(input.budgetId && {
+            budgets: {
+              some: {
+                budgetId: input.budgetId,
+              },
+            },
+          }),
         },
         orderBy: {
           name: 'asc',
@@ -47,6 +57,7 @@ export const categoriesRouter = {
           _count: {
             select: {
               transactions: true,
+              budgets: true,
             },
           },
         },
@@ -60,22 +71,23 @@ export const categoriesRouter = {
     .input(
       z.object({
         id: z.string(),
-        userId: z.string(),
+        userId: z.string(), // For access verification
       }),
     )
     .query(async ({ ctx, input }) => {
-      const category = await ctx.prisma.category.findFirst({
-        where: {
-          id: input.id,
-          budget: {
-            userId: input.userId,
-          },
-        },
+      const category = await ctx.prisma.category.findUnique({
+        where: { id: input.id },
         include: {
-          budget: true,
+          household: true,
+          budgets: {
+            select: {
+              budgetId: true,
+            },
+          },
           _count: {
             select: {
               transactions: true,
+              budgets: true,
             },
           },
         },
@@ -85,6 +97,21 @@ export const categoriesRouter = {
         throw new TRPCError({
           code: 'NOT_FOUND',
           message: 'Category not found',
+        })
+      }
+
+      // Verify user has access to this household
+      const householdUser = await ctx.prisma.householdUser.findFirst({
+        where: {
+          householdId: category.householdId,
+          userId: input.userId,
+        },
+      })
+
+      if (!householdUser) {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'You do not have access to this category',
         })
       }
 
@@ -97,33 +124,66 @@ export const categoriesRouter = {
   create: protectedProcedure
     .input(
       z.object({
-        budgetId: z.string(),
-        userId: z.string(),
+        householdId: z.string(),
+        userId: z.string(), // For access verification
         name: z.string().min(1, 'Name is required'),
         type: z.enum(['INCOME', 'EXPENSE']),
+        budgetIds: z.array(z.string()).optional(), // Optional: specific budgets to link (defaults to all)
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      // Verify budget ownership
-      const budget = await ctx.prisma.budget.findFirst({
+      // Verify user has access to this household
+      const householdUser = await ctx.prisma.householdUser.findFirst({
         where: {
-          id: input.budgetId,
+          householdId: input.householdId,
           userId: input.userId,
         },
       })
 
-      if (!budget) {
+      if (!householdUser) {
         throw new TRPCError({
-          code: 'NOT_FOUND',
-          message: 'Budget not found',
+          code: 'FORBIDDEN',
+          message: 'You do not have access to this household',
         })
       }
 
+      // Determine which budgets to link
+      let budgetIdsToLink = input.budgetIds
+
+      // If budgetIds not provided at all (undefined), default to all household budgets (opt-out model)
+      // If budgetIds is an empty array [], it means user explicitly unchecked all (orphaned)
+      if (budgetIdsToLink === undefined) {
+        const budgets = await ctx.prisma.budget.findMany({
+          where: {
+            householdId: input.householdId,
+          },
+          select: {
+            id: true,
+          },
+        })
+        budgetIdsToLink = budgets.map(b => b.id)
+      }
+
+      // Create category and link to specified budgets (can be empty array for orphaned)
       return ctx.prisma.category.create({
         data: {
           name: input.name,
           type: input.type,
-          budgetId: input.budgetId,
+          householdId: input.householdId,
+          ...(budgetIdsToLink.length > 0 && {
+            budgets: {
+              create: budgetIdsToLink.map(budgetId => ({
+                budgetId,
+              })),
+            },
+          }),
+        },
+        include: {
+          _count: {
+            select: {
+              budgets: true,
+            },
+          },
         },
       })
     }),
@@ -135,19 +195,17 @@ export const categoriesRouter = {
     .input(
       z.object({
         id: z.string(),
-        userId: z.string(),
+        userId: z.string(), // For access verification
         name: z.string().min(1, 'Name is required').optional(),
         type: z.enum(['INCOME', 'EXPENSE']).optional(),
+        budgetIds: z.array(z.string()).optional(), // Optional: update budget links
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      // Verify ownership through budget
-      const category = await ctx.prisma.category.findFirst({
-        where: {
-          id: input.id,
-          budget: {
-            userId: input.userId,
-          },
+      const category = await ctx.prisma.category.findUnique({
+        where: { id: input.id },
+        include: {
+          budgets: true,
         },
       })
 
@@ -158,11 +216,74 @@ export const categoriesRouter = {
         })
       }
 
+      // Verify user has access to this household
+      const householdUser = await ctx.prisma.householdUser.findFirst({
+        where: {
+          householdId: category.householdId,
+          userId: input.userId,
+        },
+      })
+
+      if (!householdUser) {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'You do not have access to this category',
+        })
+      }
+
+      // If budgetIds provided, sync budget links
+      if (input.budgetIds !== undefined) {
+        const currentBudgetIds = category.budgets.map(b => b.budgetId)
+        const newBudgetIds = input.budgetIds
+
+        // Find budgets to add and remove
+        const toAdd = newBudgetIds.filter(id => !currentBudgetIds.includes(id))
+        const toRemove = currentBudgetIds.filter(id => !newBudgetIds.includes(id))
+
+        // Build budget update operations
+        const budgetOperations: any = {}
+        if (toRemove.length > 0) {
+          budgetOperations.deleteMany = {
+            budgetId: { in: toRemove },
+          }
+        }
+        if (toAdd.length > 0) {
+          budgetOperations.create = toAdd.map(budgetId => ({ budgetId }))
+        }
+
+        // Update category with new budget links
+        return ctx.prisma.category.update({
+          where: { id: input.id },
+          data: {
+            name: input.name,
+            type: input.type,
+            ...(Object.keys(budgetOperations).length > 0 && {
+              budgets: budgetOperations,
+            }),
+          },
+          include: {
+            _count: {
+              select: {
+                budgets: true,
+              },
+            },
+          },
+        })
+      }
+
+      // Regular update without budget changes
       return ctx.prisma.category.update({
         where: { id: input.id },
         data: {
           name: input.name,
           type: input.type,
+        },
+        include: {
+          _count: {
+            select: {
+              budgets: true,
+            },
+          },
         },
       })
     }),
@@ -175,18 +296,12 @@ export const categoriesRouter = {
     .input(
       z.object({
         id: z.string(),
-        userId: z.string(),
+        userId: z.string(), // For access verification
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      // Verify ownership through budget
-      const category = await ctx.prisma.category.findFirst({
-        where: {
-          id: input.id,
-          budget: {
-            userId: input.userId,
-          },
-        },
+      const category = await ctx.prisma.category.findUnique({
+        where: { id: input.id },
         include: {
           _count: {
             select: {
@@ -200,6 +315,21 @@ export const categoriesRouter = {
         throw new TRPCError({
           code: 'NOT_FOUND',
           message: 'Category not found',
+        })
+      }
+
+      // Verify user has access to this household
+      const householdUser = await ctx.prisma.householdUser.findFirst({
+        where: {
+          householdId: category.householdId,
+          userId: input.userId,
+        },
+      })
+
+      if (!householdUser) {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'You do not have access to this category',
         })
       }
 

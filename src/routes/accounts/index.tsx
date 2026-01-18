@@ -6,6 +6,7 @@ import { createFileRoute, Link } from '@tanstack/react-router'
 import { useUser } from '@clerk/clerk-react'
 import { useTRPC } from '@/integrations/trpc/react'
 import { useQuery, useMutation } from '@tanstack/react-query'
+import { useSelectedHousehold } from '@/hooks/use-selected-household'
 import { AccountForm } from '@/components/accounts/AccountForm'
 import { Button } from '@/components/ui/button'
 import {
@@ -32,17 +33,11 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { useState } from 'react'
-import { PlusIcon, TrashIcon, PencilIcon, ArrowLeftIcon } from 'lucide-react'
+import { PlusIcon, TrashIcon, PencilIcon } from 'lucide-react'
 import { z } from 'zod'
-
-// Search params schema
-const accountsSearchSchema = z.object({
-  budgetId: z.string().optional(),
-})
 
 export const Route = createFileRoute('/accounts/')({
   component: AccountsPage,
-  validateSearch: (search) => accountsSearchSchema.parse(search),
 })
 
 // TODO: Remove this once Clerk is properly configured
@@ -139,46 +134,38 @@ function AccountRow({
 }
 
 function AccountsPage() {
-  const { budgetId } = Route.useSearch()
   const { user } = useUser()
+  const { selectedHouseholdId } = useSelectedHousehold()
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
-  const [editingAccount, setEditingAccount] = useState<{
-    id: string
-    name: string
-    externalIdentifier: string | null
-    initialBalance: number
-  } | null>(null)
+  const [editingAccountId, setEditingAccountId] = useState<string | null>(null)
 
   const trpc = useTRPC()
   const userId = user?.id ?? MOCK_USER_ID
 
-  // If no budgetId, redirect to budgets page
-  if (!budgetId) {
-    return (
-      <div className="container py-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>No Budget Selected</CardTitle>
-            <CardDescription>
-              Please select a budget to manage accounts
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button asChild>
-              <Link to="/budgets">Go to Budgets</Link>
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
+  // Fetch full account details when editing (including budget links)
+  const { data: editingAccount } = useQuery({
+    ...trpc.accounts.getById.queryOptions({
+      id: editingAccountId!,
+      userId,
+    }),
+    enabled: !!editingAccountId,
+  })
 
   const { data: accounts, isLoading, refetch } = useQuery({
     ...trpc.accounts.list.queryOptions({
-      budgetId,
+      householdId: selectedHouseholdId!,
       userId,
     }),
-    enabled: true,
+    enabled: !!selectedHouseholdId,
+  })
+
+  // Fetch budgets for linking when creating accounts
+  const { data: budgets } = useQuery({
+    ...trpc.budgets.list.queryOptions({
+      householdId: selectedHouseholdId!,
+      userId,
+    }),
+    enabled: !!selectedHouseholdId,
   })
 
   const { mutate: createAccount } = useMutation({
@@ -193,7 +180,7 @@ function AccountsPage() {
     ...trpc.accounts.update.mutationOptions(),
     onSuccess: () => {
       refetch()
-      setEditingAccount(null)
+      setEditingAccountId(null)
     },
   })
 
@@ -206,6 +193,26 @@ function AccountsPage() {
       alert(error instanceof Error ? error.message : 'Failed to delete account')
     },
   })
+
+  if (!selectedHouseholdId) {
+    return (
+      <div className="container py-8">
+        <Card>
+          <CardHeader>
+            <CardTitle>No Household Selected</CardTitle>
+            <CardDescription>
+              Please select or create a household first to manage accounts
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button asChild>
+              <Link to="/households">Go to Households</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
 
   if (isLoading) {
     return (
@@ -227,12 +234,6 @@ function AccountsPage() {
   return (
     <div className="container py-8">
       <div className="mb-6">
-        <Button asChild variant="ghost" size="sm" className="mb-4">
-          <Link to="/budgets/$budgetId" params={{ budgetId }}>
-            <ArrowLeftIcon className="mr-2 h-4 w-4" />
-            Back to Budget
-          </Link>
-        </Button>
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold">Accounts</h1>
@@ -259,12 +260,13 @@ function AccountsPage() {
                 onSubmit={async (data) => {
                   createAccount({
                     ...data,
-                    budgetId,
+                    householdId: selectedHouseholdId!,
                     userId,
                   })
                 }}
                 onCancel={() => setCreateDialogOpen(false)}
                 submitLabel="Create Account"
+                budgets={budgets ?? []}
               />
             </DialogContent>
           </Dialog>
@@ -305,7 +307,7 @@ function AccountsPage() {
                   key={account.id}
                   account={account}
                   userId={userId}
-                  onEdit={setEditingAccount}
+                  onEdit={(acc) => setEditingAccountId(acc.id)}
                   onDelete={deleteAccount}
                   formatCurrency={formatCurrency}
                 />
@@ -317,13 +319,13 @@ function AccountsPage() {
 
       {/* Edit Account Dialog */}
       <Dialog
-        open={!!editingAccount}
-        onOpenChange={(open) => !open && setEditingAccount(null)}
+        open={!!editingAccountId}
+        onOpenChange={(open) => !open && setEditingAccountId(null)}
       >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Edit Account</DialogTitle>
-            <DialogDescription>Update account information</DialogDescription>
+            <DialogDescription>Update account information and budget access</DialogDescription>
           </DialogHeader>
           {editingAccount && (
             <AccountForm
@@ -331,6 +333,7 @@ function AccountsPage() {
                 name: editingAccount.name,
                 externalIdentifier: editingAccount.externalIdentifier ?? '',
                 initialBalance: editingAccount.initialBalance,
+                budgetIds: editingAccount.budgets.map(b => b.budgetId),
               }}
               onSubmit={async (data) => {
                 updateAccount({
@@ -339,8 +342,9 @@ function AccountsPage() {
                   ...data,
                 })
               }}
-              onCancel={() => setEditingAccount(null)}
+              onCancel={() => setEditingAccountId(null)}
               submitLabel="Update Account"
+              budgets={budgets ?? []}
             />
           )}
         </DialogContent>

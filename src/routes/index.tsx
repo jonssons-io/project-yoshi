@@ -6,6 +6,7 @@ import { createFileRoute, Link } from '@tanstack/react-router'
 import { useUser } from '@clerk/clerk-react'
 import { useTRPC } from '@/integrations/trpc/react'
 import { useQuery } from '@tanstack/react-query'
+import { useSelectedHousehold } from '@/hooks/use-selected-household'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -41,6 +42,7 @@ function Dashboard() {
   const { user } = useUser()
   const userId = user?.id ?? MOCK_USER_ID
   const trpc = useTRPC()
+  const { selectedHouseholdId } = useSelectedHousehold()
 
   // Date range state
   const [quickSelection, setQuickSelection] = useState<'current-month' | 'custom'>(
@@ -75,22 +77,25 @@ function Dashboard() {
     }
   }, [quickSelection, customStartDate, customEndDate])
 
-  // Fetch all budgets
+  // Fetch all budgets for the selected household
   const { data: budgets, isLoading: budgetsLoading } = useQuery({
-    ...trpc.budgets.list.queryOptions({ userId }),
-    enabled: true,
+    ...trpc.budgets.list.queryOptions({
+      householdId: selectedHouseholdId!,
+      userId,
+    }),
+    enabled: !!selectedHouseholdId,
   })
 
   // Use the first budget for now (later can add budget selector)
   const activeBudget = budgets?.[0]
 
-  // Fetch accounts for the active budget
+  // Fetch accounts for the selected household
   const { data: accounts, isLoading: accountsLoading } = useQuery({
     ...trpc.accounts.list.queryOptions({
-      budgetId: activeBudget?.id ?? '',
+      householdId: selectedHouseholdId!,
       userId,
     }),
-    enabled: !!activeBudget,
+    enabled: !!selectedHouseholdId,
   })
 
   // Fetch transactions for the date range

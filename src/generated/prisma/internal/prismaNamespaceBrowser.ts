@@ -51,10 +51,15 @@ export const AnyNull = runtime.AnyNull
 
 
 export const ModelName = {
+  Household: 'Household',
+  HouseholdUser: 'HouseholdUser',
   Budget: 'Budget',
   Category: 'Category',
   Account: 'Account',
-  Transaction: 'Transaction'
+  BudgetCategory: 'BudgetCategory',
+  BudgetAccount: 'BudgetAccount',
+  Transaction: 'Transaction',
+  Bill: 'Bill'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -73,11 +78,30 @@ export const TransactionIsolationLevel = {
 export type TransactionIsolationLevel = (typeof TransactionIsolationLevel)[keyof typeof TransactionIsolationLevel]
 
 
+export const HouseholdScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  createdAt: 'createdAt'
+} as const
+
+export type HouseholdScalarFieldEnum = (typeof HouseholdScalarFieldEnum)[keyof typeof HouseholdScalarFieldEnum]
+
+
+export const HouseholdUserScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  householdId: 'householdId',
+  joinedAt: 'joinedAt'
+} as const
+
+export type HouseholdUserScalarFieldEnum = (typeof HouseholdUserScalarFieldEnum)[keyof typeof HouseholdUserScalarFieldEnum]
+
+
 export const BudgetScalarFieldEnum = {
   id: 'id',
   name: 'name',
   startDate: 'startDate',
-  userId: 'userId',
+  householdId: 'householdId',
   createdAt: 'createdAt'
 } as const
 
@@ -88,7 +112,8 @@ export const CategoryScalarFieldEnum = {
   id: 'id',
   name: 'name',
   type: 'type',
-  budgetId: 'budgetId'
+  householdId: 'householdId',
+  createdAt: 'createdAt'
 } as const
 
 export type CategoryScalarFieldEnum = (typeof CategoryScalarFieldEnum)[keyof typeof CategoryScalarFieldEnum]
@@ -99,11 +124,29 @@ export const AccountScalarFieldEnum = {
   name: 'name',
   externalIdentifier: 'externalIdentifier',
   initialBalance: 'initialBalance',
-  budgetId: 'budgetId',
+  householdId: 'householdId',
   createdAt: 'createdAt'
 } as const
 
 export type AccountScalarFieldEnum = (typeof AccountScalarFieldEnum)[keyof typeof AccountScalarFieldEnum]
+
+
+export const BudgetCategoryScalarFieldEnum = {
+  id: 'id',
+  budgetId: 'budgetId',
+  categoryId: 'categoryId'
+} as const
+
+export type BudgetCategoryScalarFieldEnum = (typeof BudgetCategoryScalarFieldEnum)[keyof typeof BudgetCategoryScalarFieldEnum]
+
+
+export const BudgetAccountScalarFieldEnum = {
+  id: 'id',
+  budgetId: 'budgetId',
+  accountId: 'accountId'
+} as const
+
+export type BudgetAccountScalarFieldEnum = (typeof BudgetAccountScalarFieldEnum)[keyof typeof BudgetAccountScalarFieldEnum]
 
 
 export const TransactionScalarFieldEnum = {
@@ -115,10 +158,30 @@ export const TransactionScalarFieldEnum = {
   categoryId: 'categoryId',
   accountId: 'accountId',
   budgetId: 'budgetId',
+  billId: 'billId',
   createdAt: 'createdAt'
 } as const
 
 export type TransactionScalarFieldEnum = (typeof TransactionScalarFieldEnum)[keyof typeof TransactionScalarFieldEnum]
+
+
+export const BillScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  recipient: 'recipient',
+  accountId: 'accountId',
+  startDate: 'startDate',
+  recurrenceType: 'recurrenceType',
+  customIntervalDays: 'customIntervalDays',
+  estimatedAmount: 'estimatedAmount',
+  lastPaymentDate: 'lastPaymentDate',
+  categoryId: 'categoryId',
+  budgetId: 'budgetId',
+  isArchived: 'isArchived',
+  createdAt: 'createdAt'
+} as const
+
+export type BillScalarFieldEnum = (typeof BillScalarFieldEnum)[keyof typeof BillScalarFieldEnum]
 
 
 export const SortOrder = {

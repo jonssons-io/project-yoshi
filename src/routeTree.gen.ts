@@ -11,9 +11,11 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as TransactionsIndexRouteImport } from './routes/transactions/index'
+import { Route as HouseholdsIndexRouteImport } from './routes/households/index'
 import { Route as DemoIndexRouteImport } from './routes/demo/index'
 import { Route as CategoriesIndexRouteImport } from './routes/categories/index'
 import { Route as BudgetsIndexRouteImport } from './routes/budgets/index'
+import { Route as BillsIndexRouteImport } from './routes/bills/index'
 import { Route as AccountsIndexRouteImport } from './routes/accounts/index'
 import { Route as DemoTrpcTodoRouteImport } from './routes/demo/trpc-todo'
 import { Route as DemoTanstackQueryRouteImport } from './routes/demo/tanstack-query'
@@ -45,6 +47,11 @@ const TransactionsIndexRoute = TransactionsIndexRouteImport.update({
   path: '/transactions/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HouseholdsIndexRoute = HouseholdsIndexRouteImport.update({
+  id: '/households/',
+  path: '/households/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DemoIndexRoute = DemoIndexRouteImport.update({
   id: '/demo/',
   path: '/demo/',
@@ -58,6 +65,11 @@ const CategoriesIndexRoute = CategoriesIndexRouteImport.update({
 const BudgetsIndexRoute = BudgetsIndexRouteImport.update({
   id: '/budgets/',
   path: '/budgets/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BillsIndexRoute = BillsIndexRouteImport.update({
+  id: '/bills/',
+  path: '/bills/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AccountsIndexRoute = AccountsIndexRouteImport.update({
@@ -172,9 +184,11 @@ export interface FileRoutesByFullPath {
   '/demo/tanstack-query': typeof DemoTanstackQueryRoute
   '/demo/trpc-todo': typeof DemoTrpcTodoRoute
   '/accounts/': typeof AccountsIndexRoute
+  '/bills/': typeof BillsIndexRoute
   '/budgets/': typeof BudgetsIndexRoute
   '/categories/': typeof CategoriesIndexRoute
   '/demo/': typeof DemoIndexRoute
+  '/households/': typeof HouseholdsIndexRoute
   '/transactions/': typeof TransactionsIndexRoute
   '/api/trpc/$': typeof ApiTrpcSplatRoute
   '/demo/api/names': typeof DemoApiNamesRoute
@@ -199,9 +213,11 @@ export interface FileRoutesByTo {
   '/demo/tanstack-query': typeof DemoTanstackQueryRoute
   '/demo/trpc-todo': typeof DemoTrpcTodoRoute
   '/accounts': typeof AccountsIndexRoute
+  '/bills': typeof BillsIndexRoute
   '/budgets': typeof BudgetsIndexRoute
   '/categories': typeof CategoriesIndexRoute
   '/demo': typeof DemoIndexRoute
+  '/households': typeof HouseholdsIndexRoute
   '/transactions': typeof TransactionsIndexRoute
   '/api/trpc/$': typeof ApiTrpcSplatRoute
   '/demo/api/names': typeof DemoApiNamesRoute
@@ -227,9 +243,11 @@ export interface FileRoutesById {
   '/demo/tanstack-query': typeof DemoTanstackQueryRoute
   '/demo/trpc-todo': typeof DemoTrpcTodoRoute
   '/accounts/': typeof AccountsIndexRoute
+  '/bills/': typeof BillsIndexRoute
   '/budgets/': typeof BudgetsIndexRoute
   '/categories/': typeof CategoriesIndexRoute
   '/demo/': typeof DemoIndexRoute
+  '/households/': typeof HouseholdsIndexRoute
   '/transactions/': typeof TransactionsIndexRoute
   '/api/trpc/$': typeof ApiTrpcSplatRoute
   '/demo/api/names': typeof DemoApiNamesRoute
@@ -256,9 +274,11 @@ export interface FileRouteTypes {
     | '/demo/tanstack-query'
     | '/demo/trpc-todo'
     | '/accounts/'
+    | '/bills/'
     | '/budgets/'
     | '/categories/'
     | '/demo/'
+    | '/households/'
     | '/transactions/'
     | '/api/trpc/$'
     | '/demo/api/names'
@@ -283,9 +303,11 @@ export interface FileRouteTypes {
     | '/demo/tanstack-query'
     | '/demo/trpc-todo'
     | '/accounts'
+    | '/bills'
     | '/budgets'
     | '/categories'
     | '/demo'
+    | '/households'
     | '/transactions'
     | '/api/trpc/$'
     | '/demo/api/names'
@@ -310,9 +332,11 @@ export interface FileRouteTypes {
     | '/demo/tanstack-query'
     | '/demo/trpc-todo'
     | '/accounts/'
+    | '/bills/'
     | '/budgets/'
     | '/categories/'
     | '/demo/'
+    | '/households/'
     | '/transactions/'
     | '/api/trpc/$'
     | '/demo/api/names'
@@ -338,9 +362,11 @@ export interface RootRouteChildren {
   DemoTanstackQueryRoute: typeof DemoTanstackQueryRoute
   DemoTrpcTodoRoute: typeof DemoTrpcTodoRoute
   AccountsIndexRoute: typeof AccountsIndexRoute
+  BillsIndexRoute: typeof BillsIndexRoute
   BudgetsIndexRoute: typeof BudgetsIndexRoute
   CategoriesIndexRoute: typeof CategoriesIndexRoute
   DemoIndexRoute: typeof DemoIndexRoute
+  HouseholdsIndexRoute: typeof HouseholdsIndexRoute
   TransactionsIndexRoute: typeof TransactionsIndexRoute
   ApiTrpcSplatRoute: typeof ApiTrpcSplatRoute
   DemoApiNamesRoute: typeof DemoApiNamesRoute
@@ -371,6 +397,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TransactionsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/households/': {
+      id: '/households/'
+      path: '/households'
+      fullPath: '/households/'
+      preLoaderRoute: typeof HouseholdsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/demo/': {
       id: '/demo/'
       path: '/demo'
@@ -390,6 +423,13 @@ declare module '@tanstack/react-router' {
       path: '/budgets'
       fullPath: '/budgets/'
       preLoaderRoute: typeof BudgetsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/bills/': {
+      id: '/bills/'
+      path: '/bills'
+      fullPath: '/bills/'
+      preLoaderRoute: typeof BillsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/accounts/': {
@@ -546,9 +586,11 @@ const rootRouteChildren: RootRouteChildren = {
   DemoTanstackQueryRoute: DemoTanstackQueryRoute,
   DemoTrpcTodoRoute: DemoTrpcTodoRoute,
   AccountsIndexRoute: AccountsIndexRoute,
+  BillsIndexRoute: BillsIndexRoute,
   BudgetsIndexRoute: BudgetsIndexRoute,
   CategoriesIndexRoute: CategoriesIndexRoute,
   DemoIndexRoute: DemoIndexRoute,
+  HouseholdsIndexRoute: HouseholdsIndexRoute,
   TransactionsIndexRoute: TransactionsIndexRoute,
   ApiTrpcSplatRoute: ApiTrpcSplatRoute,
   DemoApiNamesRoute: DemoApiNamesRoute,

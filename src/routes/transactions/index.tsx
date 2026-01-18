@@ -6,6 +6,8 @@ import { createFileRoute, Link } from '@tanstack/react-router'
 import { useUser } from '@clerk/clerk-react'
 import { useTRPC } from '@/integrations/trpc/react'
 import { useQuery, useMutation } from '@tanstack/react-query'
+import { useSelectedBudget } from '@/hooks/use-selected-budget'
+import { useSelectedHousehold } from '@/hooks/use-selected-household'
 import { TransactionForm } from '@/components/transactions/TransactionForm'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -53,6 +55,7 @@ import { z } from 'zod'
 // Search params schema
 const transactionsSearchSchema = z.object({
   budgetId: z.string().optional(),
+  createFromBill: z.string().optional(), // Bill ID to create transaction from
 })
 
 export const Route = createFileRoute('/transactions/')({
@@ -64,7 +67,10 @@ export const Route = createFileRoute('/transactions/')({
 const MOCK_USER_ID = 'demo-user-123'
 
 function TransactionsPage() {
-  const { budgetId } = Route.useSearch()
+  const { budgetId: urlBudgetId, createFromBill } = Route.useSearch()
+  const { selectedBudgetId } = useSelectedBudget()
+  const { selectedHouseholdId } = useSelectedHousehold()
+  const budgetId = urlBudgetId || selectedBudgetId
   const { user } = useUser()
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [editingTransaction, setEditingTransaction] = useState<{
@@ -81,7 +87,7 @@ function TransactionsPage() {
   const trpc = useTRPC()
   const userId = user?.id ?? MOCK_USER_ID
 
-  // If no budgetId, redirect to budgets page
+  // If no budgetId, show message to select one
   if (!budgetId) {
     return (
       <div className="container py-8">
@@ -113,18 +119,36 @@ function TransactionsPage() {
 
   const { data: categories } = useQuery({
     ...trpc.categories.list.queryOptions({
-      budgetId,
+      householdId: selectedHouseholdId!,
       userId,
+      budgetId: budgetId, // Filter by budget-linked categories only
     }),
-    enabled: true,
+    enabled: !!selectedHouseholdId && !!budgetId,
   })
 
   const { data: accounts } = useQuery({
     ...trpc.accounts.list.queryOptions({
-      budgetId,
+      householdId: selectedHouseholdId!,
       userId,
+      budgetId: budgetId, // Filter by budget-linked accounts only
+    }),
+    enabled: !!selectedHouseholdId && !!budgetId,
+  })
+
+  const { data: bills } = useQuery({
+    ...trpc.bills.list.queryOptions({
+      budgetId,
+      includeArchived: false,
     }),
     enabled: true,
+  })
+
+  // Get bill details if creating from bill
+  const { data: selectedBill } = useQuery({
+    ...trpc.bills.getById.queryOptions({
+      id: createFromBill!,
+    }),
+    enabled: !!createFromBill,
   })
 
   const { mutate: createTransaction } = useMutation({
@@ -133,6 +157,10 @@ function TransactionsPage() {
       refetch()
       setCreateDialogOpen(false)
     },
+  })
+
+  const { mutate: createBill } = useMutation({
+    ...trpc.bills.create.mutationOptions(),
   })
 
   const { mutate: updateTransaction } = useMutation({
@@ -220,9 +248,49 @@ function TransactionsPage() {
                 <TransactionForm
                   categories={categories}
                   accounts={accounts}
-                  onSubmit={async (data) => {
+                  bills={bills}
+                  preSelectedBillId={createFromBill}
+                  defaultValues={
+                    selectedBill
+                      ? {
+                          name: selectedBill.name,
+                          amount: selectedBill.estimatedAmount,
+                          date: selectedBill.nextOccurrence
+                            ? new Date(selectedBill.nextOccurrence)
+                            : new Date(),
+                          categoryId: selectedBill.categoryId,
+                          accountId: selectedBill.accountId,
+                          notes: `Payment to ${selectedBill.recipient}`,
+                        }
+                      : undefined
+                  }
+                  onSubmit={async (data, billData) => {
+                    let finalBillId = data.billId
+
+                    // If creating a bill, create it first
+                    if (billData) {
+                      const newBill = await new Promise<string>((resolve, reject) => {
+                        createBill(
+                          {
+                            ...billData,
+                            name: data.name,
+                            estimatedAmount: data.amount,
+                            accountId: data.accountId,
+                            categoryId: data.categoryId,
+                            budgetId,
+                          },
+                          {
+                            onSuccess: (bill) => resolve(bill.id),
+                            onError: reject,
+                          },
+                        )
+                      })
+                      finalBillId = newBill
+                    }
+
                     createTransaction({
                       ...data,
+                      billId: finalBillId || undefined,
                       budgetId,
                       userId,
                     })
@@ -459,6 +527,8 @@ function TransactionsPage() {
               }}
               categories={categories}
               accounts={accounts}
+              bills={bills}
+              isEditing={true}
               onSubmit={async (data) => {
                 updateTransaction({
                   id: editingTransaction.id,

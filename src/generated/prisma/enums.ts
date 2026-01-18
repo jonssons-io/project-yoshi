@@ -15,3 +15,15 @@ export const CategoryType = {
 } as const
 
 export type CategoryType = (typeof CategoryType)[keyof typeof CategoryType]
+
+
+export const RecurrenceType = {
+  NONE: 'NONE',
+  WEEKLY: 'WEEKLY',
+  MONTHLY: 'MONTHLY',
+  QUARTERLY: 'QUARTERLY',
+  YEARLY: 'YEARLY',
+  CUSTOM: 'CUSTOM'
+} as const
+
+export type RecurrenceType = (typeof RecurrenceType)[keyof typeof RecurrenceType]

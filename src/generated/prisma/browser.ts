@@ -18,6 +18,16 @@ export { Prisma }
 export * as $Enums from './enums.ts'
 export * from './enums.ts';
 /**
+ * Model Household
+ * 
+ */
+export type Household = Prisma.HouseholdModel
+/**
+ * Model HouseholdUser
+ * 
+ */
+export type HouseholdUser = Prisma.HouseholdUserModel
+/**
  * Model Budget
  * 
  */
@@ -33,7 +43,22 @@ export type Category = Prisma.CategoryModel
  */
 export type Account = Prisma.AccountModel
 /**
+ * Model BudgetCategory
+ * 
+ */
+export type BudgetCategory = Prisma.BudgetCategoryModel
+/**
+ * Model BudgetAccount
+ * 
+ */
+export type BudgetAccount = Prisma.BudgetAccountModel
+/**
  * Model Transaction
  * 
  */
 export type Transaction = Prisma.TransactionModel
+/**
+ * Model Bill
+ * 
+ */
+export type Bill = Prisma.BillModel

@@ -29,8 +29,8 @@ export * from "./enums.ts"
  * @example
  * ```
  * const prisma = new PrismaClient()
- * // Fetch zero or more Budgets
- * const budgets = await prisma.budget.findMany()
+ * // Fetch zero or more Households
+ * const households = await prisma.household.findMany()
  * ```
  * 
  * Read more in our [docs](https://pris.ly/d/client).
@@ -39,6 +39,16 @@ export const PrismaClient = $Class.getPrismaClientClass()
 export type PrismaClient<LogOpts extends Prisma.LogLevel = never, OmitOpts extends Prisma.PrismaClientOptions["omit"] = Prisma.PrismaClientOptions["omit"], ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = $Class.PrismaClient<LogOpts, OmitOpts, ExtArgs>
 export { Prisma }
 
+/**
+ * Model Household
+ * 
+ */
+export type Household = Prisma.HouseholdModel
+/**
+ * Model HouseholdUser
+ * 
+ */
+export type HouseholdUser = Prisma.HouseholdUserModel
 /**
  * Model Budget
  * 
@@ -55,7 +65,22 @@ export type Category = Prisma.CategoryModel
  */
 export type Account = Prisma.AccountModel
 /**
+ * Model BudgetCategory
+ * 
+ */
+export type BudgetCategory = Prisma.BudgetCategoryModel
+/**
+ * Model BudgetAccount
+ * 
+ */
+export type BudgetAccount = Prisma.BudgetAccountModel
+/**
  * Model Transaction
  * 
  */
 export type Transaction = Prisma.TransactionModel
+/**
+ * Model Bill
+ * 
+ */
+export type Bill = Prisma.BillModel

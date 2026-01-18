@@ -8,8 +8,13 @@
  *
  * 🟢 You can import this file directly.
  */
+export type * from './models/Household.ts'
+export type * from './models/HouseholdUser.ts'
 export type * from './models/Budget.ts'
 export type * from './models/Category.ts'
 export type * from './models/Account.ts'
+export type * from './models/BudgetCategory.ts'
+export type * from './models/BudgetAccount.ts'
 export type * from './models/Transaction.ts'
+export type * from './models/Bill.ts'
 export type * from './commonInputTypes.ts'

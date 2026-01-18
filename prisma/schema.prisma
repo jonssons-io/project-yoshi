@@ -12,68 +12,178 @@ enum CategoryType {
   EXPENSE
 }
 
-model Budget {
-  id          String        @id @default(cuid())
-  name        String
-  startDate   DateTime
-  userId      String        // Clerk user ID
-  createdAt   DateTime      @default(now())
+enum RecurrenceType {
+  NONE
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  YEARLY
+  CUSTOM
+}
+
+// A Household is the top-level organizational unit
+// Multiple users can belong to a household and share budgets, accounts, and categories
+model Household {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
 
   // Relations
-  categories  Category[]
-  transactions Transaction[]
-  accounts    Account[]
+  users      HouseholdUser[]
+  budgets    Budget[]
+  categories Category[]
+  accounts   Account[]
 
+  @@index([createdAt])
+}
+
+// Join table for many-to-many relationship between Users and Households
+// A user can belong to multiple households
+model HouseholdUser {
+  id          String   @id @default(cuid())
+  userId      String   // Clerk user ID
+  householdId String
+  joinedAt    DateTime @default(now())
+
+  // Relations
+  household Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, householdId])
   @@index([userId])
+  @@index([householdId])
+}
+
+model Budget {
+  id          String   @id @default(cuid())
+  name        String
+  startDate   DateTime
+  householdId String
+  createdAt   DateTime @default(now())
+
+  // Relations
+  household    Household         @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  categories   BudgetCategory[]  // Many-to-many with Category
+  accounts     BudgetAccount[]   // Many-to-many with Account
+  transactions Transaction[]
+  bills        Bill[]
+
+  @@index([householdId])
+  @@index([createdAt])
 }
 
 model Category {
-  id          String        @id @default(cuid())
+  id          String       @id @default(cuid())
   name        String
   type        CategoryType
-  budgetId    String
+  householdId String
+  createdAt   DateTime     @default(now())
 
   // Relations
-  budget      Budget        @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  household    Household        @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  budgets      BudgetCategory[] // Many-to-many with Budget
   transactions Transaction[]
+  bills        Bill[]
 
-  @@index([budgetId])
+  @@index([householdId])
   @@index([type])
 }
 
 model Account {
-  id                  String        @id @default(cuid())
-  name                String
-  externalIdentifier  String?       // Optional external account number
-  initialBalance      Float         @default(0)
-  budgetId            String
-  createdAt           DateTime      @default(now())
+  id                 String   @id @default(cuid())
+  name               String
+  externalIdentifier String?  // Optional external account number
+  initialBalance     Float    @default(0)
+  householdId        String
+  createdAt          DateTime @default(now())
 
   // Relations
-  budget              Budget        @relation(fields: [budgetId], references: [id], onDelete: Cascade)
-  transactions        Transaction[]
+  household    Household       @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  budgets      BudgetAccount[] // Many-to-many with Budget
+  transactions Transaction[]
+  bills        Bill[]
 
+  @@index([householdId])
+}
+
+// Join table for Budget ↔ Category many-to-many relationship
+model BudgetCategory {
+  id         String @id @default(cuid())
+  budgetId   String
+  categoryId String
+
+  // Relations
+  budget   Budget   @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([budgetId, categoryId])
   @@index([budgetId])
+  @@index([categoryId])
+}
+
+// Join table for Budget ↔ Account many-to-many relationship
+model BudgetAccount {
+  id        String @id @default(cuid())
+  budgetId  String
+  accountId String
+
+  // Relations
+  budget  Budget  @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@unique([budgetId, accountId])
+  @@index([budgetId])
+  @@index([accountId])
 }
 
 model Transaction {
-  id          String    @id @default(cuid())
-  name        String
-  amount      Float
-  date        DateTime
-  notes       String?
-  categoryId  String
-  accountId   String
-  budgetId    String
-  createdAt   DateTime  @default(now())
+  id         String   @id @default(cuid())
+  name       String
+  amount     Float
+  date       DateTime
+  notes      String?
+  categoryId String
+  accountId  String
+  budgetId   String
+  billId     String?  // Optional link to bill
+  createdAt  DateTime @default(now())
 
   // Relations
-  category    Category  @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-  account     Account   @relation(fields: [accountId], references: [id], onDelete: Restrict)
-  budget      Budget    @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  account  Account  @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  budget   Budget   @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  bill     Bill?    @relation(fields: [billId], references: [id], onDelete: SetNull)
 
   @@index([budgetId])
   @@index([categoryId])
   @@index([accountId])
+  @@index([billId])
   @@index([date])
+}
+
+model Bill {
+  id                 String         @id @default(cuid())
+  name               String
+  recipient          String
+  accountId          String
+  startDate          DateTime       // First payment date
+  recurrenceType     RecurrenceType @default(NONE)
+  customIntervalDays Int?           // For CUSTOM recurrence
+  estimatedAmount    Float
+  lastPaymentDate    DateTime?      // Final payment date (for loans, etc.)
+  categoryId         String
+  budgetId           String
+  isArchived         Boolean        @default(false)
+  createdAt          DateTime       @default(now())
+
+  // Relations
+  account      Account       @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  category     Category      @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  budget       Budget        @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+
+  @@index([budgetId])
+  @@index([accountId])
+  @@index([categoryId])
+  @@index([isArchived])
+  @@index([startDate])
 }
