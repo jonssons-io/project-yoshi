@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as TransactionsIndexRouteImport } from './routes/transactions/index'
+import { Route as DemoIndexRouteImport } from './routes/demo/index'
 import { Route as CategoriesIndexRouteImport } from './routes/categories/index'
 import { Route as BudgetsIndexRouteImport } from './routes/budgets/index'
 import { Route as AccountsIndexRouteImport } from './routes/accounts/index'
@@ -42,6 +43,11 @@ const IndexRoute = IndexRouteImport.update({
 const TransactionsIndexRoute = TransactionsIndexRouteImport.update({
   id: '/transactions/',
   path: '/transactions/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DemoIndexRoute = DemoIndexRouteImport.update({
+  id: '/demo/',
+  path: '/demo/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CategoriesIndexRoute = CategoriesIndexRouteImport.update({
@@ -168,6 +174,7 @@ export interface FileRoutesByFullPath {
   '/accounts/': typeof AccountsIndexRoute
   '/budgets/': typeof BudgetsIndexRoute
   '/categories/': typeof CategoriesIndexRoute
+  '/demo/': typeof DemoIndexRoute
   '/transactions/': typeof TransactionsIndexRoute
   '/api/trpc/$': typeof ApiTrpcSplatRoute
   '/demo/api/names': typeof DemoApiNamesRoute
@@ -194,6 +201,7 @@ export interface FileRoutesByTo {
   '/accounts': typeof AccountsIndexRoute
   '/budgets': typeof BudgetsIndexRoute
   '/categories': typeof CategoriesIndexRoute
+  '/demo': typeof DemoIndexRoute
   '/transactions': typeof TransactionsIndexRoute
   '/api/trpc/$': typeof ApiTrpcSplatRoute
   '/demo/api/names': typeof DemoApiNamesRoute
@@ -221,6 +229,7 @@ export interface FileRoutesById {
   '/accounts/': typeof AccountsIndexRoute
   '/budgets/': typeof BudgetsIndexRoute
   '/categories/': typeof CategoriesIndexRoute
+  '/demo/': typeof DemoIndexRoute
   '/transactions/': typeof TransactionsIndexRoute
   '/api/trpc/$': typeof ApiTrpcSplatRoute
   '/demo/api/names': typeof DemoApiNamesRoute
@@ -249,6 +258,7 @@ export interface FileRouteTypes {
     | '/accounts/'
     | '/budgets/'
     | '/categories/'
+    | '/demo/'
     | '/transactions/'
     | '/api/trpc/$'
     | '/demo/api/names'
@@ -275,6 +285,7 @@ export interface FileRouteTypes {
     | '/accounts'
     | '/budgets'
     | '/categories'
+    | '/demo'
     | '/transactions'
     | '/api/trpc/$'
     | '/demo/api/names'
@@ -301,6 +312,7 @@ export interface FileRouteTypes {
     | '/accounts/'
     | '/budgets/'
     | '/categories/'
+    | '/demo/'
     | '/transactions/'
     | '/api/trpc/$'
     | '/demo/api/names'
@@ -328,6 +340,7 @@ export interface RootRouteChildren {
   AccountsIndexRoute: typeof AccountsIndexRoute
   BudgetsIndexRoute: typeof BudgetsIndexRoute
   CategoriesIndexRoute: typeof CategoriesIndexRoute
+  DemoIndexRoute: typeof DemoIndexRoute
   TransactionsIndexRoute: typeof TransactionsIndexRoute
   ApiTrpcSplatRoute: typeof ApiTrpcSplatRoute
   DemoApiNamesRoute: typeof DemoApiNamesRoute
@@ -356,6 +369,13 @@ declare module '@tanstack/react-router' {
       path: '/transactions'
       fullPath: '/transactions/'
       preLoaderRoute: typeof TransactionsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/demo/': {
+      id: '/demo/'
+      path: '/demo'
+      fullPath: '/demo/'
+      preLoaderRoute: typeof DemoIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/categories/': {
@@ -528,6 +548,7 @@ const rootRouteChildren: RootRouteChildren = {
   AccountsIndexRoute: AccountsIndexRoute,
   BudgetsIndexRoute: BudgetsIndexRoute,
   CategoriesIndexRoute: CategoriesIndexRoute,
+  DemoIndexRoute: DemoIndexRoute,
   TransactionsIndexRoute: TransactionsIndexRoute,
   ApiTrpcSplatRoute: ApiTrpcSplatRoute,
   DemoApiNamesRoute: DemoApiNamesRoute,
