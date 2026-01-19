@@ -1,6 +1,6 @@
-import { initTRPC } from '@trpc/server'
-import superjson from 'superjson'
-import { prisma } from '@/db'
+import { initTRPC } from "@trpc/server";
+import superjson from "superjson";
+import { prisma } from "@/db";
 
 /**
  * Create tRPC context with Clerk authentication
@@ -12,15 +12,15 @@ export const createTRPCContext = async (opts: { req: Request }) => {
   return {
     prisma,
     req: opts.req,
-  }
-}
+  };
+};
 
 const t = initTRPC.context<typeof createTRPCContext>().create({
   transformer: superjson,
-})
+});
 
-export const createTRPCRouter = t.router
-export const publicProcedure = t.procedure
+export const createTRPCRouter = t.router;
+export const publicProcedure = t.procedure;
 
 /**
  * Protected procedure that requires authentication
@@ -31,5 +31,5 @@ export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
   // For now, we'll pass through and require userId in inputs
   return next({
     ctx,
-  })
-})
+  });
+});
