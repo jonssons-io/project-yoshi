@@ -1,56 +1,41 @@
-import { useQuery } from "@tanstack/react-query";
-import { useTRPC } from "@/integrations/trpc/react";
+import { createQueryHook } from "./create-query-hook";
 
 /**
  * Hook to fetch list of categories for a household
- * Accepts optional householdId and userId - query is auto-disabled when either is undefined
+ * Query is auto-disabled when householdId or userId is undefined/null
  */
-export function useCategoriesList({
-	householdId,
-	userId,
-	budgetId,
-	type,
-	enabled = true,
-}: {
-	householdId?: string | null;
-	userId?: string | null;
-	budgetId?: string | null;
-	type?: "INCOME" | "EXPENSE";
-	enabled?: boolean;
-}) {
-	const trpc = useTRPC();
-	const isEnabled = enabled && !!householdId && !!userId;
-	return useQuery({
-		...trpc.categories.list.queryOptions({
-			householdId: householdId ?? "",
-			userId: userId ?? "",
-			budgetId: budgetId || undefined,
-			type,
-		}),
-		enabled: isEnabled,
-	});
-}
+export const useCategoriesList = createQueryHook(
+	"categories",
+	"list",
+	(params: {
+		householdId?: string | null;
+		userId?: string | null;
+		budgetId?: string | null;
+		type?: "INCOME" | "EXPENSE";
+		enabled?: boolean;
+	}) => ({
+		householdId: params.householdId ?? "",
+		userId: params.userId ?? "",
+		budgetId: params.budgetId || undefined,
+		type: params.type,
+	}),
+	(params) => [params.householdId, params.userId],
+);
 
 /**
  * Hook to fetch a single category by ID
- * Accepts optional categoryId and userId - query is auto-disabled when either is undefined
+ * Query is auto-disabled when categoryId or userId is undefined/null
  */
-export function useCategoryById({
-	categoryId,
-	userId,
-	enabled = true,
-}: {
-	categoryId?: string | null;
-	userId?: string | null;
-	enabled?: boolean;
-}) {
-	const trpc = useTRPC();
-	const isEnabled = enabled && !!categoryId && !!userId;
-	return useQuery({
-		...trpc.categories.getById.queryOptions({
-			id: categoryId ?? "",
-			userId: userId ?? "",
-		}),
-		enabled: isEnabled,
-	});
-}
+export const useCategoryById = createQueryHook(
+	"categories",
+	"getById",
+	(params: {
+		categoryId?: string | null;
+		userId?: string | null;
+		enabled?: boolean;
+	}) => ({
+		id: params.categoryId ?? "",
+		userId: params.userId ?? "",
+	}),
+	(params) => [params.categoryId, params.userId],
+);

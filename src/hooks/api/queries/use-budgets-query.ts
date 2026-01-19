@@ -1,50 +1,37 @@
-import { useQuery } from "@tanstack/react-query";
-import { useTRPC } from "@/integrations/trpc/react";
+import { createQueryHook } from "./create-query-hook";
 
 /**
  * Hook to fetch list of budgets for a household
- * Accepts optional householdId and userId - query is auto-disabled when either is undefined
+ * Query is auto-disabled when householdId or userId is undefined/null
  */
-export function useBudgetsList({
-	householdId,
-	userId,
-	enabled = true,
-}: {
-	householdId?: string | null;
-	userId?: string | null;
-	enabled?: boolean;
-}) {
-	const trpc = useTRPC();
-	const isEnabled = enabled && !!householdId && !!userId;
-	return useQuery({
-		...trpc.budgets.list.queryOptions({
-			householdId: householdId ?? "",
-			userId: userId ?? "",
-		}),
-		enabled: isEnabled,
-	});
-}
+export const useBudgetsList = createQueryHook(
+	"budgets",
+	"list",
+	(params: {
+		householdId?: string | null;
+		userId?: string | null;
+		enabled?: boolean;
+	}) => ({
+		householdId: params.householdId ?? "",
+		userId: params.userId ?? "",
+	}),
+	(params) => [params.householdId, params.userId],
+);
 
 /**
  * Hook to fetch a single budget by ID
- * Accepts optional budgetId and userId - query is auto-disabled when either is undefined
+ * Query is auto-disabled when budgetId or userId is undefined/null
  */
-export function useBudgetById({
-	budgetId,
-	userId,
-	enabled = true,
-}: {
-	budgetId?: string | null;
-	userId?: string | null;
-	enabled?: boolean;
-}) {
-	const trpc = useTRPC();
-	const isEnabled = enabled && !!budgetId && !!userId;
-	return useQuery({
-		...trpc.budgets.getById.queryOptions({
-			id: budgetId ?? "",
-			userId: userId ?? "",
-		}),
-		enabled: isEnabled,
-	});
-}
+export const useBudgetById = createQueryHook(
+	"budgets",
+	"getById",
+	(params: {
+		budgetId?: string | null;
+		userId?: string | null;
+		enabled?: boolean;
+	}) => ({
+		id: params.budgetId ?? "",
+		userId: params.userId ?? "",
+	}),
+	(params) => [params.budgetId, params.userId],
+);

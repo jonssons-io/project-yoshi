@@ -1,77 +1,57 @@
-import { useQuery } from "@tanstack/react-query";
-import { useTRPC } from "@/integrations/trpc/react";
+import { createQueryHook } from "./create-query-hook";
 
 /**
  * Hook to fetch list of accounts for a household
- * Accepts optional householdId and userId - query is auto-disabled when either is undefined
+ * Query is auto-disabled when householdId or userId is undefined/null
  */
-export function useAccountsList({
-	householdId,
-	userId,
-	budgetId,
-	enabled = true,
-}: {
-	householdId?: string | null;
-	userId?: string | null;
-	budgetId?: string | null;
-	enabled?: boolean;
-}) {
-	const trpc = useTRPC();
-	const isEnabled = enabled && !!householdId && !!userId;
-	return useQuery({
-		...trpc.accounts.list.queryOptions({
-			householdId: householdId ?? "",
-			userId: userId ?? "",
-			budgetId: budgetId || undefined,
-		}),
-		enabled: isEnabled,
-	});
-}
+export const useAccountsList = createQueryHook(
+	"accounts",
+	"list",
+	(params: {
+		householdId?: string | null;
+		userId?: string | null;
+		budgetId?: string | null;
+		enabled?: boolean;
+	}) => ({
+		householdId: params.householdId ?? "",
+		userId: params.userId ?? "",
+		budgetId: params.budgetId || undefined,
+	}),
+	(params) => [params.householdId, params.userId],
+);
 
 /**
  * Hook to fetch a single account by ID
- * Accepts optional accountId and userId - query is auto-disabled when either is undefined
+ * Query is auto-disabled when accountId or userId is undefined/null
  */
-export function useAccountById({
-	accountId,
-	userId,
-	enabled = true,
-}: {
-	accountId?: string | null;
-	userId?: string | null;
-	enabled?: boolean;
-}) {
-	const trpc = useTRPC();
-	const isEnabled = enabled && !!accountId && !!userId;
-	return useQuery({
-		...trpc.accounts.getById.queryOptions({
-			id: accountId ?? "",
-			userId: userId ?? "",
-		}),
-		enabled: isEnabled,
-	});
-}
+export const useAccountById = createQueryHook(
+	"accounts",
+	"getById",
+	(params: {
+		accountId?: string | null;
+		userId?: string | null;
+		enabled?: boolean;
+	}) => ({
+		id: params.accountId ?? "",
+		userId: params.userId ?? "",
+	}),
+	(params) => [params.accountId, params.userId],
+);
 
 /**
  * Hook to fetch account balance
- * Accepts optional accountId and userId - query is auto-disabled when either is undefined
+ * Query is auto-disabled when accountId or userId is undefined/null
  */
-export function useAccountBalance({
-	accountId,
-	userId,
-	enabled = true,
-}: {
-	accountId?: string | null;
-	userId?: string | null;
-	enabled?: boolean;
-}) {
-	const trpc = useTRPC();
-	const isEnabled = enabled && !!accountId && !!userId;
-	return useQuery({
-		...trpc.accounts.getBalance.queryOptions({
-			id: accountId ?? "",
-			userId: userId ?? "",
-		}),
-		enabled: isEnabled,
-	});
-}
+export const useAccountBalance = createQueryHook(
+	"accounts",
+	"getBalance",
+	(params: {
+		accountId?: string | null;
+		userId?: string | null;
+		enabled?: boolean;
+	}) => ({
+		id: params.accountId ?? "",
+		userId: params.userId ?? "",
+	}),
+	(params) => [params.accountId, params.userId],
+);

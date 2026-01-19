@@ -1,51 +1,36 @@
-import { useQuery } from "@tanstack/react-query";
-import { useTRPC } from "@/integrations/trpc/react";
+import { createQueryHook } from "./create-query-hook";
 
 /**
- * Hook to fetch list of bills
- * Accepts optional budgetId and userId - query is auto-disabled when either is undefined
+ * Hook to fetch list of bills for a budget
+ * Query is auto-disabled when budgetId or userId is undefined/null
  */
-export function useBillsList({
-	budgetId,
-	userId,
-	thisMonthOnly = false,
-	includeArchived = false,
-	enabled = true,
-}: {
-	budgetId?: string | null;
-	userId?: string | null;
-	thisMonthOnly?: boolean;
-	includeArchived?: boolean;
-	enabled?: boolean;
-}) {
-	const trpc = useTRPC();
-	const isEnabled = enabled && !!budgetId && !!userId;
-	return useQuery({
-		...trpc.bills.list.queryOptions({
-			budgetId: budgetId ?? "",
-			userId: userId ?? "",
-			thisMonthOnly,
-			includeArchived,
-		}),
-		enabled: isEnabled,
-	});
-}
+export const useBillsList = createQueryHook(
+	"bills",
+	"list",
+	(params: {
+		budgetId?: string | null;
+		userId?: string | null;
+		includeArchived?: boolean;
+		thisMonthOnly?: boolean;
+		enabled?: boolean;
+	}) => ({
+		budgetId: params.budgetId ?? "",
+		userId: params.userId ?? "",
+		includeArchived: params.includeArchived,
+		thisMonthOnly: params.thisMonthOnly,
+	}),
+	(params) => [params.budgetId, params.userId],
+);
 
 /**
  * Hook to fetch a single bill by ID
- * Accepts optional billId - query is auto-disabled when undefined
+ * Query is auto-disabled when billId is undefined/null
  */
-export function useBillById({
-	billId,
-	enabled = true,
-}: {
-	billId?: string | null;
-	enabled?: boolean;
-}) {
-	const trpc = useTRPC();
-	const isEnabled = enabled && !!billId;
-	return useQuery({
-		...trpc.bills.getById.queryOptions({ id: billId ?? "" }),
-		enabled: isEnabled,
-	});
-}
+export const useBillById = createQueryHook(
+	"bills",
+	"getById",
+	(params: { billId?: string | null; enabled?: boolean }) => ({
+		id: params.billId ?? "",
+	}),
+	(params) => [params.billId],
+);

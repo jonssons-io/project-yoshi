@@ -1,45 +1,32 @@
-import { useQuery } from "@tanstack/react-query";
-import { useTRPC } from "@/integrations/trpc/react";
+import { createQueryHook } from "./create-query-hook";
 
 /**
  * Hook to fetch list of households for a user
- * Accepts optional userId - query is auto-disabled when userId is undefined
+ * Query is auto-disabled when userId is undefined/null
  */
-export function useHouseholdsList({
-	userId,
-	enabled = true,
-}: {
-	userId?: string | null;
-	enabled?: boolean;
-}) {
-	const trpc = useTRPC();
-	const isEnabled = enabled && !!userId;
-	return useQuery({
-		...trpc.households.list.queryOptions({ userId: userId ?? "" }),
-		enabled: isEnabled,
-	});
-}
+export const useHouseholdsList = createQueryHook(
+	"households",
+	"list",
+	(params: { userId?: string | null; enabled?: boolean }) => ({
+		userId: params.userId ?? "",
+	}),
+	(params) => [params.userId],
+);
 
 /**
  * Hook to fetch a single household by ID
- * Accepts optional id and userId - query is auto-disabled when either is undefined
+ * Query is auto-disabled when householdId or userId is undefined/null
  */
-export function useHouseholdById({
-	id,
-	userId,
-	enabled = true,
-}: {
-	id?: string | null;
-	userId?: string | null;
-	enabled?: boolean;
-}) {
-	const trpc = useTRPC();
-	const isEnabled = enabled && !!id && !!userId;
-	return useQuery({
-		...trpc.households.getById.queryOptions({
-			id: id ?? "",
-			userId: userId ?? "",
-		}),
-		enabled: isEnabled,
-	});
-}
+export const useHouseholdById = createQueryHook(
+	"households",
+	"getById",
+	(params: {
+		householdId?: string | null;
+		userId?: string | null;
+		enabled?: boolean;
+	}) => ({
+		id: params.householdId ?? "",
+		userId: params.userId ?? "",
+	}),
+	(params) => [params.householdId, params.userId],
+);
