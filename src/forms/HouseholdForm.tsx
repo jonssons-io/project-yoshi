@@ -5,14 +5,13 @@
 
 import { z } from "zod";
 import { useAppForm } from "@/hooks/form";
+import { createZodValidator, validateForm } from "@/lib/form-validation";
 
 const householdSchema = z.object({
 	name: z.string().min(1, { message: "Name is required" }),
 });
 
 type HouseholdFormData = z.infer<typeof householdSchema>;
-
-import { Button } from "@/components/ui/button";
 
 interface HouseholdFormProps {
 	defaultValues?: Partial<HouseholdFormData>;
@@ -34,15 +33,8 @@ export function HouseholdForm({
 			name: defaultValues?.name ?? "",
 		},
 		onSubmit: async ({ value }) => {
-			// Validate with Zod
-			const result = householdSchema.safeParse(value);
-			if (!result.success) {
-				console.error("Validation failed:", result.error);
-				return;
-			}
-
-			// Call the parent's onSubmit with validated data
-			await onSubmit(result.data);
+			const data = validateForm(householdSchema, value);
+			await onSubmit(data);
 		},
 	});
 
@@ -58,12 +50,7 @@ export function HouseholdForm({
 				<form.AppField
 					name="name"
 					validators={{
-						onChange: ({ value }) => {
-							const result = householdSchema.shape.name.safeParse(value);
-							return result.success
-								? undefined
-								: result.error.issues[0]?.message;
-						},
+						onChange: createZodValidator(householdSchema.shape.name),
 					}}
 				>
 					{(field) => (
@@ -74,26 +61,13 @@ export function HouseholdForm({
 					)}
 				</form.AppField>
 
-				<div className="flex gap-2 justify-end">
-					{onDelete && (
-						<Button
-							type="button"
-							variant="destructive"
-							onClick={onDelete}
-							className="mr-auto"
-						>
-							Delete
-						</Button>
-					)}
-					{onCancel && (
-						<Button type="button" variant="outline" onClick={onCancel}>
-							Cancel
-						</Button>
-					)}
-					<form.AppForm>
-						<form.SubmitButton>{submitLabel}</form.SubmitButton>
-					</form.AppForm>
-				</div>
+				<form.AppForm>
+					<form.FormButtonGroup
+						onDelete={onDelete}
+						onCancel={onCancel}
+						submitLabel={submitLabel}
+					/>
+				</form.AppForm>
 			</div>
 		</form>
 	);

@@ -27,31 +27,37 @@
  * ```
  */
 
-import { createFormHook, createFormHookContexts } from '@tanstack/react-form'
-import { TextField } from '@/components/form/TextField'
-import { DateField } from '@/components/form/DateField'
-import { SelectField } from '@/components/form/SelectField'
-import { NumberField } from '@/components/form/NumberField'
-import { SubmitButton } from '@/components/form/SubmitButton'
+import { createFormHook, createFormHookContexts } from "@tanstack/react-form";
+import { CancelButton } from "@/components/form/CancelButton";
+import { DateField } from "@/components/form/DateField";
+import { DeleteButton } from "@/components/form/DeleteButton";
+import { FormButtonGroup } from "@/components/form/FormButtonGroup";
+import { NumberField } from "@/components/form/NumberField";
+import { SelectField } from "@/components/form/SelectField";
+import { SubmitButton } from "@/components/form/SubmitButton";
+import { TextField } from "@/components/form/TextField";
 
 // Create contexts for field and form components to access form state
 const { fieldContext, useFieldContext, formContext, useFormContext } =
-  createFormHookContexts()
+	createFormHookContexts();
 
 // Export contexts for use in custom components
-export { useFieldContext, useFormContext }
+export { useFieldContext, useFormContext };
 
 // Create the custom form hook with pre-bound components
 export const { useAppForm, withForm } = createFormHook({
-  fieldComponents: {
-    TextField,
-    DateField,
-    SelectField,
-    NumberField,
-  },
-  formComponents: {
-    SubmitButton,
-  },
-  fieldContext,
-  formContext,
-})
+	fieldComponents: {
+		TextField,
+		DateField,
+		SelectField,
+		NumberField,
+	},
+	formComponents: {
+		SubmitButton,
+		CancelButton,
+		DeleteButton,
+		FormButtonGroup,
+	},
+	fieldContext,
+	formContext,
+});

@@ -5,7 +5,6 @@
 
 import { useState } from "react";
 import { z } from "zod";
-import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { useAppForm } from "@/hooks/form";
@@ -173,26 +172,13 @@ export function AccountForm({
 					</div>
 				)}
 
-				<div className="flex gap-2 justify-end">
-					{onDelete && (
-						<Button
-							type="button"
-							variant="destructive"
-							onClick={onDelete}
-							className="mr-auto"
-						>
-							Delete
-						</Button>
-					)}
-					{onCancel && (
-						<Button type="button" variant="outline" onClick={onCancel}>
-							Cancel
-						</Button>
-					)}
-					<form.AppForm>
-						<form.SubmitButton>{submitLabel}</form.SubmitButton>
-					</form.AppForm>
-				</div>
+				<form.AppForm>
+					<form.FormButtonGroup
+						onDelete={onDelete}
+						onCancel={onCancel}
+						submitLabel={submitLabel}
+					/>
+				</form.AppForm>
 			</div>
 		</form>
 	);
