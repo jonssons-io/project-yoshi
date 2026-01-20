@@ -143,21 +143,19 @@ function BillsPage() {
 
 	if (!budgetId) {
 		return (
-			<div className="flex flex-1 flex-col gap-4 p-4">
-				<Card>
-					<CardHeader>
-						<CardTitle>No Budget Selected</CardTitle>
-						<CardDescription>
-							Please select a budget to manage bills
-						</CardDescription>
-					</CardHeader>
-					<CardContent>
-						<Button asChild>
-							<Link to="/budgets">Go to Budgets</Link>
-						</Button>
-					</CardContent>
-				</Card>
-			</div>
+			<Card>
+				<CardHeader>
+					<CardTitle>No Budget Selected</CardTitle>
+					<CardDescription>
+						Please select a budget to manage bills
+					</CardDescription>
+				</CardHeader>
+				<CardContent>
+					<Button asChild>
+						<Link to="/budgets">Go to Budgets</Link>
+					</Button>
+				</CardContent>
+			</Card>
 		);
 	}
 
@@ -223,21 +221,9 @@ function BillsPage() {
 	};
 
 	return (
-		<div className="flex flex-1 flex-col gap-4">
-			<div className="flex items-center justify-between">
-				<div>
-					<h1 className="text-3xl font-bold">Bills</h1>
-					<p className="text-muted-foreground">
-						Manage your recurring and one-time bills
-					</p>
-				</div>
-				<Button onClick={() => setCreateDialogOpen(true)}>
-					<PlusIcon className="h-4 w-4 mr-2" />
-					New Bill
-				</Button>
-			</div>
-
-			<div className="flex gap-2">
+		<div className="space-y-6">
+			{/* Toolbar */}
+			<div className="flex items-center justify-end gap-2">
 				<Button
 					variant={thisMonthOnly ? "default" : "outline"}
 					onClick={() => setThisMonthOnly(!thisMonthOnly)}
@@ -252,16 +238,12 @@ function BillsPage() {
 				>
 					{includeArchived ? "Hide Archived" : "Show Archived"}
 				</Button>
+				<Button onClick={() => setCreateDialogOpen(true)}>
+					<PlusIcon className="h-4 w-4 mr-2" />
+					New Bill
+				</Button>
 			</div>
-
 			<Card>
-				<CardHeader>
-					<CardTitle>Your Bills</CardTitle>
-					<CardDescription>
-						{billsQuery.data?.length ?? 0} bill
-						{billsQuery.data?.length !== 1 ? "s" : ""}
-					</CardDescription>
-				</CardHeader>
 				<CardContent>
 					{billsQuery.isLoading ? (
 						<div className="text-center py-8 text-muted-foreground">

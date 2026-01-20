@@ -36,10 +36,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
 	// Show loading while Clerk or household selection is loading
 	if (!isLoaded || isHouseholdLoading) {
 		return (
-			<div className="container py-8">
-				<div className="flex items-center justify-center">
-					<p className="text-muted-foreground">Loading...</p>
-				</div>
+			<div className="flex items-center justify-center">
+				<p className="text-muted-foreground">Loading...</p>
 			</div>
 		);
 	}

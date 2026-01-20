@@ -6,14 +6,8 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { useAccountsList, useDeleteAccount } from "@/hooks/api";
+import { formatCurrency } from "@/lib/utils";
 import { AccountRow } from "./AccountsTableRow";
-
-const formatCurrency = (amount: number) => {
-	return new Intl.NumberFormat("en-US", {
-		style: "currency",
-		currency: "USD",
-	}).format(amount);
-};
 
 export const AccountsTable = ({
 	userId,

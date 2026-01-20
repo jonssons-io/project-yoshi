@@ -132,30 +132,20 @@ function AccountsPage() {
 
 	if (isLoading) {
 		return (
-			<div className="container py-8">
-				<div className="flex items-center justify-center">
-					<p className="text-muted-foreground">Loading accounts...</p>
-				</div>
+			<div className="flex items-center justify-center">
+				<p className="text-muted-foreground">Loading accounts...</p>
 			</div>
 		);
 	}
 
 	return (
-		<div className="container">
-			<div className="pb-6">
-				<div className="flex items-center justify-between">
-					<div>
-						<h1 className="text-3xl font-bold">Accounts</h1>
-						<p className="text-muted-foreground">
-							Manage your financial accounts
-						</p>
-					</div>
-
-					<Button onClick={handleCreateAccount}>
-						<PlusIcon className="mr-2 h-4 w-4" />
-						Add Account
-					</Button>
-				</div>
+		<div className="space-y-6">
+			{/* Toolbar */}
+			<div className="flex items-center justify-end">
+				<Button onClick={handleCreateAccount}>
+					<PlusIcon className="mr-2 h-4 w-4" />
+					Add Account
+				</Button>
 			</div>
 
 			{accounts?.length === 0 ? (

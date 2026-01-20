@@ -103,10 +103,8 @@ function CategoriesPage() {
 
 	if (isLoading) {
 		return (
-			<div className="container py-8">
-				<div className="flex items-center justify-center">
-					<p className="text-muted-foreground">Loading categories...</p>
-				</div>
+			<div className="flex items-center justify-center">
+				<p className="text-muted-foreground">Loading categories...</p>
 			</div>
 		);
 	}
@@ -117,67 +115,61 @@ function CategoriesPage() {
 		categories?.filter((c) => c.type === "EXPENSE").length ?? 0;
 
 	return (
-		<div className="container py-8">
-			<div className="mb-6">
-				<div className="flex items-center justify-between">
-					<div>
-						<h1 className="text-3xl font-bold">Categories</h1>
-						<p className="text-muted-foreground">
-							Manage your income and expense categories
-						</p>
-					</div>
-
-					<Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-						<DialogTrigger asChild>
-							<Button>
-								<PlusIcon className="mr-2 h-4 w-4" />
-								Add Category
-							</Button>
-						</DialogTrigger>
-						<DialogContent>
-							<DialogHeader>
-								<DialogTitle>Create New Category</DialogTitle>
-								<DialogDescription>
-									Add a new income or expense category
-								</DialogDescription>
-							</DialogHeader>
-							<CategoryForm
-								onSubmit={async (data) => {
-									createCategory({
-										...data,
-										householdId,
-										userId,
-									});
-								}}
-								onCancel={() => setCreateDialogOpen(false)}
-								submitLabel="Create Category"
-								budgets={budgets ?? []}
-							/>
-						</DialogContent>
-					</Dialog>
+		<div className="space-y-6">
+			{/* Toolbar */}
+			<div className="flex items-center justify-end gap-2">
+				<div className="flex gap-2">
+					<Button
+						variant={filter === "ALL" ? "default" : "outline"}
+						onClick={() => setFilter("ALL")}
+						size="sm"
+					>
+						All ({categories?.length ?? 0})
+					</Button>
+					<Button
+						variant={filter === "INCOME" ? "default" : "outline"}
+						onClick={() => setFilter("INCOME")}
+						size="sm"
+					>
+						Income ({incomeCount})
+					</Button>
+					<Button
+						variant={filter === "EXPENSE" ? "default" : "outline"}
+						onClick={() => setFilter("EXPENSE")}
+						size="sm"
+					>
+						Expenses ({expenseCount})
+					</Button>
 				</div>
-			</div>
 
-			{/* Filter tabs */}
-			<div className="mb-6 flex gap-2">
-				<Button
-					variant={filter === "ALL" ? "default" : "outline"}
-					onClick={() => setFilter("ALL")}
-				>
-					All ({categories?.length ?? 0})
-				</Button>
-				<Button
-					variant={filter === "INCOME" ? "default" : "outline"}
-					onClick={() => setFilter("INCOME")}
-				>
-					Income ({incomeCount})
-				</Button>
-				<Button
-					variant={filter === "EXPENSE" ? "default" : "outline"}
-					onClick={() => setFilter("EXPENSE")}
-				>
-					Expenses ({expenseCount})
-				</Button>
+				<Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+					<DialogTrigger asChild>
+						<Button>
+							<PlusIcon className="mr-2 h-4 w-4" />
+							Add Category
+						</Button>
+					</DialogTrigger>
+					<DialogContent>
+						<DialogHeader>
+							<DialogTitle>Create New Category</DialogTitle>
+							<DialogDescription>
+								Add a new income or expense category
+							</DialogDescription>
+						</DialogHeader>
+						<CategoryForm
+							onSubmit={async (data) => {
+								createCategory({
+									...data,
+									householdId,
+									userId,
+								});
+							}}
+							onCancel={() => setCreateDialogOpen(false)}
+							submitLabel="Create Category"
+							budgets={budgets ?? []}
+						/>
+					</DialogContent>
+				</Dialog>
 			</div>
 
 			{categories?.length === 0 ? (

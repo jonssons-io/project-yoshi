@@ -40,6 +40,7 @@ import {
 	useBudgetsList,
 	useTransactionsList,
 } from "@/hooks/api";
+import { formatCurrency } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/")({
 	component: Dashboard,
@@ -113,19 +114,10 @@ function Dashboard() {
 		enabled: !!activeBudget,
 	});
 
-	const formatCurrency = (amount: number) => {
-		return new Intl.NumberFormat("en-US", {
-			style: "currency",
-			currency: "USD",
-		}).format(amount);
-	};
-
 	if (budgetsLoading || accountsLoading) {
 		return (
-			<div className="container py-8">
-				<div className="flex items-center justify-center">
-					<p className="text-muted-foreground">Loading dashboard...</p>
-				</div>
+			<div className="flex items-center justify-center">
+				<p className="text-muted-foreground">Loading dashboard...</p>
 			</div>
 		);
 	}
@@ -145,21 +137,20 @@ function Dashboard() {
 	}
 
 	return (
-		<div className="container py-8">
-			<div className="mb-6 flex items-center justify-between">
-				<div>
-					<h1 className="text-3xl font-bold">Dashboard</h1>
-					<p className="text-muted-foreground">
-						{activeBudget.name} -{" "}
-						{quickSelection === "current-month"
-							? format(startDate, "MMMM yyyy")
-							: `${format(startDate, `MMM dd, yyyy`)} - ${format(endDate, `MMM dd, yyyy`)}`}
-					</p>
-				</div>
+		<div className="space-y-6">
+			{/* Toolbar with date range info and selectors */}
+			<div className="flex items-center justify-between">
+				<p className="text-sm text-muted-foreground">
+					{activeBudget.name} –{" "}
+					{quickSelection === "current-month"
+						? format(startDate, "MMMM yyyy")
+						: `${format(startDate, "MMM dd, yyyy")} - ${format(endDate, "MMM dd, yyyy")}`}
+				</p>
 				<div className="flex gap-2">
 					<Button
 						variant={quickSelection === "current-month" ? "default" : "outline"}
 						onClick={() => setQuickSelection("current-month")}
+						size="sm"
 					>
 						Current Month
 					</Button>
@@ -168,6 +159,7 @@ function Dashboard() {
 						<PopoverTrigger asChild>
 							<Button
 								variant={quickSelection === "custom" ? "default" : "outline"}
+								size="sm"
 							>
 								<CalendarIcon className="mr-2 h-4 w-4" />
 								Custom Range
@@ -223,39 +215,36 @@ function Dashboard() {
 						)}
 						startDate={startDate}
 						endDate={endDate}
-						formatCurrency={formatCurrency}
 					/>
 				))}
 			</div>
 
 			{/* Quick Actions */}
-			<div className="mt-8">
-				<Card>
-					<CardHeader>
-						<CardTitle>Quick Actions</CardTitle>
-					</CardHeader>
-					<CardContent>
-						<div className="flex flex-wrap gap-2">
-							<Button asChild>
-								<Link to="/transactions" search={{ budgetId: activeBudget.id }}>
-									<PlusIcon className="mr-2 h-4 w-4" />
-									Add Transaction
-								</Link>
-							</Button>
-							<Button asChild variant="outline">
-								<Link to="/accounts" search={{ budgetId: activeBudget.id }}>
-									View All Accounts
-								</Link>
-							</Button>
-							<Button asChild variant="outline">
-								<Link to="/categories" search={{ budgetId: activeBudget.id }}>
-									Manage Categories
-								</Link>
-							</Button>
-						</div>
-					</CardContent>
-				</Card>
-			</div>
+			<Card>
+				<CardHeader>
+					<CardTitle>Quick Actions</CardTitle>
+				</CardHeader>
+				<CardContent>
+					<div className="flex flex-wrap gap-2">
+						<Button asChild>
+							<Link to="/transactions" search={{ budgetId: activeBudget.id }}>
+								<PlusIcon className="mr-2 h-4 w-4" />
+								Add Transaction
+							</Link>
+						</Button>
+						<Button asChild variant="outline">
+							<Link to="/accounts" search={{ budgetId: activeBudget.id }}>
+								View All Accounts
+							</Link>
+						</Button>
+						<Button asChild variant="outline">
+							<Link to="/categories" search={{ budgetId: activeBudget.id }}>
+								Manage Categories
+							</Link>
+						</Button>
+					</div>
+				</CardContent>
+			</Card>
 		</div>
 	);
 }
@@ -267,7 +256,6 @@ function AccountCard({
 	transactions,
 	startDate,
 	endDate,
-	formatCurrency,
 }: {
 	account: {
 		id: string;
@@ -284,7 +272,6 @@ function AccountCard({
 	}>;
 	startDate: Date;
 	endDate: Date;
-	formatCurrency: (amount: number) => string;
 }) {
 	// Fetch current balance
 	const { data: balanceData } = useAccountBalance({

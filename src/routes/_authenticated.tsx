@@ -3,14 +3,9 @@ import { auth } from "@clerk/tanstack-react-start/server";
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { AppSidebar } from "@/components/app-sidebar";
+import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { DrawerProvider } from "@/components/drawer-context";
 import { HeaderUserMenu } from "@/components/HeaderUserMenu";
-import {
-	Breadcrumb,
-	BreadcrumbItem,
-	BreadcrumbList,
-	BreadcrumbPage,
-} from "@/components/ui/breadcrumb";
 import { Separator } from "@/components/ui/separator";
 import {
 	SidebarInset,
@@ -159,13 +154,7 @@ function AuthenticatedLayoutContent() {
 							orientation="vertical"
 							className="mr-2 data-[orientation=vertical]:h-4"
 						/>
-						<Breadcrumb>
-							<BreadcrumbList>
-								<BreadcrumbItem>
-									<BreadcrumbPage>Yoshi Budget App</BreadcrumbPage>
-								</BreadcrumbItem>
-							</BreadcrumbList>
-						</Breadcrumb>
+						<Breadcrumbs />
 					</div>
 					{user && (
 						<HeaderUserMenu
@@ -184,7 +173,7 @@ function AuthenticatedLayoutContent() {
 						/>
 					)}
 				</header>
-				<main className="p-4">
+				<main className="p-6">
 					<AuthProvider>
 						<Outlet />
 					</AuthProvider>

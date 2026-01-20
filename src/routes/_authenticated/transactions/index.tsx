@@ -5,7 +5,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { format } from "date-fns";
 import {
-	ArrowLeftIcon,
 	CopyIcon,
 	MoreVerticalIcon,
 	PencilIcon,
@@ -59,13 +58,13 @@ import {
 	useTransactionsList,
 	useUpdateTransaction,
 } from "@/hooks/api";
-import { useDrawer } from "@/hooks/use-drawer";
 import { useSelectedBudget } from "@/hooks/use-selected-budget";
+import { formatCurrency } from "@/lib/utils";
 
 // Search params schema
 const transactionsSearchSchema = z.object({
 	budgetId: z.string().optional(),
-	createFromBill: z.string().optional(), // Bill ID to create transaction from
+	createFromBill: z.string().optional(),
 });
 
 export const Route = createFileRoute("/_authenticated/transactions/")({
@@ -89,38 +88,17 @@ function TransactionsPage() {
 		notes: string | null;
 	} | null>(null);
 	const [filter, setFilter] = useState<"ALL" | "INCOME" | "EXPENSE">("ALL");
-	const { openDrawer } = useDrawer();
 
-	// If no budgetId, show message to select one
-	if (!budgetId) {
-		return (
-			<div className="container py-8">
-				<Card>
-					<CardHeader>
-						<CardTitle>No Budget Selected</CardTitle>
-						<CardDescription>
-							Please select a budget to manage transactions
-						</CardDescription>
-					</CardHeader>
-					<CardContent>
-						<Button asChild>
-							<Link to="/budgets">Go to Budgets</Link>
-						</Button>
-					</CardContent>
-				</Card>
-			</div>
-		);
-	}
-
+	// All hooks must be called before any early returns
 	const {
 		data: transactions,
 		isLoading,
 		refetch,
 	} = useTransactionsList({
-		budgetId,
+		budgetId: budgetId ?? "",
 		userId,
 		type: filter === "ALL" ? undefined : filter,
-		enabled: true,
+		enabled: !!budgetId,
 	});
 
 	const { data: categories } = useCategoriesList({
@@ -138,13 +116,12 @@ function TransactionsPage() {
 	});
 
 	const { data: bills } = useBillsList({
-		budgetId,
+		budgetId: budgetId ?? "",
 		userId,
 		includeArchived: false,
-		enabled: true,
+		enabled: !!budgetId,
 	});
 
-	// Get bill details if creating from bill
 	const { data: selectedBill } = useBillById({
 		billId: createFromBill,
 		enabled: !!createFromBill,
@@ -178,22 +155,32 @@ function TransactionsPage() {
 		},
 	});
 
-	if (isLoading) {
+	// Show message if no budget selected
+	if (!budgetId) {
 		return (
-			<div className="container py-8">
-				<div className="flex items-center justify-center">
-					<p className="text-muted-foreground">Loading transactions...</p>
-				</div>
-			</div>
+			<Card>
+				<CardHeader>
+					<CardTitle>No Budget Selected</CardTitle>
+					<CardDescription>
+						Please select a budget to manage transactions
+					</CardDescription>
+				</CardHeader>
+				<CardContent>
+					<Button asChild>
+						<Link to="/budgets">Go to Budgets</Link>
+					</Button>
+				</CardContent>
+			</Card>
 		);
 	}
 
-	const formatCurrency = (amount: number) => {
-		return new Intl.NumberFormat("en-US", {
-			style: "currency",
-			currency: "USD",
-		}).format(amount);
-	};
+	if (isLoading) {
+		return (
+			<div className="flex items-center justify-center">
+				<p className="text-muted-foreground">Loading transactions...</p>
+			</div>
+		);
+	}
 
 	const incomeTransactions = transactions?.filter(
 		(t) => t.category.type === "INCOME",
@@ -207,131 +194,88 @@ function TransactionsPage() {
 		expenseTransactions?.reduce((sum, t) => sum + t.amount, 0) ?? 0;
 
 	return (
-		<div className="container py-8">
-			<div className="mb-6">
-				<Button asChild variant="ghost" size="sm" className="mb-4">
-					<Link to="/budgets/$budgetId" params={{ budgetId }}>
-						<ArrowLeftIcon className="mr-2 h-4 w-4" />
-						Back to Budget
-					</Link>
-				</Button>
-				<div className="flex items-center justify-between">
-					<div>
-						<h1 className="text-3xl font-bold">Transactions</h1>
-						<p className="text-muted-foreground">
-							Track your income and expenses
-						</p>
-					</div>
-
-					<div className="flex gap-2">
-						<Button
-							variant="outline"
-							onClick={() =>
-								openDrawer(
-									<div className="space-y-4">
-										<h3 className="text-lg font-semibold">
-											Test Drawer Content
-										</h3>
-										<p>This is a test to verify the drawer system works!</p>
-										<p className="text-sm text-muted-foreground">
-											You can put any React component here. The drawer appears
-											on the right side and can be closed by clicking outside.
-										</p>
-										<Button
-											onClick={() => alert("Button inside drawer works!")}
-											className="w-full"
-										>
-											Test Button
-										</Button>
-									</div>,
-									"Test Drawer",
-								)
-							}
-						>
-							Test Drawer
+		<div className="space-y-6">
+			{/* Toolbar */}
+			<div className="flex items-center justify-end gap-2">
+				<Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+					<DialogTrigger asChild>
+						<Button>
+							<PlusIcon className="mr-2 h-4 w-4" />
+							Add Transaction
 						</Button>
-						<Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-							<DialogTrigger asChild>
-								<Button>
-									<PlusIcon className="mr-2 h-4 w-4" />
-									Add Transaction
-								</Button>
-							</DialogTrigger>
-							<DialogContent className="max-w-2xl">
-								<DialogHeader>
-									<DialogTitle>Create New Transaction</DialogTitle>
-									<DialogDescription>
-										Add a new income or expense transaction
-									</DialogDescription>
-								</DialogHeader>
-								{categories && accounts && (
-									<TransactionForm
-										categories={categories}
-										accounts={accounts}
-										bills={bills}
-										preSelectedBillId={createFromBill}
-										defaultValues={
-											selectedBill
-												? {
-														name: selectedBill.name,
-														amount: selectedBill.estimatedAmount,
-														date: selectedBill.nextOccurrence
-															? new Date(selectedBill.nextOccurrence)
-															: new Date(),
-														categoryId: selectedBill.categoryId,
-														accountId: selectedBill.accountId,
-														notes: `Payment to ${selectedBill.recipient}`,
-													}
-												: undefined
-										}
-										onSubmit={async (data, billData) => {
-											let finalBillId = data.billId;
+					</DialogTrigger>
+					<DialogContent className="max-w-2xl">
+						<DialogHeader>
+							<DialogTitle>Create New Transaction</DialogTitle>
+							<DialogDescription>
+								Add a new income or expense transaction
+							</DialogDescription>
+						</DialogHeader>
+						{categories && accounts && (
+							<TransactionForm
+								categories={categories}
+								accounts={accounts}
+								bills={bills}
+								preSelectedBillId={createFromBill}
+								defaultValues={
+									selectedBill
+										? {
+												name: selectedBill.name,
+												amount: selectedBill.estimatedAmount,
+												date: selectedBill.nextOccurrence
+													? new Date(selectedBill.nextOccurrence)
+													: new Date(),
+												categoryId: selectedBill.categoryId,
+												accountId: selectedBill.accountId,
+												notes: `Payment to ${selectedBill.recipient}`,
+											}
+										: undefined
+								}
+								onSubmit={async (data, billData) => {
+									let finalBillId = data.billId;
 
-											// If creating a bill, create it first
-											if (billData) {
-												const newBill = await new Promise<string>(
-													(resolve, reject) => {
-														createBill(
-															{
-																...billData,
-																name: data.name,
-																estimatedAmount: data.amount,
-																accountId: data.accountId,
-																categoryId: data.categoryId,
-																budgetId,
-																userId,
-																lastPaymentDate:
-																	billData.lastPaymentDate ?? undefined,
-															},
-															{
-																onSuccess: (bill) => resolve(bill.id),
-																onError: reject,
-															},
-														);
+									if (billData) {
+										const newBill = await new Promise<string>(
+											(resolve, reject) => {
+												createBill(
+													{
+														...billData,
+														name: data.name,
+														estimatedAmount: data.amount,
+														accountId: data.accountId,
+														categoryId: data.categoryId,
+														budgetId,
+														userId,
+														lastPaymentDate:
+															billData.lastPaymentDate ?? undefined,
+													},
+													{
+														onSuccess: (bill) => resolve(bill.id),
+														onError: reject,
 													},
 												);
-												finalBillId = newBill;
-											}
+											},
+										);
+										finalBillId = newBill;
+									}
 
-											createTransaction({
-												...data,
-												billId: finalBillId || undefined,
-												budgetId,
-												userId,
-											});
-										}}
-										onCancel={() => setCreateDialogOpen(false)}
-										submitLabel="Create Transaction"
-									/>
-								)}
-							</DialogContent>
-						</Dialog>
-					</div>
-				</div>
+									createTransaction({
+										...data,
+										billId: finalBillId || undefined,
+										budgetId,
+										userId,
+									});
+								}}
+								onCancel={() => setCreateDialogOpen(false)}
+								submitLabel="Create Transaction"
+							/>
+						)}
+					</DialogContent>
+				</Dialog>
 			</div>
 
 			{/* Summary cards */}
-			<div className="mb-6 grid gap-4 md:grid-cols-3">
+			<div className="grid gap-4 md:grid-cols-3">
 				<Card>
 					<CardHeader>
 						<CardTitle className="text-sm font-medium">Total Income</CardTitle>
@@ -382,7 +326,7 @@ function TransactionsPage() {
 			</div>
 
 			{/* Filter tabs */}
-			<div className="mb-6 flex gap-2">
+			<div className="flex gap-2">
 				<Button
 					variant={filter === "ALL" ? "default" : "outline"}
 					onClick={() => setFilter("ALL")}
@@ -403,6 +347,7 @@ function TransactionsPage() {
 				</Button>
 			</div>
 
+			{/* Transactions list */}
 			{transactions?.length === 0 ? (
 				<Card>
 					<CardHeader>

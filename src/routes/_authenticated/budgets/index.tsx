@@ -77,42 +77,32 @@ function BudgetsPage() {
 
 	if (isLoading) {
 		return (
-			<div className="container py-8">
-				<div className="flex items-center justify-center">
-					<p className="text-muted-foreground">Loading budgets...</p>
-				</div>
+			<div className="flex items-center justify-center">
+				<p className="text-muted-foreground">Loading budgets...</p>
 			</div>
 		);
 	}
 
 	if (error) {
 		return (
-			<div className="container py-8">
-				<Card>
-					<CardHeader>
-						<CardTitle>Error Loading Budgets</CardTitle>
-						<CardDescription>
-							{error instanceof Error ? error.message : "An error occurred"}
-						</CardDescription>
-					</CardHeader>
-					<CardContent>
-						<Button onClick={() => refetch()}>Try Again</Button>
-					</CardContent>
-				</Card>
-			</div>
+			<Card>
+				<CardHeader>
+					<CardTitle>Error Loading Budgets</CardTitle>
+					<CardDescription>
+						{error instanceof Error ? error.message : "An error occurred"}
+					</CardDescription>
+				</CardHeader>
+				<CardContent>
+					<Button onClick={() => refetch()}>Try Again</Button>
+				</CardContent>
+			</Card>
 		);
 	}
 
 	return (
-		<div className="container">
-			<div className="pb-8 flex items-center justify-between">
-				<div>
-					<h1 className="text-3xl font-bold">Budgets</h1>
-					<p className="text-muted-foreground">
-						Create and manage your household budgets
-					</p>
-				</div>
-
+		<div className="space-y-6">
+			{/* Toolbar */}
+			<div className="flex items-center justify-end">
 				<Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
 					<DialogTrigger asChild>
 						<Button>
