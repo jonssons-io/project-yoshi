@@ -1,25 +1,25 @@
-import { Link } from "@tanstack/react-router";
-import { ChevronRight } from "lucide-react";
+import { Link } from '@tanstack/react-router'
+import { ChevronRight } from 'lucide-react'
 import {
 	Breadcrumb,
 	BreadcrumbItem,
 	BreadcrumbLink,
 	BreadcrumbList,
 	BreadcrumbPage,
-	BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
+	BreadcrumbSeparator
+} from '@/components/ui/breadcrumb'
 import {
 	type BreadcrumbItem as BreadcrumbItemType,
-	useBreadcrumbs,
-} from "@/hooks/use-breadcrumbs";
+	useBreadcrumbs
+} from '@/hooks/use-breadcrumbs'
 
 interface BreadcrumbsProps {
-	items?: BreadcrumbItemType[];
+	items?: BreadcrumbItemType[]
 }
 
 export function Breadcrumbs({ items }: BreadcrumbsProps) {
-	const defaultItems = useBreadcrumbs();
-	const breadcrumbs = items ?? defaultItems;
+	const defaultItems = useBreadcrumbs()
+	const breadcrumbs = items ?? defaultItems
 
 	return (
 		<Breadcrumb>
@@ -42,5 +42,5 @@ export function Breadcrumbs({ items }: BreadcrumbsProps) {
 				))}
 			</BreadcrumbList>
 		</Breadcrumb>
-	);
+	)
 }

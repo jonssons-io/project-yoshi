@@ -1,37 +1,37 @@
-import { createQueryHook } from "./create-query-hook";
+import { createQueryHook } from './create-query-hook'
 
 /**
  * Hook to fetch list of budgets for a household
  * Query is auto-disabled when householdId or userId is undefined/null
  */
 export const useBudgetsList = createQueryHook(
-	"budgets",
-	"list",
+	'budgets',
+	'list',
 	(params: {
-		householdId?: string | null;
-		userId?: string | null;
-		enabled?: boolean;
+		householdId?: string | null
+		userId?: string | null
+		enabled?: boolean
 	}) => ({
-		householdId: params.householdId ?? "",
-		userId: params.userId ?? "",
+		householdId: params.householdId ?? '',
+		userId: params.userId ?? ''
 	}),
-	(params) => [params.householdId, params.userId],
-);
+	(params) => [params.householdId, params.userId]
+)
 
 /**
  * Hook to fetch a single budget by ID
  * Query is auto-disabled when budgetId or userId is undefined/null
  */
 export const useBudgetById = createQueryHook(
-	"budgets",
-	"getById",
+	'budgets',
+	'getById',
 	(params: {
-		budgetId?: string | null;
-		userId?: string | null;
-		enabled?: boolean;
+		budgetId?: string | null
+		userId?: string | null
+		enabled?: boolean
 	}) => ({
-		id: params.budgetId ?? "",
-		userId: params.userId ?? "",
+		id: params.budgetId ?? '',
+		userId: params.userId ?? ''
 	}),
-	(params) => [params.budgetId, params.userId],
-);
+	(params) => [params.budgetId, params.userId]
+)

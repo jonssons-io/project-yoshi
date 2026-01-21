@@ -1,22 +1,22 @@
-import { PencilIcon, TrashIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { TableCell, TableRow } from "@/components/ui/table";
-import { useAccountBalance } from "@/hooks/api";
+import { PencilIcon, TrashIcon } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { TableCell, TableRow } from '@/components/ui/table'
+import { useAccountBalance } from '@/hooks/api'
 
 interface Account {
-	id: string;
-	name: string;
-	externalIdentifier: string | null;
-	initialBalance: number;
-	_count: { transactions: number };
+	id: string
+	name: string
+	externalIdentifier: string | null
+	initialBalance: number
+	_count: { transactions: number }
 }
 
 interface AccountRowProps {
-	account: Account;
-	userId: string;
-	onEdit: (account: Account) => void;
-	onDelete: (data: { id: string; userId: string }) => void;
-	formatCurrency: (amount: number) => string;
+	account: Account
+	userId: string
+	onEdit: (account: Account) => void
+	onDelete: (data: { id: string; userId: string }) => void
+	formatCurrency: (amount: number) => string
 }
 
 export const AccountRow = ({
@@ -24,24 +24,24 @@ export const AccountRow = ({
 	userId,
 	onEdit,
 	onDelete,
-	formatCurrency,
+	formatCurrency
 }: AccountRowProps) => {
 	const { data: balance } = useAccountBalance({
 		accountId: account.id,
-		userId,
-	});
+		userId
+	})
 
 	return (
 		<TableRow>
 			<TableCell className="font-medium">{account.name}</TableCell>
 			<TableCell className="text-muted-foreground">
-				{account.externalIdentifier || "—"}
+				{account.externalIdentifier || '—'}
 			</TableCell>
 			<TableCell className="text-right">
 				{formatCurrency(account.initialBalance)}
 			</TableCell>
 			<TableCell className="text-right font-medium">
-				{balance ? formatCurrency(balance.currentBalance) : "..."}
+				{balance ? formatCurrency(balance.currentBalance) : '...'}
 			</TableCell>
 			<TableCell>{account._count.transactions}</TableCell>
 			<TableCell className="text-right">
@@ -55,7 +55,7 @@ export const AccountRow = ({
 								name: account.name,
 								externalIdentifier: account.externalIdentifier,
 								initialBalance: account.initialBalance,
-								_count: account._count,
+								_count: account._count
 							})
 						}
 					>
@@ -67,17 +67,17 @@ export const AccountRow = ({
 						onClick={() => {
 							if (account._count.transactions > 0) {
 								alert(
-									`Cannot delete "${account.name}" because it has ${account._count.transactions} transaction(s). Please reassign or delete those transactions first.`,
-								);
-								return;
+									`Cannot delete "${account.name}" because it has ${account._count.transactions} transaction(s). Please reassign or delete those transactions first.`
+								)
+								return
 							}
 							if (
 								confirm(`Are you sure you want to delete "${account.name}"?`)
 							) {
 								onDelete({
 									id: account.id,
-									userId,
-								});
+									userId
+								})
 							}
 						}}
 					>
@@ -86,5 +86,5 @@ export const AccountRow = ({
 				</div>
 			</TableCell>
 		</TableRow>
-	);
-};
+	)
+}

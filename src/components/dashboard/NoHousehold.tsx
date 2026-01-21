@@ -1,21 +1,21 @@
-import { PlusIcon } from "lucide-react";
-import { HouseholdForm } from "@/forms/HouseholdForm";
-import { useCreateHousehold } from "@/hooks/api";
-import { useDrawer } from "@/hooks/use-drawer";
-import { useSelectedHousehold } from "@/hooks/use-selected-household";
-import { Card } from "../card/Card";
-import { Button } from "../ui/button";
+import { PlusIcon } from 'lucide-react'
+import { HouseholdForm } from '@/forms/HouseholdForm'
+import { useCreateHousehold } from '@/hooks/api'
+import { useDrawer } from '@/hooks/use-drawer'
+import { useSelectedHousehold } from '@/hooks/use-selected-household'
+import { Card } from '../card/Card'
+import { Button } from '../ui/button'
 
 export const NoHousehold = ({ userId }: { userId: string }) => {
-	const { openDrawer, closeDrawer } = useDrawer();
-	const { setSelectedHousehold } = useSelectedHousehold(userId);
+	const { openDrawer, closeDrawer } = useDrawer()
+	const { setSelectedHousehold } = useSelectedHousehold(userId)
 
 	const { mutate: createHousehold } = useCreateHousehold({
 		onSuccess: (household) => {
-			setSelectedHousehold(household.id);
-			closeDrawer();
-		},
-	});
+			setSelectedHousehold(household.id)
+			closeDrawer()
+		}
+	})
 
 	const handleCreateHousehold = () => {
 		openDrawer(
@@ -29,16 +29,16 @@ export const NoHousehold = ({ userId }: { userId: string }) => {
 					onSubmit={(data) => {
 						createHousehold({
 							name: data.name,
-							userId,
-						});
+							userId
+						})
 					}}
 					onCancel={closeDrawer}
 					submitLabel="Create Household"
 				/>
 			</div>,
-			"Create Household",
-		);
-	};
+			'Create Household'
+		)
+	}
 
 	return (
 		<div className="container py-8 flex items-center justify-center">
@@ -52,5 +52,5 @@ export const NoHousehold = ({ userId }: { userId: string }) => {
 				</Button>
 			</Card>
 		</div>
-	);
-};
+	)
+}

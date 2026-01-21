@@ -3,25 +3,25 @@
  * Used for creating and editing budgets
  */
 
-import { z } from "zod";
-import { useAppForm } from "@/hooks/form";
-import { createZodValidator, validateForm } from "@/lib/form-validation";
+import { z } from 'zod'
+import { useAppForm } from '@/hooks/form'
+import { createZodValidator, validateForm } from '@/lib/form-validation'
 
 const budgetSchema = z.object({
-	name: z.string().min(1, { message: "Budget name is required" }),
+	name: z.string().min(1, { message: 'Budget name is required' }),
 	startDate: z.date({
-		error: "Start date is required",
-	}),
-});
+		error: 'Start date is required'
+	})
+})
 
-type BudgetFormData = z.infer<typeof budgetSchema>;
+type BudgetFormData = z.infer<typeof budgetSchema>
 
 export interface BudgetFormProps {
-	defaultValues?: Partial<BudgetFormData>;
-	onSubmit: (data: BudgetFormData) => Promise<void> | void;
-	onCancel?: () => void;
-	onDelete?: () => void;
-	submitLabel?: string;
+	defaultValues?: Partial<BudgetFormData>
+	onSubmit: (data: BudgetFormData) => Promise<void> | void
+	onCancel?: () => void
+	onDelete?: () => void
+	submitLabel?: string
 }
 
 export function BudgetForm({
@@ -29,32 +29,32 @@ export function BudgetForm({
 	onSubmit,
 	onCancel,
 	onDelete,
-	submitLabel = "Save",
+	submitLabel = 'Save'
 }: BudgetFormProps) {
 	const form = useAppForm({
 		defaultValues: {
-			name: defaultValues?.name ?? "",
-			startDate: defaultValues?.startDate ?? new Date(),
+			name: defaultValues?.name ?? '',
+			startDate: defaultValues?.startDate ?? new Date()
 		},
 		onSubmit: async ({ value }) => {
-			const data = validateForm(budgetSchema, value);
-			await onSubmit(data);
-		},
-	});
+			const data = validateForm(budgetSchema, value)
+			await onSubmit(data)
+		}
+	})
 
 	return (
 		<form
 			onSubmit={(e) => {
-				e.preventDefault();
-				e.stopPropagation();
-				form.handleSubmit();
+				e.preventDefault()
+				e.stopPropagation()
+				form.handleSubmit()
 			}}
 		>
 			<div className="space-y-4">
 				<form.AppField
 					name="name"
 					validators={{
-						onChange: createZodValidator(budgetSchema.shape.name),
+						onChange: createZodValidator(budgetSchema.shape.name)
 					}}
 				>
 					{(field) => (
@@ -68,7 +68,7 @@ export function BudgetForm({
 				<form.AppField
 					name="startDate"
 					validators={{
-						onChange: createZodValidator(budgetSchema.shape.startDate),
+						onChange: createZodValidator(budgetSchema.shape.startDate)
 					}}
 				>
 					{(field) => (
@@ -88,5 +88,5 @@ export function BudgetForm({
 				</form.AppForm>
 			</div>
 		</form>
-	);
+	)
 }

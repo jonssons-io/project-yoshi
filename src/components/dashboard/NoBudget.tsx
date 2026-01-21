@@ -1,26 +1,26 @@
-import { PlusIcon } from "lucide-react";
-import { BudgetForm } from "@/forms/BudgetForm";
-import { useCreateBudget } from "@/hooks/api";
-import { useDrawer } from "@/hooks/use-drawer";
-import { useSelectedBudget } from "@/hooks/use-selected-budget";
-import { Card } from "../card/Card";
-import { Button } from "../ui/button";
+import { PlusIcon } from 'lucide-react'
+import { BudgetForm } from '@/forms/BudgetForm'
+import { useCreateBudget } from '@/hooks/api'
+import { useDrawer } from '@/hooks/use-drawer'
+import { useSelectedBudget } from '@/hooks/use-selected-budget'
+import { Card } from '../card/Card'
+import { Button } from '../ui/button'
 
 interface NoBudgetProps {
-	userId: string;
-	householdId: string;
+	userId: string
+	householdId: string
 }
 
 export const NoBudget = ({ userId, householdId }: NoBudgetProps) => {
-	const { openDrawer, closeDrawer } = useDrawer();
-	const { setSelectedBudget } = useSelectedBudget(userId);
+	const { openDrawer, closeDrawer } = useDrawer()
+	const { setSelectedBudget } = useSelectedBudget(userId)
 
 	const { mutate: createBudget } = useCreateBudget({
 		onSuccess: (budget) => {
-			setSelectedBudget(budget.id);
-			closeDrawer();
-		},
-	});
+			setSelectedBudget(budget.id)
+			closeDrawer()
+		}
+	})
 
 	const handleCreateBudget = () => {
 		openDrawer(
@@ -36,16 +36,16 @@ export const NoBudget = ({ userId, householdId }: NoBudgetProps) => {
 							name: data.name,
 							startDate: data.startDate,
 							householdId,
-							userId,
-						});
+							userId
+						})
 					}}
 					onCancel={closeDrawer}
 					submitLabel="Create Budget"
 				/>
 			</div>,
-			"Create Budget",
-		);
-	};
+			'Create Budget'
+		)
+	}
 
 	return (
 		<div className="container py-8 flex items-center justify-center">
@@ -59,5 +59,5 @@ export const NoBudget = ({ userId, householdId }: NoBudgetProps) => {
 				</Button>
 			</Card>
 		</div>
-	);
-};
+	)
+}

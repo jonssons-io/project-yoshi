@@ -1,22 +1,22 @@
-import { type UseQueryResult, useQuery } from "@tanstack/react-query";
-import { useTRPC } from "@/integrations/trpc/react";
-import type { RouterInputs, RouterOutputs } from "../types";
+import { type UseQueryResult, useQuery } from '@tanstack/react-query'
+import { useTRPC } from '@/integrations/trpc/react'
+import type { RouterInputs, RouterOutputs } from '../types'
 
 /**
  * Type helper to extract route names from the router
  */
-type RouteName = keyof RouterInputs;
+type RouteName = keyof RouterInputs
 
 /**
  * Type helper to extract operation names for a given route
  */
-type OperationName<TRoute extends RouteName> = keyof RouterInputs[TRoute];
+type OperationName<TRoute extends RouteName> = keyof RouterInputs[TRoute]
 
 /**
  * Base params that all query hooks accept
  */
 interface BaseQueryParams {
-	enabled?: boolean;
+	enabled?: boolean
 }
 
 /**
@@ -46,33 +46,33 @@ interface BaseQueryParams {
 export function createQueryHook<
 	TRoute extends RouteName,
 	TOperation extends OperationName<TRoute>,
-	TParams extends BaseQueryParams,
+	TParams extends BaseQueryParams
 >(
 	route: TRoute,
 	operation: TOperation,
 	buildInput: (params: TParams) => RouterInputs[TRoute][TOperation],
-	getRequiredParams: (params: TParams) => unknown[],
+	getRequiredParams: (params: TParams) => unknown[]
 ) {
-	type TOutput = RouterOutputs[TRoute][TOperation];
+	type TOutput = RouterOutputs[TRoute][TOperation]
 
 	return function useQueryHook(
-		params: TParams,
+		params: TParams
 	): UseQueryResult<TOutput, Error> {
-		const trpc = useTRPC();
+		const trpc = useTRPC()
 
-		const { enabled = true, ...rest } = params;
-		const requiredValues = getRequiredParams(params);
+		const { enabled = true, ...rest } = params
+		const requiredValues = getRequiredParams(params)
 		const isEnabled =
-			enabled && requiredValues.every((v) => v != null && v !== "");
+			enabled && requiredValues.every((v) => v != null && v !== '')
 
 		// biome-ignore lint/suspicious/noExplicitAny: <The `as any` is necessary because TypeScript cannot infer the deeply nested dynamic structure of tRPC's router using string literal indexing. Type safety is maintained through the generic constraints (TRoute, TOperation) and the properly typed TOutput that comes from the router inference.>
 		const queryOptions = (trpc[route] as any)[operation].queryOptions(
-			buildInput(rest as TParams),
-		);
+			buildInput(rest as TParams)
+		)
 
 		return useQuery({
 			...queryOptions,
-			enabled: isEnabled,
-		}) as UseQueryResult<TOutput, Error>;
-	};
+			enabled: isEnabled
+		}) as UseQueryResult<TOutput, Error>
+	}
 }

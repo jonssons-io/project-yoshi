@@ -7,35 +7,35 @@
  * - Creating new items when no match exists
  */
 
-import { CheckIcon, ChevronsUpDownIcon, PlusIcon } from "lucide-react";
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { CheckIcon, ChevronsUpDownIcon, PlusIcon } from 'lucide-react'
+import { useState } from 'react'
+import { Button } from '@/components/ui/button'
 import {
 	Command,
 	CommandEmpty,
 	CommandGroup,
 	CommandInput,
 	CommandItem,
-	CommandList,
-} from "@/components/ui/command";
+	CommandList
+} from '@/components/ui/command'
 import {
 	Field,
 	FieldContent,
 	FieldDescription,
 	FieldError,
-	FieldLabel,
-} from "@/components/ui/field";
+	FieldLabel
+} from '@/components/ui/field'
 import {
 	Popover,
 	PopoverContent,
-	PopoverTrigger,
-} from "@/components/ui/popover";
-import { useFieldContext } from "@/hooks/form";
-import { cn } from "@/lib/utils";
+	PopoverTrigger
+} from '@/components/ui/popover'
+import { useFieldContext } from '@/hooks/form'
+import { cn } from '@/lib/utils'
 
 export interface ComboboxOption {
-	value: string;
-	label: string;
+	value: string
+	label: string
 }
 
 /**
@@ -43,119 +43,119 @@ export interface ComboboxOption {
  * - A string ID (existing item selected)
  * - An object with isNew flag (new item to create)
  */
-export type ComboboxValue = string | { isNew: true; name: string } | null;
+export type ComboboxValue = string | { isNew: true; name: string } | null
 
 export interface ComboboxFieldProps {
 	/**
 	 * Label text for the field
 	 */
-	label: string;
+	label: string
 
 	/**
 	 * Optional description text shown below the label
 	 */
-	description?: string;
+	description?: string
 
 	/**
 	 * Optional placeholder text
 	 */
-	placeholder?: string;
+	placeholder?: string
 
 	/**
 	 * Placeholder for the search input
 	 */
-	searchPlaceholder?: string;
+	searchPlaceholder?: string
 
 	/**
 	 * Text shown when no options match the search
 	 */
-	emptyText?: string;
+	emptyText?: string
 
 	/**
 	 * Whether the field is disabled
 	 */
-	disabled?: boolean;
+	disabled?: boolean
 
 	/**
 	 * Available options to select from
 	 */
-	options: ComboboxOption[];
+	options: ComboboxOption[]
 
 	/**
 	 * Whether to allow creating new items
 	 */
-	allowCreate?: boolean;
+	allowCreate?: boolean
 
 	/**
 	 * Label for the create option (e.g., "Create category")
 	 */
-	createLabel?: string;
+	createLabel?: string
 }
 
 export function ComboboxField({
 	label,
 	description,
-	placeholder = "Select an option",
-	searchPlaceholder = "Search...",
-	emptyText = "No results found.",
+	placeholder = 'Select an option',
+	searchPlaceholder = 'Search...',
+	emptyText = 'No results found.',
 	disabled,
 	options,
 	allowCreate = false,
-	createLabel = "Create",
+	createLabel = 'Create'
 }: ComboboxFieldProps) {
-	const field = useFieldContext<ComboboxValue>();
-	const [open, setOpen] = useState(false);
-	const [searchValue, setSearchValue] = useState("");
+	const field = useFieldContext<ComboboxValue>()
+	const [open, setOpen] = useState(false)
+	const [searchValue, setSearchValue] = useState('')
 
 	const hasError =
-		field.state.meta.isTouched && field.state.meta.errors.length > 0;
+		field.state.meta.isTouched && field.state.meta.errors.length > 0
 
 	// Get display value based on current field value
 	const getDisplayValue = (): string => {
-		const value = field.state.value;
-		if (!value) return "";
+		const value = field.state.value
+		if (!value) return ''
 
-		if (typeof value === "string") {
-			const option = options.find((opt) => opt.value === value);
-			return option?.label ?? "";
+		if (typeof value === 'string') {
+			const option = options.find((opt) => opt.value === value)
+			return option?.label ?? ''
 		}
 
-		if (typeof value === "object" && value.isNew) {
-			return value.name;
+		if (typeof value === 'object' && value.isNew) {
+			return value.name
 		}
 
-		return "";
-	};
+		return ''
+	}
 
 	// Check if the search term exactly matches an existing option
 	const exactMatch = options.find(
-		(opt) => opt.label.toLowerCase() === searchValue.toLowerCase(),
-	);
+		(opt) => opt.label.toLowerCase() === searchValue.toLowerCase()
+	)
 
 	// Filter options based on search
 	const filteredOptions = options.filter((opt) =>
-		opt.label.toLowerCase().includes(searchValue.toLowerCase()),
-	);
+		opt.label.toLowerCase().includes(searchValue.toLowerCase())
+	)
 
 	// Should show create option?
 	const showCreateOption =
-		allowCreate && searchValue.trim() !== "" && !exactMatch;
+		allowCreate && searchValue.trim() !== '' && !exactMatch
 
 	const handleSelect = (optionValue: string) => {
-		field.handleChange(optionValue);
-		setOpen(false);
-		setSearchValue("");
-	};
+		field.handleChange(optionValue)
+		setOpen(false)
+		setSearchValue('')
+	}
 
 	const handleCreate = () => {
-		field.handleChange({ isNew: true, name: searchValue.trim() });
-		setOpen(false);
-		setSearchValue("");
-	};
+		field.handleChange({ isNew: true, name: searchValue.trim() })
+		setOpen(false)
+		setSearchValue('')
+	}
 
-	const displayValue = getDisplayValue();
+	const displayValue = getDisplayValue()
 	const isNewValue =
-		typeof field.state.value === "object" && field.state.value?.isNew;
+		typeof field.state.value === 'object' && field.state.value?.isNew
 
 	return (
 		<Field data-invalid={hasError || undefined}>
@@ -170,8 +170,8 @@ export function ComboboxField({
 							variant="outline"
 							aria-expanded={open}
 							className={cn(
-								"w-full justify-between font-normal",
-								!displayValue && "text-muted-foreground",
+								'w-full justify-between font-normal',
+								!displayValue && 'text-muted-foreground'
 							)}
 							disabled={disabled}
 						>
@@ -214,10 +214,10 @@ export function ComboboxField({
 											>
 												<CheckIcon
 													className={cn(
-														"mr-2 h-4 w-4",
+														'mr-2 h-4 w-4',
 														field.state.value === option.value
-															? "opacity-100"
-															: "opacity-0",
+															? 'opacity-100'
+															: 'opacity-0'
 													)}
 												/>
 												{option.label}
@@ -244,12 +244,12 @@ export function ComboboxField({
 				</Popover>
 
 				{hasError && (
-					<FieldError>{field.state.meta.errors.join(", ")}</FieldError>
+					<FieldError>{field.state.meta.errors.join(', ')}</FieldError>
 				)}
 				{field.state.meta.isValidating && (
 					<span className="text-sm text-muted-foreground">Validating...</span>
 				)}
 			</FieldContent>
 		</Field>
-	);
+	)
 }

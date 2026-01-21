@@ -27,24 +27,24 @@
  * ```
  */
 
-import { createFormHook, createFormHookContexts } from "@tanstack/react-form";
-import { CancelButton } from "@/components/form/CancelButton";
-import { ComboboxField } from "@/components/form/ComboboxField";
-import { DateField } from "@/components/form/DateField";
-import { DeleteButton } from "@/components/form/DeleteButton";
-import { FormButtonGroup } from "@/components/form/FormButtonGroup";
-import { NumberField } from "@/components/form/NumberField";
-import { RadioGroupField } from "@/components/form/RadioGroupField";
-import { SelectField } from "@/components/form/SelectField";
-import { SubmitButton } from "@/components/form/SubmitButton";
-import { TextField } from "@/components/form/TextField";
+import { createFormHook, createFormHookContexts } from '@tanstack/react-form'
+import { CancelButton } from '@/components/form/CancelButton'
+import { ComboboxField } from '@/components/form/ComboboxField'
+import { DateField } from '@/components/form/DateField'
+import { DeleteButton } from '@/components/form/DeleteButton'
+import { FormButtonGroup } from '@/components/form/FormButtonGroup'
+import { NumberField } from '@/components/form/NumberField'
+import { RadioGroupField } from '@/components/form/RadioGroupField'
+import { SelectField } from '@/components/form/SelectField'
+import { SubmitButton } from '@/components/form/SubmitButton'
+import { TextField } from '@/components/form/TextField'
 
 // Create contexts for field and form components to access form state
 const { fieldContext, useFieldContext, formContext, useFormContext } =
-	createFormHookContexts();
+	createFormHookContexts()
 
 // Export contexts for use in custom components
-export { useFieldContext, useFormContext };
+export { useFieldContext, useFormContext }
 
 // Create the custom form hook with pre-bound components
 export const { useAppForm, withForm } = createFormHook({
@@ -54,14 +54,14 @@ export const { useAppForm, withForm } = createFormHook({
 		SelectField,
 		NumberField,
 		ComboboxField,
-		RadioGroupField,
+		RadioGroupField
 	},
 	formComponents: {
 		SubmitButton,
 		CancelButton,
 		DeleteButton,
-		FormButtonGroup,
+		FormButtonGroup
 	},
 	fieldContext,
-	formContext,
-});
+	formContext
+})

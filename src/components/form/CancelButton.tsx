@@ -5,50 +5,50 @@
  * Only renders when onCancel is provided.
  */
 
-import { Button } from "@/components/ui/button";
+import { Button } from '@/components/ui/button'
 
 export interface CancelButtonProps {
 	/**
 	 * Callback when cancel is clicked
 	 */
-	onCancel?: () => void;
+	onCancel?: () => void
 
 	/**
 	 * Button text
 	 * @default "Cancel"
 	 */
-	children?: React.ReactNode;
+	children?: React.ReactNode
 
 	/**
 	 * Button variant
 	 * @default "outline"
 	 */
-	variant?: React.ComponentProps<typeof Button>["variant"];
+	variant?: React.ComponentProps<typeof Button>['variant']
 
 	/**
 	 * Button size
 	 * @default "default"
 	 */
-	size?: React.ComponentProps<typeof Button>["size"];
+	size?: React.ComponentProps<typeof Button>['size']
 
 	/**
 	 * Additional props to pass to the Button component
 	 */
 	buttonProps?: Omit<
 		React.ComponentProps<typeof Button>,
-		"type" | "onClick" | "children"
-	>;
+		'type' | 'onClick' | 'children'
+	>
 }
 
 export function CancelButton({
 	onCancel,
-	children = "Cancel",
-	variant = "outline",
-	size = "default",
-	buttonProps,
+	children = 'Cancel',
+	variant = 'outline',
+	size = 'default',
+	buttonProps
 }: CancelButtonProps) {
 	if (!onCancel) {
-		return null;
+		return null
 	}
 
 	return (
@@ -61,5 +61,5 @@ export function CancelButton({
 		>
 			{children}
 		</Button>
-	);
+	)
 }

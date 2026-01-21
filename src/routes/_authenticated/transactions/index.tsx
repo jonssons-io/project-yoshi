@@ -2,50 +2,50 @@
  * Transactions page - Manage income and expense transactions
  */
 
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { format } from "date-fns";
+import { createFileRoute, Link } from '@tanstack/react-router'
+import { format } from 'date-fns'
 import {
 	CopyIcon,
 	MoreVerticalIcon,
 	PencilIcon,
 	PlusIcon,
-	TrashIcon,
-} from "lucide-react";
-import { useState } from "react";
-import { z } from "zod";
-import { TransactionForm } from "@/components/transactions/TransactionForm";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+	TrashIcon
+} from 'lucide-react'
+import { useState } from 'react'
+import { z } from 'zod'
+import { TransactionForm } from '@/components/transactions/TransactionForm'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import {
 	Card,
 	CardContent,
 	CardDescription,
 	CardHeader,
-	CardTitle,
-} from "@/components/ui/card";
+	CardTitle
+} from '@/components/ui/card'
 import {
 	Dialog,
 	DialogContent,
 	DialogDescription,
 	DialogHeader,
 	DialogTitle,
-	DialogTrigger,
-} from "@/components/ui/dialog";
+	DialogTrigger
+} from '@/components/ui/dialog'
 import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
-	DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+	DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu'
 import {
 	Table,
 	TableBody,
 	TableCell,
 	TableHead,
 	TableHeader,
-	TableRow,
-} from "@/components/ui/table";
-import { useAuth } from "@/contexts/auth-context";
+	TableRow
+} from '@/components/ui/table'
+import { useAuth } from '@/contexts/auth-context'
 import {
 	useAccountsList,
 	useBillById,
@@ -56,104 +56,104 @@ import {
 	useCreateTransaction,
 	useDeleteTransaction,
 	useTransactionsList,
-	useUpdateTransaction,
-} from "@/hooks/api";
-import { useSelectedBudget } from "@/hooks/use-selected-budget";
-import { formatCurrency } from "@/lib/utils";
+	useUpdateTransaction
+} from '@/hooks/api'
+import { useSelectedBudget } from '@/hooks/use-selected-budget'
+import { formatCurrency } from '@/lib/utils'
 
 // Search params schema
 const transactionsSearchSchema = z.object({
 	budgetId: z.string().optional(),
-	createFromBill: z.string().optional(),
-});
+	createFromBill: z.string().optional()
+})
 
-export const Route = createFileRoute("/_authenticated/transactions/")({
+export const Route = createFileRoute('/_authenticated/transactions/')({
 	component: TransactionsPage,
-	validateSearch: (search) => transactionsSearchSchema.parse(search),
-});
+	validateSearch: (search) => transactionsSearchSchema.parse(search)
+})
 
 function TransactionsPage() {
-	const { budgetId: urlBudgetId, createFromBill } = Route.useSearch();
-	const { userId, householdId } = useAuth();
-	const { selectedBudgetId } = useSelectedBudget(userId, householdId);
-	const budgetId = urlBudgetId || selectedBudgetId;
-	const [createDialogOpen, setCreateDialogOpen] = useState(false);
+	const { budgetId: urlBudgetId, createFromBill } = Route.useSearch()
+	const { userId, householdId } = useAuth()
+	const { selectedBudgetId } = useSelectedBudget(userId, householdId)
+	const budgetId = urlBudgetId || selectedBudgetId
+	const [createDialogOpen, setCreateDialogOpen] = useState(false)
 	const [editingTransaction, setEditingTransaction] = useState<{
-		id: string;
-		name: string;
-		amount: number;
-		date: Date;
-		categoryId: string;
-		accountId: string;
-		notes: string | null;
-	} | null>(null);
-	const [filter, setFilter] = useState<"ALL" | "INCOME" | "EXPENSE">("ALL");
+		id: string
+		name: string
+		amount: number
+		date: Date
+		categoryId: string
+		accountId: string
+		notes: string | null
+	} | null>(null)
+	const [filter, setFilter] = useState<'ALL' | 'INCOME' | 'EXPENSE'>('ALL')
 
 	// All hooks must be called before any early returns
 	const {
 		data: transactions,
 		isLoading,
-		refetch,
+		refetch
 	} = useTransactionsList({
-		budgetId: budgetId ?? "",
+		budgetId: budgetId ?? '',
 		userId,
-		type: filter === "ALL" ? undefined : filter,
-		enabled: !!budgetId,
-	});
+		type: filter === 'ALL' ? undefined : filter,
+		enabled: !!budgetId
+	})
 
 	const { data: categories } = useCategoriesList({
 		householdId,
 		userId,
 		budgetId: budgetId || undefined,
-		enabled: !!budgetId,
-	});
+		enabled: !!budgetId
+	})
 
 	const { data: accounts } = useAccountsList({
 		householdId,
 		userId,
 		budgetId: budgetId || undefined,
-		enabled: !!budgetId,
-	});
+		enabled: !!budgetId
+	})
 
 	const { data: bills } = useBillsList({
-		budgetId: budgetId ?? "",
+		budgetId: budgetId ?? '',
 		userId,
 		includeArchived: false,
-		enabled: !!budgetId,
-	});
+		enabled: !!budgetId
+	})
 
 	const { data: selectedBill } = useBillById({
 		billId: createFromBill,
-		enabled: !!createFromBill,
-	});
+		enabled: !!createFromBill
+	})
 
 	const { mutate: createTransaction } = useCreateTransaction({
 		onSuccess: () => {
-			refetch();
-			setCreateDialogOpen(false);
-		},
-	});
+			refetch()
+			setCreateDialogOpen(false)
+		}
+	})
 
-	const { mutate: createBill } = useCreateBill({});
+	const { mutate: createBill } = useCreateBill({})
 
 	const { mutate: updateTransaction } = useUpdateTransaction({
 		onSuccess: () => {
-			refetch();
-			setEditingTransaction(null);
-		},
-	});
+			refetch()
+			setEditingTransaction(null)
+		}
+	})
 
 	const { mutate: deleteTransaction } = useDeleteTransaction({
 		onSuccess: () => {
-			refetch();
-		},
-	});
+			refetch()
+		}
+	})
 
 	const { mutate: cloneTransaction } = useCloneTransaction({
 		onSuccess: () => {
-			refetch();
-		},
-	});
+			refetch()
+		}
+	})
 
 	// Show message if no budget selected
 	if (!budgetId) {
@@ -171,7 +171,7 @@ function TransactionsPage() {
 					</Button>
 				</CardContent>
 			</Card>
-		);
+		)
 	}
 
 	if (isLoading) {
@@ -179,19 +179,19 @@ function TransactionsPage() {
 			<div className="flex items-center justify-center">
 				<p className="text-muted-foreground">Loading transactions...</p>
 			</div>
-		);
+		)
 	}
 
 	const incomeTransactions = transactions?.filter(
-		(t) => t.category.type === "INCOME",
-	);
+		(t) => t.category.type === 'INCOME'
+	)
 	const expenseTransactions = transactions?.filter(
-		(t) => t.category.type === "EXPENSE",
-	);
+		(t) => t.category.type === 'EXPENSE'
+	)
 	const totalIncome =
-		incomeTransactions?.reduce((sum, t) => sum + t.amount, 0) ?? 0;
+		incomeTransactions?.reduce((sum, t) => sum + t.amount, 0) ?? 0
 	const totalExpense =
-		expenseTransactions?.reduce((sum, t) => sum + t.amount, 0) ?? 0;
+		expenseTransactions?.reduce((sum, t) => sum + t.amount, 0) ?? 0
 
 	return (
 		<div className="space-y-6">
@@ -227,12 +227,12 @@ function TransactionsPage() {
 													: new Date(),
 												categoryId: selectedBill.categoryId,
 												accountId: selectedBill.accountId,
-												notes: `Payment to ${selectedBill.recipient}`,
+												notes: `Payment to ${selectedBill.recipient}`
 											}
 										: undefined
 								}
 								onSubmit={async (data, billData) => {
-									let finalBillId = data.billId;
+									let finalBillId = data.billId
 
 									if (billData) {
 										const newBill = await new Promise<string>(
@@ -247,24 +247,24 @@ function TransactionsPage() {
 														budgetId,
 														userId,
 														lastPaymentDate:
-															billData.lastPaymentDate ?? undefined,
+															billData.lastPaymentDate ?? undefined
 													},
 													{
 														onSuccess: (bill) => resolve(bill.id),
-														onError: reject,
-													},
-												);
-											},
-										);
-										finalBillId = newBill;
+														onError: reject
+													}
+												)
+											}
+										)
+										finalBillId = newBill
 									}
 
 									createTransaction({
 										...data,
 										billId: finalBillId || undefined,
 										budgetId,
-										userId,
-									});
+										userId
+									})
 								}}
 								onCancel={() => setCreateDialogOpen(false)}
 								submitLabel="Create Transaction"
@@ -312,8 +312,8 @@ function TransactionsPage() {
 						<div
 							className={`text-2xl font-bold ${
 								totalIncome - totalExpense >= 0
-									? "text-green-600"
-									: "text-red-600"
+									? 'text-green-600'
+									: 'text-red-600'
 							}`}
 						>
 							{formatCurrency(totalIncome - totalExpense)}
@@ -328,20 +328,20 @@ function TransactionsPage() {
 			{/* Filter tabs */}
 			<div className="flex gap-2">
 				<Button
-					variant={filter === "ALL" ? "default" : "outline"}
-					onClick={() => setFilter("ALL")}
+					variant={filter === 'ALL' ? 'default' : 'outline'}
+					onClick={() => setFilter('ALL')}
 				>
 					All ({transactions?.length ?? 0})
 				</Button>
 				<Button
-					variant={filter === "INCOME" ? "default" : "outline"}
-					onClick={() => setFilter("INCOME")}
+					variant={filter === 'INCOME' ? 'default' : 'outline'}
+					onClick={() => setFilter('INCOME')}
 				>
 					Income ({incomeTransactions?.length ?? 0})
 				</Button>
 				<Button
-					variant={filter === "EXPENSE" ? "default" : "outline"}
-					onClick={() => setFilter("EXPENSE")}
+					variant={filter === 'EXPENSE' ? 'default' : 'outline'}
+					onClick={() => setFilter('EXPENSE')}
 				>
 					Expenses ({expenseTransactions?.length ?? 0})
 				</Button>
@@ -380,7 +380,7 @@ function TransactionsPage() {
 							{transactions?.map((transaction) => (
 								<TableRow key={transaction.id}>
 									<TableCell>
-										{format(new Date(transaction.date), "PP")}
+										{format(new Date(transaction.date), 'PP')}
 									</TableCell>
 									<TableCell className="font-medium">
 										{transaction.name}
@@ -388,9 +388,9 @@ function TransactionsPage() {
 									<TableCell>
 										<Badge
 											variant={
-												transaction.category.type === "INCOME"
-													? "default"
-													: "secondary"
+												transaction.category.type === 'INCOME'
+													? 'default'
+													: 'secondary'
 											}
 										>
 											{transaction.category.name}
@@ -401,12 +401,12 @@ function TransactionsPage() {
 									</TableCell>
 									<TableCell
 										className={`text-right font-medium ${
-											transaction.category.type === "INCOME"
-												? "text-green-600"
-												: "text-red-600"
+											transaction.category.type === 'INCOME'
+												? 'text-green-600'
+												: 'text-red-600'
 										}`}
 									>
-										{transaction.category.type === "INCOME" ? "+" : "-"}
+										{transaction.category.type === 'INCOME' ? '+' : '-'}
 										{formatCurrency(transaction.amount)}
 									</TableCell>
 									<TableCell className="text-right">
@@ -426,7 +426,7 @@ function TransactionsPage() {
 															date: new Date(transaction.date),
 															categoryId: transaction.categoryId,
 															accountId: transaction.accountId,
-															notes: transaction.notes,
+															notes: transaction.notes
 														})
 													}
 												>
@@ -437,13 +437,13 @@ function TransactionsPage() {
 													onClick={() => {
 														if (
 															confirm(
-																`Clone transaction "${transaction.name}"?`,
+																`Clone transaction "${transaction.name}"?`
 															)
 														) {
 															cloneTransaction({
 																id: transaction.id,
-																userId,
-															});
+																userId
+															})
 														}
 													}}
 												>
@@ -455,13 +455,13 @@ function TransactionsPage() {
 													onClick={() => {
 														if (
 															confirm(
-																`Are you sure you want to delete "${transaction.name}"?`,
+																`Are you sure you want to delete "${transaction.name}"?`
 															)
 														) {
 															deleteTransaction({
 																id: transaction.id,
-																userId,
-															});
+																userId
+															})
 														}
 													}}
 												>
@@ -498,7 +498,7 @@ function TransactionsPage() {
 								date: editingTransaction.date,
 								categoryId: editingTransaction.categoryId,
 								accountId: editingTransaction.accountId,
-								notes: editingTransaction.notes ?? "",
+								notes: editingTransaction.notes ?? ''
 							}}
 							categories={categories}
 							accounts={accounts}
@@ -508,8 +508,8 @@ function TransactionsPage() {
 								updateTransaction({
 									id: editingTransaction.id,
 									userId,
-									...data,
-								});
+									...data
+								})
 							}}
 							onCancel={() => setEditingTransaction(null)}
 							submitLabel="Update Transaction"
@@ -518,5 +518,5 @@ function TransactionsPage() {
 				</DialogContent>
 			</Dialog>
 		</div>
-	);
+	)
 }

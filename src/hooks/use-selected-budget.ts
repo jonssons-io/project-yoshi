@@ -4,39 +4,39 @@
  * Scopes the storage to the current user to prevent conflicts when multiple users share a browser
  */
 
-import { useBudgetsList } from "@/hooks/api";
-import { useLocalStorageSelection } from "./use-local-storage-selection";
+import { useBudgetsList } from '@/hooks/api'
+import { useLocalStorageSelection } from './use-local-storage-selection'
 
-const STORAGE_KEY_PREFIX = "yoshi-selected-budget";
+const STORAGE_KEY_PREFIX = 'yoshi-selected-budget'
 
 export function useSelectedBudget(
 	userId?: string | null,
-	householdId?: string | null,
+	householdId?: string | null
 ) {
 	// Generate user-specific storage key
-	const storageKey = userId ? `${STORAGE_KEY_PREFIX}-${userId}` : null;
+	const storageKey = userId ? `${STORAGE_KEY_PREFIX}-${userId}` : null
 
 	// Fetch budgets to validate selection
 	const { data: budgets, isLoading: isBudgetsLoading } = useBudgetsList({
 		householdId,
-		userId,
-	});
+		userId
+	})
 
 	// Use generic selection hook
 	const {
 		selectedId: selectedBudgetId,
 		setSelectedId: setSelectedBudget,
-		isLoading,
+		isLoading
 	} = useLocalStorageSelection({
 		storageKey,
 		items: budgets,
 		isLoading: isBudgetsLoading,
-		getId: (budget) => budget.id,
-	});
+		getId: (budget) => budget.id
+	})
 
 	return {
 		selectedBudgetId,
 		setSelectedBudget,
-		isLoading,
-	};
+		isLoading
+	}
 }

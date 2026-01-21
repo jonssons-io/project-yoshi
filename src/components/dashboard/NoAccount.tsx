@@ -1,36 +1,36 @@
-import { PlusIcon } from "lucide-react";
-import { AccountForm } from "@/forms/AccountForm";
-import { useBudgetsList, useCreateAccount } from "@/hooks/api";
-import { useDrawer } from "@/hooks/use-drawer";
-import { Card } from "../card/Card";
-import { Button } from "../ui/button";
+import { PlusIcon } from 'lucide-react'
+import { AccountForm } from '@/forms/AccountForm'
+import { useBudgetsList, useCreateAccount } from '@/hooks/api'
+import { useDrawer } from '@/hooks/use-drawer'
+import { Card } from '../card/Card'
+import { Button } from '../ui/button'
 
 interface NoAccountProps {
-	userId: string;
-	householdId: string;
-	onAccountCreated?: () => void;
+	userId: string
+	householdId: string
+	onAccountCreated?: () => void
 }
 
 export const NoAccount = ({
 	userId,
 	householdId,
-	onAccountCreated,
+	onAccountCreated
 }: NoAccountProps) => {
-	const { openDrawer, closeDrawer } = useDrawer();
+	const { openDrawer, closeDrawer } = useDrawer()
 
 	// Fetch budgets for linking
 	const { data: budgets } = useBudgetsList({
 		householdId,
 		userId,
-		enabled: !!householdId,
-	});
+		enabled: !!householdId
+	})
 
 	const { mutate: createAccount } = useCreateAccount({
 		onSuccess: () => {
-			closeDrawer();
-			onAccountCreated?.();
-		},
-	});
+			closeDrawer()
+			onAccountCreated?.()
+		}
+	})
 
 	const handleCreateAccount = () => {
 		openDrawer(
@@ -45,17 +45,17 @@ export const NoAccount = ({
 						createAccount({
 							...data,
 							householdId,
-							userId,
-						});
+							userId
+						})
 					}}
 					onCancel={closeDrawer}
 					submitLabel="Create Account"
 					budgets={budgets ?? []}
 				/>
 			</div>,
-			"Create Account",
-		);
-	};
+			'Create Account'
+		)
+	}
 
 	return (
 		<div className="container py-8 flex items-center justify-center">
@@ -69,5 +69,5 @@ export const NoAccount = ({
 				</Button>
 			</Card>
 		</div>
-	);
-};
+	)
+}

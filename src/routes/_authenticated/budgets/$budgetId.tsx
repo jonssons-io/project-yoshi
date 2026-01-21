@@ -2,38 +2,38 @@
  * Budget detail page - View and manage a specific budget
  */
 
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { Button } from "@/components/ui/button";
+import { createFileRoute, Link } from '@tanstack/react-router'
+import { Button } from '@/components/ui/button'
 import {
 	Card,
 	CardContent,
 	CardDescription,
 	CardHeader,
-	CardTitle,
-} from "@/components/ui/card";
-import { useAuth } from "@/contexts/auth-context";
-import { useBudgetById } from "@/hooks/api";
+	CardTitle
+} from '@/components/ui/card'
+import { useAuth } from '@/contexts/auth-context'
+import { useBudgetById } from '@/hooks/api'
 
-export const Route = createFileRoute("/_authenticated/budgets/$budgetId")({
-	component: BudgetDetailPage,
-});
+export const Route = createFileRoute('/_authenticated/budgets/$budgetId')({
+	component: BudgetDetailPage
+})
 
 function BudgetDetailPage() {
-	const { budgetId } = Route.useParams();
-	const { userId } = useAuth();
+	const { budgetId } = Route.useParams()
+	const { userId } = useAuth()
 
 	const { data: budget, isLoading } = useBudgetById({
 		budgetId,
 		userId,
-		enabled: true,
-	});
+		enabled: true
+	})
 
 	if (isLoading) {
 		return (
 			<div className="flex items-center justify-center">
 				<p className="text-muted-foreground">Loading...</p>
 			</div>
-		);
+		)
 	}
 
 	if (!budget) {
@@ -52,7 +52,7 @@ function BudgetDetailPage() {
 					</Button>
 				</CardContent>
 			</Card>
-		);
+		)
 	}
 
 	return (
@@ -124,5 +124,5 @@ function BudgetDetailPage() {
 				</CardContent>
 			</Card>
 		</div>
-	);
+	)
 }

@@ -3,13 +3,13 @@ import {
 	CardDescription,
 	CardHeader,
 	CardTitle,
-	Card as CardWrapper,
-} from "@/components/ui/card";
+	Card as CardWrapper
+} from '@/components/ui/card'
 
 interface CardProps {
-	title?: string;
-	description?: string;
-	children: React.ReactNode;
+	title?: string
+	description?: string
+	children: React.ReactNode
 }
 
 export const Card = ({ title, description, children }: CardProps) => {
@@ -21,5 +21,5 @@ export const Card = ({ title, description, children }: CardProps) => {
 			</CardHeader>
 			<CardContent>{children}</CardContent>
 		</CardWrapper>
-	);
-};
+	)
+}

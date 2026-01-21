@@ -2,117 +2,116 @@
  * Categories page - Manage income and expense categories
  */
 
-import { createFileRoute } from "@tanstack/react-router";
-import { PencilIcon, PlusIcon, TrashIcon } from "lucide-react";
-import { useState } from "react";
-import { CategoryForm } from "@/components/categories/CategoryForm";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { createFileRoute } from '@tanstack/react-router'
+import { PencilIcon, PlusIcon, TrashIcon } from 'lucide-react'
+import { useState } from 'react'
+import { CategoryForm } from '@/components/categories/CategoryForm'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import {
 	Card,
 	CardContent,
 	CardDescription,
 	CardHeader,
-	CardTitle,
-} from "@/components/ui/card";
+	CardTitle
+} from '@/components/ui/card'
 import {
 	Dialog,
 	DialogContent,
 	DialogDescription,
 	DialogHeader,
 	DialogTitle,
-	DialogTrigger,
-} from "@/components/ui/dialog";
+	DialogTrigger
+} from '@/components/ui/dialog'
 import {
 	Table,
 	TableBody,
 	TableCell,
 	TableHead,
 	TableHeader,
-	TableRow,
-} from "@/components/ui/table";
-import { useAuth } from "@/contexts/auth-context";
+	TableRow
+} from '@/components/ui/table'
+import { useAuth } from '@/contexts/auth-context'
 import {
 	useBudgetsList,
 	useCategoriesList,
 	useCategoryById,
 	useCreateCategory,
 	useDeleteCategory,
-	useUpdateCategory,
-} from "@/hooks/api";
+	useUpdateCategory
+} from '@/hooks/api'
 
-export const Route = createFileRoute("/_authenticated/categories/")({
-	component: CategoriesPage,
-});
+export const Route = createFileRoute('/_authenticated/categories/')({
+	component: CategoriesPage
+})
 
 function CategoriesPage() {
-	const { userId, householdId } = useAuth();
-	const [createDialogOpen, setCreateDialogOpen] = useState(false);
+	const { userId, householdId } = useAuth()
+	const [createDialogOpen, setCreateDialogOpen] = useState(false)
 	const [editingCategoryId, setEditingCategoryId] = useState<string | null>(
-		null,
-	);
-	const [filter, setFilter] = useState<"ALL" | "INCOME" | "EXPENSE">("ALL");
+		null
+	)
+	const [filter, setFilter] = useState<'ALL' | 'INCOME' | 'EXPENSE'>('ALL')
 
 	// Fetch full category details when editing (including budget links)
 	const { data: editingCategory } = useCategoryById({
 		categoryId: editingCategoryId,
 		userId,
-		enabled: !!editingCategoryId,
-	});
+		enabled: !!editingCategoryId
+	})
 
 	const {
 		data: categories,
 		isLoading,
-		refetch,
+		refetch
 	} = useCategoriesList({
 		householdId,
 		userId,
-		type: filter === "ALL" ? undefined : filter,
-	});
+		type: filter === 'ALL' ? undefined : filter
+	})
 
 	// Fetch budgets for linking when creating categories
 	const { data: budgets } = useBudgetsList({
 		householdId,
-		userId,
-	});
+		userId
+	})
 
 	const { mutate: createCategory } = useCreateCategory({
 		onSuccess: () => {
-			refetch();
-			setCreateDialogOpen(false);
-		},
-	});
+			refetch()
+			setCreateDialogOpen(false)
+		}
+	})
 
 	const { mutate: updateCategory } = useUpdateCategory({
 		onSuccess: () => {
-			refetch();
-			setEditingCategoryId(null);
-		},
-	});
+			refetch()
+			setEditingCategoryId(null)
+		}
+	})
 
 	const { mutate: deleteCategory } = useDeleteCategory({
 		onSuccess: () => {
-			refetch();
+			refetch()
 		},
 		onError: (error) => {
 			alert(
-				error instanceof Error ? error.message : "Failed to delete category",
-			);
-		},
-	});
+				error instanceof Error ? error.message : 'Failed to delete category'
+			)
+		}
+	})
 
 	if (isLoading) {
 		return (
 			<div className="flex items-center justify-center">
 				<p className="text-muted-foreground">Loading categories...</p>
 			</div>
-		);
+		)
 	}
 
-	const incomeCount =
-		categories?.filter((c) => c.type === "INCOME").length ?? 0;
+	const incomeCount = categories?.filter((c) => c.type === 'INCOME').length ?? 0
 	const expenseCount =
-		categories?.filter((c) => c.type === "EXPENSE").length ?? 0;
+		categories?.filter((c) => c.type === 'EXPENSE').length ?? 0
 
 	return (
 		<div className="space-y-6">
@@ -120,22 +119,22 @@ function CategoriesPage() {
 			<div className="flex items-center justify-end gap-2">
 				<div className="flex gap-2">
 					<Button
-						variant={filter === "ALL" ? "default" : "outline"}
-						onClick={() => setFilter("ALL")}
+						variant={filter === 'ALL' ? 'default' : 'outline'}
+						onClick={() => setFilter('ALL')}
 						size="sm"
 					>
 						All ({categories?.length ?? 0})
 					</Button>
 					<Button
-						variant={filter === "INCOME" ? "default" : "outline"}
-						onClick={() => setFilter("INCOME")}
+						variant={filter === 'INCOME' ? 'default' : 'outline'}
+						onClick={() => setFilter('INCOME')}
 						size="sm"
 					>
 						Income ({incomeCount})
 					</Button>
 					<Button
-						variant={filter === "EXPENSE" ? "default" : "outline"}
-						onClick={() => setFilter("EXPENSE")}
+						variant={filter === 'EXPENSE' ? 'default' : 'outline'}
+						onClick={() => setFilter('EXPENSE')}
 						size="sm"
 					>
 						Expenses ({expenseCount})
@@ -161,8 +160,8 @@ function CategoriesPage() {
 								createCategory({
 									...data,
 									householdId,
-									userId,
-								});
+									userId
+								})
 							}}
 							onCancel={() => setCreateDialogOpen(false)}
 							submitLabel="Create Category"
@@ -205,7 +204,7 @@ function CategoriesPage() {
 									<TableCell>
 										<Badge
 											variant={
-												category.type === "INCOME" ? "default" : "secondary"
+												category.type === 'INCOME' ? 'default' : 'secondary'
 											}
 										>
 											{category.type}
@@ -227,19 +226,19 @@ function CategoriesPage() {
 												onClick={() => {
 													if (category._count.transactions > 0) {
 														alert(
-															`Cannot delete "${category.name}" because it has ${category._count.transactions} transaction(s). Please reassign or delete those transactions first.`,
-														);
-														return;
+															`Cannot delete "${category.name}" because it has ${category._count.transactions} transaction(s). Please reassign or delete those transactions first.`
+														)
+														return
 													}
 													if (
 														confirm(
-															`Are you sure you want to delete "${category.name}"?`,
+															`Are you sure you want to delete "${category.name}"?`
 														)
 													) {
 														deleteCategory({
 															id: category.id,
-															userId,
-														});
+															userId
+														})
 													}
 												}}
 											>
@@ -271,14 +270,14 @@ function CategoriesPage() {
 							defaultValues={{
 								name: editingCategory.name,
 								type: editingCategory.type,
-								budgetIds: editingCategory.budgets.map((b) => b.budgetId),
+								budgetIds: editingCategory.budgets.map((b) => b.budgetId)
 							}}
 							onSubmit={async (data) => {
 								updateCategory({
 									id: editingCategory.id,
 									userId,
-									...data,
-								});
+									...data
+								})
 							}}
 							onCancel={() => setEditingCategoryId(null)}
 							submitLabel="Update Category"
@@ -288,5 +287,5 @@ function CategoriesPage() {
 				</DialogContent>
 			</Dialog>
 		</div>
-	);
+	)
 }

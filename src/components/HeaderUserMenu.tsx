@@ -1,6 +1,6 @@
-import { Check, ChevronsUpDown, LogOut, Plus, Settings } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
+import { Check, ChevronsUpDown, LogOut, Plus, Settings } from 'lucide-react'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Button } from '@/components/ui/button'
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -11,27 +11,27 @@ import {
 	DropdownMenuSub,
 	DropdownMenuSubContent,
 	DropdownMenuSubTrigger,
-	DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+	DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu'
 
 interface LocalHousehold {
-	id: string;
-	name: string;
+	id: string
+	name: string
 }
 
 interface HeaderUserMenuProps {
 	user: {
-		imageUrl?: string;
-		fullName?: string | null;
-		firstName?: string | null;
-		email?: string;
-	};
-	households?: LocalHousehold[];
-	selectedHouseholdId: string | null;
-	onSelectHousehold: (id: string) => void;
-	onCreateHousehold: () => void;
-	onEditHousehold: () => void;
-	onSignOut: () => void;
+		imageUrl?: string
+		fullName?: string | null
+		firstName?: string | null
+		email?: string
+	}
+	households?: LocalHousehold[]
+	selectedHouseholdId: string | null
+	onSelectHousehold: (id: string) => void
+	onCreateHousehold: () => void
+	onEditHousehold: () => void
+	onSignOut: () => void
 }
 
 export function HeaderUserMenu({
@@ -41,14 +41,14 @@ export function HeaderUserMenu({
 	onSelectHousehold,
 	onCreateHousehold,
 	onEditHousehold,
-	onSignOut,
+	onSignOut
 }: HeaderUserMenuProps) {
 	const selectedHousehold = households?.find(
-		(h) => h.id === selectedHouseholdId,
-	);
+		(h) => h.id === selectedHouseholdId
+	)
 	const userInitials = user.firstName
 		? user.firstName.slice(0, 2).toUpperCase()
-		: "U";
+		: 'U'
 
 	return (
 		<DropdownMenu>
@@ -58,7 +58,7 @@ export function HeaderUserMenu({
 					className="relative h-8 w-8 rounded-full cursor-pointer"
 				>
 					<Avatar className="h-8 w-8">
-						<AvatarImage src={user.imageUrl} alt={user.fullName ?? "User"} />
+						<AvatarImage src={user.imageUrl} alt={user.fullName ?? 'User'} />
 						<AvatarFallback>{userInitials}</AvatarFallback>
 					</Avatar>
 				</Button>
@@ -90,8 +90,8 @@ export function HeaderUserMenu({
 											<Check
 												className={`mr-2 h-4 w-4 ${
 													selectedHouseholdId === household.id
-														? "opacity-100"
-														: "opacity-0"
+														? 'opacity-100'
+														: 'opacity-0'
 												}`}
 											/>
 											{household.name}
@@ -121,5 +121,5 @@ export function HeaderUserMenu({
 				</DropdownMenuItem>
 			</DropdownMenuContent>
 		</DropdownMenu>
-	);
+	)
 }

@@ -1,57 +1,57 @@
-import { createQueryHook } from "./create-query-hook";
+import { createQueryHook } from './create-query-hook'
 
 /**
  * Hook to fetch list of accounts for a household
  * Query is auto-disabled when householdId or userId is undefined/null
  */
 export const useAccountsList = createQueryHook(
-	"accounts",
-	"list",
+	'accounts',
+	'list',
 	(params: {
-		householdId?: string | null;
-		userId?: string | null;
-		budgetId?: string | null;
-		enabled?: boolean;
+		householdId?: string | null
+		userId?: string | null
+		budgetId?: string | null
+		enabled?: boolean
 	}) => ({
-		householdId: params.householdId ?? "",
-		userId: params.userId ?? "",
-		budgetId: params.budgetId || undefined,
+		householdId: params.householdId ?? '',
+		userId: params.userId ?? '',
+		budgetId: params.budgetId || undefined
 	}),
-	(params) => [params.householdId, params.userId],
-);
+	(params) => [params.householdId, params.userId]
+)
 
 /**
  * Hook to fetch a single account by ID
  * Query is auto-disabled when accountId or userId is undefined/null
  */
 export const useAccountById = createQueryHook(
-	"accounts",
-	"getById",
+	'accounts',
+	'getById',
 	(params: {
-		accountId?: string | null;
-		userId?: string | null;
-		enabled?: boolean;
+		accountId?: string | null
+		userId?: string | null
+		enabled?: boolean
 	}) => ({
-		id: params.accountId ?? "",
-		userId: params.userId ?? "",
+		id: params.accountId ?? '',
+		userId: params.userId ?? ''
 	}),
-	(params) => [params.accountId, params.userId],
-);
+	(params) => [params.accountId, params.userId]
+)
 
 /**
  * Hook to fetch account balance
  * Query is auto-disabled when accountId or userId is undefined/null
  */
 export const useAccountBalance = createQueryHook(
-	"accounts",
-	"getBalance",
+	'accounts',
+	'getBalance',
 	(params: {
-		accountId?: string | null;
-		userId?: string | null;
-		enabled?: boolean;
+		accountId?: string | null
+		userId?: string | null
+		enabled?: boolean
 	}) => ({
-		id: params.accountId ?? "",
-		userId: params.userId ?? "",
+		id: params.accountId ?? '',
+		userId: params.userId ?? ''
 	}),
-	(params) => [params.accountId, params.userId],
-);
+	(params) => [params.accountId, params.userId]
+)

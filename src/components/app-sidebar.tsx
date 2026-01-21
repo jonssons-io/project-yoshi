@@ -3,8 +3,8 @@
  * Main navigation sidebar with icons and labels
  */
 
-import { useUser } from "@clerk/clerk-react";
-import { Link } from "@tanstack/react-router";
+import { useUser } from '@clerk/clerk-react'
+import { Link } from '@tanstack/react-router'
 import {
 	Building2,
 	Check,
@@ -14,14 +14,14 @@ import {
 	Home,
 	Receipt,
 	Tags,
-	Wallet,
-} from "lucide-react";
+	Wallet
+} from 'lucide-react'
 import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
-	DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+	DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu'
 import {
 	Sidebar,
 	SidebarContent,
@@ -31,75 +31,75 @@ import {
 	SidebarHeader,
 	SidebarMenu,
 	SidebarMenuButton,
-	SidebarMenuItem,
-} from "@/components/ui/sidebar";
-import { useBudgetsList } from "@/hooks/api";
-import { useSelectedBudget } from "@/hooks/use-selected-budget";
-import { useSelectedHousehold } from "@/hooks/use-selected-household";
-import { cn } from "@/lib/utils";
+	SidebarMenuItem
+} from '@/components/ui/sidebar'
+import { useBudgetsList } from '@/hooks/api'
+import { useSelectedBudget } from '@/hooks/use-selected-budget'
+import { useSelectedHousehold } from '@/hooks/use-selected-household'
+import { cn } from '@/lib/utils'
 
 const navSections = {
 	overview: [
 		{
-			title: "Dashboard",
-			url: "/",
+			title: 'Dashboard',
+			url: '/',
 			icon: Home,
-			requiresBudget: false,
+			requiresBudget: false
 		},
 		{
-			title: "Budgets",
-			url: "/budgets",
+			title: 'Budgets',
+			url: '/budgets',
 			icon: Wallet,
-			requiresBudget: false,
-		},
+			requiresBudget: false
+		}
 	],
 	budget: [
 		{
-			title: "Transactions",
-			url: "/transactions",
+			title: 'Transactions',
+			url: '/transactions',
 			icon: Receipt,
-			requiresBudget: true,
+			requiresBudget: true
 		},
 		{
-			title: "Bills",
-			url: "/bills",
+			title: 'Bills',
+			url: '/bills',
 			icon: FileTextIcon,
-			requiresBudget: true,
-		},
+			requiresBudget: true
+		}
 	],
 	settings: [
 		{
-			title: "Accounts",
-			url: "/accounts",
+			title: 'Accounts',
+			url: '/accounts',
 			icon: CreditCard,
-			requiresBudget: false,
+			requiresBudget: false
 		},
 		{
-			title: "Categories",
-			url: "/categories",
+			title: 'Categories',
+			url: '/categories',
 			icon: Tags,
-			requiresBudget: false,
-		},
-	],
-};
+			requiresBudget: false
+		}
+	]
+}
 
 export function AppSidebar() {
-	const { user } = useUser();
-	const userId = user?.id!;
-	const { selectedHouseholdId } = useSelectedHousehold(userId);
+	const { user } = useUser()
+	const userId = user?.id!
+	const { selectedHouseholdId } = useSelectedHousehold(userId)
 	const { selectedBudgetId, setSelectedBudget } = useSelectedBudget(
 		userId,
-		selectedHouseholdId ?? undefined,
-	);
+		selectedHouseholdId ?? undefined
+	)
 
 	// Fetch budgets for selected household
 	const { data: budgets } = useBudgetsList({
 		householdId: selectedHouseholdId!,
 		userId,
-		enabled: !!selectedHouseholdId,
-	});
+		enabled: !!selectedHouseholdId
+	})
 
-	const selectedBudget = budgets?.find((b) => b.id === selectedBudgetId);
+	const selectedBudget = budgets?.find((b) => b.id === selectedBudgetId)
 
 	return (
 		<Sidebar collapsible="icon">
@@ -137,7 +137,7 @@ export function AppSidebar() {
 											<SidebarMenuButton className="w-full">
 												<Wallet className="h-4 w-4" />
 												<span className="flex-1 truncate text-left">
-													{selectedBudget?.name ?? "Select Budget"}
+													{selectedBudget?.name ?? 'Select Budget'}
 												</span>
 												<ChevronsUpDown className="ml-auto h-4 w-4 opacity-50" />
 											</SidebarMenuButton>
@@ -153,10 +153,10 @@ export function AppSidebar() {
 												>
 													<Check
 														className={cn(
-															"mr-2 h-4 w-4",
+															'mr-2 h-4 w-4',
 															selectedBudgetId === budget.id
-																? "opacity-100"
-																: "opacity-0",
+																? 'opacity-100'
+																: 'opacity-0'
 														)}
 													/>
 													{budget.name}
@@ -249,5 +249,5 @@ export function AppSidebar() {
 				</SidebarGroup>
 			</SidebarContent>
 		</Sidebar>
-	);
+	)
 }

@@ -3,31 +3,31 @@ import {
 	TableBody,
 	TableHead,
 	TableHeader,
-	TableRow,
-} from "@/components/ui/table";
-import { useAccountsList, useDeleteAccount } from "@/hooks/api";
-import { formatCurrency } from "@/lib/utils";
-import { AccountRow } from "./AccountsTableRow";
+	TableRow
+} from '@/components/ui/table'
+import { useAccountsList, useDeleteAccount } from '@/hooks/api'
+import { formatCurrency } from '@/lib/utils'
+import { AccountRow } from './AccountsTableRow'
 
 export const AccountsTable = ({
 	userId,
 	selectedHouseholdId,
-	setEditingAccountId,
+	setEditingAccountId
 }: {
-	userId: string;
-	selectedHouseholdId: string;
-	setEditingAccountId: (id: string) => void;
+	userId: string
+	selectedHouseholdId: string
+	setEditingAccountId: (id: string) => void
 }) => {
 	const { data: accounts, refetch } = useAccountsList({
 		householdId: selectedHouseholdId,
-		userId,
-	});
+		userId
+	})
 
 	const { mutate: deleteAccount } = useDeleteAccount({
 		onSuccess: () => {
-			refetch();
-		},
-	});
+			refetch()
+		}
+	})
 
 	return (
 		<Table>
@@ -54,5 +54,5 @@ export const AccountsTable = ({
 				))}
 			</TableBody>
 		</Table>
-	);
-};
+	)
+}

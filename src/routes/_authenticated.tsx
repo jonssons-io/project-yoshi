@@ -1,82 +1,82 @@
-import { useClerk, useUser } from "@clerk/clerk-react";
-import { auth } from "@clerk/tanstack-react-start/server";
-import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
-import { createServerFn } from "@tanstack/react-start";
-import { AppSidebar } from "@/components/app-sidebar";
-import { Breadcrumbs } from "@/components/Breadcrumbs";
-import { DrawerProvider } from "@/components/drawer-context";
-import { HeaderUserMenu } from "@/components/HeaderUserMenu";
-import { Separator } from "@/components/ui/separator";
+import { useClerk, useUser } from '@clerk/clerk-react'
+import { auth } from '@clerk/tanstack-react-start/server'
+import { createFileRoute, Outlet, redirect } from '@tanstack/react-router'
+import { createServerFn } from '@tanstack/react-start'
+import { AppSidebar } from '@/components/app-sidebar'
+import { Breadcrumbs } from '@/components/Breadcrumbs'
+import { DrawerProvider } from '@/components/drawer-context'
+import { HeaderUserMenu } from '@/components/HeaderUserMenu'
+import { Separator } from '@/components/ui/separator'
 import {
 	SidebarInset,
 	SidebarProvider,
-	SidebarTrigger,
-} from "@/components/ui/sidebar";
-import { AuthProvider } from "@/contexts/auth-context";
-import { HouseholdForm } from "@/forms/HouseholdForm";
+	SidebarTrigger
+} from '@/components/ui/sidebar'
+import { AuthProvider } from '@/contexts/auth-context'
+import { HouseholdForm } from '@/forms/HouseholdForm'
 import {
 	useCreateHousehold,
 	useDeleteHousehold,
 	useHouseholdsList,
-	useUpdateHousehold,
-} from "@/hooks/api";
-import { useDrawer } from "@/hooks/use-drawer";
-import { useSelectedHousehold } from "@/hooks/use-selected-household";
+	useUpdateHousehold
+} from '@/hooks/api'
+import { useDrawer } from '@/hooks/use-drawer'
+import { useSelectedHousehold } from '@/hooks/use-selected-household'
 
 const authStateFn = createServerFn().handler(async () => {
-	const { userId } = await auth();
+	const { userId } = await auth()
 
 	if (!userId) {
 		throw redirect({
-			to: "/sign-in",
-		});
+			to: '/sign-in'
+		})
 	}
 
-	return { userId };
-});
+	return { userId }
+})
 
-export const Route = createFileRoute("/_authenticated")({
+export const Route = createFileRoute('/_authenticated')({
 	beforeLoad: async () => await authStateFn(),
-	component: AuthenticatedLayout,
-});
+	component: AuthenticatedLayout
+})
 
 function AuthenticatedLayout() {
 	return (
 		<DrawerProvider>
 			<AuthenticatedLayoutContent />
 		</DrawerProvider>
-	);
+	)
 }
 
 function AuthenticatedLayoutContent() {
-	const { user } = useUser();
-	const { signOut } = useClerk();
-	const userId = user?.id;
-	const { openDrawer, closeDrawer } = useDrawer();
+	const { user } = useUser()
+	const { signOut } = useClerk()
+	const userId = user?.id
+	const { openDrawer, closeDrawer } = useDrawer()
 
 	const { selectedHouseholdId, setSelectedHousehold } =
-		useSelectedHousehold(userId);
+		useSelectedHousehold(userId)
 
-	const { data: households } = useHouseholdsList({ userId });
+	const { data: households } = useHouseholdsList({ userId })
 
 	const { mutate: createHousehold } = useCreateHousehold({
 		onSuccess: (household: { id: string }) => {
-			setSelectedHousehold(household.id);
-			closeDrawer();
-		},
-	});
+			setSelectedHousehold(household.id)
+			closeDrawer()
+		}
+	})
 
 	const { mutate: updateHousehold } = useUpdateHousehold({
 		onSuccess: () => {
-			closeDrawer();
-		},
-	});
+			closeDrawer()
+		}
+	})
 
 	const { mutate: deleteHousehold } = useDeleteHousehold({
 		onSuccess: () => {
-			closeDrawer();
-		},
-	});
+			closeDrawer()
+		}
+	})
 
 	const handleCreateHousehold = () => {
 		openDrawer(
@@ -88,25 +88,25 @@ function AuthenticatedLayoutContent() {
 				</p>
 				<HouseholdForm
 					onSubmit={(data) => {
-						if (!userId) return;
+						if (!userId) return
 						createHousehold({
 							name: data.name,
-							userId,
-						});
+							userId
+						})
 					}}
 					onCancel={closeDrawer}
 					submitLabel="Create Household"
 				/>
 			</div>,
-			"Create Household",
-		);
-	};
+			'Create Household'
+		)
+	}
 
 	const handleEditHousehold = () => {
 		const currentHousehold = households?.find(
-			(h) => h.id === selectedHouseholdId,
-		);
-		if (!currentHousehold) return;
+			(h) => h.id === selectedHouseholdId
+		)
+		if (!currentHousehold) return
 
 		openDrawer(
 			<div className="p-4">
@@ -114,34 +114,34 @@ function AuthenticatedLayoutContent() {
 				<HouseholdForm
 					defaultValues={{ name: currentHousehold.name }}
 					onSubmit={(data) => {
-						if (!userId) return;
+						if (!userId) return
 						updateHousehold({
 							id: currentHousehold.id,
 							name: data.name,
-							userId,
-						});
+							userId
+						})
 					}}
 					onCancel={closeDrawer}
 					onDelete={() => {
-						if (!userId) return;
+						if (!userId) return
 						if (
 							confirm(
-								"Are you sure you want to delete this household? This action cannot be undone.",
+								'Are you sure you want to delete this household? This action cannot be undone.'
 							)
 						) {
-							deleteHousehold({ id: currentHousehold.id, userId });
+							deleteHousehold({ id: currentHousehold.id, userId })
 						}
 					}}
 					submitLabel="Save Changes"
 				/>
 			</div>,
-			"Edit Household",
-		);
-	};
+			'Edit Household'
+		)
+	}
 
 	const handleSignOut = () => {
-		signOut();
-	};
+		signOut()
+	}
 
 	return (
 		<SidebarProvider>
@@ -162,7 +162,7 @@ function AuthenticatedLayoutContent() {
 								imageUrl: user.imageUrl,
 								fullName: user.fullName,
 								firstName: user.firstName,
-								email: user.primaryEmailAddress?.emailAddress,
+								email: user.primaryEmailAddress?.emailAddress
 							}}
 							households={households}
 							selectedHouseholdId={selectedHouseholdId}
@@ -180,5 +180,5 @@ function AuthenticatedLayoutContent() {
 				</main>
 			</SidebarInset>
 		</SidebarProvider>
-	);
+	)
 }

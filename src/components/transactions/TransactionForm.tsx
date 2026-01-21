@@ -7,49 +7,49 @@
  * - Inline category creation via ComboboxField
  */
 
-import { useId, useState } from "react";
-import { z } from "zod";
+import { useId, useState } from 'react'
+import { z } from 'zod'
 import {
 	type ComboboxValue,
 	createZodValidator,
 	useAppForm,
-	validateForm,
-} from "@/components/form";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
-import { RecurrenceType } from "@/generated/prisma/enums";
+	validateForm
+} from '@/components/form'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Label } from '@/components/ui/label'
+import { RecurrenceType } from '@/generated/prisma/enums'
 
 // Schema with discriminated category field
 const transactionSchema = z.object({
-	name: z.string().min(1, { message: "Transaction name is required" }),
-	amount: z.number().positive({ message: "Amount must be positive" }),
-	date: z.date({ message: "Date is required" }),
-	transactionType: z.enum(["INCOME", "EXPENSE"]),
+	name: z.string().min(1, { message: 'Transaction name is required' }),
+	amount: z.number().positive({ message: 'Amount must be positive' }),
+	date: z.date({ message: 'Date is required' }),
+	transactionType: z.enum(['INCOME', 'EXPENSE']),
 	// Category can be either an existing ID or a new category to create
 	category: z.union([
-		z.string().min(1, { message: "Category is required" }),
+		z.string().min(1, { message: 'Category is required' }),
 		z.object({
 			isNew: z.literal(true),
-			name: z.string().min(1, { message: "Category name is required" }),
-		}),
+			name: z.string().min(1, { message: 'Category name is required' })
+		})
 	]),
-	accountId: z.string().min(1, { message: "Account is required" }),
+	accountId: z.string().min(1, { message: 'Account is required' }),
 	notes: z.string().optional(),
 	// billId uses "__none__" as sentinel for no selection (Select requires non-empty values)
-	billId: z.string().optional().nullable(),
-});
+	billId: z.string().optional().nullable()
+})
 
 // Sentinel value for "no bill" selection (shadcn Select requires non-empty values)
-const NO_BILL_VALUE = "__none__";
+const NO_BILL_VALUE = '__none__'
 
-type TransactionFormData = z.infer<typeof transactionSchema>;
+type TransactionFormData = z.infer<typeof transactionSchema>
 
 export interface BillCreationData {
-	recipient: string;
-	startDate: Date;
-	recurrenceType: RecurrenceType;
-	customIntervalDays?: number;
-	lastPaymentDate?: Date | null;
+	recipient: string
+	startDate: Date
+	recurrenceType: RecurrenceType
+	customIntervalDays?: number
+	lastPaymentDate?: Date | null
 }
 
 export interface TransactionFormProps {
@@ -57,35 +57,35 @@ export interface TransactionFormProps {
 	 * Initial values for editing an existing transaction
 	 */
 	defaultValues?: {
-		name?: string;
-		amount?: number;
-		date?: Date;
-		categoryId?: string;
-		accountId?: string;
-		notes?: string;
-		billId?: string | null;
-		transactionType?: "INCOME" | "EXPENSE";
-	};
+		name?: string
+		amount?: number
+		date?: Date
+		categoryId?: string
+		accountId?: string
+		notes?: string
+		billId?: string | null
+		transactionType?: 'INCOME' | 'EXPENSE'
+	}
 
 	/**
 	 * Available categories (all types - will be filtered by form)
 	 */
-	categories: Array<{ id: string; name: string; type: string }>;
+	categories: Array<{ id: string; name: string; type: string }>
 
 	/**
 	 * Available accounts
 	 */
-	accounts: Array<{ id: string; name: string }>;
+	accounts: Array<{ id: string; name: string }>
 
 	/**
 	 * Available bills (for linking)
 	 */
-	bills?: Array<{ id: string; name: string; recipient: string }>;
+	bills?: Array<{ id: string; name: string; recipient: string }>
 
 	/**
 	 * Pre-selected bill (from "Create Transaction" button on bills page)
 	 */
-	preSelectedBillId?: string;
+	preSelectedBillId?: string
 
 	/**
 	 * Callback when form is submitted successfully
@@ -94,38 +94,38 @@ export interface TransactionFormProps {
 	 */
 	onSubmit: (
 		data: TransactionFormData,
-		billData?: BillCreationData,
-	) => Promise<void> | void;
+		billData?: BillCreationData
+	) => Promise<void> | void
 
 	/**
 	 * Callback when form is cancelled
 	 */
-	onCancel?: () => void;
+	onCancel?: () => void
 
 	/**
 	 * Submit button text
 	 */
-	submitLabel?: string;
+	submitLabel?: string
 
 	/**
 	 * Is this for editing an existing transaction?
 	 */
-	isEditing?: boolean;
+	isEditing?: boolean
 }
 
 const recurrenceOptions = [
-	{ value: RecurrenceType.NONE, label: "No recurrence (one-time)" },
-	{ value: RecurrenceType.WEEKLY, label: "Weekly" },
-	{ value: RecurrenceType.MONTHLY, label: "Monthly" },
-	{ value: RecurrenceType.QUARTERLY, label: "Quarterly (every 3 months)" },
-	{ value: RecurrenceType.YEARLY, label: "Yearly" },
-	{ value: RecurrenceType.CUSTOM, label: "Custom interval" },
-];
+	{ value: RecurrenceType.NONE, label: 'No recurrence (one-time)' },
+	{ value: RecurrenceType.WEEKLY, label: 'Weekly' },
+	{ value: RecurrenceType.MONTHLY, label: 'Monthly' },
+	{ value: RecurrenceType.QUARTERLY, label: 'Quarterly (every 3 months)' },
+	{ value: RecurrenceType.YEARLY, label: 'Yearly' },
+	{ value: RecurrenceType.CUSTOM, label: 'Custom interval' }
+]
 
 const transactionTypeOptions = [
-	{ value: "EXPENSE", label: "Expense" },
-	{ value: "INCOME", label: "Income" },
-];
+	{ value: 'EXPENSE', label: 'Expense' },
+	{ value: 'INCOME', label: 'Income' }
+]
 
 export function TransactionForm({
 	defaultValues,
@@ -135,58 +135,56 @@ export function TransactionForm({
 	preSelectedBillId,
 	onSubmit,
 	onCancel,
-	submitLabel = "Save Transaction",
-	isEditing = false,
+	submitLabel = 'Save Transaction',
+	isEditing = false
 }: TransactionFormProps) {
 	// Generate unique ID for the checkbox
-	const createBillCheckboxId = useId();
+	const createBillCheckboxId = useId()
 
 	// Bill creation state (separate from form)
-	const [createBill, setCreateBill] = useState(false);
-	const [billRecipient, setBillRecipient] = useState("");
-	const [billStartDate, setBillStartDate] = useState<Date>(new Date());
+	const [createBill, setCreateBill] = useState(false)
+	const [billRecipient, setBillRecipient] = useState('')
+	const [billStartDate, setBillStartDate] = useState<Date>(new Date())
 	const [billRecurrence, setBillRecurrence] = useState<RecurrenceType>(
-		RecurrenceType.MONTHLY,
-	);
+		RecurrenceType.MONTHLY
+	)
 	const [billCustomDays, setBillCustomDays] = useState<number | undefined>(
-		undefined,
-	);
-	const [billLastPayment, setBillLastPayment] = useState<Date | null>(null);
+		undefined
+	)
+	const [billLastPayment, setBillLastPayment] = useState<Date | null>(null)
 
 	// Determine initial transaction type based on default category
-	const getInitialTransactionType = (): "INCOME" | "EXPENSE" => {
+	const getInitialTransactionType = (): 'INCOME' | 'EXPENSE' => {
 		if (defaultValues?.transactionType) {
-			return defaultValues.transactionType;
+			return defaultValues.transactionType
 		}
 		if (defaultValues?.categoryId) {
-			const category = categories.find(
-				(c) => c.id === defaultValues.categoryId,
-			);
+			const category = categories.find((c) => c.id === defaultValues.categoryId)
 			if (category) {
-				return category.type as "INCOME" | "EXPENSE";
+				return category.type as 'INCOME' | 'EXPENSE'
 			}
 		}
-		return "EXPENSE"; // Default to expense
-	};
+		return 'EXPENSE' // Default to expense
+	}
 
 	const form = useAppForm({
 		defaultValues: {
-			name: defaultValues?.name ?? "",
+			name: defaultValues?.name ?? '',
 			amount: defaultValues?.amount ?? 0,
 			date: defaultValues?.date ?? new Date(),
 			transactionType: getInitialTransactionType(),
-			category: (defaultValues?.categoryId ?? "") as ComboboxValue,
-			accountId: defaultValues?.accountId ?? "",
-			notes: defaultValues?.notes ?? "",
-			billId: preSelectedBillId ?? defaultValues?.billId ?? null,
+			category: (defaultValues?.categoryId ?? '') as ComboboxValue,
+			accountId: defaultValues?.accountId ?? '',
+			notes: defaultValues?.notes ?? '',
+			billId: preSelectedBillId ?? defaultValues?.billId ?? null
 		},
 		onSubmit: async ({ value }) => {
 			// Transform __none__ sentinel back to null for billId
 			const transformedValue = {
 				...value,
-				billId: value.billId === NO_BILL_VALUE ? null : value.billId,
-			};
-			const data = validateForm(transactionSchema, transformedValue);
+				billId: value.billId === NO_BILL_VALUE ? null : value.billId
+			}
+			const data = validateForm(transactionSchema, transformedValue)
 
 			const billData = createBill
 				? {
@@ -194,31 +192,31 @@ export function TransactionForm({
 						startDate: billStartDate,
 						recurrenceType: billRecurrence,
 						customIntervalDays: billCustomDays,
-						lastPaymentDate: billLastPayment,
+						lastPaymentDate: billLastPayment
 					}
-				: undefined;
+				: undefined
 
-			await onSubmit(data, billData);
-		},
-	});
+			await onSubmit(data, billData)
+		}
+	})
 
 	// Handle transaction type change - reset category if it doesn't match new type
 	const handleTransactionTypeChange = (newType: string) => {
-		const currentCategory = form.getFieldValue("category");
-		if (typeof currentCategory === "string" && currentCategory) {
-			const cat = categories.find((c) => c.id === currentCategory);
+		const currentCategory = form.getFieldValue('category')
+		if (typeof currentCategory === 'string' && currentCategory) {
+			const cat = categories.find((c) => c.id === currentCategory)
 			if (cat && cat.type !== newType) {
-				form.setFieldValue("category", "");
+				form.setFieldValue('category', '')
 			}
 		}
-	};
+	}
 
 	return (
 		<form
 			onSubmit={(e) => {
-				e.preventDefault();
-				e.stopPropagation();
-				form.handleSubmit();
+				e.preventDefault()
+				e.stopPropagation()
+				form.handleSubmit()
 			}}
 			className="space-y-4"
 		>
@@ -236,7 +234,7 @@ export function TransactionForm({
 			<form.AppField
 				name="name"
 				validators={{
-					onChange: createZodValidator(transactionSchema.shape.name),
+					onChange: createZodValidator(transactionSchema.shape.name)
 				}}
 			>
 				{(field) => (
@@ -250,7 +248,7 @@ export function TransactionForm({
 			<form.AppField
 				name="amount"
 				validators={{
-					onChange: createZodValidator(transactionSchema.shape.amount),
+					onChange: createZodValidator(transactionSchema.shape.amount)
 				}}
 			>
 				{(field) => (
@@ -266,7 +264,7 @@ export function TransactionForm({
 			<form.AppField
 				name="date"
 				validators={{
-					onChange: createZodValidator(transactionSchema.shape.date),
+					onChange: createZodValidator(transactionSchema.shape.date)
 				}}
 			>
 				{(field) => <field.DateField label="Date" />}
@@ -277,14 +275,14 @@ export function TransactionForm({
 				{(transactionType) => {
 					// Filter categories based on selected transaction type
 					const filteredCategories = categories.filter(
-						(cat) => cat.type === transactionType,
-					);
+						(cat) => cat.type === transactionType
+					)
 
 					// Create options for the ComboboxField
 					const categoryOptions = filteredCategories.map((cat) => ({
 						value: cat.id,
-						label: cat.name,
-					}));
+						label: cat.name
+					}))
 
 					return (
 						<form.AppField name="category">
@@ -296,18 +294,18 @@ export function TransactionForm({
 									emptyText="No categories found"
 									options={categoryOptions}
 									allowCreate
-									createLabel={`Create ${transactionType === "INCOME" ? "income" : "expense"} category`}
+									createLabel={`Create ${transactionType === 'INCOME' ? 'income' : 'expense'} category`}
 								/>
 							)}
 						</form.AppField>
-					);
+					)
 				}}
 			</form.Subscribe>
 
 			<form.AppField
 				name="accountId"
 				validators={{
-					onChange: createZodValidator(transactionSchema.shape.accountId),
+					onChange: createZodValidator(transactionSchema.shape.accountId)
 				}}
 			>
 				{(field) => (
@@ -316,7 +314,7 @@ export function TransactionForm({
 						placeholder="Select an account"
 						options={accounts.map((acc) => ({
 							value: acc.id,
-							label: acc.name,
+							label: acc.name
 						}))}
 					/>
 				)}
@@ -325,7 +323,7 @@ export function TransactionForm({
 			<form.AppField
 				name="notes"
 				validators={{
-					onChange: createZodValidator(transactionSchema.shape.notes),
+					onChange: createZodValidator(transactionSchema.shape.notes)
 				}}
 			>
 				{(field) => (
@@ -354,7 +352,7 @@ export function TransactionForm({
 						<form.AppField
 							name="billId"
 							validators={{
-								onChange: createZodValidator(transactionSchema.shape.billId),
+								onChange: createZodValidator(transactionSchema.shape.billId)
 							}}
 						>
 							{(field) => (
@@ -362,11 +360,11 @@ export function TransactionForm({
 									label="Link to Bill (Optional)"
 									placeholder="Select a bill"
 									options={[
-										{ value: NO_BILL_VALUE, label: "No bill" },
+										{ value: NO_BILL_VALUE, label: 'No bill' },
 										...bills.map((bill) => ({
 											value: bill.id,
-											label: `${bill.name} - ${bill.recipient}`,
-										})),
+											label: `${bill.name} - ${bill.recipient}`
+										}))
 									]}
 								/>
 							)}
@@ -393,7 +391,7 @@ export function TransactionForm({
 								<input
 									type="date"
 									className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-									value={billStartDate.toISOString().split("T")[0]}
+									value={billStartDate.toISOString().split('T')[0]}
 									onChange={(e) => setBillStartDate(new Date(e.target.value))}
 								/>
 							</div>
@@ -421,7 +419,7 @@ export function TransactionForm({
 									<input
 										type="number"
 										className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-										value={billCustomDays ?? ""}
+										value={billCustomDays ?? ''}
 										onChange={(e) =>
 											setBillCustomDays(Number(e.target.value) || undefined)
 										}
@@ -436,10 +434,10 @@ export function TransactionForm({
 								<input
 									type="date"
 									className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-									value={billLastPayment?.toISOString().split("T")[0] ?? ""}
+									value={billLastPayment?.toISOString().split('T')[0] ?? ''}
 									onChange={(e) =>
 										setBillLastPayment(
-											e.target.value ? new Date(e.target.value) : null,
+											e.target.value ? new Date(e.target.value) : null
 										)
 									}
 								/>
@@ -456,8 +454,8 @@ export function TransactionForm({
 				<form.FormButtonGroup onCancel={onCancel} submitLabel={submitLabel} />
 			</form.AppForm>
 		</form>
-	);
+	)
 }
 
 // Re-export types for consumers
-export type { TransactionFormData };
+export type { TransactionFormData }
