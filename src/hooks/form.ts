@@ -29,10 +29,12 @@
 
 import { createFormHook, createFormHookContexts } from "@tanstack/react-form";
 import { CancelButton } from "@/components/form/CancelButton";
+import { ComboboxField } from "@/components/form/ComboboxField";
 import { DateField } from "@/components/form/DateField";
 import { DeleteButton } from "@/components/form/DeleteButton";
 import { FormButtonGroup } from "@/components/form/FormButtonGroup";
 import { NumberField } from "@/components/form/NumberField";
+import { RadioGroupField } from "@/components/form/RadioGroupField";
 import { SelectField } from "@/components/form/SelectField";
 import { SubmitButton } from "@/components/form/SubmitButton";
 import { TextField } from "@/components/form/TextField";
@@ -51,6 +53,8 @@ export const { useAppForm, withForm } = createFormHook({
 		DateField,
 		SelectField,
 		NumberField,
+		ComboboxField,
+		RadioGroupField,
 	},
 	formComponents: {
 		SubmitButton,
