@@ -63,7 +63,7 @@ export function generateChartData(
 		accountId: string
 		amount: number
 		date: Date | string
-		category: { type: string }
+		category: { types: string[] }
 	}>,
 	startDate: Date,
 	endDate: Date
@@ -96,7 +96,24 @@ export function generateChartData(
 			if (balances.has(accId)) {
 				const current = Number(balances.get(accId) ?? 0)
 				const amount = Number(tx.amount)
-				const change = tx.category.type === 'INCOME' ? amount : -amount
+
+				// Determine direction based on category types
+				// If hybrid, use heuristic (positive/negative amount in DB? No, DB stores positive usually)
+				// We assume if EXPENSE is present, it's negative, unless INCOME is present and it's solely INCOME.
+				// Wait, multi-type means it CAN be either. But a specific transaction implies one direction.
+				// Since we don't have transaction-level type, we rely on the same heuristic:
+				// If it has EXPENSE, treat as expense (negative), unless INCOME is exclusive.
+				// Better: check if types includes INCOME. If ONLY INCOME, then + else -.
+				// Or check amount sign? If amount is always positive, we need direction.
+				// Let's use: includes('INCOME') and NOT includes('EXPENSE') -> +
+				// includes('EXPENSE') -> -
+				// distinct Income vs Expense?
+				// If both, default to - (Expense) as per conservative budgeting.
+
+				const isIncome =
+					tx.category.types.includes('INCOME') &&
+					!tx.category.types.includes('EXPENSE')
+				const change = isIncome ? amount : -amount
 				balances.set(accId, current + change)
 			}
 			txIndex++
@@ -144,7 +161,10 @@ export function generateChartData(
 				if (balances.has(accId)) {
 					const current = Number(balances.get(accId) ?? 0)
 					const amount = Number(tx.amount)
-					const change = tx.category.type === 'INCOME' ? amount : -amount
+					const isIncome =
+						tx.category.types.includes('INCOME') &&
+						!tx.category.types.includes('EXPENSE')
+					const change = isIncome ? amount : -amount
 					balances.set(accId, current + change)
 				}
 				txIndex++

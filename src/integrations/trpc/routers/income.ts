@@ -10,34 +10,18 @@ import { RecurrenceType } from '../../../generated/prisma/enums'
 import { protectedProcedure } from '../init'
 
 export const incomeRouter = {
-	/**
-	 * List all incomes for a budget
-	 */
 	list: protectedProcedure
 		.input(
 			z.object({
-				budgetId: z.string(),
+				householdId: z.string(),
 				userId: z.string(),
 				includeArchived: z.boolean().default(false)
 			})
 		)
 		.query(async ({ ctx, input }) => {
-			// Verify budget exists and user has access
-			const budget = await ctx.prisma.budget.findUnique({
-				where: { id: input.budgetId }
-			})
-
-			if (!budget) {
-				throw new TRPCError({
-					code: 'NOT_FOUND',
-					message: 'Budget not found'
-				})
-			}
-
-			// Verify user has access to this household
 			const householdUser = await ctx.prisma.householdUser.findFirst({
 				where: {
-					householdId: budget.householdId,
+					householdId: input.householdId,
 					userId: input.userId
 				}
 			})
@@ -45,13 +29,13 @@ export const incomeRouter = {
 			if (!householdUser) {
 				throw new TRPCError({
 					code: 'FORBIDDEN',
-					message: 'You do not have access to this budget'
+					message: 'You do not have access to this household'
 				})
 			}
 
 			return ctx.prisma.income.findMany({
 				where: {
-					budgetId: input.budgetId,
+					householdId: input.householdId,
 					...(input.includeArchived ? {} : { isArchived: false })
 				},
 				orderBy: {
@@ -64,9 +48,6 @@ export const incomeRouter = {
 			})
 		}),
 
-	/**
-	 * Get income by ID
-	 */
 	getById: protectedProcedure
 		.input(
 			z.object({
@@ -80,7 +61,7 @@ export const incomeRouter = {
 				include: {
 					category: true,
 					account: true,
-					budget: true
+					household: true
 				}
 			})
 
@@ -91,10 +72,9 @@ export const incomeRouter = {
 				})
 			}
 
-			// Verify access
 			const householdUser = await ctx.prisma.householdUser.findFirst({
 				where: {
-					householdId: income.budget.householdId,
+					householdId: income.householdId,
 					userId: input.userId
 				}
 			})
@@ -109,13 +89,10 @@ export const incomeRouter = {
 			return income
 		}),
 
-	/**
-	 * Create new income
-	 */
 	create: protectedProcedure
 		.input(
 			z.object({
-				budgetId: z.string(),
+				householdId: z.string(),
 				userId: z.string(),
 				name: z.string().min(1, 'Name is required'),
 				source: z.string().min(1, 'Source is required'),
@@ -126,26 +103,13 @@ export const incomeRouter = {
 				recurrenceType: z.nativeEnum(RecurrenceType),
 				customIntervalDays: z.number().optional().nullable(),
 				endDate: z.date().optional().nullable(),
-				// Ability to create new category inline
 				newCategoryName: z.string().optional()
 			})
 		)
 		.mutation(async ({ ctx, input }) => {
-			// Verify budget and access
-			const budget = await ctx.prisma.budget.findUnique({
-				where: { id: input.budgetId }
-			})
-
-			if (!budget) {
-				throw new TRPCError({
-					code: 'NOT_FOUND',
-					message: 'Budget not found'
-				})
-			}
-
 			const householdUser = await ctx.prisma.householdUser.findFirst({
 				where: {
-					householdId: budget.householdId,
+					householdId: input.householdId,
 					userId: input.userId
 				}
 			})
@@ -153,41 +117,42 @@ export const incomeRouter = {
 			if (!householdUser) {
 				throw new TRPCError({
 					code: 'FORBIDDEN',
-					message: 'You do not have access to this budget'
+					message: 'You do not have access to this household'
 				})
 			}
 
-			// Validate category
 			let finalCategoryId: string
 
 			if (input.newCategoryName) {
-				// Create new INCOME category
+				const budgets = await ctx.prisma.budget.findMany({
+					where: { householdId: input.householdId },
+					select: { id: true }
+				})
+
 				const newCategory = await ctx.prisma.category.create({
 					data: {
 						name: input.newCategoryName,
-						type: 'INCOME', // Always INCOME for Income model
-						householdId: budget.householdId,
-						budgets: {
-							create: {
-								budgetId: input.budgetId
+						types: ['INCOME'],
+						householdId: input.householdId,
+						...(budgets.length > 0 && {
+							budgets: {
+								create: budgets.map((b) => ({
+									budgetId: b.id
+								}))
 							}
-						}
+						})
 					}
 				})
 				finalCategoryId = newCategory.id
 			} else if (input.categoryId) {
-				// Check if category exists and is linked
-				const categoryLink = await ctx.prisma.budgetCategory.findFirst({
-					where: {
-						budgetId: input.budgetId,
-						categoryId: input.categoryId
-					}
+				const category = await ctx.prisma.category.findUnique({
+					where: { id: input.categoryId }
 				})
 
-				if (!categoryLink) {
+				if (!category || category.householdId !== input.householdId) {
 					throw new TRPCError({
 						code: 'BAD_REQUEST',
-						message: 'Category is not linked to this budget'
+						message: 'Category not found or invalid'
 					})
 				}
 				finalCategoryId = input.categoryId
@@ -198,18 +163,14 @@ export const incomeRouter = {
 				})
 			}
 
-			// Validate account
-			const accountLink = await ctx.prisma.budgetAccount.findFirst({
-				where: {
-					budgetId: input.budgetId,
-					accountId: input.accountId
-				}
+			const account = await ctx.prisma.account.findUnique({
+				where: { id: input.accountId }
 			})
 
-			if (!accountLink) {
+			if (!account || account.householdId !== input.householdId) {
 				throw new TRPCError({
 					code: 'BAD_REQUEST',
-					message: 'Account is not linked to this budget'
+					message: 'Account not found or invalid'
 				})
 			}
 
@@ -221,7 +182,7 @@ export const incomeRouter = {
 					expectedDate: input.expectedDate,
 					accountId: input.accountId,
 					categoryId: finalCategoryId,
-					budgetId: input.budgetId,
+					householdId: input.householdId,
 					recurrenceType: input.recurrenceType,
 					customIntervalDays: input.customIntervalDays,
 					endDate: input.endDate
@@ -233,9 +194,6 @@ export const incomeRouter = {
 			})
 		}),
 
-	/**
-	 * Update income
-	 */
 	update: protectedProcedure
 		.input(
 			z.object({
@@ -249,13 +207,14 @@ export const incomeRouter = {
 				categoryId: z.string().optional(),
 				recurrenceType: z.nativeEnum(RecurrenceType).optional(),
 				customIntervalDays: z.number().optional().nullable(),
-				endDate: z.date().optional().nullable()
+				endDate: z.date().optional().nullable(),
+				newCategoryName: z.string().optional()
 			})
 		)
 		.mutation(async ({ ctx, input }) => {
 			const income = await ctx.prisma.income.findUnique({
 				where: { id: input.id },
-				include: { budget: true }
+				include: { household: true }
 			})
 
 			if (!income) {
@@ -267,7 +226,7 @@ export const incomeRouter = {
 
 			const householdUser = await ctx.prisma.householdUser.findFirst({
 				where: {
-					householdId: income.budget.householdId,
+					householdId: income.householdId,
 					userId: input.userId
 				}
 			})
@@ -279,34 +238,49 @@ export const incomeRouter = {
 				})
 			}
 
-			// If changing category
-			if (input.categoryId) {
-				const categoryLink = await ctx.prisma.budgetCategory.findFirst({
-					where: {
-						budgetId: income.budgetId,
-						categoryId: input.categoryId
+			let finalCategoryId = input.categoryId
+
+			if (input.newCategoryName) {
+				const budgets = await ctx.prisma.budget.findMany({
+					where: { householdId: income.householdId },
+					select: { id: true }
+				})
+
+				const newCategory = await ctx.prisma.category.create({
+					data: {
+						name: input.newCategoryName,
+						types: ['INCOME'],
+						householdId: income.householdId,
+						...(budgets.length > 0 && {
+							budgets: {
+								create: budgets.map((b) => ({
+									budgetId: b.id
+								}))
+							}
+						})
 					}
 				})
-				if (!categoryLink) {
+				finalCategoryId = newCategory.id
+			} else if (input.categoryId) {
+				const category = await ctx.prisma.category.findUnique({
+					where: { id: input.categoryId }
+				})
+				if (!category || category.householdId !== income.householdId) {
 					throw new TRPCError({
 						code: 'BAD_REQUEST',
-						message: 'Category not linked to budget'
+						message: 'Category not found or invalid'
 					})
 				}
 			}
 
-			// If changing account
 			if (input.accountId) {
-				const accountLink = await ctx.prisma.budgetAccount.findFirst({
-					where: {
-						budgetId: income.budgetId,
-						accountId: input.accountId
-					}
+				const account = await ctx.prisma.account.findUnique({
+					where: { id: input.accountId }
 				})
-				if (!accountLink) {
+				if (!account || account.householdId !== income.householdId) {
 					throw new TRPCError({
 						code: 'BAD_REQUEST',
-						message: 'Account not linked to budget'
+						message: 'Account not found or invalid'
 					})
 				}
 			}
@@ -319,7 +293,7 @@ export const incomeRouter = {
 					estimatedAmount: input.amount,
 					expectedDate: input.expectedDate,
 					accountId: input.accountId,
-					categoryId: input.categoryId,
+					categoryId: finalCategoryId,
 					recurrenceType: input.recurrenceType,
 					customIntervalDays: input.customIntervalDays,
 					endDate: input.endDate
@@ -331,9 +305,6 @@ export const incomeRouter = {
 			})
 		}),
 
-	/**
-	 * Delete income
-	 */
 	delete: protectedProcedure
 		.input(
 			z.object({
@@ -344,7 +315,7 @@ export const incomeRouter = {
 		.mutation(async ({ ctx, input }) => {
 			const income = await ctx.prisma.income.findUnique({
 				where: { id: input.id },
-				include: { budget: true }
+				include: { household: true }
 			})
 
 			if (!income) {
@@ -356,7 +327,7 @@ export const incomeRouter = {
 
 			const householdUser = await ctx.prisma.householdUser.findFirst({
 				where: {
-					householdId: income.budget.householdId,
+					householdId: income.householdId,
 					userId: input.userId
 				}
 			})
@@ -375,9 +346,6 @@ export const incomeRouter = {
 			return { success: true }
 		}),
 
-	/**
-	 * Archive/Unarchive income
-	 */
 	archive: protectedProcedure
 		.input(
 			z.object({
@@ -389,7 +357,7 @@ export const incomeRouter = {
 		.mutation(async ({ ctx, input }) => {
 			const income = await ctx.prisma.income.findUnique({
 				where: { id: input.id },
-				include: { budget: true }
+				include: { household: true }
 			})
 
 			if (!income) {
@@ -401,7 +369,7 @@ export const incomeRouter = {
 
 			const householdUser = await ctx.prisma.householdUser.findFirst({
 				where: {
-					householdId: income.budget.householdId,
+					householdId: income.householdId,
 					userId: input.userId
 				}
 			})

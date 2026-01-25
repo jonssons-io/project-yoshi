@@ -68,7 +68,6 @@ export const AccountsTable = ({
 				<TableRow>
 					<TableHead>Name</TableHead>
 					<TableHead>External ID</TableHead>
-					<TableHead className="text-right">Initial Balance</TableHead>
 					<TableHead className="text-right">Current Balance</TableHead>
 					<TableHead>Transactions</TableHead>
 					<TableHead className="text-right">Actions</TableHead>

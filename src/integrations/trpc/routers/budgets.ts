@@ -34,7 +34,7 @@ export const budgetsRouter = {
 				})
 			}
 
-			return ctx.prisma.budget.findMany({
+			const budgets = await ctx.prisma.budget.findMany({
 				where: {
 					householdId: input.householdId
 				},
@@ -42,6 +42,17 @@ export const budgetsRouter = {
 					createdAt: 'desc'
 				},
 				include: {
+					transactions: {
+						select: { amount: true, categoryId: true },
+						where: {
+							category: {
+								types: { has: 'EXPENSE' }
+							}
+						}
+					},
+					allocations: {
+						select: { amount: true }
+					},
 					_count: {
 						select: {
 							transactions: true,
@@ -50,6 +61,23 @@ export const budgetsRouter = {
 							accounts: true
 						}
 					}
+				}
+			})
+
+			return budgets.map((budget) => {
+				const allocated = budget.allocations.reduce(
+					(acc, curr) => acc + curr.amount,
+					0
+				)
+				const spent = budget.transactions.reduce(
+					(acc, curr) => acc + curr.amount,
+					0
+				)
+				return {
+					...budget,
+					allocatedAmount: allocated,
+					spentAmount: spent,
+					remainingAmount: allocated - spent
 				}
 			})
 		}),
@@ -80,6 +108,17 @@ export const budgetsRouter = {
 						include: {
 							account: true
 						}
+					},
+					transactions: {
+						select: { amount: true },
+						where: {
+							category: {
+								types: { has: 'EXPENSE' }
+							}
+						}
+					},
+					allocations: {
+						select: { amount: true }
 					},
 					_count: {
 						select: {
@@ -112,7 +151,21 @@ export const budgetsRouter = {
 				})
 			}
 
-			return budget
+			const allocated = budget.allocations.reduce(
+				(acc: number, curr: { amount: number }) => acc + curr.amount,
+				0
+			)
+			const spent = budget.transactions.reduce(
+				(acc: number, curr: { amount: number }) => acc + curr.amount,
+				0
+			)
+
+			return {
+				...budget,
+				allocatedAmount: allocated,
+				spentAmount: spent,
+				remainingAmount: allocated - spent
+			}
 		}),
 
 	/**

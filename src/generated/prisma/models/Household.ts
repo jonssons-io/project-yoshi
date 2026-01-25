@@ -171,6 +171,7 @@ export type HouseholdWhereInput = {
   categories?: Prisma.CategoryListRelationFilter
   accounts?: Prisma.AccountListRelationFilter
   recipients?: Prisma.RecipientListRelationFilter
+  incomes?: Prisma.IncomeListRelationFilter
   invitations?: Prisma.InvitationListRelationFilter
 }
 
@@ -183,6 +184,7 @@ export type HouseholdOrderByWithRelationInput = {
   categories?: Prisma.CategoryOrderByRelationAggregateInput
   accounts?: Prisma.AccountOrderByRelationAggregateInput
   recipients?: Prisma.RecipientOrderByRelationAggregateInput
+  incomes?: Prisma.IncomeOrderByRelationAggregateInput
   invitations?: Prisma.InvitationOrderByRelationAggregateInput
 }
 
@@ -198,6 +200,7 @@ export type HouseholdWhereUniqueInput = Prisma.AtLeast<{
   categories?: Prisma.CategoryListRelationFilter
   accounts?: Prisma.AccountListRelationFilter
   recipients?: Prisma.RecipientListRelationFilter
+  incomes?: Prisma.IncomeListRelationFilter
   invitations?: Prisma.InvitationListRelationFilter
 }, "id">
 
@@ -228,6 +231,7 @@ export type HouseholdCreateInput = {
   categories?: Prisma.CategoryCreateNestedManyWithoutHouseholdInput
   accounts?: Prisma.AccountCreateNestedManyWithoutHouseholdInput
   recipients?: Prisma.RecipientCreateNestedManyWithoutHouseholdInput
+  incomes?: Prisma.IncomeCreateNestedManyWithoutHouseholdInput
   invitations?: Prisma.InvitationCreateNestedManyWithoutHouseholdInput
 }
 
@@ -240,6 +244,7 @@ export type HouseholdUncheckedCreateInput = {
   categories?: Prisma.CategoryUncheckedCreateNestedManyWithoutHouseholdInput
   accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutHouseholdInput
   recipients?: Prisma.RecipientUncheckedCreateNestedManyWithoutHouseholdInput
+  incomes?: Prisma.IncomeUncheckedCreateNestedManyWithoutHouseholdInput
   invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutHouseholdInput
 }
 
@@ -252,6 +257,7 @@ export type HouseholdUpdateInput = {
   categories?: Prisma.CategoryUpdateManyWithoutHouseholdNestedInput
   accounts?: Prisma.AccountUpdateManyWithoutHouseholdNestedInput
   recipients?: Prisma.RecipientUpdateManyWithoutHouseholdNestedInput
+  incomes?: Prisma.IncomeUpdateManyWithoutHouseholdNestedInput
   invitations?: Prisma.InvitationUpdateManyWithoutHouseholdNestedInput
 }
 
@@ -264,6 +270,7 @@ export type HouseholdUncheckedUpdateInput = {
   categories?: Prisma.CategoryUncheckedUpdateManyWithoutHouseholdNestedInput
   accounts?: Prisma.AccountUncheckedUpdateManyWithoutHouseholdNestedInput
   recipients?: Prisma.RecipientUncheckedUpdateManyWithoutHouseholdNestedInput
+  incomes?: Prisma.IncomeUncheckedUpdateManyWithoutHouseholdNestedInput
   invitations?: Prisma.InvitationUncheckedUpdateManyWithoutHouseholdNestedInput
 }
 
@@ -386,6 +393,20 @@ export type HouseholdUpdateOneRequiredWithoutRecipientsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.HouseholdUpdateToOneWithWhereWithoutRecipientsInput, Prisma.HouseholdUpdateWithoutRecipientsInput>, Prisma.HouseholdUncheckedUpdateWithoutRecipientsInput>
 }
 
+export type HouseholdCreateNestedOneWithoutIncomesInput = {
+  create?: Prisma.XOR<Prisma.HouseholdCreateWithoutIncomesInput, Prisma.HouseholdUncheckedCreateWithoutIncomesInput>
+  connectOrCreate?: Prisma.HouseholdCreateOrConnectWithoutIncomesInput
+  connect?: Prisma.HouseholdWhereUniqueInput
+}
+
+export type HouseholdUpdateOneRequiredWithoutIncomesNestedInput = {
+  create?: Prisma.XOR<Prisma.HouseholdCreateWithoutIncomesInput, Prisma.HouseholdUncheckedCreateWithoutIncomesInput>
+  connectOrCreate?: Prisma.HouseholdCreateOrConnectWithoutIncomesInput
+  upsert?: Prisma.HouseholdUpsertWithoutIncomesInput
+  connect?: Prisma.HouseholdWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.HouseholdUpdateToOneWithWhereWithoutIncomesInput, Prisma.HouseholdUpdateWithoutIncomesInput>, Prisma.HouseholdUncheckedUpdateWithoutIncomesInput>
+}
+
 export type HouseholdCreateNestedOneWithoutInvitationsInput = {
   create?: Prisma.XOR<Prisma.HouseholdCreateWithoutInvitationsInput, Prisma.HouseholdUncheckedCreateWithoutInvitationsInput>
   connectOrCreate?: Prisma.HouseholdCreateOrConnectWithoutInvitationsInput
@@ -408,6 +429,7 @@ export type HouseholdCreateWithoutUsersInput = {
   categories?: Prisma.CategoryCreateNestedManyWithoutHouseholdInput
   accounts?: Prisma.AccountCreateNestedManyWithoutHouseholdInput
   recipients?: Prisma.RecipientCreateNestedManyWithoutHouseholdInput
+  incomes?: Prisma.IncomeCreateNestedManyWithoutHouseholdInput
   invitations?: Prisma.InvitationCreateNestedManyWithoutHouseholdInput
 }
 
@@ -419,6 +441,7 @@ export type HouseholdUncheckedCreateWithoutUsersInput = {
   categories?: Prisma.CategoryUncheckedCreateNestedManyWithoutHouseholdInput
   accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutHouseholdInput
   recipients?: Prisma.RecipientUncheckedCreateNestedManyWithoutHouseholdInput
+  incomes?: Prisma.IncomeUncheckedCreateNestedManyWithoutHouseholdInput
   invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutHouseholdInput
 }
 
@@ -446,6 +469,7 @@ export type HouseholdUpdateWithoutUsersInput = {
   categories?: Prisma.CategoryUpdateManyWithoutHouseholdNestedInput
   accounts?: Prisma.AccountUpdateManyWithoutHouseholdNestedInput
   recipients?: Prisma.RecipientUpdateManyWithoutHouseholdNestedInput
+  incomes?: Prisma.IncomeUpdateManyWithoutHouseholdNestedInput
   invitations?: Prisma.InvitationUpdateManyWithoutHouseholdNestedInput
 }
 
@@ -457,6 +481,7 @@ export type HouseholdUncheckedUpdateWithoutUsersInput = {
   categories?: Prisma.CategoryUncheckedUpdateManyWithoutHouseholdNestedInput
   accounts?: Prisma.AccountUncheckedUpdateManyWithoutHouseholdNestedInput
   recipients?: Prisma.RecipientUncheckedUpdateManyWithoutHouseholdNestedInput
+  incomes?: Prisma.IncomeUncheckedUpdateManyWithoutHouseholdNestedInput
   invitations?: Prisma.InvitationUncheckedUpdateManyWithoutHouseholdNestedInput
 }
 
@@ -468,6 +493,7 @@ export type HouseholdCreateWithoutBudgetsInput = {
   categories?: Prisma.CategoryCreateNestedManyWithoutHouseholdInput
   accounts?: Prisma.AccountCreateNestedManyWithoutHouseholdInput
   recipients?: Prisma.RecipientCreateNestedManyWithoutHouseholdInput
+  incomes?: Prisma.IncomeCreateNestedManyWithoutHouseholdInput
   invitations?: Prisma.InvitationCreateNestedManyWithoutHouseholdInput
 }
 
@@ -479,6 +505,7 @@ export type HouseholdUncheckedCreateWithoutBudgetsInput = {
   categories?: Prisma.CategoryUncheckedCreateNestedManyWithoutHouseholdInput
   accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutHouseholdInput
   recipients?: Prisma.RecipientUncheckedCreateNestedManyWithoutHouseholdInput
+  incomes?: Prisma.IncomeUncheckedCreateNestedManyWithoutHouseholdInput
   invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutHouseholdInput
 }
 
@@ -506,6 +533,7 @@ export type HouseholdUpdateWithoutBudgetsInput = {
   categories?: Prisma.CategoryUpdateManyWithoutHouseholdNestedInput
   accounts?: Prisma.AccountUpdateManyWithoutHouseholdNestedInput
   recipients?: Prisma.RecipientUpdateManyWithoutHouseholdNestedInput
+  incomes?: Prisma.IncomeUpdateManyWithoutHouseholdNestedInput
   invitations?: Prisma.InvitationUpdateManyWithoutHouseholdNestedInput
 }
 
@@ -517,6 +545,7 @@ export type HouseholdUncheckedUpdateWithoutBudgetsInput = {
   categories?: Prisma.CategoryUncheckedUpdateManyWithoutHouseholdNestedInput
   accounts?: Prisma.AccountUncheckedUpdateManyWithoutHouseholdNestedInput
   recipients?: Prisma.RecipientUncheckedUpdateManyWithoutHouseholdNestedInput
+  incomes?: Prisma.IncomeUncheckedUpdateManyWithoutHouseholdNestedInput
   invitations?: Prisma.InvitationUncheckedUpdateManyWithoutHouseholdNestedInput
 }
 
@@ -528,6 +557,7 @@ export type HouseholdCreateWithoutCategoriesInput = {
   budgets?: Prisma.BudgetCreateNestedManyWithoutHouseholdInput
   accounts?: Prisma.AccountCreateNestedManyWithoutHouseholdInput
   recipients?: Prisma.RecipientCreateNestedManyWithoutHouseholdInput
+  incomes?: Prisma.IncomeCreateNestedManyWithoutHouseholdInput
   invitations?: Prisma.InvitationCreateNestedManyWithoutHouseholdInput
 }
 
@@ -539,6 +569,7 @@ export type HouseholdUncheckedCreateWithoutCategoriesInput = {
   budgets?: Prisma.BudgetUncheckedCreateNestedManyWithoutHouseholdInput
   accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutHouseholdInput
   recipients?: Prisma.RecipientUncheckedCreateNestedManyWithoutHouseholdInput
+  incomes?: Prisma.IncomeUncheckedCreateNestedManyWithoutHouseholdInput
   invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutHouseholdInput
 }
 
@@ -566,6 +597,7 @@ export type HouseholdUpdateWithoutCategoriesInput = {
   budgets?: Prisma.BudgetUpdateManyWithoutHouseholdNestedInput
   accounts?: Prisma.AccountUpdateManyWithoutHouseholdNestedInput
   recipients?: Prisma.RecipientUpdateManyWithoutHouseholdNestedInput
+  incomes?: Prisma.IncomeUpdateManyWithoutHouseholdNestedInput
   invitations?: Prisma.InvitationUpdateManyWithoutHouseholdNestedInput
 }
 
@@ -577,6 +609,7 @@ export type HouseholdUncheckedUpdateWithoutCategoriesInput = {
   budgets?: Prisma.BudgetUncheckedUpdateManyWithoutHouseholdNestedInput
   accounts?: Prisma.AccountUncheckedUpdateManyWithoutHouseholdNestedInput
   recipients?: Prisma.RecipientUncheckedUpdateManyWithoutHouseholdNestedInput
+  incomes?: Prisma.IncomeUncheckedUpdateManyWithoutHouseholdNestedInput
   invitations?: Prisma.InvitationUncheckedUpdateManyWithoutHouseholdNestedInput
 }
 
@@ -588,6 +621,7 @@ export type HouseholdCreateWithoutAccountsInput = {
   budgets?: Prisma.BudgetCreateNestedManyWithoutHouseholdInput
   categories?: Prisma.CategoryCreateNestedManyWithoutHouseholdInput
   recipients?: Prisma.RecipientCreateNestedManyWithoutHouseholdInput
+  incomes?: Prisma.IncomeCreateNestedManyWithoutHouseholdInput
   invitations?: Prisma.InvitationCreateNestedManyWithoutHouseholdInput
 }
 
@@ -599,6 +633,7 @@ export type HouseholdUncheckedCreateWithoutAccountsInput = {
   budgets?: Prisma.BudgetUncheckedCreateNestedManyWithoutHouseholdInput
   categories?: Prisma.CategoryUncheckedCreateNestedManyWithoutHouseholdInput
   recipients?: Prisma.RecipientUncheckedCreateNestedManyWithoutHouseholdInput
+  incomes?: Prisma.IncomeUncheckedCreateNestedManyWithoutHouseholdInput
   invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutHouseholdInput
 }
 
@@ -626,6 +661,7 @@ export type HouseholdUpdateWithoutAccountsInput = {
   budgets?: Prisma.BudgetUpdateManyWithoutHouseholdNestedInput
   categories?: Prisma.CategoryUpdateManyWithoutHouseholdNestedInput
   recipients?: Prisma.RecipientUpdateManyWithoutHouseholdNestedInput
+  incomes?: Prisma.IncomeUpdateManyWithoutHouseholdNestedInput
   invitations?: Prisma.InvitationUpdateManyWithoutHouseholdNestedInput
 }
 
@@ -637,6 +673,7 @@ export type HouseholdUncheckedUpdateWithoutAccountsInput = {
   budgets?: Prisma.BudgetUncheckedUpdateManyWithoutHouseholdNestedInput
   categories?: Prisma.CategoryUncheckedUpdateManyWithoutHouseholdNestedInput
   recipients?: Prisma.RecipientUncheckedUpdateManyWithoutHouseholdNestedInput
+  incomes?: Prisma.IncomeUncheckedUpdateManyWithoutHouseholdNestedInput
   invitations?: Prisma.InvitationUncheckedUpdateManyWithoutHouseholdNestedInput
 }
 
@@ -648,6 +685,7 @@ export type HouseholdCreateWithoutRecipientsInput = {
   budgets?: Prisma.BudgetCreateNestedManyWithoutHouseholdInput
   categories?: Prisma.CategoryCreateNestedManyWithoutHouseholdInput
   accounts?: Prisma.AccountCreateNestedManyWithoutHouseholdInput
+  incomes?: Prisma.IncomeCreateNestedManyWithoutHouseholdInput
   invitations?: Prisma.InvitationCreateNestedManyWithoutHouseholdInput
 }
 
@@ -659,6 +697,7 @@ export type HouseholdUncheckedCreateWithoutRecipientsInput = {
   budgets?: Prisma.BudgetUncheckedCreateNestedManyWithoutHouseholdInput
   categories?: Prisma.CategoryUncheckedCreateNestedManyWithoutHouseholdInput
   accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutHouseholdInput
+  incomes?: Prisma.IncomeUncheckedCreateNestedManyWithoutHouseholdInput
   invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutHouseholdInput
 }
 
@@ -686,6 +725,7 @@ export type HouseholdUpdateWithoutRecipientsInput = {
   budgets?: Prisma.BudgetUpdateManyWithoutHouseholdNestedInput
   categories?: Prisma.CategoryUpdateManyWithoutHouseholdNestedInput
   accounts?: Prisma.AccountUpdateManyWithoutHouseholdNestedInput
+  incomes?: Prisma.IncomeUpdateManyWithoutHouseholdNestedInput
   invitations?: Prisma.InvitationUpdateManyWithoutHouseholdNestedInput
 }
 
@@ -697,6 +737,71 @@ export type HouseholdUncheckedUpdateWithoutRecipientsInput = {
   budgets?: Prisma.BudgetUncheckedUpdateManyWithoutHouseholdNestedInput
   categories?: Prisma.CategoryUncheckedUpdateManyWithoutHouseholdNestedInput
   accounts?: Prisma.AccountUncheckedUpdateManyWithoutHouseholdNestedInput
+  incomes?: Prisma.IncomeUncheckedUpdateManyWithoutHouseholdNestedInput
+  invitations?: Prisma.InvitationUncheckedUpdateManyWithoutHouseholdNestedInput
+}
+
+export type HouseholdCreateWithoutIncomesInput = {
+  id?: string
+  name: string
+  createdAt?: Date | string
+  users?: Prisma.HouseholdUserCreateNestedManyWithoutHouseholdInput
+  budgets?: Prisma.BudgetCreateNestedManyWithoutHouseholdInput
+  categories?: Prisma.CategoryCreateNestedManyWithoutHouseholdInput
+  accounts?: Prisma.AccountCreateNestedManyWithoutHouseholdInput
+  recipients?: Prisma.RecipientCreateNestedManyWithoutHouseholdInput
+  invitations?: Prisma.InvitationCreateNestedManyWithoutHouseholdInput
+}
+
+export type HouseholdUncheckedCreateWithoutIncomesInput = {
+  id?: string
+  name: string
+  createdAt?: Date | string
+  users?: Prisma.HouseholdUserUncheckedCreateNestedManyWithoutHouseholdInput
+  budgets?: Prisma.BudgetUncheckedCreateNestedManyWithoutHouseholdInput
+  categories?: Prisma.CategoryUncheckedCreateNestedManyWithoutHouseholdInput
+  accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutHouseholdInput
+  recipients?: Prisma.RecipientUncheckedCreateNestedManyWithoutHouseholdInput
+  invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutHouseholdInput
+}
+
+export type HouseholdCreateOrConnectWithoutIncomesInput = {
+  where: Prisma.HouseholdWhereUniqueInput
+  create: Prisma.XOR<Prisma.HouseholdCreateWithoutIncomesInput, Prisma.HouseholdUncheckedCreateWithoutIncomesInput>
+}
+
+export type HouseholdUpsertWithoutIncomesInput = {
+  update: Prisma.XOR<Prisma.HouseholdUpdateWithoutIncomesInput, Prisma.HouseholdUncheckedUpdateWithoutIncomesInput>
+  create: Prisma.XOR<Prisma.HouseholdCreateWithoutIncomesInput, Prisma.HouseholdUncheckedCreateWithoutIncomesInput>
+  where?: Prisma.HouseholdWhereInput
+}
+
+export type HouseholdUpdateToOneWithWhereWithoutIncomesInput = {
+  where?: Prisma.HouseholdWhereInput
+  data: Prisma.XOR<Prisma.HouseholdUpdateWithoutIncomesInput, Prisma.HouseholdUncheckedUpdateWithoutIncomesInput>
+}
+
+export type HouseholdUpdateWithoutIncomesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  users?: Prisma.HouseholdUserUpdateManyWithoutHouseholdNestedInput
+  budgets?: Prisma.BudgetUpdateManyWithoutHouseholdNestedInput
+  categories?: Prisma.CategoryUpdateManyWithoutHouseholdNestedInput
+  accounts?: Prisma.AccountUpdateManyWithoutHouseholdNestedInput
+  recipients?: Prisma.RecipientUpdateManyWithoutHouseholdNestedInput
+  invitations?: Prisma.InvitationUpdateManyWithoutHouseholdNestedInput
+}
+
+export type HouseholdUncheckedUpdateWithoutIncomesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  users?: Prisma.HouseholdUserUncheckedUpdateManyWithoutHouseholdNestedInput
+  budgets?: Prisma.BudgetUncheckedUpdateManyWithoutHouseholdNestedInput
+  categories?: Prisma.CategoryUncheckedUpdateManyWithoutHouseholdNestedInput
+  accounts?: Prisma.AccountUncheckedUpdateManyWithoutHouseholdNestedInput
+  recipients?: Prisma.RecipientUncheckedUpdateManyWithoutHouseholdNestedInput
   invitations?: Prisma.InvitationUncheckedUpdateManyWithoutHouseholdNestedInput
 }
 
@@ -709,6 +814,7 @@ export type HouseholdCreateWithoutInvitationsInput = {
   categories?: Prisma.CategoryCreateNestedManyWithoutHouseholdInput
   accounts?: Prisma.AccountCreateNestedManyWithoutHouseholdInput
   recipients?: Prisma.RecipientCreateNestedManyWithoutHouseholdInput
+  incomes?: Prisma.IncomeCreateNestedManyWithoutHouseholdInput
 }
 
 export type HouseholdUncheckedCreateWithoutInvitationsInput = {
@@ -720,6 +826,7 @@ export type HouseholdUncheckedCreateWithoutInvitationsInput = {
   categories?: Prisma.CategoryUncheckedCreateNestedManyWithoutHouseholdInput
   accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutHouseholdInput
   recipients?: Prisma.RecipientUncheckedCreateNestedManyWithoutHouseholdInput
+  incomes?: Prisma.IncomeUncheckedCreateNestedManyWithoutHouseholdInput
 }
 
 export type HouseholdCreateOrConnectWithoutInvitationsInput = {
@@ -747,6 +854,7 @@ export type HouseholdUpdateWithoutInvitationsInput = {
   categories?: Prisma.CategoryUpdateManyWithoutHouseholdNestedInput
   accounts?: Prisma.AccountUpdateManyWithoutHouseholdNestedInput
   recipients?: Prisma.RecipientUpdateManyWithoutHouseholdNestedInput
+  incomes?: Prisma.IncomeUpdateManyWithoutHouseholdNestedInput
 }
 
 export type HouseholdUncheckedUpdateWithoutInvitationsInput = {
@@ -758,6 +866,7 @@ export type HouseholdUncheckedUpdateWithoutInvitationsInput = {
   categories?: Prisma.CategoryUncheckedUpdateManyWithoutHouseholdNestedInput
   accounts?: Prisma.AccountUncheckedUpdateManyWithoutHouseholdNestedInput
   recipients?: Prisma.RecipientUncheckedUpdateManyWithoutHouseholdNestedInput
+  incomes?: Prisma.IncomeUncheckedUpdateManyWithoutHouseholdNestedInput
 }
 
 
@@ -771,6 +880,7 @@ export type HouseholdCountOutputType = {
   categories: number
   accounts: number
   recipients: number
+  incomes: number
   invitations: number
 }
 
@@ -780,6 +890,7 @@ export type HouseholdCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensi
   categories?: boolean | HouseholdCountOutputTypeCountCategoriesArgs
   accounts?: boolean | HouseholdCountOutputTypeCountAccountsArgs
   recipients?: boolean | HouseholdCountOutputTypeCountRecipientsArgs
+  incomes?: boolean | HouseholdCountOutputTypeCountIncomesArgs
   invitations?: boolean | HouseholdCountOutputTypeCountInvitationsArgs
 }
 
@@ -831,6 +942,13 @@ export type HouseholdCountOutputTypeCountRecipientsArgs<ExtArgs extends runtime.
 /**
  * HouseholdCountOutputType without action
  */
+export type HouseholdCountOutputTypeCountIncomesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.IncomeWhereInput
+}
+
+/**
+ * HouseholdCountOutputType without action
+ */
 export type HouseholdCountOutputTypeCountInvitationsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   where?: Prisma.InvitationWhereInput
 }
@@ -845,6 +963,7 @@ export type HouseholdSelect<ExtArgs extends runtime.Types.Extensions.InternalArg
   categories?: boolean | Prisma.Household$categoriesArgs<ExtArgs>
   accounts?: boolean | Prisma.Household$accountsArgs<ExtArgs>
   recipients?: boolean | Prisma.Household$recipientsArgs<ExtArgs>
+  incomes?: boolean | Prisma.Household$incomesArgs<ExtArgs>
   invitations?: boolean | Prisma.Household$invitationsArgs<ExtArgs>
   _count?: boolean | Prisma.HouseholdCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["household"]>
@@ -874,6 +993,7 @@ export type HouseholdInclude<ExtArgs extends runtime.Types.Extensions.InternalAr
   categories?: boolean | Prisma.Household$categoriesArgs<ExtArgs>
   accounts?: boolean | Prisma.Household$accountsArgs<ExtArgs>
   recipients?: boolean | Prisma.Household$recipientsArgs<ExtArgs>
+  incomes?: boolean | Prisma.Household$incomesArgs<ExtArgs>
   invitations?: boolean | Prisma.Household$invitationsArgs<ExtArgs>
   _count?: boolean | Prisma.HouseholdCountOutputTypeDefaultArgs<ExtArgs>
 }
@@ -888,6 +1008,7 @@ export type $HouseholdPayload<ExtArgs extends runtime.Types.Extensions.InternalA
     categories: Prisma.$CategoryPayload<ExtArgs>[]
     accounts: Prisma.$AccountPayload<ExtArgs>[]
     recipients: Prisma.$RecipientPayload<ExtArgs>[]
+    incomes: Prisma.$IncomePayload<ExtArgs>[]
     invitations: Prisma.$InvitationPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
@@ -1293,6 +1414,7 @@ export interface Prisma__HouseholdClient<T, Null = never, ExtArgs extends runtim
   categories<T extends Prisma.Household$categoriesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Household$categoriesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CategoryPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   accounts<T extends Prisma.Household$accountsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Household$accountsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AccountPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   recipients<T extends Prisma.Household$recipientsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Household$recipientsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$RecipientPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  incomes<T extends Prisma.Household$incomesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Household$incomesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$IncomePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   invitations<T extends Prisma.Household$invitationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Household$invitationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$InvitationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
@@ -1831,6 +1953,30 @@ export type Household$recipientsArgs<ExtArgs extends runtime.Types.Extensions.In
   take?: number
   skip?: number
   distinct?: Prisma.RecipientScalarFieldEnum | Prisma.RecipientScalarFieldEnum[]
+}
+
+/**
+ * Household.incomes
+ */
+export type Household$incomesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Income
+   */
+  select?: Prisma.IncomeSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Income
+   */
+  omit?: Prisma.IncomeOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.IncomeInclude<ExtArgs> | null
+  where?: Prisma.IncomeWhereInput
+  orderBy?: Prisma.IncomeOrderByWithRelationInput | Prisma.IncomeOrderByWithRelationInput[]
+  cursor?: Prisma.IncomeWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.IncomeScalarFieldEnum | Prisma.IncomeScalarFieldEnum[]
 }
 
 /**

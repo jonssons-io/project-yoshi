@@ -13,7 +13,7 @@ interface NoBudgetProps {
 
 export const NoBudget = ({ userId, householdId }: NoBudgetProps) => {
 	const { openDrawer, closeDrawer } = useDrawer()
-	const { setSelectedBudget } = useSelectedBudget(userId)
+	const { setSelectedBudget } = useSelectedBudget(userId, householdId)
 
 	const { mutate: createBudget } = useCreateBudget({
 		onSuccess: (budget) => {

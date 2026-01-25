@@ -34,6 +34,7 @@ model Household {
   categories Category[]
   accounts   Account[]
   recipients Recipient[]
+  incomes    Income[]
   invitations Invitation[]
 
   @@index([createdAt])
@@ -69,16 +70,27 @@ model Budget {
   transactions Transaction[]
   bills        Bill[]
   transfers    Transfer[]
-  incomes      Income[]
+  allocations  BudgetAllocation[]
 
   @@index([householdId])
   @@index([createdAt])
 }
 
+model BudgetAllocation {
+  id          String   @id @default(cuid())
+  amount      Float
+  date        DateTime @default(now())
+  budgetId    String
+  budget      Budget   @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+
+  @@index([budgetId])
+}
+
 model Category {
   id          String       @id @default(cuid())
   name        String
-  type        CategoryType
+  types       CategoryType[]
   householdId String
   createdAt   DateTime     @default(now())
 
@@ -90,7 +102,6 @@ model Category {
   incomes      Income[]
 
   @@index([householdId])
-  @@index([type])
 }
 
 model Account {
@@ -152,7 +163,7 @@ model Transaction {
   notes       String?
   categoryId  String
   accountId   String
-  budgetId    String
+  budgetId    String?
   billId      String?  // Optional link to bill
   recipientId String?  // Optional link to recipient (used for both recipients and senders)
   incomeId    String?  // Optional link to planned income
@@ -161,7 +172,7 @@ model Transaction {
   // Relations
   category  Category   @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   account   Account    @relation(fields: [accountId], references: [id], onDelete: Restrict)
-  budget    Budget     @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  budget    Budget?    @relation(fields: [budgetId], references: [id], onDelete: Cascade)
   bill      Bill?      @relation(fields: [billId], references: [id], onDelete: SetNull)
   recipient Recipient? @relation(fields: [recipientId], references: [id], onDelete: SetNull)
   income    Income?    @relation(fields: [incomeId], references: [id], onDelete: SetNull)
@@ -253,16 +264,16 @@ model Income {
   estimatedAmount    Float
   endDate            DateTime?      // When income ends (optional)
   categoryId         String
-  budgetId           String
+  householdId        String
   isArchived         Boolean        @default(false)
   createdAt          DateTime       @default(now())
 
   account      Account       @relation(fields: [accountId], references: [id], onDelete: Restrict)
   category     Category      @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-  budget       Budget        @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  household    Household     @relation(fields: [householdId], references: [id], onDelete: Cascade)
   transactions Transaction[] // Transactions created from this income
 
-  @@index([budgetId])
+  @@index([householdId])
   @@index([accountId])
   @@index([categoryId])
   @@index([isArchived])

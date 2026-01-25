@@ -139,6 +139,7 @@ function TransactionsPage() {
 	// Handlers for edit are still needed, but create handlers are extracted to buttons
 
 	const handleEditTransaction = (transaction: any) => {
+		const type = getTransactionType(transaction)
 		openDrawer(
 			<div className="p-4">
 				<h2 className="text-2xl font-bold mb-4">Edit Transaction</h2>
@@ -155,7 +156,7 @@ function TransactionsPage() {
 							accountId: transaction.accountId,
 							recipientId: transaction.recipientId ?? null,
 							notes: transaction.notes ?? '',
-							transactionType: transaction.category.type as 'INCOME' | 'EXPENSE'
+							transactionType: type as 'INCOME' | 'EXPENSE'
 						}}
 						categories={categories}
 						accounts={accounts}
@@ -273,11 +274,21 @@ function TransactionsPage() {
 		)
 	}
 
+	// Helper to determine transaction type
+	const getTransactionType = (t: any) => {
+		const types = t.category.types || []
+		if (types.includes('EXPENSE') && types.includes('INCOME')) {
+			// Hybrid: assume Expense if budget linked, otherwise Income
+			return t.budgetId ? 'EXPENSE' : 'INCOME'
+		}
+		return types.includes('EXPENSE') ? 'EXPENSE' : 'INCOME'
+	}
+
 	const incomeTransactions = transactions?.filter(
-		(t) => t.category.type === 'INCOME'
+		(t) => getTransactionType(t) === 'INCOME'
 	)
 	const expenseTransactions = transactions?.filter(
-		(t) => t.category.type === 'EXPENSE'
+		(t) => getTransactionType(t) === 'EXPENSE'
 	)
 	const totalIncome =
 		incomeTransactions?.reduce((sum, t) => sum + t.amount, 0) ?? 0
@@ -401,140 +412,134 @@ function TransactionsPage() {
 							</TableRow>
 						</TableHeader>
 						<TableBody>
-							{transactions?.map((transaction) => (
-								<TableRow key={transaction.id}>
-									<TableCell>
-										{format(new Date(transaction.date), 'PP')}
-									</TableCell>
-									<TableCell className="font-medium">
-										{transaction.name}
-									</TableCell>
-									<TableCell>
-										<Badge
-											variant={
-												transaction.category.type === 'INCOME'
-													? 'default'
-													: 'secondary'
-											}
+							{transactions?.map((transaction) => {
+								const type = getTransactionType(transaction)
+								return (
+									<TableRow key={transaction.id}>
+										<TableCell>
+											{format(new Date(transaction.date), 'PP')}
+										</TableCell>
+										<TableCell className="font-medium">
+											{transaction.name}
+										</TableCell>
+										<TableCell>
+											<Badge
+												variant={type === 'INCOME' ? 'default' : 'secondary'}
+											>
+												{transaction.category.name}
+											</Badge>
+										</TableCell>
+										<TableCell className="text-muted-foreground">
+											{transaction.account.name}
+										</TableCell>
+										<TableCell
+											className={`text-right font-medium ${
+												type === 'INCOME' ? 'text-green-600' : 'text-red-600'
+											}`}
 										>
-											{transaction.category.name}
-										</Badge>
-									</TableCell>
-									<TableCell className="text-muted-foreground">
-										{transaction.account.name}
-									</TableCell>
-									<TableCell
-										className={`text-right font-medium ${
-											transaction.category.type === 'INCOME'
-												? 'text-green-600'
-												: 'text-red-600'
-										}`}
-									>
-										{transaction.category.type === 'INCOME' ? '+' : '-'}
-										{formatCurrency(transaction.amount)}
-									</TableCell>
-									<TableCell className="text-right">
-										<DropdownMenu>
-											<DropdownMenuTrigger asChild>
-												<Button variant="ghost" size="icon">
-													<MoreVerticalIcon className="h-4 w-4" />
-												</Button>
-											</DropdownMenuTrigger>
-											<DropdownMenuContent align="end">
-												{(transaction as any).isTransfer ? (
-													<>
-														<DropdownMenuItem
-															onClick={() =>
-																handleEditTransfer({
-																	id: (transaction as any).id,
-																	originalId: (transaction as any).originalId,
-																	amount: transaction.amount,
-																	date: new Date(transaction.date),
-																	notes: transaction.notes,
-																	fromAccountId: (transaction as any)
-																		.fromAccountId,
-																	toAccountId: (transaction as any).toAccountId
-																})
-															}
-														>
-															<PencilIcon className="mr-2 h-4 w-4" />
-															Edit Transfer
-														</DropdownMenuItem>
-														<DropdownMenuItem
-															onClick={() => {
-																if (
-																	confirm(
-																		`Are you sure you want to delete this transfer?`
-																	)
-																) {
-																	deleteTransfer({
-																		id: (transaction as any).originalId,
-																		userId
+											{type === 'INCOME' ? '+' : '-'}
+											{formatCurrency(transaction.amount)}
+										</TableCell>
+										<TableCell className="text-right">
+											<DropdownMenu>
+												<DropdownMenuTrigger asChild>
+													<Button variant="ghost" size="icon">
+														<MoreVerticalIcon className="h-4 w-4" />
+													</Button>
+												</DropdownMenuTrigger>
+												<DropdownMenuContent align="end">
+													{(transaction as any).isTransfer ? (
+														<>
+															<DropdownMenuItem
+																onClick={() =>
+																	handleEditTransfer({
+																		id: (transaction as any).id,
+																		originalId: (transaction as any).originalId,
+																		amount: transaction.amount,
+																		date: new Date(transaction.date),
+																		notes: transaction.notes,
+																		fromAccountId: (transaction as any)
+																			.fromAccountId,
+																		toAccountId: (transaction as any)
+																			.toAccountId
 																	})
 																}
-															}}
-															className="text-red-600"
-														>
-															<TrashIcon className="mr-2 h-4 w-4" />
-															Delete Transfer
-														</DropdownMenuItem>
-													</>
-												) : (
-													<>
-														<DropdownMenuItem
-															onClick={() => handleEditTransaction(transaction)}
-														>
-															<PencilIcon className="mr-2 h-4 w-4" />
-															Edit
-														</DropdownMenuItem>
-														<DropdownMenuItem
-															onClick={() => {
-																if (
-																	confirm(
-																		`Clone transaction "${transaction.name}"?`
-																	)
-																) {
-																	cloneTransaction({
-																		id: transaction.id,
-																		userId
-																	})
+															>
+																<PencilIcon className="mr-2 h-4 w-4" />
+																Edit Transfer
+															</DropdownMenuItem>
+															<DropdownMenuItem
+																onClick={() => {
+																	if (
+																		confirm(
+																			`Are you sure you want to delete this transfer?`
+																		)
+																	) {
+																		deleteTransfer({
+																			id: (transaction as any).originalId,
+																			userId
+																		})
+																	}
+																}}
+																className="text-red-600"
+															>
+																<TrashIcon className="mr-2 h-4 w-4" />
+																Delete Transfer
+															</DropdownMenuItem>
+														</>
+													) : (
+														<>
+															<DropdownMenuItem
+																onClick={() =>
+																	handleEditTransaction(transaction)
 																}
-															}}
-														>
-															<CopyIcon className="mr-2 h-4 w-4" />
-															Clone
-														</DropdownMenuItem>
-														<DropdownMenuItem
-															className="text-red-600"
-															onClick={() => {
-																if (
-																	confirm(
-																		`Are
-you
-sure
-you
-want
-to
-delete "${transaction.name}"?`
-																	)
-																) {
-																	deleteTransaction({
-																		id: transaction.id,
-																		userId
-																	})
-																}
-															}}
-														>
-															<TrashIcon className="mr-2 h-4 w-4" />
-															Delete
-														</DropdownMenuItem>
-													</>
-												)}
-											</DropdownMenuContent>
-										</DropdownMenu>
-									</TableCell>
-								</TableRow>
-							))}
+															>
+																<PencilIcon className="mr-2 h-4 w-4" />
+																Edit
+															</DropdownMenuItem>
+															<DropdownMenuItem
+																onClick={() => {
+																	if (
+																		confirm(
+																			`Clone transaction "${transaction.name}"?`
+																		)
+																	) {
+																		cloneTransaction({
+																			id: transaction.id,
+																			userId
+																		})
+																	}
+																}}
+															>
+																<CopyIcon className="mr-2 h-4 w-4" />
+																Clone
+															</DropdownMenuItem>
+															<DropdownMenuItem
+																className="text-red-600"
+																onClick={() => {
+																	if (
+																		confirm(
+																			`Are you sure you want to delete "${transaction.name}"?`
+																		)
+																	) {
+																		deleteTransaction({
+																			id: transaction.id,
+																			userId
+																		})
+																	}
+																}}
+															>
+																<TrashIcon className="mr-2 h-4 w-4" />
+																Delete
+															</DropdownMenuItem>
+														</>
+													)}
+												</DropdownMenuContent>
+											</DropdownMenu>
+										</TableCell>
+									</TableRow>
+								)
+							})}
 						</TableBody>
 					</Table>
 				</Card>

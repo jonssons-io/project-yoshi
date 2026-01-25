@@ -7,16 +7,9 @@ import {
 /**
  * Hook to create a new budget
  */
-export const useCreateBudget = createMutationHook(
-	'budgets',
-	'create',
-	(variables) => [
-		invalidateQuery('budgets', 'list', {
-			householdId: variables.householdId,
-			userId: variables.userId
-		})
-	]
-)
+export const useCreateBudget = createMutationHook('budgets', 'create', () => [
+	invalidateAll('budgets')
+])
 
 /**
  * Hook to update an existing budget

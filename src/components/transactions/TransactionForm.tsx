@@ -7,6 +7,7 @@
  * - Inline category creation via ComboboxField
  */
 
+import { AlertTriangleIcon } from 'lucide-react'
 import { useId, useState } from 'react'
 import { z } from 'zod'
 import {
@@ -15,9 +16,13 @@ import {
 	useAppForm,
 	validateForm
 } from '@/components/form'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { RecurrenceType } from '@/generated/prisma/enums'
+import type { RouterOutputs } from '@/integrations/trpc/router'
+
+type BudgetWithDetails = RouterOutputs['budgets']['list'][number]
 
 // Schema with discriminated category field
 const transactionSchema = z.object({
@@ -47,7 +52,8 @@ const transactionSchema = z.object({
 		.optional(),
 	notes: z.string().optional(),
 	// billId uses "__none__" as sentinel for no selection (Select requires non-empty values)
-	billId: z.string().optional().nullable()
+	billId: z.string().optional().nullable(),
+	budgetId: z.string().optional()
 })
 
 // Sentinel value for "no bill" selection (shadcn Select requires non-empty values)
@@ -72,6 +78,7 @@ export interface TransactionFormProps {
 		amount?: number
 		date?: Date
 		categoryId?: string
+		budgetId?: string
 		accountId?: string
 		recipientId?: string | null
 		recipient?: ComboboxValue | null // allow passing full object
@@ -83,12 +90,17 @@ export interface TransactionFormProps {
 	/**
 	 * Available categories (all types - will be filtered by form)
 	 */
-	categories: Array<{ id: string; name: string; type: string }>
+	categories: Array<{ id: string; name: string; types: string[] }>
 
 	/**
 	 * Available accounts
 	 */
 	accounts: Array<{ id: string; name: string }>
+
+	/**
+	 * Available budgets for overdraft check
+	 */
+	budgets?: BudgetWithDetails[]
 
 	/**
 	 * Available recipients (for both expense recipients and income senders)
@@ -149,6 +161,7 @@ export function TransactionForm({
 	defaultValues,
 	categories,
 	accounts,
+	budgets,
 	recipients = [],
 	bills = [],
 	preSelectedBillId,
@@ -180,7 +193,9 @@ export function TransactionForm({
 		if (defaultValues?.categoryId) {
 			const category = categories.find((c) => c.id === defaultValues.categoryId)
 			if (category) {
-				return category.type as 'INCOME' | 'EXPENSE'
+				// Default to matching type, or fallback to first type
+				if (category.types.includes('EXPENSE')) return 'EXPENSE'
+				if (category.types.includes('INCOME')) return 'INCOME'
 			}
 		}
 		return 'EXPENSE' // Default to expense
@@ -198,7 +213,8 @@ export function TransactionForm({
 				defaultValues?.recipientId ??
 				null) as ComboboxValue | null,
 			notes: defaultValues?.notes ?? '',
-			billId: preSelectedBillId ?? defaultValues?.billId ?? null
+			billId: preSelectedBillId ?? defaultValues?.billId ?? null,
+			budgetId: defaultValues?.budgetId ?? ''
 		},
 		onSubmit: async ({ value }) => {
 			// Transform __none__ sentinel back to null for billId
@@ -227,7 +243,7 @@ export function TransactionForm({
 		const currentCategory = form.getFieldValue('category')
 		if (typeof currentCategory === 'string' && currentCategory) {
 			const cat = categories.find((c) => c.id === currentCategory)
-			if (cat && cat.type !== newType) {
+			if (cat && !cat.types.includes(newType)) {
 				form.setFieldValue('category', '')
 			}
 		}
@@ -292,12 +308,90 @@ export function TransactionForm({
 				{(field) => <field.DateField label="Date" />}
 			</form.AppField>
 
+			{/* Check for Overdraft */}
+			<form.Subscribe
+				selector={(state) => [
+					state.values.budgetId,
+					state.values.amount,
+					state.values.transactionType
+				]}
+			>
+				{([budgetId, amount, transactionType]) => {
+					if (!budgets || !budgetId || transactionType !== 'EXPENSE')
+						return null
+					const budget = budgets.find((b) => b.id === budgetId)
+					if (!budget) return null
+
+					// If budgetId is empty string, finding might return undefined.
+					// calculated remaining amount is from backend (includes current allocated - allocated spent)
+					// We want to see if (remaining - newAmount) < 0
+
+					// biome-ignore lint/suspicious/noExplicitAny: RouterOutputs type complexity
+					const remaining = (budget as any).remainingAmount ?? 0
+					const willOverdraft = remaining - (amount || 0) < 0
+
+					return (
+						<div className="space-y-2">
+							<div className="text-sm">
+								<span className="text-muted-foreground">
+									Remaining in {budget.name}:{' '}
+								</span>
+								<span
+									className={
+										remaining < 0 ? 'text-red-500 font-bold' : 'font-bold'
+									}
+								>
+									{new Intl.NumberFormat('en-US', {
+										style: 'currency',
+										currency: 'SEK'
+									}).format(remaining)}
+								</span>
+							</div>
+							{willOverdraft && (
+								<Alert variant="destructive" className="py-2">
+									<AlertTriangleIcon className="h-4 w-4" />
+									<AlertTitle>Overdraft Warning</AlertTitle>
+									<AlertDescription>
+										This transaction exceeds the remaining allocated funds by{' '}
+										{new Intl.NumberFormat('en-US', {
+											style: 'currency',
+											currency: 'SEK'
+										}).format(Math.abs(remaining - (amount || 0)))}
+										.
+									</AlertDescription>
+								</Alert>
+							)}
+						</div>
+					)
+				}}
+			</form.Subscribe>
+
+			{budgets && budgets.length > 0 && (
+				<form.AppField
+					name="budgetId"
+					validators={{
+						onChange: createZodValidator(transactionSchema.shape.budgetId)
+					}}
+				>
+					{(field) => (
+						<field.SelectField
+							label="Budget (Optional)"
+							placeholder="Select a budget"
+							options={budgets.map((b) => ({
+								value: b.id,
+								label: b.name
+							}))}
+						/>
+					)}
+				</form.AppField>
+			)}
+
 			{/* Category Combobox with inline creation - subscribes to transactionType */}
 			<form.Subscribe selector={(state) => state.values.transactionType}>
 				{(transactionType) => {
 					// Filter categories based on selected transaction type
-					const filteredCategories = categories.filter(
-						(cat) => cat.type === transactionType
+					const filteredCategories = categories.filter((cat) =>
+						cat.types.includes(transactionType)
 					)
 
 					// Create options for the ComboboxField

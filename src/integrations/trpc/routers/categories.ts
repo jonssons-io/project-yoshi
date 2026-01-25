@@ -15,13 +15,12 @@ export const categoriesRouter = {
 		.input(
 			z.object({
 				householdId: z.string(),
-				userId: z.string(), // For access verification
+				userId: z.string(),
 				type: z.enum(['INCOME', 'EXPENSE']).optional(),
-				budgetId: z.string().optional() // Optional: filter by budget linkage
+				budgetId: z.string().optional()
 			})
 		)
 		.query(async ({ ctx, input }) => {
-			// Verify user has access to this household
 			const householdUser = await ctx.prisma.householdUser.findFirst({
 				where: {
 					householdId: input.householdId,
@@ -39,8 +38,11 @@ export const categoriesRouter = {
 			return ctx.prisma.category.findMany({
 				where: {
 					householdId: input.householdId,
-					...(input.type && { type: input.type }),
-					// If budgetId provided, only return categories linked to that budget
+					...(input.type && {
+						types: {
+							has: input.type
+						}
+					}),
 					...(input.budgetId && {
 						budgets: {
 							some: {
@@ -63,14 +65,11 @@ export const categoriesRouter = {
 			})
 		}),
 
-	/**
-	 * Get a specific category by ID
-	 */
 	getById: protectedProcedure
 		.input(
 			z.object({
 				id: z.string(),
-				userId: z.string() // For access verification
+				userId: z.string()
 			})
 		)
 		.query(async ({ ctx, input }) => {
@@ -99,7 +98,6 @@ export const categoriesRouter = {
 				})
 			}
 
-			// Verify user has access to this household
 			const householdUser = await ctx.prisma.householdUser.findFirst({
 				where: {
 					householdId: category.householdId,
@@ -117,21 +115,19 @@ export const categoriesRouter = {
 			return category
 		}),
 
-	/**
-	 * Create a new category
-	 */
 	create: protectedProcedure
 		.input(
 			z.object({
 				householdId: z.string(),
-				userId: z.string(), // For access verification
+				userId: z.string(),
 				name: z.string().min(1, 'Name is required'),
-				type: z.enum(['INCOME', 'EXPENSE']),
-				budgetIds: z.array(z.string()).optional() // Optional: specific budgets to link (defaults to all)
+				types: z
+					.array(z.enum(['INCOME', 'EXPENSE']))
+					.min(1, 'At least one type is required'),
+				budgetIds: z.array(z.string()).optional()
 			})
 		)
 		.mutation(async ({ ctx, input }) => {
-			// Verify user has access to this household
 			const householdUser = await ctx.prisma.householdUser.findFirst({
 				where: {
 					householdId: input.householdId,
@@ -146,11 +142,8 @@ export const categoriesRouter = {
 				})
 			}
 
-			// Determine which budgets to link
 			let budgetIdsToLink = input.budgetIds
 
-			// If budgetIds not provided at all (undefined), default to all household budgets (opt-out model)
-			// If budgetIds is an empty array [], it means user explicitly unchecked all (orphaned)
 			if (budgetIdsToLink === undefined) {
 				const budgets = await ctx.prisma.budget.findMany({
 					where: {
@@ -163,11 +156,10 @@ export const categoriesRouter = {
 				budgetIdsToLink = budgets.map((b) => b.id)
 			}
 
-			// Create category and link to specified budgets (can be empty array for orphaned)
 			return ctx.prisma.category.create({
 				data: {
 					name: input.name,
-					type: input.type,
+					types: input.types,
 					householdId: input.householdId,
 					...(budgetIdsToLink.length > 0 && {
 						budgets: {
@@ -187,17 +179,17 @@ export const categoriesRouter = {
 			})
 		}),
 
-	/**
-	 * Update a category
-	 */
 	update: protectedProcedure
 		.input(
 			z.object({
 				id: z.string(),
-				userId: z.string(), // For access verification
+				userId: z.string(),
 				name: z.string().min(1, 'Name is required').optional(),
-				type: z.enum(['INCOME', 'EXPENSE']).optional(),
-				budgetIds: z.array(z.string()).optional() // Optional: update budget links
+				types: z
+					.array(z.enum(['INCOME', 'EXPENSE']))
+					.min(1)
+					.optional(),
+				budgetIds: z.array(z.string()).optional()
 			})
 		)
 		.mutation(async ({ ctx, input }) => {
@@ -215,7 +207,6 @@ export const categoriesRouter = {
 				})
 			}
 
-			// Verify user has access to this household
 			const householdUser = await ctx.prisma.householdUser.findFirst({
 				where: {
 					householdId: category.householdId,
@@ -230,12 +221,12 @@ export const categoriesRouter = {
 				})
 			}
 
-			// If budgetIds provided, sync budget links
+			const budgetOperations: any = {}
+
 			if (input.budgetIds !== undefined) {
 				const currentBudgetIds = category.budgets.map((b) => b.budgetId)
 				const newBudgetIds = input.budgetIds
 
-				// Find budgets to add and remove
 				const toAdd = newBudgetIds.filter(
 					(id) => !currentBudgetIds.includes(id)
 				)
@@ -243,8 +234,6 @@ export const categoriesRouter = {
 					(id) => !newBudgetIds.includes(id)
 				)
 
-				// Build budget update operations
-				const budgetOperations: any = {}
 				if (toRemove.length > 0) {
 					budgetOperations.deleteMany = {
 						budgetId: { in: toRemove }
@@ -253,33 +242,16 @@ export const categoriesRouter = {
 				if (toAdd.length > 0) {
 					budgetOperations.create = toAdd.map((budgetId) => ({ budgetId }))
 				}
-
-				// Update category with new budget links
-				return ctx.prisma.category.update({
-					where: { id: input.id },
-					data: {
-						name: input.name,
-						type: input.type,
-						...(Object.keys(budgetOperations).length > 0 && {
-							budgets: budgetOperations
-						})
-					},
-					include: {
-						_count: {
-							select: {
-								budgets: true
-							}
-						}
-					}
-				})
 			}
 
-			// Regular update without budget changes
 			return ctx.prisma.category.update({
 				where: { id: input.id },
 				data: {
 					name: input.name,
-					type: input.type
+					types: input.types,
+					...(Object.keys(budgetOperations).length > 0 && {
+						budgets: budgetOperations
+					})
 				},
 				include: {
 					_count: {

@@ -6,6 +6,7 @@
 import { useUser } from '@clerk/clerk-react'
 import { Link } from '@tanstack/react-router'
 import {
+	Calendar,
 	Check,
 	ChevronsUpDown,
 	Coins,
@@ -45,12 +46,6 @@ const navSections = {
 			url: '/',
 			icon: Home,
 			requiresBudget: false
-		},
-		{
-			title: 'Budgets',
-			url: '/budgets',
-			icon: Wallet,
-			requiresBudget: false
 		}
 	],
 	budget: [
@@ -61,19 +56,31 @@ const navSections = {
 			requiresBudget: true
 		},
 		{
-			title: 'Income',
-			url: '/income',
-			icon: Coins,
-			requiresBudget: true
-		},
-		{
 			title: 'Bills',
 			url: '/bills',
 			icon: FileTextIcon,
 			requiresBudget: true
 		}
 	],
-	settings: [
+	household: [
+		{
+			title: 'Income',
+			url: '/income',
+			icon: Coins,
+			requiresBudget: true
+		},
+		{
+			title: 'Budgets',
+			url: '/budgets',
+			icon: Wallet,
+			requiresBudget: false
+		},
+		{
+			title: 'Plan',
+			url: '/plan',
+			icon: Calendar,
+			requiresBudget: true
+		},
 		{
 			title: 'Accounts',
 			url: '/accounts',
@@ -235,12 +242,12 @@ export function AppSidebar() {
 					</SidebarGroupContent>
 				</SidebarGroup>
 
-				{/* Settings Section */}
+				{/* Household Section */}
 				<SidebarGroup>
-					<SidebarGroupLabel>Settings</SidebarGroupLabel>
+					<SidebarGroupLabel>Household</SidebarGroupLabel>
 					<SidebarGroupContent>
 						<SidebarMenu>
-							{navSections.settings.map((item) => (
+							{navSections.household.map((item) => (
 								<SidebarMenuItem key={item.title}>
 									<SidebarMenuButton asChild>
 										<Link to={item.url}>

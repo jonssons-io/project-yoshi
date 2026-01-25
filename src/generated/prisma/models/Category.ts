@@ -27,7 +27,6 @@ export type AggregateCategory = {
 export type CategoryMinAggregateOutputType = {
   id: string | null
   name: string | null
-  type: $Enums.CategoryType | null
   householdId: string | null
   createdAt: Date | null
 }
@@ -35,7 +34,6 @@ export type CategoryMinAggregateOutputType = {
 export type CategoryMaxAggregateOutputType = {
   id: string | null
   name: string | null
-  type: $Enums.CategoryType | null
   householdId: string | null
   createdAt: Date | null
 }
@@ -43,7 +41,7 @@ export type CategoryMaxAggregateOutputType = {
 export type CategoryCountAggregateOutputType = {
   id: number
   name: number
-  type: number
+  types: number
   householdId: number
   createdAt: number
   _all: number
@@ -53,7 +51,6 @@ export type CategoryCountAggregateOutputType = {
 export type CategoryMinAggregateInputType = {
   id?: true
   name?: true
-  type?: true
   householdId?: true
   createdAt?: true
 }
@@ -61,7 +58,6 @@ export type CategoryMinAggregateInputType = {
 export type CategoryMaxAggregateInputType = {
   id?: true
   name?: true
-  type?: true
   householdId?: true
   createdAt?: true
 }
@@ -69,7 +65,7 @@ export type CategoryMaxAggregateInputType = {
 export type CategoryCountAggregateInputType = {
   id?: true
   name?: true
-  type?: true
+  types?: true
   householdId?: true
   createdAt?: true
   _all?: true
@@ -150,7 +146,7 @@ export type CategoryGroupByArgs<ExtArgs extends runtime.Types.Extensions.Interna
 export type CategoryGroupByOutputType = {
   id: string
   name: string
-  type: $Enums.CategoryType
+  types: $Enums.CategoryType[]
   householdId: string
   createdAt: Date
   _count: CategoryCountAggregateOutputType | null
@@ -179,7 +175,7 @@ export type CategoryWhereInput = {
   NOT?: Prisma.CategoryWhereInput | Prisma.CategoryWhereInput[]
   id?: Prisma.StringFilter<"Category"> | string
   name?: Prisma.StringFilter<"Category"> | string
-  type?: Prisma.EnumCategoryTypeFilter<"Category"> | $Enums.CategoryType
+  types?: Prisma.EnumCategoryTypeNullableListFilter<"Category">
   householdId?: Prisma.StringFilter<"Category"> | string
   createdAt?: Prisma.DateTimeFilter<"Category"> | Date | string
   household?: Prisma.XOR<Prisma.HouseholdScalarRelationFilter, Prisma.HouseholdWhereInput>
@@ -192,7 +188,7 @@ export type CategoryWhereInput = {
 export type CategoryOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   name?: Prisma.SortOrder
-  type?: Prisma.SortOrder
+  types?: Prisma.SortOrder
   householdId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   household?: Prisma.HouseholdOrderByWithRelationInput
@@ -208,7 +204,7 @@ export type CategoryWhereUniqueInput = Prisma.AtLeast<{
   OR?: Prisma.CategoryWhereInput[]
   NOT?: Prisma.CategoryWhereInput | Prisma.CategoryWhereInput[]
   name?: Prisma.StringFilter<"Category"> | string
-  type?: Prisma.EnumCategoryTypeFilter<"Category"> | $Enums.CategoryType
+  types?: Prisma.EnumCategoryTypeNullableListFilter<"Category">
   householdId?: Prisma.StringFilter<"Category"> | string
   createdAt?: Prisma.DateTimeFilter<"Category"> | Date | string
   household?: Prisma.XOR<Prisma.HouseholdScalarRelationFilter, Prisma.HouseholdWhereInput>
@@ -221,7 +217,7 @@ export type CategoryWhereUniqueInput = Prisma.AtLeast<{
 export type CategoryOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   name?: Prisma.SortOrder
-  type?: Prisma.SortOrder
+  types?: Prisma.SortOrder
   householdId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   _count?: Prisma.CategoryCountOrderByAggregateInput
@@ -235,7 +231,7 @@ export type CategoryScalarWhereWithAggregatesInput = {
   NOT?: Prisma.CategoryScalarWhereWithAggregatesInput | Prisma.CategoryScalarWhereWithAggregatesInput[]
   id?: Prisma.StringWithAggregatesFilter<"Category"> | string
   name?: Prisma.StringWithAggregatesFilter<"Category"> | string
-  type?: Prisma.EnumCategoryTypeWithAggregatesFilter<"Category"> | $Enums.CategoryType
+  types?: Prisma.EnumCategoryTypeNullableListFilter<"Category">
   householdId?: Prisma.StringWithAggregatesFilter<"Category"> | string
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Category"> | Date | string
 }
@@ -243,7 +239,7 @@ export type CategoryScalarWhereWithAggregatesInput = {
 export type CategoryCreateInput = {
   id?: string
   name: string
-  type: $Enums.CategoryType
+  types?: Prisma.CategoryCreatetypesInput | $Enums.CategoryType[]
   createdAt?: Date | string
   household: Prisma.HouseholdCreateNestedOneWithoutCategoriesInput
   budgets?: Prisma.BudgetCategoryCreateNestedManyWithoutCategoryInput
@@ -255,7 +251,7 @@ export type CategoryCreateInput = {
 export type CategoryUncheckedCreateInput = {
   id?: string
   name: string
-  type: $Enums.CategoryType
+  types?: Prisma.CategoryCreatetypesInput | $Enums.CategoryType[]
   householdId: string
   createdAt?: Date | string
   budgets?: Prisma.BudgetCategoryUncheckedCreateNestedManyWithoutCategoryInput
@@ -267,7 +263,7 @@ export type CategoryUncheckedCreateInput = {
 export type CategoryUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  type?: Prisma.EnumCategoryTypeFieldUpdateOperationsInput | $Enums.CategoryType
+  types?: Prisma.CategoryUpdatetypesInput | $Enums.CategoryType[]
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   household?: Prisma.HouseholdUpdateOneRequiredWithoutCategoriesNestedInput
   budgets?: Prisma.BudgetCategoryUpdateManyWithoutCategoryNestedInput
@@ -279,7 +275,7 @@ export type CategoryUpdateInput = {
 export type CategoryUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  type?: Prisma.EnumCategoryTypeFieldUpdateOperationsInput | $Enums.CategoryType
+  types?: Prisma.CategoryUpdatetypesInput | $Enums.CategoryType[]
   householdId?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   budgets?: Prisma.BudgetCategoryUncheckedUpdateManyWithoutCategoryNestedInput
@@ -291,7 +287,7 @@ export type CategoryUncheckedUpdateInput = {
 export type CategoryCreateManyInput = {
   id?: string
   name: string
-  type: $Enums.CategoryType
+  types?: Prisma.CategoryCreatetypesInput | $Enums.CategoryType[]
   householdId: string
   createdAt?: Date | string
 }
@@ -299,14 +295,14 @@ export type CategoryCreateManyInput = {
 export type CategoryUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  type?: Prisma.EnumCategoryTypeFieldUpdateOperationsInput | $Enums.CategoryType
+  types?: Prisma.CategoryUpdatetypesInput | $Enums.CategoryType[]
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type CategoryUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  type?: Prisma.EnumCategoryTypeFieldUpdateOperationsInput | $Enums.CategoryType
+  types?: Prisma.CategoryUpdatetypesInput | $Enums.CategoryType[]
   householdId?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -321,10 +317,18 @@ export type CategoryOrderByRelationAggregateInput = {
   _count?: Prisma.SortOrder
 }
 
+export type EnumCategoryTypeNullableListFilter<$PrismaModel = never> = {
+  equals?: $Enums.CategoryType[] | Prisma.ListEnumCategoryTypeFieldRefInput<$PrismaModel> | null
+  has?: $Enums.CategoryType | Prisma.EnumCategoryTypeFieldRefInput<$PrismaModel> | null
+  hasEvery?: $Enums.CategoryType[] | Prisma.ListEnumCategoryTypeFieldRefInput<$PrismaModel>
+  hasSome?: $Enums.CategoryType[] | Prisma.ListEnumCategoryTypeFieldRefInput<$PrismaModel>
+  isEmpty?: boolean
+}
+
 export type CategoryCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   name?: Prisma.SortOrder
-  type?: Prisma.SortOrder
+  types?: Prisma.SortOrder
   householdId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
@@ -332,7 +336,6 @@ export type CategoryCountOrderByAggregateInput = {
 export type CategoryMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   name?: Prisma.SortOrder
-  type?: Prisma.SortOrder
   householdId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
@@ -340,7 +343,6 @@ export type CategoryMaxOrderByAggregateInput = {
 export type CategoryMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   name?: Prisma.SortOrder
-  type?: Prisma.SortOrder
   householdId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
@@ -392,8 +394,13 @@ export type CategoryUncheckedUpdateManyWithoutHouseholdNestedInput = {
   deleteMany?: Prisma.CategoryScalarWhereInput | Prisma.CategoryScalarWhereInput[]
 }
 
-export type EnumCategoryTypeFieldUpdateOperationsInput = {
-  set?: $Enums.CategoryType
+export type CategoryCreatetypesInput = {
+  set: $Enums.CategoryType[]
+}
+
+export type CategoryUpdatetypesInput = {
+  set?: $Enums.CategoryType[]
+  push?: $Enums.CategoryType | $Enums.CategoryType[]
 }
 
 export type CategoryCreateNestedOneWithoutBudgetsInput = {
@@ -455,7 +462,7 @@ export type CategoryUpdateOneRequiredWithoutIncomesNestedInput = {
 export type CategoryCreateWithoutHouseholdInput = {
   id?: string
   name: string
-  type: $Enums.CategoryType
+  types?: Prisma.CategoryCreatetypesInput | $Enums.CategoryType[]
   createdAt?: Date | string
   budgets?: Prisma.BudgetCategoryCreateNestedManyWithoutCategoryInput
   transactions?: Prisma.TransactionCreateNestedManyWithoutCategoryInput
@@ -466,7 +473,7 @@ export type CategoryCreateWithoutHouseholdInput = {
 export type CategoryUncheckedCreateWithoutHouseholdInput = {
   id?: string
   name: string
-  type: $Enums.CategoryType
+  types?: Prisma.CategoryCreatetypesInput | $Enums.CategoryType[]
   createdAt?: Date | string
   budgets?: Prisma.BudgetCategoryUncheckedCreateNestedManyWithoutCategoryInput
   transactions?: Prisma.TransactionUncheckedCreateNestedManyWithoutCategoryInput
@@ -506,7 +513,7 @@ export type CategoryScalarWhereInput = {
   NOT?: Prisma.CategoryScalarWhereInput | Prisma.CategoryScalarWhereInput[]
   id?: Prisma.StringFilter<"Category"> | string
   name?: Prisma.StringFilter<"Category"> | string
-  type?: Prisma.EnumCategoryTypeFilter<"Category"> | $Enums.CategoryType
+  types?: Prisma.EnumCategoryTypeNullableListFilter<"Category">
   householdId?: Prisma.StringFilter<"Category"> | string
   createdAt?: Prisma.DateTimeFilter<"Category"> | Date | string
 }
@@ -514,7 +521,7 @@ export type CategoryScalarWhereInput = {
 export type CategoryCreateWithoutBudgetsInput = {
   id?: string
   name: string
-  type: $Enums.CategoryType
+  types?: Prisma.CategoryCreatetypesInput | $Enums.CategoryType[]
   createdAt?: Date | string
   household: Prisma.HouseholdCreateNestedOneWithoutCategoriesInput
   transactions?: Prisma.TransactionCreateNestedManyWithoutCategoryInput
@@ -525,7 +532,7 @@ export type CategoryCreateWithoutBudgetsInput = {
 export type CategoryUncheckedCreateWithoutBudgetsInput = {
   id?: string
   name: string
-  type: $Enums.CategoryType
+  types?: Prisma.CategoryCreatetypesInput | $Enums.CategoryType[]
   householdId: string
   createdAt?: Date | string
   transactions?: Prisma.TransactionUncheckedCreateNestedManyWithoutCategoryInput
@@ -552,7 +559,7 @@ export type CategoryUpdateToOneWithWhereWithoutBudgetsInput = {
 export type CategoryUpdateWithoutBudgetsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  type?: Prisma.EnumCategoryTypeFieldUpdateOperationsInput | $Enums.CategoryType
+  types?: Prisma.CategoryUpdatetypesInput | $Enums.CategoryType[]
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   household?: Prisma.HouseholdUpdateOneRequiredWithoutCategoriesNestedInput
   transactions?: Prisma.TransactionUpdateManyWithoutCategoryNestedInput
@@ -563,7 +570,7 @@ export type CategoryUpdateWithoutBudgetsInput = {
 export type CategoryUncheckedUpdateWithoutBudgetsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  type?: Prisma.EnumCategoryTypeFieldUpdateOperationsInput | $Enums.CategoryType
+  types?: Prisma.CategoryUpdatetypesInput | $Enums.CategoryType[]
   householdId?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   transactions?: Prisma.TransactionUncheckedUpdateManyWithoutCategoryNestedInput
@@ -574,7 +581,7 @@ export type CategoryUncheckedUpdateWithoutBudgetsInput = {
 export type CategoryCreateWithoutTransactionsInput = {
   id?: string
   name: string
-  type: $Enums.CategoryType
+  types?: Prisma.CategoryCreatetypesInput | $Enums.CategoryType[]
   createdAt?: Date | string
   household: Prisma.HouseholdCreateNestedOneWithoutCategoriesInput
   budgets?: Prisma.BudgetCategoryCreateNestedManyWithoutCategoryInput
@@ -585,7 +592,7 @@ export type CategoryCreateWithoutTransactionsInput = {
 export type CategoryUncheckedCreateWithoutTransactionsInput = {
   id?: string
   name: string
-  type: $Enums.CategoryType
+  types?: Prisma.CategoryCreatetypesInput | $Enums.CategoryType[]
   householdId: string
   createdAt?: Date | string
   budgets?: Prisma.BudgetCategoryUncheckedCreateNestedManyWithoutCategoryInput
@@ -612,7 +619,7 @@ export type CategoryUpdateToOneWithWhereWithoutTransactionsInput = {
 export type CategoryUpdateWithoutTransactionsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  type?: Prisma.EnumCategoryTypeFieldUpdateOperationsInput | $Enums.CategoryType
+  types?: Prisma.CategoryUpdatetypesInput | $Enums.CategoryType[]
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   household?: Prisma.HouseholdUpdateOneRequiredWithoutCategoriesNestedInput
   budgets?: Prisma.BudgetCategoryUpdateManyWithoutCategoryNestedInput
@@ -623,7 +630,7 @@ export type CategoryUpdateWithoutTransactionsInput = {
 export type CategoryUncheckedUpdateWithoutTransactionsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  type?: Prisma.EnumCategoryTypeFieldUpdateOperationsInput | $Enums.CategoryType
+  types?: Prisma.CategoryUpdatetypesInput | $Enums.CategoryType[]
   householdId?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   budgets?: Prisma.BudgetCategoryUncheckedUpdateManyWithoutCategoryNestedInput
@@ -634,7 +641,7 @@ export type CategoryUncheckedUpdateWithoutTransactionsInput = {
 export type CategoryCreateWithoutBillsInput = {
   id?: string
   name: string
-  type: $Enums.CategoryType
+  types?: Prisma.CategoryCreatetypesInput | $Enums.CategoryType[]
   createdAt?: Date | string
   household: Prisma.HouseholdCreateNestedOneWithoutCategoriesInput
   budgets?: Prisma.BudgetCategoryCreateNestedManyWithoutCategoryInput
@@ -645,7 +652,7 @@ export type CategoryCreateWithoutBillsInput = {
 export type CategoryUncheckedCreateWithoutBillsInput = {
   id?: string
   name: string
-  type: $Enums.CategoryType
+  types?: Prisma.CategoryCreatetypesInput | $Enums.CategoryType[]
   householdId: string
   createdAt?: Date | string
   budgets?: Prisma.BudgetCategoryUncheckedCreateNestedManyWithoutCategoryInput
@@ -672,7 +679,7 @@ export type CategoryUpdateToOneWithWhereWithoutBillsInput = {
 export type CategoryUpdateWithoutBillsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  type?: Prisma.EnumCategoryTypeFieldUpdateOperationsInput | $Enums.CategoryType
+  types?: Prisma.CategoryUpdatetypesInput | $Enums.CategoryType[]
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   household?: Prisma.HouseholdUpdateOneRequiredWithoutCategoriesNestedInput
   budgets?: Prisma.BudgetCategoryUpdateManyWithoutCategoryNestedInput
@@ -683,7 +690,7 @@ export type CategoryUpdateWithoutBillsInput = {
 export type CategoryUncheckedUpdateWithoutBillsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  type?: Prisma.EnumCategoryTypeFieldUpdateOperationsInput | $Enums.CategoryType
+  types?: Prisma.CategoryUpdatetypesInput | $Enums.CategoryType[]
   householdId?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   budgets?: Prisma.BudgetCategoryUncheckedUpdateManyWithoutCategoryNestedInput
@@ -694,7 +701,7 @@ export type CategoryUncheckedUpdateWithoutBillsInput = {
 export type CategoryCreateWithoutIncomesInput = {
   id?: string
   name: string
-  type: $Enums.CategoryType
+  types?: Prisma.CategoryCreatetypesInput | $Enums.CategoryType[]
   createdAt?: Date | string
   household: Prisma.HouseholdCreateNestedOneWithoutCategoriesInput
   budgets?: Prisma.BudgetCategoryCreateNestedManyWithoutCategoryInput
@@ -705,7 +712,7 @@ export type CategoryCreateWithoutIncomesInput = {
 export type CategoryUncheckedCreateWithoutIncomesInput = {
   id?: string
   name: string
-  type: $Enums.CategoryType
+  types?: Prisma.CategoryCreatetypesInput | $Enums.CategoryType[]
   householdId: string
   createdAt?: Date | string
   budgets?: Prisma.BudgetCategoryUncheckedCreateNestedManyWithoutCategoryInput
@@ -732,7 +739,7 @@ export type CategoryUpdateToOneWithWhereWithoutIncomesInput = {
 export type CategoryUpdateWithoutIncomesInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  type?: Prisma.EnumCategoryTypeFieldUpdateOperationsInput | $Enums.CategoryType
+  types?: Prisma.CategoryUpdatetypesInput | $Enums.CategoryType[]
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   household?: Prisma.HouseholdUpdateOneRequiredWithoutCategoriesNestedInput
   budgets?: Prisma.BudgetCategoryUpdateManyWithoutCategoryNestedInput
@@ -743,7 +750,7 @@ export type CategoryUpdateWithoutIncomesInput = {
 export type CategoryUncheckedUpdateWithoutIncomesInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  type?: Prisma.EnumCategoryTypeFieldUpdateOperationsInput | $Enums.CategoryType
+  types?: Prisma.CategoryUpdatetypesInput | $Enums.CategoryType[]
   householdId?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   budgets?: Prisma.BudgetCategoryUncheckedUpdateManyWithoutCategoryNestedInput
@@ -754,14 +761,14 @@ export type CategoryUncheckedUpdateWithoutIncomesInput = {
 export type CategoryCreateManyHouseholdInput = {
   id?: string
   name: string
-  type: $Enums.CategoryType
+  types?: Prisma.CategoryCreatetypesInput | $Enums.CategoryType[]
   createdAt?: Date | string
 }
 
 export type CategoryUpdateWithoutHouseholdInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  type?: Prisma.EnumCategoryTypeFieldUpdateOperationsInput | $Enums.CategoryType
+  types?: Prisma.CategoryUpdatetypesInput | $Enums.CategoryType[]
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   budgets?: Prisma.BudgetCategoryUpdateManyWithoutCategoryNestedInput
   transactions?: Prisma.TransactionUpdateManyWithoutCategoryNestedInput
@@ -772,7 +779,7 @@ export type CategoryUpdateWithoutHouseholdInput = {
 export type CategoryUncheckedUpdateWithoutHouseholdInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  type?: Prisma.EnumCategoryTypeFieldUpdateOperationsInput | $Enums.CategoryType
+  types?: Prisma.CategoryUpdatetypesInput | $Enums.CategoryType[]
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   budgets?: Prisma.BudgetCategoryUncheckedUpdateManyWithoutCategoryNestedInput
   transactions?: Prisma.TransactionUncheckedUpdateManyWithoutCategoryNestedInput
@@ -783,7 +790,7 @@ export type CategoryUncheckedUpdateWithoutHouseholdInput = {
 export type CategoryUncheckedUpdateManyWithoutHouseholdInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  type?: Prisma.EnumCategoryTypeFieldUpdateOperationsInput | $Enums.CategoryType
+  types?: Prisma.CategoryUpdatetypesInput | $Enums.CategoryType[]
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -848,7 +855,7 @@ export type CategoryCountOutputTypeCountIncomesArgs<ExtArgs extends runtime.Type
 export type CategorySelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   name?: boolean
-  type?: boolean
+  types?: boolean
   householdId?: boolean
   createdAt?: boolean
   household?: boolean | Prisma.HouseholdDefaultArgs<ExtArgs>
@@ -862,7 +869,7 @@ export type CategorySelect<ExtArgs extends runtime.Types.Extensions.InternalArgs
 export type CategorySelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   name?: boolean
-  type?: boolean
+  types?: boolean
   householdId?: boolean
   createdAt?: boolean
   household?: boolean | Prisma.HouseholdDefaultArgs<ExtArgs>
@@ -871,7 +878,7 @@ export type CategorySelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exte
 export type CategorySelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   name?: boolean
-  type?: boolean
+  types?: boolean
   householdId?: boolean
   createdAt?: boolean
   household?: boolean | Prisma.HouseholdDefaultArgs<ExtArgs>
@@ -880,12 +887,12 @@ export type CategorySelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exte
 export type CategorySelectScalar = {
   id?: boolean
   name?: boolean
-  type?: boolean
+  types?: boolean
   householdId?: boolean
   createdAt?: boolean
 }
 
-export type CategoryOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "type" | "householdId" | "createdAt", ExtArgs["result"]["category"]>
+export type CategoryOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "types" | "householdId" | "createdAt", ExtArgs["result"]["category"]>
 export type CategoryInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   household?: boolean | Prisma.HouseholdDefaultArgs<ExtArgs>
   budgets?: boolean | Prisma.Category$budgetsArgs<ExtArgs>
@@ -913,7 +920,7 @@ export type $CategoryPayload<ExtArgs extends runtime.Types.Extensions.InternalAr
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
     name: string
-    type: $Enums.CategoryType
+    types: $Enums.CategoryType[]
     householdId: string
     createdAt: Date
   }, ExtArgs["result"]["category"]>
@@ -1346,7 +1353,7 @@ export interface Prisma__CategoryClient<T, Null = never, ExtArgs extends runtime
 export interface CategoryFieldRefs {
   readonly id: Prisma.FieldRef<"Category", 'String'>
   readonly name: Prisma.FieldRef<"Category", 'String'>
-  readonly type: Prisma.FieldRef<"Category", 'CategoryType'>
+  readonly types: Prisma.FieldRef<"Category", 'CategoryType[]'>
   readonly householdId: Prisma.FieldRef<"Category", 'String'>
   readonly createdAt: Prisma.FieldRef<"Category", 'DateTime'>
 }
