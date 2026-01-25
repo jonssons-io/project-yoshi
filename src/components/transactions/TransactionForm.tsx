@@ -83,7 +83,7 @@ export interface TransactionFormProps {
 	/**
 	 * Available categories (all types - will be filtered by form)
 	 */
-	categories: Array<{ id: string; name: string; type: string }>
+	categories: Array<{ id: string; name: string; types: string[] }>
 
 	/**
 	 * Available accounts
@@ -180,7 +180,9 @@ export function TransactionForm({
 		if (defaultValues?.categoryId) {
 			const category = categories.find((c) => c.id === defaultValues.categoryId)
 			if (category) {
-				return category.type as 'INCOME' | 'EXPENSE'
+				// Default to matching type, or fallback to first type
+				if (category.types.includes('EXPENSE')) return 'EXPENSE'
+				if (category.types.includes('INCOME')) return 'INCOME'
 			}
 		}
 		return 'EXPENSE' // Default to expense
@@ -227,7 +229,7 @@ export function TransactionForm({
 		const currentCategory = form.getFieldValue('category')
 		if (typeof currentCategory === 'string' && currentCategory) {
 			const cat = categories.find((c) => c.id === currentCategory)
-			if (cat && cat.type !== newType) {
+			if (cat && !cat.types.includes(newType)) {
 				form.setFieldValue('category', '')
 			}
 		}
@@ -296,8 +298,8 @@ export function TransactionForm({
 			<form.Subscribe selector={(state) => state.values.transactionType}>
 				{(transactionType) => {
 					// Filter categories based on selected transaction type
-					const filteredCategories = categories.filter(
-						(cat) => cat.type === transactionType
+					const filteredCategories = categories.filter((cat) =>
+						cat.types.includes(transactionType)
 					)
 
 					// Create options for the ComboboxField

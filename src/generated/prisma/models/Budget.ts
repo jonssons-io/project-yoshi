@@ -188,7 +188,6 @@ export type BudgetWhereInput = {
   transactions?: Prisma.TransactionListRelationFilter
   bills?: Prisma.BillListRelationFilter
   transfers?: Prisma.TransferListRelationFilter
-  incomes?: Prisma.IncomeListRelationFilter
 }
 
 export type BudgetOrderByWithRelationInput = {
@@ -203,7 +202,6 @@ export type BudgetOrderByWithRelationInput = {
   transactions?: Prisma.TransactionOrderByRelationAggregateInput
   bills?: Prisma.BillOrderByRelationAggregateInput
   transfers?: Prisma.TransferOrderByRelationAggregateInput
-  incomes?: Prisma.IncomeOrderByRelationAggregateInput
 }
 
 export type BudgetWhereUniqueInput = Prisma.AtLeast<{
@@ -221,7 +219,6 @@ export type BudgetWhereUniqueInput = Prisma.AtLeast<{
   transactions?: Prisma.TransactionListRelationFilter
   bills?: Prisma.BillListRelationFilter
   transfers?: Prisma.TransferListRelationFilter
-  incomes?: Prisma.IncomeListRelationFilter
 }, "id">
 
 export type BudgetOrderByWithAggregationInput = {
@@ -257,7 +254,6 @@ export type BudgetCreateInput = {
   transactions?: Prisma.TransactionCreateNestedManyWithoutBudgetInput
   bills?: Prisma.BillCreateNestedManyWithoutBudgetInput
   transfers?: Prisma.TransferCreateNestedManyWithoutBudgetInput
-  incomes?: Prisma.IncomeCreateNestedManyWithoutBudgetInput
 }
 
 export type BudgetUncheckedCreateInput = {
@@ -271,7 +267,6 @@ export type BudgetUncheckedCreateInput = {
   transactions?: Prisma.TransactionUncheckedCreateNestedManyWithoutBudgetInput
   bills?: Prisma.BillUncheckedCreateNestedManyWithoutBudgetInput
   transfers?: Prisma.TransferUncheckedCreateNestedManyWithoutBudgetInput
-  incomes?: Prisma.IncomeUncheckedCreateNestedManyWithoutBudgetInput
 }
 
 export type BudgetUpdateInput = {
@@ -285,7 +280,6 @@ export type BudgetUpdateInput = {
   transactions?: Prisma.TransactionUpdateManyWithoutBudgetNestedInput
   bills?: Prisma.BillUpdateManyWithoutBudgetNestedInput
   transfers?: Prisma.TransferUpdateManyWithoutBudgetNestedInput
-  incomes?: Prisma.IncomeUpdateManyWithoutBudgetNestedInput
 }
 
 export type BudgetUncheckedUpdateInput = {
@@ -299,7 +293,6 @@ export type BudgetUncheckedUpdateInput = {
   transactions?: Prisma.TransactionUncheckedUpdateManyWithoutBudgetNestedInput
   bills?: Prisma.BillUncheckedUpdateManyWithoutBudgetNestedInput
   transfers?: Prisma.TransferUncheckedUpdateManyWithoutBudgetNestedInput
-  incomes?: Prisma.IncomeUncheckedUpdateManyWithoutBudgetNestedInput
 }
 
 export type BudgetCreateManyInput = {
@@ -362,6 +355,11 @@ export type BudgetMinOrderByAggregateInput = {
 export type BudgetScalarRelationFilter = {
   is?: Prisma.BudgetWhereInput
   isNot?: Prisma.BudgetWhereInput
+}
+
+export type BudgetNullableScalarRelationFilter = {
+  is?: Prisma.BudgetWhereInput | null
+  isNot?: Prisma.BudgetWhereInput | null
 }
 
 export type BudgetCreateNestedManyWithoutHouseholdInput = {
@@ -440,10 +438,12 @@ export type BudgetCreateNestedOneWithoutTransactionsInput = {
   connect?: Prisma.BudgetWhereUniqueInput
 }
 
-export type BudgetUpdateOneRequiredWithoutTransactionsNestedInput = {
+export type BudgetUpdateOneWithoutTransactionsNestedInput = {
   create?: Prisma.XOR<Prisma.BudgetCreateWithoutTransactionsInput, Prisma.BudgetUncheckedCreateWithoutTransactionsInput>
   connectOrCreate?: Prisma.BudgetCreateOrConnectWithoutTransactionsInput
   upsert?: Prisma.BudgetUpsertWithoutTransactionsInput
+  disconnect?: Prisma.BudgetWhereInput | boolean
+  delete?: Prisma.BudgetWhereInput | boolean
   connect?: Prisma.BudgetWhereUniqueInput
   update?: Prisma.XOR<Prisma.XOR<Prisma.BudgetUpdateToOneWithWhereWithoutTransactionsInput, Prisma.BudgetUpdateWithoutTransactionsInput>, Prisma.BudgetUncheckedUpdateWithoutTransactionsInput>
 }
@@ -476,20 +476,6 @@ export type BudgetUpdateOneRequiredWithoutTransfersNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.BudgetUpdateToOneWithWhereWithoutTransfersInput, Prisma.BudgetUpdateWithoutTransfersInput>, Prisma.BudgetUncheckedUpdateWithoutTransfersInput>
 }
 
-export type BudgetCreateNestedOneWithoutIncomesInput = {
-  create?: Prisma.XOR<Prisma.BudgetCreateWithoutIncomesInput, Prisma.BudgetUncheckedCreateWithoutIncomesInput>
-  connectOrCreate?: Prisma.BudgetCreateOrConnectWithoutIncomesInput
-  connect?: Prisma.BudgetWhereUniqueInput
-}
-
-export type BudgetUpdateOneRequiredWithoutIncomesNestedInput = {
-  create?: Prisma.XOR<Prisma.BudgetCreateWithoutIncomesInput, Prisma.BudgetUncheckedCreateWithoutIncomesInput>
-  connectOrCreate?: Prisma.BudgetCreateOrConnectWithoutIncomesInput
-  upsert?: Prisma.BudgetUpsertWithoutIncomesInput
-  connect?: Prisma.BudgetWhereUniqueInput
-  update?: Prisma.XOR<Prisma.XOR<Prisma.BudgetUpdateToOneWithWhereWithoutIncomesInput, Prisma.BudgetUpdateWithoutIncomesInput>, Prisma.BudgetUncheckedUpdateWithoutIncomesInput>
-}
-
 export type BudgetCreateWithoutHouseholdInput = {
   id?: string
   name: string
@@ -500,7 +486,6 @@ export type BudgetCreateWithoutHouseholdInput = {
   transactions?: Prisma.TransactionCreateNestedManyWithoutBudgetInput
   bills?: Prisma.BillCreateNestedManyWithoutBudgetInput
   transfers?: Prisma.TransferCreateNestedManyWithoutBudgetInput
-  incomes?: Prisma.IncomeCreateNestedManyWithoutBudgetInput
 }
 
 export type BudgetUncheckedCreateWithoutHouseholdInput = {
@@ -513,7 +498,6 @@ export type BudgetUncheckedCreateWithoutHouseholdInput = {
   transactions?: Prisma.TransactionUncheckedCreateNestedManyWithoutBudgetInput
   bills?: Prisma.BillUncheckedCreateNestedManyWithoutBudgetInput
   transfers?: Prisma.TransferUncheckedCreateNestedManyWithoutBudgetInput
-  incomes?: Prisma.IncomeUncheckedCreateNestedManyWithoutBudgetInput
 }
 
 export type BudgetCreateOrConnectWithoutHouseholdInput = {
@@ -563,7 +547,6 @@ export type BudgetCreateWithoutCategoriesInput = {
   transactions?: Prisma.TransactionCreateNestedManyWithoutBudgetInput
   bills?: Prisma.BillCreateNestedManyWithoutBudgetInput
   transfers?: Prisma.TransferCreateNestedManyWithoutBudgetInput
-  incomes?: Prisma.IncomeCreateNestedManyWithoutBudgetInput
 }
 
 export type BudgetUncheckedCreateWithoutCategoriesInput = {
@@ -576,7 +559,6 @@ export type BudgetUncheckedCreateWithoutCategoriesInput = {
   transactions?: Prisma.TransactionUncheckedCreateNestedManyWithoutBudgetInput
   bills?: Prisma.BillUncheckedCreateNestedManyWithoutBudgetInput
   transfers?: Prisma.TransferUncheckedCreateNestedManyWithoutBudgetInput
-  incomes?: Prisma.IncomeUncheckedCreateNestedManyWithoutBudgetInput
 }
 
 export type BudgetCreateOrConnectWithoutCategoriesInput = {
@@ -605,7 +587,6 @@ export type BudgetUpdateWithoutCategoriesInput = {
   transactions?: Prisma.TransactionUpdateManyWithoutBudgetNestedInput
   bills?: Prisma.BillUpdateManyWithoutBudgetNestedInput
   transfers?: Prisma.TransferUpdateManyWithoutBudgetNestedInput
-  incomes?: Prisma.IncomeUpdateManyWithoutBudgetNestedInput
 }
 
 export type BudgetUncheckedUpdateWithoutCategoriesInput = {
@@ -618,7 +599,6 @@ export type BudgetUncheckedUpdateWithoutCategoriesInput = {
   transactions?: Prisma.TransactionUncheckedUpdateManyWithoutBudgetNestedInput
   bills?: Prisma.BillUncheckedUpdateManyWithoutBudgetNestedInput
   transfers?: Prisma.TransferUncheckedUpdateManyWithoutBudgetNestedInput
-  incomes?: Prisma.IncomeUncheckedUpdateManyWithoutBudgetNestedInput
 }
 
 export type BudgetCreateWithoutAccountsInput = {
@@ -631,7 +611,6 @@ export type BudgetCreateWithoutAccountsInput = {
   transactions?: Prisma.TransactionCreateNestedManyWithoutBudgetInput
   bills?: Prisma.BillCreateNestedManyWithoutBudgetInput
   transfers?: Prisma.TransferCreateNestedManyWithoutBudgetInput
-  incomes?: Prisma.IncomeCreateNestedManyWithoutBudgetInput
 }
 
 export type BudgetUncheckedCreateWithoutAccountsInput = {
@@ -644,7 +623,6 @@ export type BudgetUncheckedCreateWithoutAccountsInput = {
   transactions?: Prisma.TransactionUncheckedCreateNestedManyWithoutBudgetInput
   bills?: Prisma.BillUncheckedCreateNestedManyWithoutBudgetInput
   transfers?: Prisma.TransferUncheckedCreateNestedManyWithoutBudgetInput
-  incomes?: Prisma.IncomeUncheckedCreateNestedManyWithoutBudgetInput
 }
 
 export type BudgetCreateOrConnectWithoutAccountsInput = {
@@ -673,7 +651,6 @@ export type BudgetUpdateWithoutAccountsInput = {
   transactions?: Prisma.TransactionUpdateManyWithoutBudgetNestedInput
   bills?: Prisma.BillUpdateManyWithoutBudgetNestedInput
   transfers?: Prisma.TransferUpdateManyWithoutBudgetNestedInput
-  incomes?: Prisma.IncomeUpdateManyWithoutBudgetNestedInput
 }
 
 export type BudgetUncheckedUpdateWithoutAccountsInput = {
@@ -686,7 +663,6 @@ export type BudgetUncheckedUpdateWithoutAccountsInput = {
   transactions?: Prisma.TransactionUncheckedUpdateManyWithoutBudgetNestedInput
   bills?: Prisma.BillUncheckedUpdateManyWithoutBudgetNestedInput
   transfers?: Prisma.TransferUncheckedUpdateManyWithoutBudgetNestedInput
-  incomes?: Prisma.IncomeUncheckedUpdateManyWithoutBudgetNestedInput
 }
 
 export type BudgetCreateWithoutTransactionsInput = {
@@ -699,7 +675,6 @@ export type BudgetCreateWithoutTransactionsInput = {
   accounts?: Prisma.BudgetAccountCreateNestedManyWithoutBudgetInput
   bills?: Prisma.BillCreateNestedManyWithoutBudgetInput
   transfers?: Prisma.TransferCreateNestedManyWithoutBudgetInput
-  incomes?: Prisma.IncomeCreateNestedManyWithoutBudgetInput
 }
 
 export type BudgetUncheckedCreateWithoutTransactionsInput = {
@@ -712,7 +687,6 @@ export type BudgetUncheckedCreateWithoutTransactionsInput = {
   accounts?: Prisma.BudgetAccountUncheckedCreateNestedManyWithoutBudgetInput
   bills?: Prisma.BillUncheckedCreateNestedManyWithoutBudgetInput
   transfers?: Prisma.TransferUncheckedCreateNestedManyWithoutBudgetInput
-  incomes?: Prisma.IncomeUncheckedCreateNestedManyWithoutBudgetInput
 }
 
 export type BudgetCreateOrConnectWithoutTransactionsInput = {
@@ -741,7 +715,6 @@ export type BudgetUpdateWithoutTransactionsInput = {
   accounts?: Prisma.BudgetAccountUpdateManyWithoutBudgetNestedInput
   bills?: Prisma.BillUpdateManyWithoutBudgetNestedInput
   transfers?: Prisma.TransferUpdateManyWithoutBudgetNestedInput
-  incomes?: Prisma.IncomeUpdateManyWithoutBudgetNestedInput
 }
 
 export type BudgetUncheckedUpdateWithoutTransactionsInput = {
@@ -754,7 +727,6 @@ export type BudgetUncheckedUpdateWithoutTransactionsInput = {
   accounts?: Prisma.BudgetAccountUncheckedUpdateManyWithoutBudgetNestedInput
   bills?: Prisma.BillUncheckedUpdateManyWithoutBudgetNestedInput
   transfers?: Prisma.TransferUncheckedUpdateManyWithoutBudgetNestedInput
-  incomes?: Prisma.IncomeUncheckedUpdateManyWithoutBudgetNestedInput
 }
 
 export type BudgetCreateWithoutBillsInput = {
@@ -767,7 +739,6 @@ export type BudgetCreateWithoutBillsInput = {
   accounts?: Prisma.BudgetAccountCreateNestedManyWithoutBudgetInput
   transactions?: Prisma.TransactionCreateNestedManyWithoutBudgetInput
   transfers?: Prisma.TransferCreateNestedManyWithoutBudgetInput
-  incomes?: Prisma.IncomeCreateNestedManyWithoutBudgetInput
 }
 
 export type BudgetUncheckedCreateWithoutBillsInput = {
@@ -780,7 +751,6 @@ export type BudgetUncheckedCreateWithoutBillsInput = {
   accounts?: Prisma.BudgetAccountUncheckedCreateNestedManyWithoutBudgetInput
   transactions?: Prisma.TransactionUncheckedCreateNestedManyWithoutBudgetInput
   transfers?: Prisma.TransferUncheckedCreateNestedManyWithoutBudgetInput
-  incomes?: Prisma.IncomeUncheckedCreateNestedManyWithoutBudgetInput
 }
 
 export type BudgetCreateOrConnectWithoutBillsInput = {
@@ -809,7 +779,6 @@ export type BudgetUpdateWithoutBillsInput = {
   accounts?: Prisma.BudgetAccountUpdateManyWithoutBudgetNestedInput
   transactions?: Prisma.TransactionUpdateManyWithoutBudgetNestedInput
   transfers?: Prisma.TransferUpdateManyWithoutBudgetNestedInput
-  incomes?: Prisma.IncomeUpdateManyWithoutBudgetNestedInput
 }
 
 export type BudgetUncheckedUpdateWithoutBillsInput = {
@@ -822,7 +791,6 @@ export type BudgetUncheckedUpdateWithoutBillsInput = {
   accounts?: Prisma.BudgetAccountUncheckedUpdateManyWithoutBudgetNestedInput
   transactions?: Prisma.TransactionUncheckedUpdateManyWithoutBudgetNestedInput
   transfers?: Prisma.TransferUncheckedUpdateManyWithoutBudgetNestedInput
-  incomes?: Prisma.IncomeUncheckedUpdateManyWithoutBudgetNestedInput
 }
 
 export type BudgetCreateWithoutTransfersInput = {
@@ -835,7 +803,6 @@ export type BudgetCreateWithoutTransfersInput = {
   accounts?: Prisma.BudgetAccountCreateNestedManyWithoutBudgetInput
   transactions?: Prisma.TransactionCreateNestedManyWithoutBudgetInput
   bills?: Prisma.BillCreateNestedManyWithoutBudgetInput
-  incomes?: Prisma.IncomeCreateNestedManyWithoutBudgetInput
 }
 
 export type BudgetUncheckedCreateWithoutTransfersInput = {
@@ -848,7 +815,6 @@ export type BudgetUncheckedCreateWithoutTransfersInput = {
   accounts?: Prisma.BudgetAccountUncheckedCreateNestedManyWithoutBudgetInput
   transactions?: Prisma.TransactionUncheckedCreateNestedManyWithoutBudgetInput
   bills?: Prisma.BillUncheckedCreateNestedManyWithoutBudgetInput
-  incomes?: Prisma.IncomeUncheckedCreateNestedManyWithoutBudgetInput
 }
 
 export type BudgetCreateOrConnectWithoutTransfersInput = {
@@ -877,7 +843,6 @@ export type BudgetUpdateWithoutTransfersInput = {
   accounts?: Prisma.BudgetAccountUpdateManyWithoutBudgetNestedInput
   transactions?: Prisma.TransactionUpdateManyWithoutBudgetNestedInput
   bills?: Prisma.BillUpdateManyWithoutBudgetNestedInput
-  incomes?: Prisma.IncomeUpdateManyWithoutBudgetNestedInput
 }
 
 export type BudgetUncheckedUpdateWithoutTransfersInput = {
@@ -890,75 +855,6 @@ export type BudgetUncheckedUpdateWithoutTransfersInput = {
   accounts?: Prisma.BudgetAccountUncheckedUpdateManyWithoutBudgetNestedInput
   transactions?: Prisma.TransactionUncheckedUpdateManyWithoutBudgetNestedInput
   bills?: Prisma.BillUncheckedUpdateManyWithoutBudgetNestedInput
-  incomes?: Prisma.IncomeUncheckedUpdateManyWithoutBudgetNestedInput
-}
-
-export type BudgetCreateWithoutIncomesInput = {
-  id?: string
-  name: string
-  startDate: Date | string
-  createdAt?: Date | string
-  household: Prisma.HouseholdCreateNestedOneWithoutBudgetsInput
-  categories?: Prisma.BudgetCategoryCreateNestedManyWithoutBudgetInput
-  accounts?: Prisma.BudgetAccountCreateNestedManyWithoutBudgetInput
-  transactions?: Prisma.TransactionCreateNestedManyWithoutBudgetInput
-  bills?: Prisma.BillCreateNestedManyWithoutBudgetInput
-  transfers?: Prisma.TransferCreateNestedManyWithoutBudgetInput
-}
-
-export type BudgetUncheckedCreateWithoutIncomesInput = {
-  id?: string
-  name: string
-  startDate: Date | string
-  householdId: string
-  createdAt?: Date | string
-  categories?: Prisma.BudgetCategoryUncheckedCreateNestedManyWithoutBudgetInput
-  accounts?: Prisma.BudgetAccountUncheckedCreateNestedManyWithoutBudgetInput
-  transactions?: Prisma.TransactionUncheckedCreateNestedManyWithoutBudgetInput
-  bills?: Prisma.BillUncheckedCreateNestedManyWithoutBudgetInput
-  transfers?: Prisma.TransferUncheckedCreateNestedManyWithoutBudgetInput
-}
-
-export type BudgetCreateOrConnectWithoutIncomesInput = {
-  where: Prisma.BudgetWhereUniqueInput
-  create: Prisma.XOR<Prisma.BudgetCreateWithoutIncomesInput, Prisma.BudgetUncheckedCreateWithoutIncomesInput>
-}
-
-export type BudgetUpsertWithoutIncomesInput = {
-  update: Prisma.XOR<Prisma.BudgetUpdateWithoutIncomesInput, Prisma.BudgetUncheckedUpdateWithoutIncomesInput>
-  create: Prisma.XOR<Prisma.BudgetCreateWithoutIncomesInput, Prisma.BudgetUncheckedCreateWithoutIncomesInput>
-  where?: Prisma.BudgetWhereInput
-}
-
-export type BudgetUpdateToOneWithWhereWithoutIncomesInput = {
-  where?: Prisma.BudgetWhereInput
-  data: Prisma.XOR<Prisma.BudgetUpdateWithoutIncomesInput, Prisma.BudgetUncheckedUpdateWithoutIncomesInput>
-}
-
-export type BudgetUpdateWithoutIncomesInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  startDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  household?: Prisma.HouseholdUpdateOneRequiredWithoutBudgetsNestedInput
-  categories?: Prisma.BudgetCategoryUpdateManyWithoutBudgetNestedInput
-  accounts?: Prisma.BudgetAccountUpdateManyWithoutBudgetNestedInput
-  transactions?: Prisma.TransactionUpdateManyWithoutBudgetNestedInput
-  bills?: Prisma.BillUpdateManyWithoutBudgetNestedInput
-  transfers?: Prisma.TransferUpdateManyWithoutBudgetNestedInput
-}
-
-export type BudgetUncheckedUpdateWithoutIncomesInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  startDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  householdId?: Prisma.StringFieldUpdateOperationsInput | string
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  categories?: Prisma.BudgetCategoryUncheckedUpdateManyWithoutBudgetNestedInput
-  accounts?: Prisma.BudgetAccountUncheckedUpdateManyWithoutBudgetNestedInput
-  transactions?: Prisma.TransactionUncheckedUpdateManyWithoutBudgetNestedInput
-  bills?: Prisma.BillUncheckedUpdateManyWithoutBudgetNestedInput
-  transfers?: Prisma.TransferUncheckedUpdateManyWithoutBudgetNestedInput
 }
 
 export type BudgetCreateManyHouseholdInput = {
@@ -978,7 +874,6 @@ export type BudgetUpdateWithoutHouseholdInput = {
   transactions?: Prisma.TransactionUpdateManyWithoutBudgetNestedInput
   bills?: Prisma.BillUpdateManyWithoutBudgetNestedInput
   transfers?: Prisma.TransferUpdateManyWithoutBudgetNestedInput
-  incomes?: Prisma.IncomeUpdateManyWithoutBudgetNestedInput
 }
 
 export type BudgetUncheckedUpdateWithoutHouseholdInput = {
@@ -991,7 +886,6 @@ export type BudgetUncheckedUpdateWithoutHouseholdInput = {
   transactions?: Prisma.TransactionUncheckedUpdateManyWithoutBudgetNestedInput
   bills?: Prisma.BillUncheckedUpdateManyWithoutBudgetNestedInput
   transfers?: Prisma.TransferUncheckedUpdateManyWithoutBudgetNestedInput
-  incomes?: Prisma.IncomeUncheckedUpdateManyWithoutBudgetNestedInput
 }
 
 export type BudgetUncheckedUpdateManyWithoutHouseholdInput = {
@@ -1012,7 +906,6 @@ export type BudgetCountOutputType = {
   transactions: number
   bills: number
   transfers: number
-  incomes: number
 }
 
 export type BudgetCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1021,7 +914,6 @@ export type BudgetCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions
   transactions?: boolean | BudgetCountOutputTypeCountTransactionsArgs
   bills?: boolean | BudgetCountOutputTypeCountBillsArgs
   transfers?: boolean | BudgetCountOutputTypeCountTransfersArgs
-  incomes?: boolean | BudgetCountOutputTypeCountIncomesArgs
 }
 
 /**
@@ -1069,13 +961,6 @@ export type BudgetCountOutputTypeCountTransfersArgs<ExtArgs extends runtime.Type
   where?: Prisma.TransferWhereInput
 }
 
-/**
- * BudgetCountOutputType without action
- */
-export type BudgetCountOutputTypeCountIncomesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  where?: Prisma.IncomeWhereInput
-}
-
 
 export type BudgetSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -1089,7 +974,6 @@ export type BudgetSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   transactions?: boolean | Prisma.Budget$transactionsArgs<ExtArgs>
   bills?: boolean | Prisma.Budget$billsArgs<ExtArgs>
   transfers?: boolean | Prisma.Budget$transfersArgs<ExtArgs>
-  incomes?: boolean | Prisma.Budget$incomesArgs<ExtArgs>
   _count?: boolean | Prisma.BudgetCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["budget"]>
 
@@ -1127,7 +1011,6 @@ export type BudgetInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   transactions?: boolean | Prisma.Budget$transactionsArgs<ExtArgs>
   bills?: boolean | Prisma.Budget$billsArgs<ExtArgs>
   transfers?: boolean | Prisma.Budget$transfersArgs<ExtArgs>
-  incomes?: boolean | Prisma.Budget$incomesArgs<ExtArgs>
   _count?: boolean | Prisma.BudgetCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type BudgetIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1146,7 +1029,6 @@ export type $BudgetPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs
     transactions: Prisma.$TransactionPayload<ExtArgs>[]
     bills: Prisma.$BillPayload<ExtArgs>[]
     transfers: Prisma.$TransferPayload<ExtArgs>[]
-    incomes: Prisma.$IncomePayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1554,7 +1436,6 @@ export interface Prisma__BudgetClient<T, Null = never, ExtArgs extends runtime.T
   transactions<T extends Prisma.Budget$transactionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Budget$transactionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$TransactionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   bills<T extends Prisma.Budget$billsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Budget$billsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$BillPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   transfers<T extends Prisma.Budget$transfersArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Budget$transfersArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$TransferPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
-  incomes<T extends Prisma.Budget$incomesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Budget$incomesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$IncomePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2102,30 +1983,6 @@ export type Budget$transfersArgs<ExtArgs extends runtime.Types.Extensions.Intern
   take?: number
   skip?: number
   distinct?: Prisma.TransferScalarFieldEnum | Prisma.TransferScalarFieldEnum[]
-}
-
-/**
- * Budget.incomes
- */
-export type Budget$incomesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  /**
-   * Select specific fields to fetch from the Income
-   */
-  select?: Prisma.IncomeSelect<ExtArgs> | null
-  /**
-   * Omit specific fields from the Income
-   */
-  omit?: Prisma.IncomeOmit<ExtArgs> | null
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.IncomeInclude<ExtArgs> | null
-  where?: Prisma.IncomeWhereInput
-  orderBy?: Prisma.IncomeOrderByWithRelationInput | Prisma.IncomeOrderByWithRelationInput[]
-  cursor?: Prisma.IncomeWhereUniqueInput
-  take?: number
-  skip?: number
-  distinct?: Prisma.IncomeScalarFieldEnum | Prisma.IncomeScalarFieldEnum[]
 }
 
 /**

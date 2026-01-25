@@ -1450,7 +1450,7 @@ export type BudgetScalarFieldEnum = (typeof BudgetScalarFieldEnum)[keyof typeof 
 export const CategoryScalarFieldEnum = {
   id: 'id',
   name: 'name',
-  type: 'type',
+  types: 'types',
   householdId: 'householdId',
   createdAt: 'createdAt'
 } as const
@@ -1561,7 +1561,7 @@ export const IncomeScalarFieldEnum = {
   estimatedAmount: 'estimatedAmount',
   endDate: 'endDate',
   categoryId: 'categoryId',
-  budgetId: 'budgetId',
+  householdId: 'householdId',
   isArchived: 'isArchived',
   createdAt: 'createdAt'
 } as const
@@ -1641,16 +1641,16 @@ export type ListDateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaM
 
 
 /**
- * Reference to a field of type 'CategoryType'
+ * Reference to a field of type 'CategoryType[]'
  */
-export type EnumCategoryTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CategoryType'>
+export type ListEnumCategoryTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CategoryType[]'>
     
 
 
 /**
- * Reference to a field of type 'CategoryType[]'
+ * Reference to a field of type 'CategoryType'
  */
-export type ListEnumCategoryTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CategoryType[]'>
+export type EnumCategoryTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CategoryType'>
     
 
 

@@ -47,7 +47,7 @@ export type IncomeMinAggregateOutputType = {
   estimatedAmount: number | null
   endDate: Date | null
   categoryId: string | null
-  budgetId: string | null
+  householdId: string | null
   isArchived: boolean | null
   createdAt: Date | null
 }
@@ -63,7 +63,7 @@ export type IncomeMaxAggregateOutputType = {
   estimatedAmount: number | null
   endDate: Date | null
   categoryId: string | null
-  budgetId: string | null
+  householdId: string | null
   isArchived: boolean | null
   createdAt: Date | null
 }
@@ -79,7 +79,7 @@ export type IncomeCountAggregateOutputType = {
   estimatedAmount: number
   endDate: number
   categoryId: number
-  budgetId: number
+  householdId: number
   isArchived: number
   createdAt: number
   _all: number
@@ -107,7 +107,7 @@ export type IncomeMinAggregateInputType = {
   estimatedAmount?: true
   endDate?: true
   categoryId?: true
-  budgetId?: true
+  householdId?: true
   isArchived?: true
   createdAt?: true
 }
@@ -123,7 +123,7 @@ export type IncomeMaxAggregateInputType = {
   estimatedAmount?: true
   endDate?: true
   categoryId?: true
-  budgetId?: true
+  householdId?: true
   isArchived?: true
   createdAt?: true
 }
@@ -139,7 +139,7 @@ export type IncomeCountAggregateInputType = {
   estimatedAmount?: true
   endDate?: true
   categoryId?: true
-  budgetId?: true
+  householdId?: true
   isArchived?: true
   createdAt?: true
   _all?: true
@@ -242,7 +242,7 @@ export type IncomeGroupByOutputType = {
   estimatedAmount: number
   endDate: Date | null
   categoryId: string
-  budgetId: string
+  householdId: string
   isArchived: boolean
   createdAt: Date
   _count: IncomeCountAggregateOutputType | null
@@ -281,12 +281,12 @@ export type IncomeWhereInput = {
   estimatedAmount?: Prisma.FloatFilter<"Income"> | number
   endDate?: Prisma.DateTimeNullableFilter<"Income"> | Date | string | null
   categoryId?: Prisma.StringFilter<"Income"> | string
-  budgetId?: Prisma.StringFilter<"Income"> | string
+  householdId?: Prisma.StringFilter<"Income"> | string
   isArchived?: Prisma.BoolFilter<"Income"> | boolean
   createdAt?: Prisma.DateTimeFilter<"Income"> | Date | string
   account?: Prisma.XOR<Prisma.AccountScalarRelationFilter, Prisma.AccountWhereInput>
   category?: Prisma.XOR<Prisma.CategoryScalarRelationFilter, Prisma.CategoryWhereInput>
-  budget?: Prisma.XOR<Prisma.BudgetScalarRelationFilter, Prisma.BudgetWhereInput>
+  household?: Prisma.XOR<Prisma.HouseholdScalarRelationFilter, Prisma.HouseholdWhereInput>
   transactions?: Prisma.TransactionListRelationFilter
 }
 
@@ -301,12 +301,12 @@ export type IncomeOrderByWithRelationInput = {
   estimatedAmount?: Prisma.SortOrder
   endDate?: Prisma.SortOrderInput | Prisma.SortOrder
   categoryId?: Prisma.SortOrder
-  budgetId?: Prisma.SortOrder
+  householdId?: Prisma.SortOrder
   isArchived?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   account?: Prisma.AccountOrderByWithRelationInput
   category?: Prisma.CategoryOrderByWithRelationInput
-  budget?: Prisma.BudgetOrderByWithRelationInput
+  household?: Prisma.HouseholdOrderByWithRelationInput
   transactions?: Prisma.TransactionOrderByRelationAggregateInput
 }
 
@@ -324,12 +324,12 @@ export type IncomeWhereUniqueInput = Prisma.AtLeast<{
   estimatedAmount?: Prisma.FloatFilter<"Income"> | number
   endDate?: Prisma.DateTimeNullableFilter<"Income"> | Date | string | null
   categoryId?: Prisma.StringFilter<"Income"> | string
-  budgetId?: Prisma.StringFilter<"Income"> | string
+  householdId?: Prisma.StringFilter<"Income"> | string
   isArchived?: Prisma.BoolFilter<"Income"> | boolean
   createdAt?: Prisma.DateTimeFilter<"Income"> | Date | string
   account?: Prisma.XOR<Prisma.AccountScalarRelationFilter, Prisma.AccountWhereInput>
   category?: Prisma.XOR<Prisma.CategoryScalarRelationFilter, Prisma.CategoryWhereInput>
-  budget?: Prisma.XOR<Prisma.BudgetScalarRelationFilter, Prisma.BudgetWhereInput>
+  household?: Prisma.XOR<Prisma.HouseholdScalarRelationFilter, Prisma.HouseholdWhereInput>
   transactions?: Prisma.TransactionListRelationFilter
 }, "id">
 
@@ -344,7 +344,7 @@ export type IncomeOrderByWithAggregationInput = {
   estimatedAmount?: Prisma.SortOrder
   endDate?: Prisma.SortOrderInput | Prisma.SortOrder
   categoryId?: Prisma.SortOrder
-  budgetId?: Prisma.SortOrder
+  householdId?: Prisma.SortOrder
   isArchived?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   _count?: Prisma.IncomeCountOrderByAggregateInput
@@ -368,7 +368,7 @@ export type IncomeScalarWhereWithAggregatesInput = {
   estimatedAmount?: Prisma.FloatWithAggregatesFilter<"Income"> | number
   endDate?: Prisma.DateTimeNullableWithAggregatesFilter<"Income"> | Date | string | null
   categoryId?: Prisma.StringWithAggregatesFilter<"Income"> | string
-  budgetId?: Prisma.StringWithAggregatesFilter<"Income"> | string
+  householdId?: Prisma.StringWithAggregatesFilter<"Income"> | string
   isArchived?: Prisma.BoolWithAggregatesFilter<"Income"> | boolean
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Income"> | Date | string
 }
@@ -386,7 +386,7 @@ export type IncomeCreateInput = {
   createdAt?: Date | string
   account: Prisma.AccountCreateNestedOneWithoutIncomesInput
   category: Prisma.CategoryCreateNestedOneWithoutIncomesInput
-  budget: Prisma.BudgetCreateNestedOneWithoutIncomesInput
+  household: Prisma.HouseholdCreateNestedOneWithoutIncomesInput
   transactions?: Prisma.TransactionCreateNestedManyWithoutIncomeInput
 }
 
@@ -401,7 +401,7 @@ export type IncomeUncheckedCreateInput = {
   estimatedAmount: number
   endDate?: Date | string | null
   categoryId: string
-  budgetId: string
+  householdId: string
   isArchived?: boolean
   createdAt?: Date | string
   transactions?: Prisma.TransactionUncheckedCreateNestedManyWithoutIncomeInput
@@ -420,7 +420,7 @@ export type IncomeUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   account?: Prisma.AccountUpdateOneRequiredWithoutIncomesNestedInput
   category?: Prisma.CategoryUpdateOneRequiredWithoutIncomesNestedInput
-  budget?: Prisma.BudgetUpdateOneRequiredWithoutIncomesNestedInput
+  household?: Prisma.HouseholdUpdateOneRequiredWithoutIncomesNestedInput
   transactions?: Prisma.TransactionUpdateManyWithoutIncomeNestedInput
 }
 
@@ -435,7 +435,7 @@ export type IncomeUncheckedUpdateInput = {
   estimatedAmount?: Prisma.FloatFieldUpdateOperationsInput | number
   endDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   categoryId?: Prisma.StringFieldUpdateOperationsInput | string
-  budgetId?: Prisma.StringFieldUpdateOperationsInput | string
+  householdId?: Prisma.StringFieldUpdateOperationsInput | string
   isArchived?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   transactions?: Prisma.TransactionUncheckedUpdateManyWithoutIncomeNestedInput
@@ -452,7 +452,7 @@ export type IncomeCreateManyInput = {
   estimatedAmount: number
   endDate?: Date | string | null
   categoryId: string
-  budgetId: string
+  householdId: string
   isArchived?: boolean
   createdAt?: Date | string
 }
@@ -481,7 +481,7 @@ export type IncomeUncheckedUpdateManyInput = {
   estimatedAmount?: Prisma.FloatFieldUpdateOperationsInput | number
   endDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   categoryId?: Prisma.StringFieldUpdateOperationsInput | string
-  budgetId?: Prisma.StringFieldUpdateOperationsInput | string
+  householdId?: Prisma.StringFieldUpdateOperationsInput | string
   isArchived?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -512,7 +512,7 @@ export type IncomeCountOrderByAggregateInput = {
   estimatedAmount?: Prisma.SortOrder
   endDate?: Prisma.SortOrder
   categoryId?: Prisma.SortOrder
-  budgetId?: Prisma.SortOrder
+  householdId?: Prisma.SortOrder
   isArchived?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
@@ -533,7 +533,7 @@ export type IncomeMaxOrderByAggregateInput = {
   estimatedAmount?: Prisma.SortOrder
   endDate?: Prisma.SortOrder
   categoryId?: Prisma.SortOrder
-  budgetId?: Prisma.SortOrder
+  householdId?: Prisma.SortOrder
   isArchived?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
@@ -549,7 +549,7 @@ export type IncomeMinOrderByAggregateInput = {
   estimatedAmount?: Prisma.SortOrder
   endDate?: Prisma.SortOrder
   categoryId?: Prisma.SortOrder
-  budgetId?: Prisma.SortOrder
+  householdId?: Prisma.SortOrder
   isArchived?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
@@ -559,45 +559,45 @@ export type IncomeSumOrderByAggregateInput = {
   estimatedAmount?: Prisma.SortOrder
 }
 
-export type IncomeCreateNestedManyWithoutBudgetInput = {
-  create?: Prisma.XOR<Prisma.IncomeCreateWithoutBudgetInput, Prisma.IncomeUncheckedCreateWithoutBudgetInput> | Prisma.IncomeCreateWithoutBudgetInput[] | Prisma.IncomeUncheckedCreateWithoutBudgetInput[]
-  connectOrCreate?: Prisma.IncomeCreateOrConnectWithoutBudgetInput | Prisma.IncomeCreateOrConnectWithoutBudgetInput[]
-  createMany?: Prisma.IncomeCreateManyBudgetInputEnvelope
+export type IncomeCreateNestedManyWithoutHouseholdInput = {
+  create?: Prisma.XOR<Prisma.IncomeCreateWithoutHouseholdInput, Prisma.IncomeUncheckedCreateWithoutHouseholdInput> | Prisma.IncomeCreateWithoutHouseholdInput[] | Prisma.IncomeUncheckedCreateWithoutHouseholdInput[]
+  connectOrCreate?: Prisma.IncomeCreateOrConnectWithoutHouseholdInput | Prisma.IncomeCreateOrConnectWithoutHouseholdInput[]
+  createMany?: Prisma.IncomeCreateManyHouseholdInputEnvelope
   connect?: Prisma.IncomeWhereUniqueInput | Prisma.IncomeWhereUniqueInput[]
 }
 
-export type IncomeUncheckedCreateNestedManyWithoutBudgetInput = {
-  create?: Prisma.XOR<Prisma.IncomeCreateWithoutBudgetInput, Prisma.IncomeUncheckedCreateWithoutBudgetInput> | Prisma.IncomeCreateWithoutBudgetInput[] | Prisma.IncomeUncheckedCreateWithoutBudgetInput[]
-  connectOrCreate?: Prisma.IncomeCreateOrConnectWithoutBudgetInput | Prisma.IncomeCreateOrConnectWithoutBudgetInput[]
-  createMany?: Prisma.IncomeCreateManyBudgetInputEnvelope
+export type IncomeUncheckedCreateNestedManyWithoutHouseholdInput = {
+  create?: Prisma.XOR<Prisma.IncomeCreateWithoutHouseholdInput, Prisma.IncomeUncheckedCreateWithoutHouseholdInput> | Prisma.IncomeCreateWithoutHouseholdInput[] | Prisma.IncomeUncheckedCreateWithoutHouseholdInput[]
+  connectOrCreate?: Prisma.IncomeCreateOrConnectWithoutHouseholdInput | Prisma.IncomeCreateOrConnectWithoutHouseholdInput[]
+  createMany?: Prisma.IncomeCreateManyHouseholdInputEnvelope
   connect?: Prisma.IncomeWhereUniqueInput | Prisma.IncomeWhereUniqueInput[]
 }
 
-export type IncomeUpdateManyWithoutBudgetNestedInput = {
-  create?: Prisma.XOR<Prisma.IncomeCreateWithoutBudgetInput, Prisma.IncomeUncheckedCreateWithoutBudgetInput> | Prisma.IncomeCreateWithoutBudgetInput[] | Prisma.IncomeUncheckedCreateWithoutBudgetInput[]
-  connectOrCreate?: Prisma.IncomeCreateOrConnectWithoutBudgetInput | Prisma.IncomeCreateOrConnectWithoutBudgetInput[]
-  upsert?: Prisma.IncomeUpsertWithWhereUniqueWithoutBudgetInput | Prisma.IncomeUpsertWithWhereUniqueWithoutBudgetInput[]
-  createMany?: Prisma.IncomeCreateManyBudgetInputEnvelope
+export type IncomeUpdateManyWithoutHouseholdNestedInput = {
+  create?: Prisma.XOR<Prisma.IncomeCreateWithoutHouseholdInput, Prisma.IncomeUncheckedCreateWithoutHouseholdInput> | Prisma.IncomeCreateWithoutHouseholdInput[] | Prisma.IncomeUncheckedCreateWithoutHouseholdInput[]
+  connectOrCreate?: Prisma.IncomeCreateOrConnectWithoutHouseholdInput | Prisma.IncomeCreateOrConnectWithoutHouseholdInput[]
+  upsert?: Prisma.IncomeUpsertWithWhereUniqueWithoutHouseholdInput | Prisma.IncomeUpsertWithWhereUniqueWithoutHouseholdInput[]
+  createMany?: Prisma.IncomeCreateManyHouseholdInputEnvelope
   set?: Prisma.IncomeWhereUniqueInput | Prisma.IncomeWhereUniqueInput[]
   disconnect?: Prisma.IncomeWhereUniqueInput | Prisma.IncomeWhereUniqueInput[]
   delete?: Prisma.IncomeWhereUniqueInput | Prisma.IncomeWhereUniqueInput[]
   connect?: Prisma.IncomeWhereUniqueInput | Prisma.IncomeWhereUniqueInput[]
-  update?: Prisma.IncomeUpdateWithWhereUniqueWithoutBudgetInput | Prisma.IncomeUpdateWithWhereUniqueWithoutBudgetInput[]
-  updateMany?: Prisma.IncomeUpdateManyWithWhereWithoutBudgetInput | Prisma.IncomeUpdateManyWithWhereWithoutBudgetInput[]
+  update?: Prisma.IncomeUpdateWithWhereUniqueWithoutHouseholdInput | Prisma.IncomeUpdateWithWhereUniqueWithoutHouseholdInput[]
+  updateMany?: Prisma.IncomeUpdateManyWithWhereWithoutHouseholdInput | Prisma.IncomeUpdateManyWithWhereWithoutHouseholdInput[]
   deleteMany?: Prisma.IncomeScalarWhereInput | Prisma.IncomeScalarWhereInput[]
 }
 
-export type IncomeUncheckedUpdateManyWithoutBudgetNestedInput = {
-  create?: Prisma.XOR<Prisma.IncomeCreateWithoutBudgetInput, Prisma.IncomeUncheckedCreateWithoutBudgetInput> | Prisma.IncomeCreateWithoutBudgetInput[] | Prisma.IncomeUncheckedCreateWithoutBudgetInput[]
-  connectOrCreate?: Prisma.IncomeCreateOrConnectWithoutBudgetInput | Prisma.IncomeCreateOrConnectWithoutBudgetInput[]
-  upsert?: Prisma.IncomeUpsertWithWhereUniqueWithoutBudgetInput | Prisma.IncomeUpsertWithWhereUniqueWithoutBudgetInput[]
-  createMany?: Prisma.IncomeCreateManyBudgetInputEnvelope
+export type IncomeUncheckedUpdateManyWithoutHouseholdNestedInput = {
+  create?: Prisma.XOR<Prisma.IncomeCreateWithoutHouseholdInput, Prisma.IncomeUncheckedCreateWithoutHouseholdInput> | Prisma.IncomeCreateWithoutHouseholdInput[] | Prisma.IncomeUncheckedCreateWithoutHouseholdInput[]
+  connectOrCreate?: Prisma.IncomeCreateOrConnectWithoutHouseholdInput | Prisma.IncomeCreateOrConnectWithoutHouseholdInput[]
+  upsert?: Prisma.IncomeUpsertWithWhereUniqueWithoutHouseholdInput | Prisma.IncomeUpsertWithWhereUniqueWithoutHouseholdInput[]
+  createMany?: Prisma.IncomeCreateManyHouseholdInputEnvelope
   set?: Prisma.IncomeWhereUniqueInput | Prisma.IncomeWhereUniqueInput[]
   disconnect?: Prisma.IncomeWhereUniqueInput | Prisma.IncomeWhereUniqueInput[]
   delete?: Prisma.IncomeWhereUniqueInput | Prisma.IncomeWhereUniqueInput[]
   connect?: Prisma.IncomeWhereUniqueInput | Prisma.IncomeWhereUniqueInput[]
-  update?: Prisma.IncomeUpdateWithWhereUniqueWithoutBudgetInput | Prisma.IncomeUpdateWithWhereUniqueWithoutBudgetInput[]
-  updateMany?: Prisma.IncomeUpdateManyWithWhereWithoutBudgetInput | Prisma.IncomeUpdateManyWithWhereWithoutBudgetInput[]
+  update?: Prisma.IncomeUpdateWithWhereUniqueWithoutHouseholdInput | Prisma.IncomeUpdateWithWhereUniqueWithoutHouseholdInput[]
+  updateMany?: Prisma.IncomeUpdateManyWithWhereWithoutHouseholdInput | Prisma.IncomeUpdateManyWithWhereWithoutHouseholdInput[]
   deleteMany?: Prisma.IncomeScalarWhereInput | Prisma.IncomeScalarWhereInput[]
 }
 
@@ -701,7 +701,7 @@ export type IncomeUpdateOneWithoutTransactionsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.IncomeUpdateToOneWithWhereWithoutTransactionsInput, Prisma.IncomeUpdateWithoutTransactionsInput>, Prisma.IncomeUncheckedUpdateWithoutTransactionsInput>
 }
 
-export type IncomeCreateWithoutBudgetInput = {
+export type IncomeCreateWithoutHouseholdInput = {
   id?: string
   name: string
   source: string
@@ -717,7 +717,7 @@ export type IncomeCreateWithoutBudgetInput = {
   transactions?: Prisma.TransactionCreateNestedManyWithoutIncomeInput
 }
 
-export type IncomeUncheckedCreateWithoutBudgetInput = {
+export type IncomeUncheckedCreateWithoutHouseholdInput = {
   id?: string
   name: string
   source: string
@@ -733,30 +733,30 @@ export type IncomeUncheckedCreateWithoutBudgetInput = {
   transactions?: Prisma.TransactionUncheckedCreateNestedManyWithoutIncomeInput
 }
 
-export type IncomeCreateOrConnectWithoutBudgetInput = {
+export type IncomeCreateOrConnectWithoutHouseholdInput = {
   where: Prisma.IncomeWhereUniqueInput
-  create: Prisma.XOR<Prisma.IncomeCreateWithoutBudgetInput, Prisma.IncomeUncheckedCreateWithoutBudgetInput>
+  create: Prisma.XOR<Prisma.IncomeCreateWithoutHouseholdInput, Prisma.IncomeUncheckedCreateWithoutHouseholdInput>
 }
 
-export type IncomeCreateManyBudgetInputEnvelope = {
-  data: Prisma.IncomeCreateManyBudgetInput | Prisma.IncomeCreateManyBudgetInput[]
+export type IncomeCreateManyHouseholdInputEnvelope = {
+  data: Prisma.IncomeCreateManyHouseholdInput | Prisma.IncomeCreateManyHouseholdInput[]
   skipDuplicates?: boolean
 }
 
-export type IncomeUpsertWithWhereUniqueWithoutBudgetInput = {
+export type IncomeUpsertWithWhereUniqueWithoutHouseholdInput = {
   where: Prisma.IncomeWhereUniqueInput
-  update: Prisma.XOR<Prisma.IncomeUpdateWithoutBudgetInput, Prisma.IncomeUncheckedUpdateWithoutBudgetInput>
-  create: Prisma.XOR<Prisma.IncomeCreateWithoutBudgetInput, Prisma.IncomeUncheckedCreateWithoutBudgetInput>
+  update: Prisma.XOR<Prisma.IncomeUpdateWithoutHouseholdInput, Prisma.IncomeUncheckedUpdateWithoutHouseholdInput>
+  create: Prisma.XOR<Prisma.IncomeCreateWithoutHouseholdInput, Prisma.IncomeUncheckedCreateWithoutHouseholdInput>
 }
 
-export type IncomeUpdateWithWhereUniqueWithoutBudgetInput = {
+export type IncomeUpdateWithWhereUniqueWithoutHouseholdInput = {
   where: Prisma.IncomeWhereUniqueInput
-  data: Prisma.XOR<Prisma.IncomeUpdateWithoutBudgetInput, Prisma.IncomeUncheckedUpdateWithoutBudgetInput>
+  data: Prisma.XOR<Prisma.IncomeUpdateWithoutHouseholdInput, Prisma.IncomeUncheckedUpdateWithoutHouseholdInput>
 }
 
-export type IncomeUpdateManyWithWhereWithoutBudgetInput = {
+export type IncomeUpdateManyWithWhereWithoutHouseholdInput = {
   where: Prisma.IncomeScalarWhereInput
-  data: Prisma.XOR<Prisma.IncomeUpdateManyMutationInput, Prisma.IncomeUncheckedUpdateManyWithoutBudgetInput>
+  data: Prisma.XOR<Prisma.IncomeUpdateManyMutationInput, Prisma.IncomeUncheckedUpdateManyWithoutHouseholdInput>
 }
 
 export type IncomeScalarWhereInput = {
@@ -773,7 +773,7 @@ export type IncomeScalarWhereInput = {
   estimatedAmount?: Prisma.FloatFilter<"Income"> | number
   endDate?: Prisma.DateTimeNullableFilter<"Income"> | Date | string | null
   categoryId?: Prisma.StringFilter<"Income"> | string
-  budgetId?: Prisma.StringFilter<"Income"> | string
+  householdId?: Prisma.StringFilter<"Income"> | string
   isArchived?: Prisma.BoolFilter<"Income"> | boolean
   createdAt?: Prisma.DateTimeFilter<"Income"> | Date | string
 }
@@ -790,7 +790,7 @@ export type IncomeCreateWithoutCategoryInput = {
   isArchived?: boolean
   createdAt?: Date | string
   account: Prisma.AccountCreateNestedOneWithoutIncomesInput
-  budget: Prisma.BudgetCreateNestedOneWithoutIncomesInput
+  household: Prisma.HouseholdCreateNestedOneWithoutIncomesInput
   transactions?: Prisma.TransactionCreateNestedManyWithoutIncomeInput
 }
 
@@ -804,7 +804,7 @@ export type IncomeUncheckedCreateWithoutCategoryInput = {
   customIntervalDays?: number | null
   estimatedAmount: number
   endDate?: Date | string | null
-  budgetId: string
+  householdId: string
   isArchived?: boolean
   createdAt?: Date | string
   transactions?: Prisma.TransactionUncheckedCreateNestedManyWithoutIncomeInput
@@ -848,7 +848,7 @@ export type IncomeCreateWithoutAccountInput = {
   isArchived?: boolean
   createdAt?: Date | string
   category: Prisma.CategoryCreateNestedOneWithoutIncomesInput
-  budget: Prisma.BudgetCreateNestedOneWithoutIncomesInput
+  household: Prisma.HouseholdCreateNestedOneWithoutIncomesInput
   transactions?: Prisma.TransactionCreateNestedManyWithoutIncomeInput
 }
 
@@ -862,7 +862,7 @@ export type IncomeUncheckedCreateWithoutAccountInput = {
   estimatedAmount: number
   endDate?: Date | string | null
   categoryId: string
-  budgetId: string
+  householdId: string
   isArchived?: boolean
   createdAt?: Date | string
   transactions?: Prisma.TransactionUncheckedCreateNestedManyWithoutIncomeInput
@@ -907,7 +907,7 @@ export type IncomeCreateWithoutTransactionsInput = {
   createdAt?: Date | string
   account: Prisma.AccountCreateNestedOneWithoutIncomesInput
   category: Prisma.CategoryCreateNestedOneWithoutIncomesInput
-  budget: Prisma.BudgetCreateNestedOneWithoutIncomesInput
+  household: Prisma.HouseholdCreateNestedOneWithoutIncomesInput
 }
 
 export type IncomeUncheckedCreateWithoutTransactionsInput = {
@@ -921,7 +921,7 @@ export type IncomeUncheckedCreateWithoutTransactionsInput = {
   estimatedAmount: number
   endDate?: Date | string | null
   categoryId: string
-  budgetId: string
+  householdId: string
   isArchived?: boolean
   createdAt?: Date | string
 }
@@ -955,7 +955,7 @@ export type IncomeUpdateWithoutTransactionsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   account?: Prisma.AccountUpdateOneRequiredWithoutIncomesNestedInput
   category?: Prisma.CategoryUpdateOneRequiredWithoutIncomesNestedInput
-  budget?: Prisma.BudgetUpdateOneRequiredWithoutIncomesNestedInput
+  household?: Prisma.HouseholdUpdateOneRequiredWithoutIncomesNestedInput
 }
 
 export type IncomeUncheckedUpdateWithoutTransactionsInput = {
@@ -969,12 +969,12 @@ export type IncomeUncheckedUpdateWithoutTransactionsInput = {
   estimatedAmount?: Prisma.FloatFieldUpdateOperationsInput | number
   endDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   categoryId?: Prisma.StringFieldUpdateOperationsInput | string
-  budgetId?: Prisma.StringFieldUpdateOperationsInput | string
+  householdId?: Prisma.StringFieldUpdateOperationsInput | string
   isArchived?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
-export type IncomeCreateManyBudgetInput = {
+export type IncomeCreateManyHouseholdInput = {
   id?: string
   name: string
   source: string
@@ -989,7 +989,7 @@ export type IncomeCreateManyBudgetInput = {
   createdAt?: Date | string
 }
 
-export type IncomeUpdateWithoutBudgetInput = {
+export type IncomeUpdateWithoutHouseholdInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   source?: Prisma.StringFieldUpdateOperationsInput | string
@@ -1005,7 +1005,7 @@ export type IncomeUpdateWithoutBudgetInput = {
   transactions?: Prisma.TransactionUpdateManyWithoutIncomeNestedInput
 }
 
-export type IncomeUncheckedUpdateWithoutBudgetInput = {
+export type IncomeUncheckedUpdateWithoutHouseholdInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   source?: Prisma.StringFieldUpdateOperationsInput | string
@@ -1021,7 +1021,7 @@ export type IncomeUncheckedUpdateWithoutBudgetInput = {
   transactions?: Prisma.TransactionUncheckedUpdateManyWithoutIncomeNestedInput
 }
 
-export type IncomeUncheckedUpdateManyWithoutBudgetInput = {
+export type IncomeUncheckedUpdateManyWithoutHouseholdInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   source?: Prisma.StringFieldUpdateOperationsInput | string
@@ -1046,7 +1046,7 @@ export type IncomeCreateManyCategoryInput = {
   customIntervalDays?: number | null
   estimatedAmount: number
   endDate?: Date | string | null
-  budgetId: string
+  householdId: string
   isArchived?: boolean
   createdAt?: Date | string
 }
@@ -1063,7 +1063,7 @@ export type IncomeUpdateWithoutCategoryInput = {
   isArchived?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   account?: Prisma.AccountUpdateOneRequiredWithoutIncomesNestedInput
-  budget?: Prisma.BudgetUpdateOneRequiredWithoutIncomesNestedInput
+  household?: Prisma.HouseholdUpdateOneRequiredWithoutIncomesNestedInput
   transactions?: Prisma.TransactionUpdateManyWithoutIncomeNestedInput
 }
 
@@ -1077,7 +1077,7 @@ export type IncomeUncheckedUpdateWithoutCategoryInput = {
   customIntervalDays?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   estimatedAmount?: Prisma.FloatFieldUpdateOperationsInput | number
   endDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  budgetId?: Prisma.StringFieldUpdateOperationsInput | string
+  householdId?: Prisma.StringFieldUpdateOperationsInput | string
   isArchived?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   transactions?: Prisma.TransactionUncheckedUpdateManyWithoutIncomeNestedInput
@@ -1093,7 +1093,7 @@ export type IncomeUncheckedUpdateManyWithoutCategoryInput = {
   customIntervalDays?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   estimatedAmount?: Prisma.FloatFieldUpdateOperationsInput | number
   endDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  budgetId?: Prisma.StringFieldUpdateOperationsInput | string
+  householdId?: Prisma.StringFieldUpdateOperationsInput | string
   isArchived?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -1108,7 +1108,7 @@ export type IncomeCreateManyAccountInput = {
   estimatedAmount: number
   endDate?: Date | string | null
   categoryId: string
-  budgetId: string
+  householdId: string
   isArchived?: boolean
   createdAt?: Date | string
 }
@@ -1125,7 +1125,7 @@ export type IncomeUpdateWithoutAccountInput = {
   isArchived?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   category?: Prisma.CategoryUpdateOneRequiredWithoutIncomesNestedInput
-  budget?: Prisma.BudgetUpdateOneRequiredWithoutIncomesNestedInput
+  household?: Prisma.HouseholdUpdateOneRequiredWithoutIncomesNestedInput
   transactions?: Prisma.TransactionUpdateManyWithoutIncomeNestedInput
 }
 
@@ -1139,7 +1139,7 @@ export type IncomeUncheckedUpdateWithoutAccountInput = {
   estimatedAmount?: Prisma.FloatFieldUpdateOperationsInput | number
   endDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   categoryId?: Prisma.StringFieldUpdateOperationsInput | string
-  budgetId?: Prisma.StringFieldUpdateOperationsInput | string
+  householdId?: Prisma.StringFieldUpdateOperationsInput | string
   isArchived?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   transactions?: Prisma.TransactionUncheckedUpdateManyWithoutIncomeNestedInput
@@ -1155,7 +1155,7 @@ export type IncomeUncheckedUpdateManyWithoutAccountInput = {
   estimatedAmount?: Prisma.FloatFieldUpdateOperationsInput | number
   endDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   categoryId?: Prisma.StringFieldUpdateOperationsInput | string
-  budgetId?: Prisma.StringFieldUpdateOperationsInput | string
+  householdId?: Prisma.StringFieldUpdateOperationsInput | string
   isArchived?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -1202,12 +1202,12 @@ export type IncomeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   estimatedAmount?: boolean
   endDate?: boolean
   categoryId?: boolean
-  budgetId?: boolean
+  householdId?: boolean
   isArchived?: boolean
   createdAt?: boolean
   account?: boolean | Prisma.AccountDefaultArgs<ExtArgs>
   category?: boolean | Prisma.CategoryDefaultArgs<ExtArgs>
-  budget?: boolean | Prisma.BudgetDefaultArgs<ExtArgs>
+  household?: boolean | Prisma.HouseholdDefaultArgs<ExtArgs>
   transactions?: boolean | Prisma.Income$transactionsArgs<ExtArgs>
   _count?: boolean | Prisma.IncomeCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["income"]>
@@ -1223,12 +1223,12 @@ export type IncomeSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extens
   estimatedAmount?: boolean
   endDate?: boolean
   categoryId?: boolean
-  budgetId?: boolean
+  householdId?: boolean
   isArchived?: boolean
   createdAt?: boolean
   account?: boolean | Prisma.AccountDefaultArgs<ExtArgs>
   category?: boolean | Prisma.CategoryDefaultArgs<ExtArgs>
-  budget?: boolean | Prisma.BudgetDefaultArgs<ExtArgs>
+  household?: boolean | Prisma.HouseholdDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["income"]>
 
 export type IncomeSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -1242,12 +1242,12 @@ export type IncomeSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extens
   estimatedAmount?: boolean
   endDate?: boolean
   categoryId?: boolean
-  budgetId?: boolean
+  householdId?: boolean
   isArchived?: boolean
   createdAt?: boolean
   account?: boolean | Prisma.AccountDefaultArgs<ExtArgs>
   category?: boolean | Prisma.CategoryDefaultArgs<ExtArgs>
-  budget?: boolean | Prisma.BudgetDefaultArgs<ExtArgs>
+  household?: boolean | Prisma.HouseholdDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["income"]>
 
 export type IncomeSelectScalar = {
@@ -1261,28 +1261,28 @@ export type IncomeSelectScalar = {
   estimatedAmount?: boolean
   endDate?: boolean
   categoryId?: boolean
-  budgetId?: boolean
+  householdId?: boolean
   isArchived?: boolean
   createdAt?: boolean
 }
 
-export type IncomeOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "source" | "accountId" | "expectedDate" | "recurrenceType" | "customIntervalDays" | "estimatedAmount" | "endDate" | "categoryId" | "budgetId" | "isArchived" | "createdAt", ExtArgs["result"]["income"]>
+export type IncomeOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "source" | "accountId" | "expectedDate" | "recurrenceType" | "customIntervalDays" | "estimatedAmount" | "endDate" | "categoryId" | "householdId" | "isArchived" | "createdAt", ExtArgs["result"]["income"]>
 export type IncomeInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   account?: boolean | Prisma.AccountDefaultArgs<ExtArgs>
   category?: boolean | Prisma.CategoryDefaultArgs<ExtArgs>
-  budget?: boolean | Prisma.BudgetDefaultArgs<ExtArgs>
+  household?: boolean | Prisma.HouseholdDefaultArgs<ExtArgs>
   transactions?: boolean | Prisma.Income$transactionsArgs<ExtArgs>
   _count?: boolean | Prisma.IncomeCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type IncomeIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   account?: boolean | Prisma.AccountDefaultArgs<ExtArgs>
   category?: boolean | Prisma.CategoryDefaultArgs<ExtArgs>
-  budget?: boolean | Prisma.BudgetDefaultArgs<ExtArgs>
+  household?: boolean | Prisma.HouseholdDefaultArgs<ExtArgs>
 }
 export type IncomeIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   account?: boolean | Prisma.AccountDefaultArgs<ExtArgs>
   category?: boolean | Prisma.CategoryDefaultArgs<ExtArgs>
-  budget?: boolean | Prisma.BudgetDefaultArgs<ExtArgs>
+  household?: boolean | Prisma.HouseholdDefaultArgs<ExtArgs>
 }
 
 export type $IncomePayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1290,7 +1290,7 @@ export type $IncomePayload<ExtArgs extends runtime.Types.Extensions.InternalArgs
   objects: {
     account: Prisma.$AccountPayload<ExtArgs>
     category: Prisma.$CategoryPayload<ExtArgs>
-    budget: Prisma.$BudgetPayload<ExtArgs>
+    household: Prisma.$HouseholdPayload<ExtArgs>
     transactions: Prisma.$TransactionPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
@@ -1304,7 +1304,7 @@ export type $IncomePayload<ExtArgs extends runtime.Types.Extensions.InternalArgs
     estimatedAmount: number
     endDate: Date | null
     categoryId: string
-    budgetId: string
+    householdId: string
     isArchived: boolean
     createdAt: Date
   }, ExtArgs["result"]["income"]>
@@ -1703,7 +1703,7 @@ export interface Prisma__IncomeClient<T, Null = never, ExtArgs extends runtime.T
   readonly [Symbol.toStringTag]: "PrismaPromise"
   account<T extends Prisma.AccountDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AccountDefaultArgs<ExtArgs>>): Prisma.Prisma__AccountClient<runtime.Types.Result.GetResult<Prisma.$AccountPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   category<T extends Prisma.CategoryDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.CategoryDefaultArgs<ExtArgs>>): Prisma.Prisma__CategoryClient<runtime.Types.Result.GetResult<Prisma.$CategoryPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
-  budget<T extends Prisma.BudgetDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.BudgetDefaultArgs<ExtArgs>>): Prisma.Prisma__BudgetClient<runtime.Types.Result.GetResult<Prisma.$BudgetPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  household<T extends Prisma.HouseholdDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.HouseholdDefaultArgs<ExtArgs>>): Prisma.Prisma__HouseholdClient<runtime.Types.Result.GetResult<Prisma.$HouseholdPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   transactions<T extends Prisma.Income$transactionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Income$transactionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$TransactionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
@@ -1744,7 +1744,7 @@ export interface IncomeFieldRefs {
   readonly estimatedAmount: Prisma.FieldRef<"Income", 'Float'>
   readonly endDate: Prisma.FieldRef<"Income", 'DateTime'>
   readonly categoryId: Prisma.FieldRef<"Income", 'String'>
-  readonly budgetId: Prisma.FieldRef<"Income", 'String'>
+  readonly householdId: Prisma.FieldRef<"Income", 'String'>
   readonly isArchived: Prisma.FieldRef<"Income", 'Boolean'>
   readonly createdAt: Prisma.FieldRef<"Income", 'DateTime'>
 }

@@ -229,7 +229,7 @@ export type TransactionGroupByOutputType = {
   notes: string | null
   categoryId: string
   accountId: string
-  budgetId: string
+  budgetId: string | null
   billId: string | null
   recipientId: string | null
   incomeId: string | null
@@ -267,14 +267,14 @@ export type TransactionWhereInput = {
   notes?: Prisma.StringNullableFilter<"Transaction"> | string | null
   categoryId?: Prisma.StringFilter<"Transaction"> | string
   accountId?: Prisma.StringFilter<"Transaction"> | string
-  budgetId?: Prisma.StringFilter<"Transaction"> | string
+  budgetId?: Prisma.StringNullableFilter<"Transaction"> | string | null
   billId?: Prisma.StringNullableFilter<"Transaction"> | string | null
   recipientId?: Prisma.StringNullableFilter<"Transaction"> | string | null
   incomeId?: Prisma.StringNullableFilter<"Transaction"> | string | null
   createdAt?: Prisma.DateTimeFilter<"Transaction"> | Date | string
   category?: Prisma.XOR<Prisma.CategoryScalarRelationFilter, Prisma.CategoryWhereInput>
   account?: Prisma.XOR<Prisma.AccountScalarRelationFilter, Prisma.AccountWhereInput>
-  budget?: Prisma.XOR<Prisma.BudgetScalarRelationFilter, Prisma.BudgetWhereInput>
+  budget?: Prisma.XOR<Prisma.BudgetNullableScalarRelationFilter, Prisma.BudgetWhereInput> | null
   bill?: Prisma.XOR<Prisma.BillNullableScalarRelationFilter, Prisma.BillWhereInput> | null
   recipient?: Prisma.XOR<Prisma.RecipientNullableScalarRelationFilter, Prisma.RecipientWhereInput> | null
   income?: Prisma.XOR<Prisma.IncomeNullableScalarRelationFilter, Prisma.IncomeWhereInput> | null
@@ -288,7 +288,7 @@ export type TransactionOrderByWithRelationInput = {
   notes?: Prisma.SortOrderInput | Prisma.SortOrder
   categoryId?: Prisma.SortOrder
   accountId?: Prisma.SortOrder
-  budgetId?: Prisma.SortOrder
+  budgetId?: Prisma.SortOrderInput | Prisma.SortOrder
   billId?: Prisma.SortOrderInput | Prisma.SortOrder
   recipientId?: Prisma.SortOrderInput | Prisma.SortOrder
   incomeId?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -312,14 +312,14 @@ export type TransactionWhereUniqueInput = Prisma.AtLeast<{
   notes?: Prisma.StringNullableFilter<"Transaction"> | string | null
   categoryId?: Prisma.StringFilter<"Transaction"> | string
   accountId?: Prisma.StringFilter<"Transaction"> | string
-  budgetId?: Prisma.StringFilter<"Transaction"> | string
+  budgetId?: Prisma.StringNullableFilter<"Transaction"> | string | null
   billId?: Prisma.StringNullableFilter<"Transaction"> | string | null
   recipientId?: Prisma.StringNullableFilter<"Transaction"> | string | null
   incomeId?: Prisma.StringNullableFilter<"Transaction"> | string | null
   createdAt?: Prisma.DateTimeFilter<"Transaction"> | Date | string
   category?: Prisma.XOR<Prisma.CategoryScalarRelationFilter, Prisma.CategoryWhereInput>
   account?: Prisma.XOR<Prisma.AccountScalarRelationFilter, Prisma.AccountWhereInput>
-  budget?: Prisma.XOR<Prisma.BudgetScalarRelationFilter, Prisma.BudgetWhereInput>
+  budget?: Prisma.XOR<Prisma.BudgetNullableScalarRelationFilter, Prisma.BudgetWhereInput> | null
   bill?: Prisma.XOR<Prisma.BillNullableScalarRelationFilter, Prisma.BillWhereInput> | null
   recipient?: Prisma.XOR<Prisma.RecipientNullableScalarRelationFilter, Prisma.RecipientWhereInput> | null
   income?: Prisma.XOR<Prisma.IncomeNullableScalarRelationFilter, Prisma.IncomeWhereInput> | null
@@ -333,7 +333,7 @@ export type TransactionOrderByWithAggregationInput = {
   notes?: Prisma.SortOrderInput | Prisma.SortOrder
   categoryId?: Prisma.SortOrder
   accountId?: Prisma.SortOrder
-  budgetId?: Prisma.SortOrder
+  budgetId?: Prisma.SortOrderInput | Prisma.SortOrder
   billId?: Prisma.SortOrderInput | Prisma.SortOrder
   recipientId?: Prisma.SortOrderInput | Prisma.SortOrder
   incomeId?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -356,7 +356,7 @@ export type TransactionScalarWhereWithAggregatesInput = {
   notes?: Prisma.StringNullableWithAggregatesFilter<"Transaction"> | string | null
   categoryId?: Prisma.StringWithAggregatesFilter<"Transaction"> | string
   accountId?: Prisma.StringWithAggregatesFilter<"Transaction"> | string
-  budgetId?: Prisma.StringWithAggregatesFilter<"Transaction"> | string
+  budgetId?: Prisma.StringNullableWithAggregatesFilter<"Transaction"> | string | null
   billId?: Prisma.StringNullableWithAggregatesFilter<"Transaction"> | string | null
   recipientId?: Prisma.StringNullableWithAggregatesFilter<"Transaction"> | string | null
   incomeId?: Prisma.StringNullableWithAggregatesFilter<"Transaction"> | string | null
@@ -372,7 +372,7 @@ export type TransactionCreateInput = {
   createdAt?: Date | string
   category: Prisma.CategoryCreateNestedOneWithoutTransactionsInput
   account: Prisma.AccountCreateNestedOneWithoutTransactionsInput
-  budget: Prisma.BudgetCreateNestedOneWithoutTransactionsInput
+  budget?: Prisma.BudgetCreateNestedOneWithoutTransactionsInput
   bill?: Prisma.BillCreateNestedOneWithoutTransactionsInput
   recipient?: Prisma.RecipientCreateNestedOneWithoutTransactionsInput
   income?: Prisma.IncomeCreateNestedOneWithoutTransactionsInput
@@ -386,7 +386,7 @@ export type TransactionUncheckedCreateInput = {
   notes?: string | null
   categoryId: string
   accountId: string
-  budgetId: string
+  budgetId?: string | null
   billId?: string | null
   recipientId?: string | null
   incomeId?: string | null
@@ -402,7 +402,7 @@ export type TransactionUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   category?: Prisma.CategoryUpdateOneRequiredWithoutTransactionsNestedInput
   account?: Prisma.AccountUpdateOneRequiredWithoutTransactionsNestedInput
-  budget?: Prisma.BudgetUpdateOneRequiredWithoutTransactionsNestedInput
+  budget?: Prisma.BudgetUpdateOneWithoutTransactionsNestedInput
   bill?: Prisma.BillUpdateOneWithoutTransactionsNestedInput
   recipient?: Prisma.RecipientUpdateOneWithoutTransactionsNestedInput
   income?: Prisma.IncomeUpdateOneWithoutTransactionsNestedInput
@@ -416,7 +416,7 @@ export type TransactionUncheckedUpdateInput = {
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   categoryId?: Prisma.StringFieldUpdateOperationsInput | string
   accountId?: Prisma.StringFieldUpdateOperationsInput | string
-  budgetId?: Prisma.StringFieldUpdateOperationsInput | string
+  budgetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   billId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   recipientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   incomeId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -431,7 +431,7 @@ export type TransactionCreateManyInput = {
   notes?: string | null
   categoryId: string
   accountId: string
-  budgetId: string
+  budgetId?: string | null
   billId?: string | null
   recipientId?: string | null
   incomeId?: string | null
@@ -455,7 +455,7 @@ export type TransactionUncheckedUpdateManyInput = {
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   categoryId?: Prisma.StringFieldUpdateOperationsInput | string
   accountId?: Prisma.StringFieldUpdateOperationsInput | string
-  budgetId?: Prisma.StringFieldUpdateOperationsInput | string
+  budgetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   billId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   recipientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   incomeId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -842,7 +842,7 @@ export type TransactionScalarWhereInput = {
   notes?: Prisma.StringNullableFilter<"Transaction"> | string | null
   categoryId?: Prisma.StringFilter<"Transaction"> | string
   accountId?: Prisma.StringFilter<"Transaction"> | string
-  budgetId?: Prisma.StringFilter<"Transaction"> | string
+  budgetId?: Prisma.StringNullableFilter<"Transaction"> | string | null
   billId?: Prisma.StringNullableFilter<"Transaction"> | string | null
   recipientId?: Prisma.StringNullableFilter<"Transaction"> | string | null
   incomeId?: Prisma.StringNullableFilter<"Transaction"> | string | null
@@ -857,7 +857,7 @@ export type TransactionCreateWithoutCategoryInput = {
   notes?: string | null
   createdAt?: Date | string
   account: Prisma.AccountCreateNestedOneWithoutTransactionsInput
-  budget: Prisma.BudgetCreateNestedOneWithoutTransactionsInput
+  budget?: Prisma.BudgetCreateNestedOneWithoutTransactionsInput
   bill?: Prisma.BillCreateNestedOneWithoutTransactionsInput
   recipient?: Prisma.RecipientCreateNestedOneWithoutTransactionsInput
   income?: Prisma.IncomeCreateNestedOneWithoutTransactionsInput
@@ -870,7 +870,7 @@ export type TransactionUncheckedCreateWithoutCategoryInput = {
   date: Date | string
   notes?: string | null
   accountId: string
-  budgetId: string
+  budgetId?: string | null
   billId?: string | null
   recipientId?: string | null
   incomeId?: string | null
@@ -911,7 +911,7 @@ export type TransactionCreateWithoutAccountInput = {
   notes?: string | null
   createdAt?: Date | string
   category: Prisma.CategoryCreateNestedOneWithoutTransactionsInput
-  budget: Prisma.BudgetCreateNestedOneWithoutTransactionsInput
+  budget?: Prisma.BudgetCreateNestedOneWithoutTransactionsInput
   bill?: Prisma.BillCreateNestedOneWithoutTransactionsInput
   recipient?: Prisma.RecipientCreateNestedOneWithoutTransactionsInput
   income?: Prisma.IncomeCreateNestedOneWithoutTransactionsInput
@@ -924,7 +924,7 @@ export type TransactionUncheckedCreateWithoutAccountInput = {
   date: Date | string
   notes?: string | null
   categoryId: string
-  budgetId: string
+  budgetId?: string | null
   billId?: string | null
   recipientId?: string | null
   incomeId?: string | null
@@ -966,7 +966,7 @@ export type TransactionCreateWithoutBillInput = {
   createdAt?: Date | string
   category: Prisma.CategoryCreateNestedOneWithoutTransactionsInput
   account: Prisma.AccountCreateNestedOneWithoutTransactionsInput
-  budget: Prisma.BudgetCreateNestedOneWithoutTransactionsInput
+  budget?: Prisma.BudgetCreateNestedOneWithoutTransactionsInput
   recipient?: Prisma.RecipientCreateNestedOneWithoutTransactionsInput
   income?: Prisma.IncomeCreateNestedOneWithoutTransactionsInput
 }
@@ -979,7 +979,7 @@ export type TransactionUncheckedCreateWithoutBillInput = {
   notes?: string | null
   categoryId: string
   accountId: string
-  budgetId: string
+  budgetId?: string | null
   recipientId?: string | null
   incomeId?: string | null
   createdAt?: Date | string
@@ -1020,7 +1020,7 @@ export type TransactionCreateWithoutRecipientInput = {
   createdAt?: Date | string
   category: Prisma.CategoryCreateNestedOneWithoutTransactionsInput
   account: Prisma.AccountCreateNestedOneWithoutTransactionsInput
-  budget: Prisma.BudgetCreateNestedOneWithoutTransactionsInput
+  budget?: Prisma.BudgetCreateNestedOneWithoutTransactionsInput
   bill?: Prisma.BillCreateNestedOneWithoutTransactionsInput
   income?: Prisma.IncomeCreateNestedOneWithoutTransactionsInput
 }
@@ -1033,7 +1033,7 @@ export type TransactionUncheckedCreateWithoutRecipientInput = {
   notes?: string | null
   categoryId: string
   accountId: string
-  budgetId: string
+  budgetId?: string | null
   billId?: string | null
   incomeId?: string | null
   createdAt?: Date | string
@@ -1074,7 +1074,7 @@ export type TransactionCreateWithoutIncomeInput = {
   createdAt?: Date | string
   category: Prisma.CategoryCreateNestedOneWithoutTransactionsInput
   account: Prisma.AccountCreateNestedOneWithoutTransactionsInput
-  budget: Prisma.BudgetCreateNestedOneWithoutTransactionsInput
+  budget?: Prisma.BudgetCreateNestedOneWithoutTransactionsInput
   bill?: Prisma.BillCreateNestedOneWithoutTransactionsInput
   recipient?: Prisma.RecipientCreateNestedOneWithoutTransactionsInput
 }
@@ -1087,7 +1087,7 @@ export type TransactionUncheckedCreateWithoutIncomeInput = {
   notes?: string | null
   categoryId: string
   accountId: string
-  budgetId: string
+  budgetId?: string | null
   billId?: string | null
   recipientId?: string | null
   createdAt?: Date | string
@@ -1182,7 +1182,7 @@ export type TransactionCreateManyCategoryInput = {
   date: Date | string
   notes?: string | null
   accountId: string
-  budgetId: string
+  budgetId?: string | null
   billId?: string | null
   recipientId?: string | null
   incomeId?: string | null
@@ -1197,7 +1197,7 @@ export type TransactionUpdateWithoutCategoryInput = {
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   account?: Prisma.AccountUpdateOneRequiredWithoutTransactionsNestedInput
-  budget?: Prisma.BudgetUpdateOneRequiredWithoutTransactionsNestedInput
+  budget?: Prisma.BudgetUpdateOneWithoutTransactionsNestedInput
   bill?: Prisma.BillUpdateOneWithoutTransactionsNestedInput
   recipient?: Prisma.RecipientUpdateOneWithoutTransactionsNestedInput
   income?: Prisma.IncomeUpdateOneWithoutTransactionsNestedInput
@@ -1210,7 +1210,7 @@ export type TransactionUncheckedUpdateWithoutCategoryInput = {
   date?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   accountId?: Prisma.StringFieldUpdateOperationsInput | string
-  budgetId?: Prisma.StringFieldUpdateOperationsInput | string
+  budgetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   billId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   recipientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   incomeId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1224,7 +1224,7 @@ export type TransactionUncheckedUpdateManyWithoutCategoryInput = {
   date?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   accountId?: Prisma.StringFieldUpdateOperationsInput | string
-  budgetId?: Prisma.StringFieldUpdateOperationsInput | string
+  budgetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   billId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   recipientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   incomeId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1238,7 +1238,7 @@ export type TransactionCreateManyAccountInput = {
   date: Date | string
   notes?: string | null
   categoryId: string
-  budgetId: string
+  budgetId?: string | null
   billId?: string | null
   recipientId?: string | null
   incomeId?: string | null
@@ -1253,7 +1253,7 @@ export type TransactionUpdateWithoutAccountInput = {
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   category?: Prisma.CategoryUpdateOneRequiredWithoutTransactionsNestedInput
-  budget?: Prisma.BudgetUpdateOneRequiredWithoutTransactionsNestedInput
+  budget?: Prisma.BudgetUpdateOneWithoutTransactionsNestedInput
   bill?: Prisma.BillUpdateOneWithoutTransactionsNestedInput
   recipient?: Prisma.RecipientUpdateOneWithoutTransactionsNestedInput
   income?: Prisma.IncomeUpdateOneWithoutTransactionsNestedInput
@@ -1266,7 +1266,7 @@ export type TransactionUncheckedUpdateWithoutAccountInput = {
   date?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   categoryId?: Prisma.StringFieldUpdateOperationsInput | string
-  budgetId?: Prisma.StringFieldUpdateOperationsInput | string
+  budgetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   billId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   recipientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   incomeId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1280,7 +1280,7 @@ export type TransactionUncheckedUpdateManyWithoutAccountInput = {
   date?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   categoryId?: Prisma.StringFieldUpdateOperationsInput | string
-  budgetId?: Prisma.StringFieldUpdateOperationsInput | string
+  budgetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   billId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   recipientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   incomeId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1295,7 +1295,7 @@ export type TransactionCreateManyBillInput = {
   notes?: string | null
   categoryId: string
   accountId: string
-  budgetId: string
+  budgetId?: string | null
   recipientId?: string | null
   incomeId?: string | null
   createdAt?: Date | string
@@ -1310,7 +1310,7 @@ export type TransactionUpdateWithoutBillInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   category?: Prisma.CategoryUpdateOneRequiredWithoutTransactionsNestedInput
   account?: Prisma.AccountUpdateOneRequiredWithoutTransactionsNestedInput
-  budget?: Prisma.BudgetUpdateOneRequiredWithoutTransactionsNestedInput
+  budget?: Prisma.BudgetUpdateOneWithoutTransactionsNestedInput
   recipient?: Prisma.RecipientUpdateOneWithoutTransactionsNestedInput
   income?: Prisma.IncomeUpdateOneWithoutTransactionsNestedInput
 }
@@ -1323,7 +1323,7 @@ export type TransactionUncheckedUpdateWithoutBillInput = {
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   categoryId?: Prisma.StringFieldUpdateOperationsInput | string
   accountId?: Prisma.StringFieldUpdateOperationsInput | string
-  budgetId?: Prisma.StringFieldUpdateOperationsInput | string
+  budgetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   recipientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   incomeId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1337,7 +1337,7 @@ export type TransactionUncheckedUpdateManyWithoutBillInput = {
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   categoryId?: Prisma.StringFieldUpdateOperationsInput | string
   accountId?: Prisma.StringFieldUpdateOperationsInput | string
-  budgetId?: Prisma.StringFieldUpdateOperationsInput | string
+  budgetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   recipientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   incomeId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1351,7 +1351,7 @@ export type TransactionCreateManyRecipientInput = {
   notes?: string | null
   categoryId: string
   accountId: string
-  budgetId: string
+  budgetId?: string | null
   billId?: string | null
   incomeId?: string | null
   createdAt?: Date | string
@@ -1366,7 +1366,7 @@ export type TransactionUpdateWithoutRecipientInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   category?: Prisma.CategoryUpdateOneRequiredWithoutTransactionsNestedInput
   account?: Prisma.AccountUpdateOneRequiredWithoutTransactionsNestedInput
-  budget?: Prisma.BudgetUpdateOneRequiredWithoutTransactionsNestedInput
+  budget?: Prisma.BudgetUpdateOneWithoutTransactionsNestedInput
   bill?: Prisma.BillUpdateOneWithoutTransactionsNestedInput
   income?: Prisma.IncomeUpdateOneWithoutTransactionsNestedInput
 }
@@ -1379,7 +1379,7 @@ export type TransactionUncheckedUpdateWithoutRecipientInput = {
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   categoryId?: Prisma.StringFieldUpdateOperationsInput | string
   accountId?: Prisma.StringFieldUpdateOperationsInput | string
-  budgetId?: Prisma.StringFieldUpdateOperationsInput | string
+  budgetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   billId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   incomeId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1393,7 +1393,7 @@ export type TransactionUncheckedUpdateManyWithoutRecipientInput = {
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   categoryId?: Prisma.StringFieldUpdateOperationsInput | string
   accountId?: Prisma.StringFieldUpdateOperationsInput | string
-  budgetId?: Prisma.StringFieldUpdateOperationsInput | string
+  budgetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   billId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   incomeId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1407,7 +1407,7 @@ export type TransactionCreateManyIncomeInput = {
   notes?: string | null
   categoryId: string
   accountId: string
-  budgetId: string
+  budgetId?: string | null
   billId?: string | null
   recipientId?: string | null
   createdAt?: Date | string
@@ -1422,7 +1422,7 @@ export type TransactionUpdateWithoutIncomeInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   category?: Prisma.CategoryUpdateOneRequiredWithoutTransactionsNestedInput
   account?: Prisma.AccountUpdateOneRequiredWithoutTransactionsNestedInput
-  budget?: Prisma.BudgetUpdateOneRequiredWithoutTransactionsNestedInput
+  budget?: Prisma.BudgetUpdateOneWithoutTransactionsNestedInput
   bill?: Prisma.BillUpdateOneWithoutTransactionsNestedInput
   recipient?: Prisma.RecipientUpdateOneWithoutTransactionsNestedInput
 }
@@ -1435,7 +1435,7 @@ export type TransactionUncheckedUpdateWithoutIncomeInput = {
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   categoryId?: Prisma.StringFieldUpdateOperationsInput | string
   accountId?: Prisma.StringFieldUpdateOperationsInput | string
-  budgetId?: Prisma.StringFieldUpdateOperationsInput | string
+  budgetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   billId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   recipientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1449,7 +1449,7 @@ export type TransactionUncheckedUpdateManyWithoutIncomeInput = {
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   categoryId?: Prisma.StringFieldUpdateOperationsInput | string
   accountId?: Prisma.StringFieldUpdateOperationsInput | string
-  budgetId?: Prisma.StringFieldUpdateOperationsInput | string
+  budgetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   billId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   recipientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1472,7 +1472,7 @@ export type TransactionSelect<ExtArgs extends runtime.Types.Extensions.InternalA
   createdAt?: boolean
   category?: boolean | Prisma.CategoryDefaultArgs<ExtArgs>
   account?: boolean | Prisma.AccountDefaultArgs<ExtArgs>
-  budget?: boolean | Prisma.BudgetDefaultArgs<ExtArgs>
+  budget?: boolean | Prisma.Transaction$budgetArgs<ExtArgs>
   bill?: boolean | Prisma.Transaction$billArgs<ExtArgs>
   recipient?: boolean | Prisma.Transaction$recipientArgs<ExtArgs>
   income?: boolean | Prisma.Transaction$incomeArgs<ExtArgs>
@@ -1493,7 +1493,7 @@ export type TransactionSelectCreateManyAndReturn<ExtArgs extends runtime.Types.E
   createdAt?: boolean
   category?: boolean | Prisma.CategoryDefaultArgs<ExtArgs>
   account?: boolean | Prisma.AccountDefaultArgs<ExtArgs>
-  budget?: boolean | Prisma.BudgetDefaultArgs<ExtArgs>
+  budget?: boolean | Prisma.Transaction$budgetArgs<ExtArgs>
   bill?: boolean | Prisma.Transaction$billArgs<ExtArgs>
   recipient?: boolean | Prisma.Transaction$recipientArgs<ExtArgs>
   income?: boolean | Prisma.Transaction$incomeArgs<ExtArgs>
@@ -1514,7 +1514,7 @@ export type TransactionSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.E
   createdAt?: boolean
   category?: boolean | Prisma.CategoryDefaultArgs<ExtArgs>
   account?: boolean | Prisma.AccountDefaultArgs<ExtArgs>
-  budget?: boolean | Prisma.BudgetDefaultArgs<ExtArgs>
+  budget?: boolean | Prisma.Transaction$budgetArgs<ExtArgs>
   bill?: boolean | Prisma.Transaction$billArgs<ExtArgs>
   recipient?: boolean | Prisma.Transaction$recipientArgs<ExtArgs>
   income?: boolean | Prisma.Transaction$incomeArgs<ExtArgs>
@@ -1539,7 +1539,7 @@ export type TransactionOmit<ExtArgs extends runtime.Types.Extensions.InternalArg
 export type TransactionInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   category?: boolean | Prisma.CategoryDefaultArgs<ExtArgs>
   account?: boolean | Prisma.AccountDefaultArgs<ExtArgs>
-  budget?: boolean | Prisma.BudgetDefaultArgs<ExtArgs>
+  budget?: boolean | Prisma.Transaction$budgetArgs<ExtArgs>
   bill?: boolean | Prisma.Transaction$billArgs<ExtArgs>
   recipient?: boolean | Prisma.Transaction$recipientArgs<ExtArgs>
   income?: boolean | Prisma.Transaction$incomeArgs<ExtArgs>
@@ -1547,7 +1547,7 @@ export type TransactionInclude<ExtArgs extends runtime.Types.Extensions.Internal
 export type TransactionIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   category?: boolean | Prisma.CategoryDefaultArgs<ExtArgs>
   account?: boolean | Prisma.AccountDefaultArgs<ExtArgs>
-  budget?: boolean | Prisma.BudgetDefaultArgs<ExtArgs>
+  budget?: boolean | Prisma.Transaction$budgetArgs<ExtArgs>
   bill?: boolean | Prisma.Transaction$billArgs<ExtArgs>
   recipient?: boolean | Prisma.Transaction$recipientArgs<ExtArgs>
   income?: boolean | Prisma.Transaction$incomeArgs<ExtArgs>
@@ -1555,7 +1555,7 @@ export type TransactionIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.
 export type TransactionIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   category?: boolean | Prisma.CategoryDefaultArgs<ExtArgs>
   account?: boolean | Prisma.AccountDefaultArgs<ExtArgs>
-  budget?: boolean | Prisma.BudgetDefaultArgs<ExtArgs>
+  budget?: boolean | Prisma.Transaction$budgetArgs<ExtArgs>
   bill?: boolean | Prisma.Transaction$billArgs<ExtArgs>
   recipient?: boolean | Prisma.Transaction$recipientArgs<ExtArgs>
   income?: boolean | Prisma.Transaction$incomeArgs<ExtArgs>
@@ -1566,7 +1566,7 @@ export type $TransactionPayload<ExtArgs extends runtime.Types.Extensions.Interna
   objects: {
     category: Prisma.$CategoryPayload<ExtArgs>
     account: Prisma.$AccountPayload<ExtArgs>
-    budget: Prisma.$BudgetPayload<ExtArgs>
+    budget: Prisma.$BudgetPayload<ExtArgs> | null
     bill: Prisma.$BillPayload<ExtArgs> | null
     recipient: Prisma.$RecipientPayload<ExtArgs> | null
     income: Prisma.$IncomePayload<ExtArgs> | null
@@ -1579,7 +1579,7 @@ export type $TransactionPayload<ExtArgs extends runtime.Types.Extensions.Interna
     notes: string | null
     categoryId: string
     accountId: string
-    budgetId: string
+    budgetId: string | null
     billId: string | null
     recipientId: string | null
     incomeId: string | null
@@ -1980,7 +1980,7 @@ export interface Prisma__TransactionClient<T, Null = never, ExtArgs extends runt
   readonly [Symbol.toStringTag]: "PrismaPromise"
   category<T extends Prisma.CategoryDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.CategoryDefaultArgs<ExtArgs>>): Prisma.Prisma__CategoryClient<runtime.Types.Result.GetResult<Prisma.$CategoryPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   account<T extends Prisma.AccountDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AccountDefaultArgs<ExtArgs>>): Prisma.Prisma__AccountClient<runtime.Types.Result.GetResult<Prisma.$AccountPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
-  budget<T extends Prisma.BudgetDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.BudgetDefaultArgs<ExtArgs>>): Prisma.Prisma__BudgetClient<runtime.Types.Result.GetResult<Prisma.$BudgetPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  budget<T extends Prisma.Transaction$budgetArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Transaction$budgetArgs<ExtArgs>>): Prisma.Prisma__BudgetClient<runtime.Types.Result.GetResult<Prisma.$BudgetPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   bill<T extends Prisma.Transaction$billArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Transaction$billArgs<ExtArgs>>): Prisma.Prisma__BillClient<runtime.Types.Result.GetResult<Prisma.$BillPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   recipient<T extends Prisma.Transaction$recipientArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Transaction$recipientArgs<ExtArgs>>): Prisma.Prisma__RecipientClient<runtime.Types.Result.GetResult<Prisma.$RecipientPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   income<T extends Prisma.Transaction$incomeArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Transaction$incomeArgs<ExtArgs>>): Prisma.Prisma__IncomeClient<runtime.Types.Result.GetResult<Prisma.$IncomePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
@@ -2418,6 +2418,25 @@ export type TransactionDeleteManyArgs<ExtArgs extends runtime.Types.Extensions.I
    * Limit how many Transactions to delete.
    */
   limit?: number
+}
+
+/**
+ * Transaction.budget
+ */
+export type Transaction$budgetArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Budget
+   */
+  select?: Prisma.BudgetSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Budget
+   */
+  omit?: Prisma.BudgetOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.BudgetInclude<ExtArgs> | null
+  where?: Prisma.BudgetWhereInput
 }
 
 /**

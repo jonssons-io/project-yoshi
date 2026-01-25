@@ -13,8 +13,9 @@ export const transactionsRouter = {
 	list: protectedProcedure
 		.input(
 			z.object({
-				budgetId: z.string(),
-				userId: z.string(), // For access verification
+				budgetId: z.string().optional(),
+				householdId: z.string().optional(),
+				userId: z.string(),
 				accountId: z.string().optional(),
 				categoryId: z.string().optional(),
 				dateFrom: z.date().optional(),
@@ -23,22 +24,36 @@ export const transactionsRouter = {
 			})
 		)
 		.query(async ({ ctx, input }) => {
-			// Verify budget exists and user has access to its household
-			const budget = await ctx.prisma.budget.findUnique({
-				where: { id: input.budgetId }
-			})
-
-			if (!budget) {
+			if (!input.budgetId && !input.householdId) {
 				throw new TRPCError({
-					code: 'NOT_FOUND',
-					message: 'Budget not found'
+					code: 'BAD_REQUEST',
+					message: 'Either budgetId or householdId must be provided'
 				})
 			}
 
-			// Verify user has access to this household
+			// Verify access
+			let householdId = input.householdId
+			if (input.budgetId) {
+				const budget = await ctx.prisma.budget.findUnique({
+					where: { id: input.budgetId }
+				})
+				if (!budget)
+					throw new TRPCError({
+						code: 'NOT_FOUND',
+						message: 'Budget not found'
+					})
+				householdId = budget.householdId
+			}
+
+			if (!householdId)
+				throw new TRPCError({
+					code: 'BAD_REQUEST',
+					message: 'Household ID missing'
+				})
+
 			const householdUser = await ctx.prisma.householdUser.findFirst({
 				where: {
-					householdId: budget.householdId,
+					householdId: householdId,
 					userId: input.userId
 				}
 			})
@@ -46,18 +61,22 @@ export const transactionsRouter = {
 			if (!householdUser) {
 				throw new TRPCError({
 					code: 'FORBIDDEN',
-					message: 'You do not have access to this budget'
+					message: 'You do not have access to this household'
 				})
 			}
 
 			const transactions = await ctx.prisma.transaction.findMany({
 				where: {
-					budgetId: input.budgetId,
+					...(input.budgetId
+						? { budgetId: input.budgetId }
+						: { account: { householdId: householdId } }),
 					...(input.accountId && { accountId: input.accountId }),
 					...(input.categoryId && { categoryId: input.categoryId }),
 					...(input.type && {
 						category: {
-							type: input.type
+							types: {
+								has: input.type
+							}
 						}
 					}),
 					...(input.dateFrom || input.dateTo
@@ -131,7 +150,7 @@ export const transactionsRouter = {
 						category: {
 							id: 'transfer-out',
 							name: 'Transfer Out',
-							type: 'EXPENSE',
+							types: ['EXPENSE'],
 							householdId: budget.householdId,
 							createdAt: t.createdAt
 						},
@@ -165,7 +184,7 @@ export const transactionsRouter = {
 						category: {
 							id: 'transfer-in',
 							name: 'Transfer In',
-							type: 'INCOME',
+							types: ['INCOME'],
 							householdId: budget.householdId,
 							createdAt: t.createdAt
 						},
@@ -283,7 +302,9 @@ export const transactionsRouter = {
 					budgetId: input.budgetId,
 					...(input.type && {
 						category: {
-							type: input.type
+							types: {
+								has: input.type
+							}
 						}
 					}),
 					...(input.dateFrom || input.dateTo
@@ -326,7 +347,7 @@ export const transactionsRouter = {
 						category: {
 							id: string
 							name: string
-							type: string
+							types: string[]
 							householdId: string
 						}
 						transactions: typeof transactions
@@ -346,7 +367,7 @@ export const transactionsRouter = {
 	create: protectedProcedure
 		.input(
 			z.object({
-				budgetId: z.string(),
+				budgetId: z.string().optional(),
 				userId: z.string(),
 				accountId: z.string(),
 				// Either provide an existing category ID
@@ -378,22 +399,40 @@ export const transactionsRouter = {
 				})
 			}
 
-			// Verify budget exists and user has access to its household
-			const budget = await ctx.prisma.budget.findUnique({
-				where: { id: input.budgetId }
-			})
+			let householdId: string
+			let budget: { id: string; householdId: string } | null = null
 
-			if (!budget) {
-				throw new TRPCError({
-					code: 'NOT_FOUND',
-					message: 'Budget not found'
+			// Verify budget if provided
+			if (input.budgetId) {
+				budget = await ctx.prisma.budget.findUnique({
+					where: { id: input.budgetId }
 				})
+
+				if (!budget) {
+					throw new TRPCError({
+						code: 'NOT_FOUND',
+						message: 'Budget not found'
+					})
+				}
+				householdId = budget.householdId
+			} else {
+				// If no budget, verify account to get household
+				const account = await ctx.prisma.account.findUnique({
+					where: { id: input.accountId }
+				})
+				if (!account) {
+					throw new TRPCError({
+						code: 'NOT_FOUND',
+						message: 'Account not found'
+					})
+				}
+				householdId = account.householdId
 			}
 
 			// Verify user has access to this household
 			const householdUser = await ctx.prisma.householdUser.findFirst({
 				where: {
-					householdId: budget.householdId,
+					householdId: householdId,
 					userId: input.userId
 				}
 			})
@@ -401,61 +440,80 @@ export const transactionsRouter = {
 			if (!householdUser) {
 				throw new TRPCError({
 					code: 'FORBIDDEN',
-					message: 'You do not have access to this budget'
+					message: 'You do not have access to this household'
 				})
 			}
 
-			// Verify account is linked to this budget
-			const accountLink = await ctx.prisma.budgetAccount.findFirst({
-				where: {
-					budgetId: input.budgetId,
-					accountId: input.accountId
-				}
-			})
-
-			if (!accountLink) {
-				throw new TRPCError({
-					code: 'BAD_REQUEST',
-					message: 'Account is not linked to this budget'
+			// Verify account is linked to this budget (if budget exists)
+			if (budget) {
+				const accountLink = await ctx.prisma.budgetAccount.findFirst({
+					where: {
+						budgetId: budget.id,
+						accountId: input.accountId
+					}
 				})
+
+				if (!accountLink) {
+					throw new TRPCError({
+						code: 'BAD_REQUEST',
+						message: 'Account is not linked to this budget'
+					})
+				}
+			} else {
+				// Just verify account exists and matches household (already done above)
 			}
 
 			// Determine the category ID to use
 			let finalCategoryId: string
 
 			if (input.newCategory) {
-				// Create new category and link to budget
+				// Create new category
 				const newCategory = await ctx.prisma.category.create({
 					data: {
 						name: input.newCategory.name,
-						type: input.newCategory.type,
-						householdId: budget.householdId,
-						budgets: {
-							create: {
-								budgetId: input.budgetId
+						types: [input.newCategory.type],
+						householdId: householdId,
+						...(budget && {
+							budgets: {
+								create: {
+									budgetId: budget.id
+								}
 							}
-						}
+						})
 					}
 				})
 				finalCategoryId = newCategory.id
 			} else if (input.categoryId) {
-				// Use existing category - verify it's linked to this budget
-				const categoryLink = await ctx.prisma.budgetCategory.findFirst({
-					where: {
-						budgetId: input.budgetId,
-						categoryId: input.categoryId
-					}
-				})
-
-				if (!categoryLink) {
-					throw new TRPCError({
-						code: 'BAD_REQUEST',
-						message: 'Category is not linked to this budget'
-					})
-				}
 				finalCategoryId = input.categoryId
+				// If budget provided, check linkage
+				if (budget) {
+					const categoryLink = await ctx.prisma.budgetCategory.findFirst({
+						where: {
+							budgetId: budget.id,
+							categoryId: input.categoryId
+						}
+					})
+					if (!categoryLink) {
+						// Optionally allow if we assume user can select any category?
+						// But existing logic enforced linkage. Let's keep strictness for budget transactions.
+						throw new TRPCError({
+							code: 'BAD_REQUEST',
+							message: 'Category is not linked to this budget'
+						})
+					}
+				} else {
+					// Check category household
+					const category = await ctx.prisma.category.findUnique({
+						where: { id: input.categoryId }
+					})
+					if (!category || category.householdId !== householdId) {
+						throw new TRPCError({
+							code: 'BAD_REQUEST',
+							message: 'Category not found or invalid'
+						})
+					}
+				}
 			} else {
-				// This should never happen due to earlier validation
 				throw new TRPCError({
 					code: 'BAD_REQUEST',
 					message: 'Either categoryId or newCategory must be provided'
@@ -466,12 +524,11 @@ export const transactionsRouter = {
 			let finalRecipientId: string | undefined = input.recipientId
 
 			if (input.newRecipientName) {
-				// Get or create recipient by name
 				const existingRecipient = await ctx.prisma.recipient.findUnique({
 					where: {
 						name_householdId: {
 							name: input.newRecipientName,
-							householdId: budget.householdId
+							householdId: householdId
 						}
 					}
 				})
@@ -482,7 +539,7 @@ export const transactionsRouter = {
 					const newRecipient = await ctx.prisma.recipient.create({
 						data: {
 							name: input.newRecipientName,
-							householdId: budget.householdId
+							householdId: householdId
 						}
 					})
 					finalRecipientId = newRecipient.id
@@ -495,7 +552,7 @@ export const transactionsRouter = {
 					amount: input.amount,
 					date: input.date,
 					notes: input.notes,
-					budgetId: input.budgetId,
+					budgetId: budget?.id,
 					accountId: input.accountId,
 					categoryId: finalCategoryId,
 					billId: input.billId,
