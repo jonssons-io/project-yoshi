@@ -45,9 +45,6 @@ export const AccountRow = ({
 			<TableCell className="text-muted-foreground">
 				{account.externalIdentifier || '—'}
 			</TableCell>
-			<TableCell className="text-right">
-				{formatCurrency(account.initialBalance)}
-			</TableCell>
 			<TableCell className="text-right font-medium">
 				{balance ? formatCurrency(balance.currentBalance) : '...'}
 			</TableCell>
