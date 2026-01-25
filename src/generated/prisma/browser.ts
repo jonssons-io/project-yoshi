@@ -73,6 +73,16 @@ export type RecurringBill = Prisma.RecurringBillModel
  */
 export type Bill = Prisma.BillModel
 /**
+ * Model RecurringBillSplit
+ * 
+ */
+export type RecurringBillSplit = Prisma.RecurringBillSplitModel
+/**
+ * Model TransactionSplit
+ * 
+ */
+export type TransactionSplit = Prisma.TransactionSplitModel
+/**
  * Model Recipient
  * 
  */

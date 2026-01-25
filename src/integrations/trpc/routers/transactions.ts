@@ -96,11 +96,16 @@ export const transactionsRouter = {
 				include: {
 					category: true,
 					account: true,
-					recipient: true
+					recipient: true,
+					bill: true,
+					splits: {
+						include: { category: true }
+					}
 				}
 			})
 
 			// Fetch transfers if categoryId is NOT set (transfers don't have categories)
+			// biome-ignore lint/suspicious/noExplicitAny: complex union return type
 			let transfers: any[] = []
 
 			if (!input.categoryId) {
@@ -229,7 +234,11 @@ export const transactionsRouter = {
 					category: true,
 					account: true,
 					budget: true,
-					recipient: true
+					recipient: true,
+					bill: true,
+					splits: {
+						include: { category: true }
+					}
 				}
 			})
 
@@ -392,15 +401,29 @@ export const transactionsRouter = {
 				// Recipient support (optional)
 				recipientId: z.string().optional(),
 				newRecipientName: z.string().min(1).optional(),
-				incomeId: z.string().optional()
+				incomeId: z.string().optional(),
+				// Splits (Optional)
+				splits: z
+					.array(
+						z.object({
+							categoryId: z.string(),
+							amount: z.number().positive(),
+							subtitle: z.string()
+						})
+					)
+					.optional()
 			})
 		)
 		.mutation(async ({ ctx, input }) => {
-			// Validate that either categoryId or newCategory is provided
-			if (!input.categoryId && !input.newCategory) {
+			// Validate that either categoryId or newCategory OR splits is provided
+			if (
+				!input.categoryId &&
+				!input.newCategory &&
+				(!input.splits || input.splits.length === 0)
+			) {
 				throw new TRPCError({
 					code: 'BAD_REQUEST',
-					message: 'Either categoryId or newCategory must be provided'
+					message: 'Either categoryId, newCategory, or splits must be provided'
 				})
 			}
 
@@ -469,7 +492,7 @@ export const transactionsRouter = {
 			}
 
 			// Determine the category ID to use
-			let finalCategoryId: string
+			let finalCategoryId: string | null = null
 
 			if (input.newCategory) {
 				// Create new category
@@ -537,11 +560,6 @@ export const transactionsRouter = {
 						})
 					}
 				}
-			} else {
-				throw new TRPCError({
-					code: 'BAD_REQUEST',
-					message: 'Either categoryId or newCategory must be provided'
-				})
 			}
 
 			// Handle recipient (optional)
@@ -582,12 +600,25 @@ export const transactionsRouter = {
 						categoryId: finalCategoryId,
 						billId: input.billId,
 						recipientId: finalRecipientId,
-						incomeId: input.incomeId
+						incomeId: input.incomeId,
+						splits:
+							input.splits && input.splits.length > 0
+								? {
+										create: input.splits.map((s) => ({
+											categoryId: s.categoryId,
+											amount: s.amount,
+											subtitle: s.subtitle
+										}))
+									}
+								: undefined
 					},
 					include: {
 						category: true,
 						account: true,
-						recipient: true
+						recipient: true,
+						splits: {
+							include: { category: true }
+						}
 					}
 				})
 
@@ -674,7 +705,17 @@ export const transactionsRouter = {
 				date: z.date().optional(),
 				notes: z.string().nullable().optional(),
 				recipientId: z.string().nullable().optional(),
-				incomeId: z.string().nullable().optional()
+				recipientId: z.string().nullable().optional(),
+				incomeId: z.string().nullable().optional(),
+				splits: z
+					.array(
+						z.object({
+							categoryId: z.string(),
+							amount: z.number().positive(),
+							subtitle: z.string()
+						})
+					)
+					.optional()
 			})
 		)
 		.mutation(async ({ ctx, input }) => {
@@ -746,6 +787,53 @@ export const transactionsRouter = {
 				}
 			}
 
+			// Handle splits update if provided
+			if (input.splits !== undefined) {
+				return ctx.prisma.$transaction(async (tx) => {
+					// 1. Update basic fields
+					const updated = await tx.transaction.update({
+						where: { id: input.id },
+						data: {
+							name: input.name,
+							amount: input.amount,
+							date: input.date,
+							notes: input.notes,
+							accountId: input.accountId,
+							categoryId: input.categoryId, // Will be null if splits exist/are used
+							incomeId: input.incomeId
+							// billId not updateable here typically, or added if needed
+						},
+						include: {
+							category: true,
+							account: true,
+							bill: true,
+							splits: { include: { category: true } }
+						}
+					})
+
+					// 2. Replace splits
+					// Delete existing
+					await tx.transactionSplit.deleteMany({
+						where: { transactionId: input.id }
+					})
+
+					// Create new
+					if (input.splits && input.splits.length > 0) {
+						await tx.transactionSplit.createMany({
+							data: input.splits.map((s) => ({
+								transactionId: input.id,
+								categoryId: s.categoryId,
+								amount: s.amount,
+								subtitle: s.subtitle
+							}))
+						})
+					}
+
+					return updated
+				})
+			}
+
+			// Standard update without splits change
 			return ctx.prisma.transaction.update({
 				where: { id: input.id },
 				data: {
@@ -759,7 +847,9 @@ export const transactionsRouter = {
 				},
 				include: {
 					category: true,
-					account: true
+					account: true,
+					bill: true,
+					splits: { include: { category: true } }
 				}
 			})
 		}),

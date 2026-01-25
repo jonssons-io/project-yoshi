@@ -183,6 +183,8 @@ export type CategoryWhereInput = {
   transactions?: Prisma.TransactionListRelationFilter
   recurringBills?: Prisma.RecurringBillListRelationFilter
   incomes?: Prisma.IncomeListRelationFilter
+  recurringBillSplits?: Prisma.RecurringBillSplitListRelationFilter
+  transactionSplits?: Prisma.TransactionSplitListRelationFilter
 }
 
 export type CategoryOrderByWithRelationInput = {
@@ -196,6 +198,8 @@ export type CategoryOrderByWithRelationInput = {
   transactions?: Prisma.TransactionOrderByRelationAggregateInput
   recurringBills?: Prisma.RecurringBillOrderByRelationAggregateInput
   incomes?: Prisma.IncomeOrderByRelationAggregateInput
+  recurringBillSplits?: Prisma.RecurringBillSplitOrderByRelationAggregateInput
+  transactionSplits?: Prisma.TransactionSplitOrderByRelationAggregateInput
 }
 
 export type CategoryWhereUniqueInput = Prisma.AtLeast<{
@@ -212,6 +216,8 @@ export type CategoryWhereUniqueInput = Prisma.AtLeast<{
   transactions?: Prisma.TransactionListRelationFilter
   recurringBills?: Prisma.RecurringBillListRelationFilter
   incomes?: Prisma.IncomeListRelationFilter
+  recurringBillSplits?: Prisma.RecurringBillSplitListRelationFilter
+  transactionSplits?: Prisma.TransactionSplitListRelationFilter
 }, "id">
 
 export type CategoryOrderByWithAggregationInput = {
@@ -246,6 +252,8 @@ export type CategoryCreateInput = {
   transactions?: Prisma.TransactionCreateNestedManyWithoutCategoryInput
   recurringBills?: Prisma.RecurringBillCreateNestedManyWithoutCategoryInput
   incomes?: Prisma.IncomeCreateNestedManyWithoutCategoryInput
+  recurringBillSplits?: Prisma.RecurringBillSplitCreateNestedManyWithoutCategoryInput
+  transactionSplits?: Prisma.TransactionSplitCreateNestedManyWithoutCategoryInput
 }
 
 export type CategoryUncheckedCreateInput = {
@@ -258,6 +266,8 @@ export type CategoryUncheckedCreateInput = {
   transactions?: Prisma.TransactionUncheckedCreateNestedManyWithoutCategoryInput
   recurringBills?: Prisma.RecurringBillUncheckedCreateNestedManyWithoutCategoryInput
   incomes?: Prisma.IncomeUncheckedCreateNestedManyWithoutCategoryInput
+  recurringBillSplits?: Prisma.RecurringBillSplitUncheckedCreateNestedManyWithoutCategoryInput
+  transactionSplits?: Prisma.TransactionSplitUncheckedCreateNestedManyWithoutCategoryInput
 }
 
 export type CategoryUpdateInput = {
@@ -270,6 +280,8 @@ export type CategoryUpdateInput = {
   transactions?: Prisma.TransactionUpdateManyWithoutCategoryNestedInput
   recurringBills?: Prisma.RecurringBillUpdateManyWithoutCategoryNestedInput
   incomes?: Prisma.IncomeUpdateManyWithoutCategoryNestedInput
+  recurringBillSplits?: Prisma.RecurringBillSplitUpdateManyWithoutCategoryNestedInput
+  transactionSplits?: Prisma.TransactionSplitUpdateManyWithoutCategoryNestedInput
 }
 
 export type CategoryUncheckedUpdateInput = {
@@ -282,6 +294,8 @@ export type CategoryUncheckedUpdateInput = {
   transactions?: Prisma.TransactionUncheckedUpdateManyWithoutCategoryNestedInput
   recurringBills?: Prisma.RecurringBillUncheckedUpdateManyWithoutCategoryNestedInput
   incomes?: Prisma.IncomeUncheckedUpdateManyWithoutCategoryNestedInput
+  recurringBillSplits?: Prisma.RecurringBillSplitUncheckedUpdateManyWithoutCategoryNestedInput
+  transactionSplits?: Prisma.TransactionSplitUncheckedUpdateManyWithoutCategoryNestedInput
 }
 
 export type CategoryCreateManyInput = {
@@ -350,6 +364,11 @@ export type CategoryMinOrderByAggregateInput = {
 export type CategoryScalarRelationFilter = {
   is?: Prisma.CategoryWhereInput
   isNot?: Prisma.CategoryWhereInput
+}
+
+export type CategoryNullableScalarRelationFilter = {
+  is?: Prisma.CategoryWhereInput | null
+  isNot?: Prisma.CategoryWhereInput | null
 }
 
 export type CategoryCreateNestedManyWithoutHouseholdInput = {
@@ -423,10 +442,12 @@ export type CategoryCreateNestedOneWithoutTransactionsInput = {
   connect?: Prisma.CategoryWhereUniqueInput
 }
 
-export type CategoryUpdateOneRequiredWithoutTransactionsNestedInput = {
+export type CategoryUpdateOneWithoutTransactionsNestedInput = {
   create?: Prisma.XOR<Prisma.CategoryCreateWithoutTransactionsInput, Prisma.CategoryUncheckedCreateWithoutTransactionsInput>
   connectOrCreate?: Prisma.CategoryCreateOrConnectWithoutTransactionsInput
   upsert?: Prisma.CategoryUpsertWithoutTransactionsInput
+  disconnect?: Prisma.CategoryWhereInput | boolean
+  delete?: Prisma.CategoryWhereInput | boolean
   connect?: Prisma.CategoryWhereUniqueInput
   update?: Prisma.XOR<Prisma.XOR<Prisma.CategoryUpdateToOneWithWhereWithoutTransactionsInput, Prisma.CategoryUpdateWithoutTransactionsInput>, Prisma.CategoryUncheckedUpdateWithoutTransactionsInput>
 }
@@ -437,12 +458,42 @@ export type CategoryCreateNestedOneWithoutRecurringBillsInput = {
   connect?: Prisma.CategoryWhereUniqueInput
 }
 
-export type CategoryUpdateOneRequiredWithoutRecurringBillsNestedInput = {
+export type CategoryUpdateOneWithoutRecurringBillsNestedInput = {
   create?: Prisma.XOR<Prisma.CategoryCreateWithoutRecurringBillsInput, Prisma.CategoryUncheckedCreateWithoutRecurringBillsInput>
   connectOrCreate?: Prisma.CategoryCreateOrConnectWithoutRecurringBillsInput
   upsert?: Prisma.CategoryUpsertWithoutRecurringBillsInput
+  disconnect?: Prisma.CategoryWhereInput | boolean
+  delete?: Prisma.CategoryWhereInput | boolean
   connect?: Prisma.CategoryWhereUniqueInput
   update?: Prisma.XOR<Prisma.XOR<Prisma.CategoryUpdateToOneWithWhereWithoutRecurringBillsInput, Prisma.CategoryUpdateWithoutRecurringBillsInput>, Prisma.CategoryUncheckedUpdateWithoutRecurringBillsInput>
+}
+
+export type CategoryCreateNestedOneWithoutRecurringBillSplitsInput = {
+  create?: Prisma.XOR<Prisma.CategoryCreateWithoutRecurringBillSplitsInput, Prisma.CategoryUncheckedCreateWithoutRecurringBillSplitsInput>
+  connectOrCreate?: Prisma.CategoryCreateOrConnectWithoutRecurringBillSplitsInput
+  connect?: Prisma.CategoryWhereUniqueInput
+}
+
+export type CategoryUpdateOneRequiredWithoutRecurringBillSplitsNestedInput = {
+  create?: Prisma.XOR<Prisma.CategoryCreateWithoutRecurringBillSplitsInput, Prisma.CategoryUncheckedCreateWithoutRecurringBillSplitsInput>
+  connectOrCreate?: Prisma.CategoryCreateOrConnectWithoutRecurringBillSplitsInput
+  upsert?: Prisma.CategoryUpsertWithoutRecurringBillSplitsInput
+  connect?: Prisma.CategoryWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.CategoryUpdateToOneWithWhereWithoutRecurringBillSplitsInput, Prisma.CategoryUpdateWithoutRecurringBillSplitsInput>, Prisma.CategoryUncheckedUpdateWithoutRecurringBillSplitsInput>
+}
+
+export type CategoryCreateNestedOneWithoutTransactionSplitsInput = {
+  create?: Prisma.XOR<Prisma.CategoryCreateWithoutTransactionSplitsInput, Prisma.CategoryUncheckedCreateWithoutTransactionSplitsInput>
+  connectOrCreate?: Prisma.CategoryCreateOrConnectWithoutTransactionSplitsInput
+  connect?: Prisma.CategoryWhereUniqueInput
+}
+
+export type CategoryUpdateOneRequiredWithoutTransactionSplitsNestedInput = {
+  create?: Prisma.XOR<Prisma.CategoryCreateWithoutTransactionSplitsInput, Prisma.CategoryUncheckedCreateWithoutTransactionSplitsInput>
+  connectOrCreate?: Prisma.CategoryCreateOrConnectWithoutTransactionSplitsInput
+  upsert?: Prisma.CategoryUpsertWithoutTransactionSplitsInput
+  connect?: Prisma.CategoryWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.CategoryUpdateToOneWithWhereWithoutTransactionSplitsInput, Prisma.CategoryUpdateWithoutTransactionSplitsInput>, Prisma.CategoryUncheckedUpdateWithoutTransactionSplitsInput>
 }
 
 export type CategoryCreateNestedOneWithoutIncomesInput = {
@@ -468,6 +519,8 @@ export type CategoryCreateWithoutHouseholdInput = {
   transactions?: Prisma.TransactionCreateNestedManyWithoutCategoryInput
   recurringBills?: Prisma.RecurringBillCreateNestedManyWithoutCategoryInput
   incomes?: Prisma.IncomeCreateNestedManyWithoutCategoryInput
+  recurringBillSplits?: Prisma.RecurringBillSplitCreateNestedManyWithoutCategoryInput
+  transactionSplits?: Prisma.TransactionSplitCreateNestedManyWithoutCategoryInput
 }
 
 export type CategoryUncheckedCreateWithoutHouseholdInput = {
@@ -479,6 +532,8 @@ export type CategoryUncheckedCreateWithoutHouseholdInput = {
   transactions?: Prisma.TransactionUncheckedCreateNestedManyWithoutCategoryInput
   recurringBills?: Prisma.RecurringBillUncheckedCreateNestedManyWithoutCategoryInput
   incomes?: Prisma.IncomeUncheckedCreateNestedManyWithoutCategoryInput
+  recurringBillSplits?: Prisma.RecurringBillSplitUncheckedCreateNestedManyWithoutCategoryInput
+  transactionSplits?: Prisma.TransactionSplitUncheckedCreateNestedManyWithoutCategoryInput
 }
 
 export type CategoryCreateOrConnectWithoutHouseholdInput = {
@@ -527,6 +582,8 @@ export type CategoryCreateWithoutBudgetsInput = {
   transactions?: Prisma.TransactionCreateNestedManyWithoutCategoryInput
   recurringBills?: Prisma.RecurringBillCreateNestedManyWithoutCategoryInput
   incomes?: Prisma.IncomeCreateNestedManyWithoutCategoryInput
+  recurringBillSplits?: Prisma.RecurringBillSplitCreateNestedManyWithoutCategoryInput
+  transactionSplits?: Prisma.TransactionSplitCreateNestedManyWithoutCategoryInput
 }
 
 export type CategoryUncheckedCreateWithoutBudgetsInput = {
@@ -538,6 +595,8 @@ export type CategoryUncheckedCreateWithoutBudgetsInput = {
   transactions?: Prisma.TransactionUncheckedCreateNestedManyWithoutCategoryInput
   recurringBills?: Prisma.RecurringBillUncheckedCreateNestedManyWithoutCategoryInput
   incomes?: Prisma.IncomeUncheckedCreateNestedManyWithoutCategoryInput
+  recurringBillSplits?: Prisma.RecurringBillSplitUncheckedCreateNestedManyWithoutCategoryInput
+  transactionSplits?: Prisma.TransactionSplitUncheckedCreateNestedManyWithoutCategoryInput
 }
 
 export type CategoryCreateOrConnectWithoutBudgetsInput = {
@@ -565,6 +624,8 @@ export type CategoryUpdateWithoutBudgetsInput = {
   transactions?: Prisma.TransactionUpdateManyWithoutCategoryNestedInput
   recurringBills?: Prisma.RecurringBillUpdateManyWithoutCategoryNestedInput
   incomes?: Prisma.IncomeUpdateManyWithoutCategoryNestedInput
+  recurringBillSplits?: Prisma.RecurringBillSplitUpdateManyWithoutCategoryNestedInput
+  transactionSplits?: Prisma.TransactionSplitUpdateManyWithoutCategoryNestedInput
 }
 
 export type CategoryUncheckedUpdateWithoutBudgetsInput = {
@@ -576,6 +637,8 @@ export type CategoryUncheckedUpdateWithoutBudgetsInput = {
   transactions?: Prisma.TransactionUncheckedUpdateManyWithoutCategoryNestedInput
   recurringBills?: Prisma.RecurringBillUncheckedUpdateManyWithoutCategoryNestedInput
   incomes?: Prisma.IncomeUncheckedUpdateManyWithoutCategoryNestedInput
+  recurringBillSplits?: Prisma.RecurringBillSplitUncheckedUpdateManyWithoutCategoryNestedInput
+  transactionSplits?: Prisma.TransactionSplitUncheckedUpdateManyWithoutCategoryNestedInput
 }
 
 export type CategoryCreateWithoutTransactionsInput = {
@@ -587,6 +650,8 @@ export type CategoryCreateWithoutTransactionsInput = {
   budgets?: Prisma.BudgetCategoryCreateNestedManyWithoutCategoryInput
   recurringBills?: Prisma.RecurringBillCreateNestedManyWithoutCategoryInput
   incomes?: Prisma.IncomeCreateNestedManyWithoutCategoryInput
+  recurringBillSplits?: Prisma.RecurringBillSplitCreateNestedManyWithoutCategoryInput
+  transactionSplits?: Prisma.TransactionSplitCreateNestedManyWithoutCategoryInput
 }
 
 export type CategoryUncheckedCreateWithoutTransactionsInput = {
@@ -598,6 +663,8 @@ export type CategoryUncheckedCreateWithoutTransactionsInput = {
   budgets?: Prisma.BudgetCategoryUncheckedCreateNestedManyWithoutCategoryInput
   recurringBills?: Prisma.RecurringBillUncheckedCreateNestedManyWithoutCategoryInput
   incomes?: Prisma.IncomeUncheckedCreateNestedManyWithoutCategoryInput
+  recurringBillSplits?: Prisma.RecurringBillSplitUncheckedCreateNestedManyWithoutCategoryInput
+  transactionSplits?: Prisma.TransactionSplitUncheckedCreateNestedManyWithoutCategoryInput
 }
 
 export type CategoryCreateOrConnectWithoutTransactionsInput = {
@@ -625,6 +692,8 @@ export type CategoryUpdateWithoutTransactionsInput = {
   budgets?: Prisma.BudgetCategoryUpdateManyWithoutCategoryNestedInput
   recurringBills?: Prisma.RecurringBillUpdateManyWithoutCategoryNestedInput
   incomes?: Prisma.IncomeUpdateManyWithoutCategoryNestedInput
+  recurringBillSplits?: Prisma.RecurringBillSplitUpdateManyWithoutCategoryNestedInput
+  transactionSplits?: Prisma.TransactionSplitUpdateManyWithoutCategoryNestedInput
 }
 
 export type CategoryUncheckedUpdateWithoutTransactionsInput = {
@@ -636,6 +705,8 @@ export type CategoryUncheckedUpdateWithoutTransactionsInput = {
   budgets?: Prisma.BudgetCategoryUncheckedUpdateManyWithoutCategoryNestedInput
   recurringBills?: Prisma.RecurringBillUncheckedUpdateManyWithoutCategoryNestedInput
   incomes?: Prisma.IncomeUncheckedUpdateManyWithoutCategoryNestedInput
+  recurringBillSplits?: Prisma.RecurringBillSplitUncheckedUpdateManyWithoutCategoryNestedInput
+  transactionSplits?: Prisma.TransactionSplitUncheckedUpdateManyWithoutCategoryNestedInput
 }
 
 export type CategoryCreateWithoutRecurringBillsInput = {
@@ -647,6 +718,8 @@ export type CategoryCreateWithoutRecurringBillsInput = {
   budgets?: Prisma.BudgetCategoryCreateNestedManyWithoutCategoryInput
   transactions?: Prisma.TransactionCreateNestedManyWithoutCategoryInput
   incomes?: Prisma.IncomeCreateNestedManyWithoutCategoryInput
+  recurringBillSplits?: Prisma.RecurringBillSplitCreateNestedManyWithoutCategoryInput
+  transactionSplits?: Prisma.TransactionSplitCreateNestedManyWithoutCategoryInput
 }
 
 export type CategoryUncheckedCreateWithoutRecurringBillsInput = {
@@ -658,6 +731,8 @@ export type CategoryUncheckedCreateWithoutRecurringBillsInput = {
   budgets?: Prisma.BudgetCategoryUncheckedCreateNestedManyWithoutCategoryInput
   transactions?: Prisma.TransactionUncheckedCreateNestedManyWithoutCategoryInput
   incomes?: Prisma.IncomeUncheckedCreateNestedManyWithoutCategoryInput
+  recurringBillSplits?: Prisma.RecurringBillSplitUncheckedCreateNestedManyWithoutCategoryInput
+  transactionSplits?: Prisma.TransactionSplitUncheckedCreateNestedManyWithoutCategoryInput
 }
 
 export type CategoryCreateOrConnectWithoutRecurringBillsInput = {
@@ -685,6 +760,8 @@ export type CategoryUpdateWithoutRecurringBillsInput = {
   budgets?: Prisma.BudgetCategoryUpdateManyWithoutCategoryNestedInput
   transactions?: Prisma.TransactionUpdateManyWithoutCategoryNestedInput
   incomes?: Prisma.IncomeUpdateManyWithoutCategoryNestedInput
+  recurringBillSplits?: Prisma.RecurringBillSplitUpdateManyWithoutCategoryNestedInput
+  transactionSplits?: Prisma.TransactionSplitUpdateManyWithoutCategoryNestedInput
 }
 
 export type CategoryUncheckedUpdateWithoutRecurringBillsInput = {
@@ -696,6 +773,144 @@ export type CategoryUncheckedUpdateWithoutRecurringBillsInput = {
   budgets?: Prisma.BudgetCategoryUncheckedUpdateManyWithoutCategoryNestedInput
   transactions?: Prisma.TransactionUncheckedUpdateManyWithoutCategoryNestedInput
   incomes?: Prisma.IncomeUncheckedUpdateManyWithoutCategoryNestedInput
+  recurringBillSplits?: Prisma.RecurringBillSplitUncheckedUpdateManyWithoutCategoryNestedInput
+  transactionSplits?: Prisma.TransactionSplitUncheckedUpdateManyWithoutCategoryNestedInput
+}
+
+export type CategoryCreateWithoutRecurringBillSplitsInput = {
+  id?: string
+  name: string
+  types?: Prisma.CategoryCreatetypesInput | $Enums.CategoryType[]
+  createdAt?: Date | string
+  household: Prisma.HouseholdCreateNestedOneWithoutCategoriesInput
+  budgets?: Prisma.BudgetCategoryCreateNestedManyWithoutCategoryInput
+  transactions?: Prisma.TransactionCreateNestedManyWithoutCategoryInput
+  recurringBills?: Prisma.RecurringBillCreateNestedManyWithoutCategoryInput
+  incomes?: Prisma.IncomeCreateNestedManyWithoutCategoryInput
+  transactionSplits?: Prisma.TransactionSplitCreateNestedManyWithoutCategoryInput
+}
+
+export type CategoryUncheckedCreateWithoutRecurringBillSplitsInput = {
+  id?: string
+  name: string
+  types?: Prisma.CategoryCreatetypesInput | $Enums.CategoryType[]
+  householdId: string
+  createdAt?: Date | string
+  budgets?: Prisma.BudgetCategoryUncheckedCreateNestedManyWithoutCategoryInput
+  transactions?: Prisma.TransactionUncheckedCreateNestedManyWithoutCategoryInput
+  recurringBills?: Prisma.RecurringBillUncheckedCreateNestedManyWithoutCategoryInput
+  incomes?: Prisma.IncomeUncheckedCreateNestedManyWithoutCategoryInput
+  transactionSplits?: Prisma.TransactionSplitUncheckedCreateNestedManyWithoutCategoryInput
+}
+
+export type CategoryCreateOrConnectWithoutRecurringBillSplitsInput = {
+  where: Prisma.CategoryWhereUniqueInput
+  create: Prisma.XOR<Prisma.CategoryCreateWithoutRecurringBillSplitsInput, Prisma.CategoryUncheckedCreateWithoutRecurringBillSplitsInput>
+}
+
+export type CategoryUpsertWithoutRecurringBillSplitsInput = {
+  update: Prisma.XOR<Prisma.CategoryUpdateWithoutRecurringBillSplitsInput, Prisma.CategoryUncheckedUpdateWithoutRecurringBillSplitsInput>
+  create: Prisma.XOR<Prisma.CategoryCreateWithoutRecurringBillSplitsInput, Prisma.CategoryUncheckedCreateWithoutRecurringBillSplitsInput>
+  where?: Prisma.CategoryWhereInput
+}
+
+export type CategoryUpdateToOneWithWhereWithoutRecurringBillSplitsInput = {
+  where?: Prisma.CategoryWhereInput
+  data: Prisma.XOR<Prisma.CategoryUpdateWithoutRecurringBillSplitsInput, Prisma.CategoryUncheckedUpdateWithoutRecurringBillSplitsInput>
+}
+
+export type CategoryUpdateWithoutRecurringBillSplitsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  types?: Prisma.CategoryUpdatetypesInput | $Enums.CategoryType[]
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  household?: Prisma.HouseholdUpdateOneRequiredWithoutCategoriesNestedInput
+  budgets?: Prisma.BudgetCategoryUpdateManyWithoutCategoryNestedInput
+  transactions?: Prisma.TransactionUpdateManyWithoutCategoryNestedInput
+  recurringBills?: Prisma.RecurringBillUpdateManyWithoutCategoryNestedInput
+  incomes?: Prisma.IncomeUpdateManyWithoutCategoryNestedInput
+  transactionSplits?: Prisma.TransactionSplitUpdateManyWithoutCategoryNestedInput
+}
+
+export type CategoryUncheckedUpdateWithoutRecurringBillSplitsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  types?: Prisma.CategoryUpdatetypesInput | $Enums.CategoryType[]
+  householdId?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  budgets?: Prisma.BudgetCategoryUncheckedUpdateManyWithoutCategoryNestedInput
+  transactions?: Prisma.TransactionUncheckedUpdateManyWithoutCategoryNestedInput
+  recurringBills?: Prisma.RecurringBillUncheckedUpdateManyWithoutCategoryNestedInput
+  incomes?: Prisma.IncomeUncheckedUpdateManyWithoutCategoryNestedInput
+  transactionSplits?: Prisma.TransactionSplitUncheckedUpdateManyWithoutCategoryNestedInput
+}
+
+export type CategoryCreateWithoutTransactionSplitsInput = {
+  id?: string
+  name: string
+  types?: Prisma.CategoryCreatetypesInput | $Enums.CategoryType[]
+  createdAt?: Date | string
+  household: Prisma.HouseholdCreateNestedOneWithoutCategoriesInput
+  budgets?: Prisma.BudgetCategoryCreateNestedManyWithoutCategoryInput
+  transactions?: Prisma.TransactionCreateNestedManyWithoutCategoryInput
+  recurringBills?: Prisma.RecurringBillCreateNestedManyWithoutCategoryInput
+  incomes?: Prisma.IncomeCreateNestedManyWithoutCategoryInput
+  recurringBillSplits?: Prisma.RecurringBillSplitCreateNestedManyWithoutCategoryInput
+}
+
+export type CategoryUncheckedCreateWithoutTransactionSplitsInput = {
+  id?: string
+  name: string
+  types?: Prisma.CategoryCreatetypesInput | $Enums.CategoryType[]
+  householdId: string
+  createdAt?: Date | string
+  budgets?: Prisma.BudgetCategoryUncheckedCreateNestedManyWithoutCategoryInput
+  transactions?: Prisma.TransactionUncheckedCreateNestedManyWithoutCategoryInput
+  recurringBills?: Prisma.RecurringBillUncheckedCreateNestedManyWithoutCategoryInput
+  incomes?: Prisma.IncomeUncheckedCreateNestedManyWithoutCategoryInput
+  recurringBillSplits?: Prisma.RecurringBillSplitUncheckedCreateNestedManyWithoutCategoryInput
+}
+
+export type CategoryCreateOrConnectWithoutTransactionSplitsInput = {
+  where: Prisma.CategoryWhereUniqueInput
+  create: Prisma.XOR<Prisma.CategoryCreateWithoutTransactionSplitsInput, Prisma.CategoryUncheckedCreateWithoutTransactionSplitsInput>
+}
+
+export type CategoryUpsertWithoutTransactionSplitsInput = {
+  update: Prisma.XOR<Prisma.CategoryUpdateWithoutTransactionSplitsInput, Prisma.CategoryUncheckedUpdateWithoutTransactionSplitsInput>
+  create: Prisma.XOR<Prisma.CategoryCreateWithoutTransactionSplitsInput, Prisma.CategoryUncheckedCreateWithoutTransactionSplitsInput>
+  where?: Prisma.CategoryWhereInput
+}
+
+export type CategoryUpdateToOneWithWhereWithoutTransactionSplitsInput = {
+  where?: Prisma.CategoryWhereInput
+  data: Prisma.XOR<Prisma.CategoryUpdateWithoutTransactionSplitsInput, Prisma.CategoryUncheckedUpdateWithoutTransactionSplitsInput>
+}
+
+export type CategoryUpdateWithoutTransactionSplitsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  types?: Prisma.CategoryUpdatetypesInput | $Enums.CategoryType[]
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  household?: Prisma.HouseholdUpdateOneRequiredWithoutCategoriesNestedInput
+  budgets?: Prisma.BudgetCategoryUpdateManyWithoutCategoryNestedInput
+  transactions?: Prisma.TransactionUpdateManyWithoutCategoryNestedInput
+  recurringBills?: Prisma.RecurringBillUpdateManyWithoutCategoryNestedInput
+  incomes?: Prisma.IncomeUpdateManyWithoutCategoryNestedInput
+  recurringBillSplits?: Prisma.RecurringBillSplitUpdateManyWithoutCategoryNestedInput
+}
+
+export type CategoryUncheckedUpdateWithoutTransactionSplitsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  types?: Prisma.CategoryUpdatetypesInput | $Enums.CategoryType[]
+  householdId?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  budgets?: Prisma.BudgetCategoryUncheckedUpdateManyWithoutCategoryNestedInput
+  transactions?: Prisma.TransactionUncheckedUpdateManyWithoutCategoryNestedInput
+  recurringBills?: Prisma.RecurringBillUncheckedUpdateManyWithoutCategoryNestedInput
+  incomes?: Prisma.IncomeUncheckedUpdateManyWithoutCategoryNestedInput
+  recurringBillSplits?: Prisma.RecurringBillSplitUncheckedUpdateManyWithoutCategoryNestedInput
 }
 
 export type CategoryCreateWithoutIncomesInput = {
@@ -707,6 +922,8 @@ export type CategoryCreateWithoutIncomesInput = {
   budgets?: Prisma.BudgetCategoryCreateNestedManyWithoutCategoryInput
   transactions?: Prisma.TransactionCreateNestedManyWithoutCategoryInput
   recurringBills?: Prisma.RecurringBillCreateNestedManyWithoutCategoryInput
+  recurringBillSplits?: Prisma.RecurringBillSplitCreateNestedManyWithoutCategoryInput
+  transactionSplits?: Prisma.TransactionSplitCreateNestedManyWithoutCategoryInput
 }
 
 export type CategoryUncheckedCreateWithoutIncomesInput = {
@@ -718,6 +935,8 @@ export type CategoryUncheckedCreateWithoutIncomesInput = {
   budgets?: Prisma.BudgetCategoryUncheckedCreateNestedManyWithoutCategoryInput
   transactions?: Prisma.TransactionUncheckedCreateNestedManyWithoutCategoryInput
   recurringBills?: Prisma.RecurringBillUncheckedCreateNestedManyWithoutCategoryInput
+  recurringBillSplits?: Prisma.RecurringBillSplitUncheckedCreateNestedManyWithoutCategoryInput
+  transactionSplits?: Prisma.TransactionSplitUncheckedCreateNestedManyWithoutCategoryInput
 }
 
 export type CategoryCreateOrConnectWithoutIncomesInput = {
@@ -745,6 +964,8 @@ export type CategoryUpdateWithoutIncomesInput = {
   budgets?: Prisma.BudgetCategoryUpdateManyWithoutCategoryNestedInput
   transactions?: Prisma.TransactionUpdateManyWithoutCategoryNestedInput
   recurringBills?: Prisma.RecurringBillUpdateManyWithoutCategoryNestedInput
+  recurringBillSplits?: Prisma.RecurringBillSplitUpdateManyWithoutCategoryNestedInput
+  transactionSplits?: Prisma.TransactionSplitUpdateManyWithoutCategoryNestedInput
 }
 
 export type CategoryUncheckedUpdateWithoutIncomesInput = {
@@ -756,6 +977,8 @@ export type CategoryUncheckedUpdateWithoutIncomesInput = {
   budgets?: Prisma.BudgetCategoryUncheckedUpdateManyWithoutCategoryNestedInput
   transactions?: Prisma.TransactionUncheckedUpdateManyWithoutCategoryNestedInput
   recurringBills?: Prisma.RecurringBillUncheckedUpdateManyWithoutCategoryNestedInput
+  recurringBillSplits?: Prisma.RecurringBillSplitUncheckedUpdateManyWithoutCategoryNestedInput
+  transactionSplits?: Prisma.TransactionSplitUncheckedUpdateManyWithoutCategoryNestedInput
 }
 
 export type CategoryCreateManyHouseholdInput = {
@@ -774,6 +997,8 @@ export type CategoryUpdateWithoutHouseholdInput = {
   transactions?: Prisma.TransactionUpdateManyWithoutCategoryNestedInput
   recurringBills?: Prisma.RecurringBillUpdateManyWithoutCategoryNestedInput
   incomes?: Prisma.IncomeUpdateManyWithoutCategoryNestedInput
+  recurringBillSplits?: Prisma.RecurringBillSplitUpdateManyWithoutCategoryNestedInput
+  transactionSplits?: Prisma.TransactionSplitUpdateManyWithoutCategoryNestedInput
 }
 
 export type CategoryUncheckedUpdateWithoutHouseholdInput = {
@@ -785,6 +1010,8 @@ export type CategoryUncheckedUpdateWithoutHouseholdInput = {
   transactions?: Prisma.TransactionUncheckedUpdateManyWithoutCategoryNestedInput
   recurringBills?: Prisma.RecurringBillUncheckedUpdateManyWithoutCategoryNestedInput
   incomes?: Prisma.IncomeUncheckedUpdateManyWithoutCategoryNestedInput
+  recurringBillSplits?: Prisma.RecurringBillSplitUncheckedUpdateManyWithoutCategoryNestedInput
+  transactionSplits?: Prisma.TransactionSplitUncheckedUpdateManyWithoutCategoryNestedInput
 }
 
 export type CategoryUncheckedUpdateManyWithoutHouseholdInput = {
@@ -804,6 +1031,8 @@ export type CategoryCountOutputType = {
   transactions: number
   recurringBills: number
   incomes: number
+  recurringBillSplits: number
+  transactionSplits: number
 }
 
 export type CategoryCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -811,6 +1040,8 @@ export type CategoryCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensio
   transactions?: boolean | CategoryCountOutputTypeCountTransactionsArgs
   recurringBills?: boolean | CategoryCountOutputTypeCountRecurringBillsArgs
   incomes?: boolean | CategoryCountOutputTypeCountIncomesArgs
+  recurringBillSplits?: boolean | CategoryCountOutputTypeCountRecurringBillSplitsArgs
+  transactionSplits?: boolean | CategoryCountOutputTypeCountTransactionSplitsArgs
 }
 
 /**
@@ -851,6 +1082,20 @@ export type CategoryCountOutputTypeCountIncomesArgs<ExtArgs extends runtime.Type
   where?: Prisma.IncomeWhereInput
 }
 
+/**
+ * CategoryCountOutputType without action
+ */
+export type CategoryCountOutputTypeCountRecurringBillSplitsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.RecurringBillSplitWhereInput
+}
+
+/**
+ * CategoryCountOutputType without action
+ */
+export type CategoryCountOutputTypeCountTransactionSplitsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.TransactionSplitWhereInput
+}
+
 
 export type CategorySelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -863,6 +1108,8 @@ export type CategorySelect<ExtArgs extends runtime.Types.Extensions.InternalArgs
   transactions?: boolean | Prisma.Category$transactionsArgs<ExtArgs>
   recurringBills?: boolean | Prisma.Category$recurringBillsArgs<ExtArgs>
   incomes?: boolean | Prisma.Category$incomesArgs<ExtArgs>
+  recurringBillSplits?: boolean | Prisma.Category$recurringBillSplitsArgs<ExtArgs>
+  transactionSplits?: boolean | Prisma.Category$transactionSplitsArgs<ExtArgs>
   _count?: boolean | Prisma.CategoryCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["category"]>
 
@@ -899,6 +1146,8 @@ export type CategoryInclude<ExtArgs extends runtime.Types.Extensions.InternalArg
   transactions?: boolean | Prisma.Category$transactionsArgs<ExtArgs>
   recurringBills?: boolean | Prisma.Category$recurringBillsArgs<ExtArgs>
   incomes?: boolean | Prisma.Category$incomesArgs<ExtArgs>
+  recurringBillSplits?: boolean | Prisma.Category$recurringBillSplitsArgs<ExtArgs>
+  transactionSplits?: boolean | Prisma.Category$transactionSplitsArgs<ExtArgs>
   _count?: boolean | Prisma.CategoryCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type CategoryIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -916,6 +1165,8 @@ export type $CategoryPayload<ExtArgs extends runtime.Types.Extensions.InternalAr
     transactions: Prisma.$TransactionPayload<ExtArgs>[]
     recurringBills: Prisma.$RecurringBillPayload<ExtArgs>[]
     incomes: Prisma.$IncomePayload<ExtArgs>[]
+    recurringBillSplits: Prisma.$RecurringBillSplitPayload<ExtArgs>[]
+    transactionSplits: Prisma.$TransactionSplitPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1322,6 +1573,8 @@ export interface Prisma__CategoryClient<T, Null = never, ExtArgs extends runtime
   transactions<T extends Prisma.Category$transactionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Category$transactionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$TransactionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   recurringBills<T extends Prisma.Category$recurringBillsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Category$recurringBillsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$RecurringBillPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   incomes<T extends Prisma.Category$incomesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Category$incomesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$IncomePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  recurringBillSplits<T extends Prisma.Category$recurringBillSplitsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Category$recurringBillSplitsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$RecurringBillSplitPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  transactionSplits<T extends Prisma.Category$transactionSplitsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Category$transactionSplitsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$TransactionSplitPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1845,6 +2098,54 @@ export type Category$incomesArgs<ExtArgs extends runtime.Types.Extensions.Intern
   take?: number
   skip?: number
   distinct?: Prisma.IncomeScalarFieldEnum | Prisma.IncomeScalarFieldEnum[]
+}
+
+/**
+ * Category.recurringBillSplits
+ */
+export type Category$recurringBillSplitsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the RecurringBillSplit
+   */
+  select?: Prisma.RecurringBillSplitSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the RecurringBillSplit
+   */
+  omit?: Prisma.RecurringBillSplitOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.RecurringBillSplitInclude<ExtArgs> | null
+  where?: Prisma.RecurringBillSplitWhereInput
+  orderBy?: Prisma.RecurringBillSplitOrderByWithRelationInput | Prisma.RecurringBillSplitOrderByWithRelationInput[]
+  cursor?: Prisma.RecurringBillSplitWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.RecurringBillSplitScalarFieldEnum | Prisma.RecurringBillSplitScalarFieldEnum[]
+}
+
+/**
+ * Category.transactionSplits
+ */
+export type Category$transactionSplitsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the TransactionSplit
+   */
+  select?: Prisma.TransactionSplitSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the TransactionSplit
+   */
+  omit?: Prisma.TransactionSplitOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.TransactionSplitInclude<ExtArgs> | null
+  where?: Prisma.TransactionSplitWhereInput
+  orderBy?: Prisma.TransactionSplitOrderByWithRelationInput | Prisma.TransactionSplitOrderByWithRelationInput[]
+  cursor?: Prisma.TransactionSplitWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.TransactionSplitScalarFieldEnum | Prisma.TransactionSplitScalarFieldEnum[]
 }
 
 /**

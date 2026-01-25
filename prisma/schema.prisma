@@ -100,6 +100,8 @@ model Category {
   transactions Transaction[]
   recurringBills RecurringBill[]
   incomes      Income[]
+  recurringBillSplits RecurringBillSplit[]
+  transactionSplits   TransactionSplit[]
 
   @@index([householdId])
 }
@@ -161,7 +163,7 @@ model Transaction {
   amount      Float
   date        DateTime
   notes       String?
-  categoryId  String
+  categoryId  String?
   accountId   String
   budgetId    String?
   billId      String?  // Optional link to bill
@@ -170,12 +172,13 @@ model Transaction {
   createdAt   DateTime @default(now())
 
   // Relations
-  category  Category   @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  category  Category?  @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   account   Account    @relation(fields: [accountId], references: [id], onDelete: Restrict)
   budget    Budget?    @relation(fields: [budgetId], references: [id], onDelete: Cascade)
   bill      Bill?      @relation(fields: [billId], references: [id], onDelete: SetNull)
   recipient Recipient? @relation(fields: [recipientId], references: [id], onDelete: SetNull)
   income    Income?    @relation(fields: [incomeId], references: [id], onDelete: SetNull)
+  splits    TransactionSplit[]
 
   @@index([budgetId])
   @@index([categoryId])
@@ -197,16 +200,17 @@ model RecurringBill {
   customIntervalDays Int?           // For CUSTOM recurrence
   estimatedAmount    Float
   lastPaymentDate    DateTime?      // Final payment date (stop date)
-  categoryId         String
+  categoryId         String?
   budgetId           String
   isArchived         Boolean        @default(false)
   createdAt          DateTime       @default(now())
 
   // Relations
   account      Account       @relation(fields: [accountId], references: [id], onDelete: Restrict)
-  category     Category      @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  category     Category?     @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   budget       Budget        @relation(fields: [budgetId], references: [id], onDelete: Cascade)
   bills        Bill[]        // The generated instances
+  splits       RecurringBillSplit[]
 
   @@index([budgetId])
   @@index([accountId])
@@ -227,6 +231,34 @@ model Bill {
 
   @@index([recurringBillId])
   @@index([dueDate])
+}
+
+model RecurringBillSplit {
+  id              String        @id @default(cuid())
+  recurringBillId String
+  categoryId      String
+  amount          Float
+  subtitle        String
+
+  recurringBill RecurringBill @relation(fields: [recurringBillId], references: [id], onDelete: Cascade)
+  category      Category      @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+  @@index([recurringBillId])
+  @@index([categoryId])
+}
+
+model TransactionSplit {
+  id            String      @id @default(cuid())
+  transactionId String
+  categoryId    String
+  amount        Float
+  subtitle      String
+
+  transaction Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  category    Category    @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+  @@index([transactionId])
+  @@index([categoryId])
 }
 
 // Recipient model stores both expense recipients and income senders

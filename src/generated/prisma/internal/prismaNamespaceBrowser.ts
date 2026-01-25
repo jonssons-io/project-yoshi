@@ -62,6 +62,8 @@ export const ModelName = {
   Transaction: 'Transaction',
   RecurringBill: 'RecurringBill',
   Bill: 'Bill',
+  RecurringBillSplit: 'RecurringBillSplit',
+  TransactionSplit: 'TransactionSplit',
   Recipient: 'Recipient',
   Transfer: 'Transfer',
   Income: 'Income',
@@ -212,6 +214,28 @@ export const BillScalarFieldEnum = {
 } as const
 
 export type BillScalarFieldEnum = (typeof BillScalarFieldEnum)[keyof typeof BillScalarFieldEnum]
+
+
+export const RecurringBillSplitScalarFieldEnum = {
+  id: 'id',
+  recurringBillId: 'recurringBillId',
+  categoryId: 'categoryId',
+  amount: 'amount',
+  subtitle: 'subtitle'
+} as const
+
+export type RecurringBillSplitScalarFieldEnum = (typeof RecurringBillSplitScalarFieldEnum)[keyof typeof RecurringBillSplitScalarFieldEnum]
+
+
+export const TransactionSplitScalarFieldEnum = {
+  id: 'id',
+  transactionId: 'transactionId',
+  categoryId: 'categoryId',
+  amount: 'amount',
+  subtitle: 'subtitle'
+} as const
+
+export type TransactionSplitScalarFieldEnum = (typeof TransactionSplitScalarFieldEnum)[keyof typeof TransactionSplitScalarFieldEnum]
 
 
 export const RecipientScalarFieldEnum = {

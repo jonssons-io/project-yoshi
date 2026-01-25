@@ -40,16 +40,25 @@ const billSchema = z.object({
 		{ message: 'Recurrence type is required' }
 	),
 	customIntervalDays: z.number().int().positive().optional(),
-	estimatedAmount: z.number().positive({ message: 'Amount must be positive' }),
 	lastPaymentDate: z.date().optional().nullable(),
-	// Category can be either an existing ID or a new category to create
-	category: z.union([
-		z.string().min(1, { message: 'Category is required' }),
-		z.object({
-			isNew: z.literal(true),
-			name: z.string().min(1, { message: 'Category name is required' })
-		})
-	])
+
+	// Splits
+	splits: z
+		.array(
+			z.object({
+				subtitle: z.string().min(1, 'Subtitle is required'),
+				amount: z.number().positive('Amount must be positive'),
+				// Category logic same as before but per split
+				category: z.union([
+					z.string().min(1, { message: 'Category is required' }),
+					z.object({
+						isNew: z.literal(true),
+						name: z.string().min(1, { message: 'Category name is required' })
+					})
+				])
+			})
+		)
+		.min(1, 'At least one section is required')
 })
 
 export type BillFormData = z.infer<typeof billSchema>
@@ -65,6 +74,11 @@ interface BillFormProps {
 		estimatedAmount?: number
 		lastPaymentDate?: Date | null
 		categoryId?: string
+		splits?: Array<{
+			subtitle: string
+			amount: number
+			categoryId: string
+		}>
 	}
 	onSubmit: (data: BillFormData) => void
 	onCancel: () => void
@@ -84,6 +98,13 @@ const recurrenceOptions = [
 	{ value: RecurrenceType.CUSTOM, label: 'Custom interval' }
 ]
 
+import { Plus, Trash2 } from 'lucide-react'
+import { useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
+
 export function BillForm({
 	initialData,
 	onSubmit,
@@ -93,6 +114,24 @@ export function BillForm({
 	recipients,
 	isSubmitting
 }: BillFormProps) {
+	// Prepare initial splits
+	const initialSplits =
+		initialData?.splits && initialData.splits.length > 0
+			? initialData.splits.map((s) => ({
+					subtitle: s.subtitle,
+					amount: s.amount,
+					category: s.categoryId as ComboboxValue
+				}))
+			: [
+					{
+						subtitle: 'Main',
+						amount: initialData?.estimatedAmount ?? 0,
+						category: (initialData?.categoryId ?? '') as ComboboxValue
+					}
+				]
+
+	const [isSplit, setIsSplit] = useState((initialData?.splits?.length ?? 0) > 1)
+
 	const form = useAppForm({
 		defaultValues: {
 			name: initialData?.name ?? '',
@@ -108,13 +147,16 @@ export function BillForm({
 			startDate: initialData?.startDate ?? new Date(),
 			recurrenceType: initialData?.recurrenceType ?? RecurrenceType.MONTHLY,
 			customIntervalDays: initialData?.customIntervalDays ?? undefined,
-			estimatedAmount: initialData?.estimatedAmount ?? 0,
 			lastPaymentDate: initialData?.lastPaymentDate ?? null,
-			category: (initialData?.categoryId ?? '') as ComboboxValue
+			splits: initialSplits
 		},
 		onSubmit: async ({ value }) => {
 			const data = validateForm(billSchema, value)
-			await onSubmit(data)
+			const estimatedAmount = data.splits.reduce((sum, s) => sum + s.amount, 0)
+			await onSubmit({
+				...data,
+				estimatedAmount
+			} as BillFormData)
 		}
 	})
 
@@ -179,35 +221,204 @@ export function BillForm({
 				)}
 			</form.AppField>
 
-			{/* Category ComboboxField with inline creation */}
-			<form.AppField name="category">
-				{(field) => (
-					<field.ComboboxField
-						label="Category"
-						placeholder="Select or create a category"
-						searchPlaceholder="Search categories..."
-						emptyText="No categories found"
-						options={categoryOptions}
-						allowCreate
-						createLabel="Create expense category"
-					/>
-				)}
-			</form.AppField>
+			<div className="space-y-4">
+				<div className="flex items-center justify-between">
+					<div className="flex items-center space-x-2">
+						<Switch
+							id="split-mode"
+							checked={isSplit}
+							onCheckedChange={(checked) => {
+								if (!checked && form.getFieldValue('splits').length > 1) {
+									if (
+										!confirm(
+											'Disabling split mode will remove additional sections. Continue?'
+										)
+									) {
+										return
+									}
+									// Reset to single split
+									const firstSplit = form.getFieldValue('splits')[0]
+									form.setFieldValue('splits', [firstSplit])
+								}
+								setIsSplit(checked)
+							}}
+						/>
+						<Label htmlFor="split-mode">Split this bill</Label>
+					</div>
+					{isSplit && (
+						<form.Subscribe selector={(state) => state.values.splits}>
+							{(splits) => (
+								<span className="text-sm text-muted-foreground font-medium">
+									Total:{' '}
+									{new Intl.NumberFormat('en-US', {
+										style: 'currency',
+										currency: 'SEK'
+									}).format(
+										splits.reduce((sum, s) => sum + (s.amount || 0), 0)
+									)}
+								</span>
+							)}
+						</form.Subscribe>
+					)}
+				</div>
 
-			<form.AppField
-				name="estimatedAmount"
-				validators={{
-					onChange: createZodValidator(billSchema.shape.estimatedAmount)
-				}}
-			>
-				{(field) => (
-					<field.NumberField
-						label="Estimated Amount"
-						placeholder="0.00"
-						step="0.01"
-					/>
-				)}
-			</form.AppField>
+				<form.Field name="splits" mode="array">
+					{(field) => (
+						<div className="space-y-3">
+							{!isSplit ? (
+								// Simple Mode: Single Split
+								<div className="space-y-4">
+									<form.AppField
+										name="splits[0].amount"
+										validators={{
+											onChange: createZodValidator(z.number().positive())
+										}}
+									>
+										{(amtField) => (
+											<amtField.NumberField
+												label="Amount"
+												placeholder="0.00"
+												min={0}
+												step="0.01"
+											/>
+										)}
+									</form.AppField>
+
+									<form.AppField
+										name="splits[0].category"
+										validators={{
+											onChange: createZodValidator(
+												z.union([
+													z.string().min(1, 'Category is required'),
+													z.object({
+														isNew: z.literal(true),
+														name: z.string().min(1, 'Category name is required')
+													})
+												])
+											)
+										}}
+									>
+										{(catField) => (
+											<catField.ComboboxField
+												label="Category"
+												placeholder="Select category"
+												options={categoryOptions}
+												allowCreate
+												createLabel="Create expense category"
+											/>
+										)}
+									</form.AppField>
+								</div>
+							) : (
+								// Split Mode: Multiple Sections
+								<>
+									{field.state.value.map((_, index) => (
+										<Card key={index} className="bg-muted/30">
+											<CardContent className="p-3 space-y-3">
+												<div className="flex gap-2">
+													<div className="flex-1">
+														<form.AppField
+															name={`splits[${index}].subtitle`}
+															validators={{
+																onChange: createZodValidator(
+																	z.string().min(1, 'Required')
+																)
+															}}
+														>
+															{(subField) => (
+																<subField.TextField
+																	label={index === 0 ? 'Subtitle' : ''}
+																	placeholder="e.g. Interest"
+																/>
+															)}
+														</form.AppField>
+													</div>
+													<div className="w-32">
+														<form.AppField
+															name={`splits[${index}].amount`}
+															validators={{
+																onChange: createZodValidator(
+																	z.number().positive()
+																)
+															}}
+														>
+															{(amtField) => (
+																<amtField.NumberField
+																	label={index === 0 ? 'Amount' : ''}
+																	placeholder="0.00"
+																	min={0}
+																	step="0.01"
+																/>
+															)}
+														</form.AppField>
+													</div>
+													<div className="pt-2">
+														{field.state.value.length > 1 && (
+															<Button
+																type="button"
+																variant="ghost"
+																size="icon"
+																className={index === 0 ? 'mt-6' : ''}
+																onClick={() => field.removeValue(index)}
+																title="Remove section"
+															>
+																<Trash2 className="h-4 w-4 text-destructive" />
+															</Button>
+														)}
+													</div>
+												</div>
+
+												<form.AppField
+													name={`splits[${index}].category`}
+													validators={{
+														onChange: createZodValidator(
+															z.union([
+																z.string().min(1, 'Category is required'),
+																z.object({
+																	isNew: z.literal(true),
+																	name: z
+																		.string()
+																		.min(1, 'Category name is required')
+																})
+															])
+														)
+													}}
+												>
+													{(catField) => (
+														<catField.ComboboxField
+															label={index === 0 ? 'Category' : ''}
+															placeholder="Select category"
+															options={categoryOptions}
+															allowCreate
+															createLabel="Create expense category"
+														/>
+													)}
+												</form.AppField>
+											</CardContent>
+										</Card>
+									))}
+									<Button
+										type="button"
+										variant="outline"
+										size="sm"
+										onClick={() =>
+											field.pushValue({
+												subtitle: '',
+												amount: 0,
+												category: ''
+											})
+										}
+										className="w-full border-dashed"
+									>
+										<Plus className="h-4 w-4 mr-2" />
+										Add Section
+									</Button>
+								</>
+							)}
+						</div>
+					)}
+				</form.Field>
+			</div>
 
 			<form.AppField
 				name="startDate"

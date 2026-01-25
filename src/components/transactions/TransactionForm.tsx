@@ -5,10 +5,12 @@
  * - Income/Expense type selector
  * - Category filtering based on transaction type
  * - Inline category creation via ComboboxField
+ * - Split transaction support for expenses
  */
 
-import { AlertTriangleIcon } from 'lucide-react'
-import { useId, useState } from 'react'
+import type { inferRouterOutputs } from '@trpc/server'
+import { AlertTriangleIcon, Plus, Trash2 } from 'lucide-react'
+import { useEffect, useId, useState } from 'react'
 import { z } from 'zod'
 import {
 	type ComboboxValue,
@@ -17,44 +19,87 @@ import {
 	validateForm
 } from '@/components/form'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
 import { RecurrenceType } from '@/generated/prisma/enums'
-import type { RouterOutputs } from '@/integrations/trpc/router'
+import type { TRPCRouter } from '@/integrations/trpc/router'
 
+type RouterOutputs = inferRouterOutputs<TRPCRouter>
 type BudgetWithDetails = RouterOutputs['budgets']['list'][number]
 
 // Schema with discriminated category field
-const transactionSchema = z.object({
-	name: z.string().min(1, { message: 'Transaction name is required' }),
-	amount: z.number().positive({ message: 'Amount must be positive' }),
-	date: z.date({ message: 'Date is required' }),
-	transactionType: z.enum(['INCOME', 'EXPENSE']),
-	// Category can be either an existing ID or a new category to create
-	category: z.union([
-		z.string().min(1, { message: 'Category is required' }),
-		z.object({
-			isNew: z.literal(true),
-			name: z.string().min(1, { message: 'Category name is required' })
-		})
-	]),
-	accountId: z.string().min(1, { message: 'Account is required' }),
-	// Recipient/Sender is optional - can be ID or new name
-	recipient: z
-		.union([
-			z.string().min(1),
-			z.object({
-				isNew: z.literal(true),
-				name: z.string().min(1)
-			})
-		])
-		.nullable()
-		.optional(),
-	notes: z.string().optional(),
-	// billId uses "__none__" as sentinel for no selection (Select requires non-empty values)
-	billId: z.string().optional().nullable(),
-	budgetId: z.string().optional()
-})
+const transactionSchema = z
+	.object({
+		name: z.string().min(1, { message: 'Transaction name is required' }),
+		amount: z.number().positive({ message: 'Amount must be positive' }),
+		date: z.date({ message: 'Date is required' }),
+		transactionType: z.enum(['INCOME', 'EXPENSE']),
+		// Category can be either an existing ID or a new category to create
+		category: z
+			.union([
+				z.string().min(1, { message: 'Category is required' }),
+				z.object({
+					isNew: z.literal(true),
+					name: z.string().min(1, { message: 'Category name is required' })
+				})
+			])
+			.optional(), // Optional now because of splits
+		accountId: z.string().min(1, { message: 'Account is required' }),
+		// Recipient/Sender is optional - can be ID or new name
+		recipient: z
+			.union([
+				z.string().min(1),
+				z.object({
+					isNew: z.literal(true),
+					name: z.string().min(1)
+				})
+			])
+			.nullable()
+			.optional(),
+		notes: z.string().optional(),
+		// billId uses "__none__" as sentinel for no selection (Select requires non-empty values)
+		billId: z.string().optional().nullable(),
+		budgetId: z.string().optional(),
+		// Splits
+		splits: z
+			.array(
+				z.object({
+					subtitle: z.string().min(1, 'Subtitle is required'),
+					amount: z.number().positive('Amount must be positive'),
+					// Category logic same as before but per split
+					category: z.union([
+						z.string().min(1, { message: 'Category is required' }),
+						z.object({
+							isNew: z.literal(true),
+							name: z.string().min(1, { message: 'Category name is required' })
+						})
+					])
+				})
+			)
+			.optional()
+	})
+	.refine(
+		(data) => {
+			// If splits IS present and has length, category is optional at top level
+			// If splits IS NOT present (or empty), category is required at top level
+			if (
+				data.transactionType === 'EXPENSE' &&
+				data.splits &&
+				data.splits.length > 0
+			) {
+				return true
+			}
+			if (data.category) return true
+			return false
+		},
+		{
+			message: 'Category is required',
+			path: ['category']
+		}
+	)
 
 // Sentinel value for "no bill" selection (shadcn Select requires non-empty values)
 const NO_BILL_VALUE = '__none__'
@@ -85,6 +130,11 @@ export interface TransactionFormProps {
 		notes?: string
 		billId?: string | null
 		transactionType?: 'INCOME' | 'EXPENSE'
+		splits?: Array<{
+			subtitle: string
+			amount: number
+			categoryId: string
+		}>
 	}
 
 	/**
@@ -141,6 +191,11 @@ export interface TransactionFormProps {
 	 * Is this for editing an existing transaction?
 	 */
 	isEditing?: boolean
+
+	/**
+	 * Original bill amount for diff comparison
+	 */
+	originalBillAmount?: number
 }
 
 const recurrenceOptions = [
@@ -165,6 +220,7 @@ export function TransactionForm({
 	recipients = [],
 	bills = [],
 	preSelectedBillId,
+	originalBillAmount,
 	onSubmit,
 	onCancel,
 	submitLabel = 'Save Transaction',
@@ -184,6 +240,11 @@ export function TransactionForm({
 		undefined
 	)
 	const [billLastPayment, setBillLastPayment] = useState<Date | null>(null)
+
+	// Splits toggle state
+	const [useSplits, setUseSplits] = useState(
+		!!(defaultValues?.splits && defaultValues.splits.length > 0)
+	)
 
 	// Determine initial transaction type based on default category
 	const getInitialTransactionType = (): 'INCOME' | 'EXPENSE' => {
@@ -214,7 +275,15 @@ export function TransactionForm({
 				null) as ComboboxValue | null,
 			notes: defaultValues?.notes ?? '',
 			billId: preSelectedBillId ?? defaultValues?.billId ?? null,
-			budgetId: defaultValues?.budgetId ?? ''
+			budgetId: defaultValues?.budgetId ?? '',
+			splits:
+				defaultValues?.splits && defaultValues.splits.length > 0
+					? defaultValues.splits.map((s) => ({
+							subtitle: s.subtitle,
+							amount: s.amount,
+							category: s.categoryId as ComboboxValue
+						}))
+					: undefined
 		},
 		onSubmit: async ({ value }) => {
 			// Transform __none__ sentinel back to null for billId
@@ -222,6 +291,16 @@ export function TransactionForm({
 				...value,
 				billId: value.billId === NO_BILL_VALUE ? null : value.billId
 			}
+
+			// Validate form
+			// If useSplits is false, ensure splits array is empty in data to avoid validation confusion or backend issues
+			if (!useSplits) {
+				transformedValue.splits = undefined
+			} else {
+				// If splits are used, category is undefined
+				transformedValue.category = undefined
+			}
+
 			const data = validateForm(transactionSchema, transformedValue)
 
 			const billData = createBill
@@ -238,7 +317,7 @@ export function TransactionForm({
 		}
 	})
 
-	// Handle transaction type change - reset category if it doesn't match new type
+	// Handle transaction type change
 	const handleTransactionTypeChange = (newType: string) => {
 		const currentCategory = form.getFieldValue('category')
 		if (typeof currentCategory === 'string' && currentCategory) {
@@ -247,6 +326,46 @@ export function TransactionForm({
 				form.setFieldValue('category', '')
 			}
 		}
+		// Disable splits if Income (simplified for now, unless income splits are desired)
+		if (newType === 'INCOME') {
+			setUseSplits(false)
+		}
+	}
+
+	// Component to sync amount with splits total
+	function AmountSyncLogic({
+		splits,
+		amount,
+		type
+	}: {
+		splits: any[] | undefined
+		amount: number
+		type: string
+	}) {
+		useEffect(() => {
+			if (type === 'EXPENSE' && useSplits && splits) {
+				const total = splits.reduce((sum, s) => sum + (s.amount || 0), 0)
+				// Prevent infinite loop by checking difference
+				if (Math.abs(total - amount) > 0.001) {
+					form.setFieldValue('amount', Number(total.toFixed(2)))
+				}
+			}
+		}, [splits, amount, type])
+		return null
+	}
+
+	function AmountSync() {
+		return (
+			<form.Subscribe
+				selector={(state) => ({
+					splits: state.values.splits,
+					amount: state.values.amount,
+					type: state.values.transactionType
+				})}
+			>
+				{(values) => <AmountSyncLogic {...values} />}
+			</form.Subscribe>
+		)
 	}
 
 	return (
@@ -258,6 +377,7 @@ export function TransactionForm({
 			}}
 			className="space-y-4"
 		>
+			<AmountSync />
 			{/* Transaction Type Selector */}
 			<form.AppField name="transactionType">
 				{(field) => (
@@ -322,10 +442,6 @@ export function TransactionForm({
 					const budget = budgets.find((b) => b.id === budgetId)
 					if (!budget) return null
 
-					// If budgetId is empty string, finding might return undefined.
-					// calculated remaining amount is from backend (includes current allocated - allocated spent)
-					// We want to see if (remaining - newAmount) < 0
-
 					// biome-ignore lint/suspicious/noExplicitAny: RouterOutputs type complexity
 					const remaining = (budget as any).remainingAmount ?? 0
 					const willOverdraft = remaining - (amount || 0) < 0
@@ -386,37 +502,234 @@ export function TransactionForm({
 				</form.AppField>
 			)}
 
-			{/* Category Combobox with inline creation - subscribes to transactionType */}
+			{/* Split Transaction Toggle */}
 			<form.Subscribe selector={(state) => state.values.transactionType}>
-				{(transactionType) => {
-					// Filter categories based on selected transaction type
-					const filteredCategories = categories.filter((cat) =>
-						cat.types.includes(transactionType)
+				{(transactionType) =>
+					transactionType === 'EXPENSE' && (
+						<div className="flex items-center space-x-2 pb-2">
+							<Switch
+								id="useSplits"
+								checked={useSplits}
+								onCheckedChange={(checked) => {
+									if (
+										!checked &&
+										(form.getFieldValue('splits') || []).length > 1
+									) {
+										if (
+											!confirm(
+												'Disabling split mode will remove additional sections. Continue?'
+											)
+										) {
+											return
+										}
+										// Reset to single split (optional, or just let validatForm handle it?
+										// form.setFieldValue('splits', [form.getFieldValue('splits')[0]])
+									}
+									setUseSplits(checked)
+								}}
+							/>
+							<Label htmlFor="useSplits" className="cursor-pointer">
+								Split this transaction (multiple categories)
+							</Label>
+						</div>
 					)
-
-					// Create options for the ComboboxField
-					const categoryOptions = filteredCategories.map((cat) => ({
-						value: cat.id,
-						label: cat.name
-					}))
-
-					return (
-						<form.AppField name="category">
-							{(field) => (
-								<field.ComboboxField
-									label="Category"
-									placeholder="Select or create a category"
-									searchPlaceholder="Search categories..."
-									emptyText="No categories found"
-									options={categoryOptions}
-									allowCreate
-									createLabel={`Create ${transactionType === 'INCOME' ? 'income' : 'expense'} category`}
-								/>
-							)}
-						</form.AppField>
-					)
-				}}
+				}
 			</form.Subscribe>
+
+			{/* Category Combobox OR Splits Editor */}
+			{!useSplits ? (
+				<form.Subscribe selector={(state) => state.values.transactionType}>
+					{(transactionType) => {
+						// Filter categories based on selected transaction type
+						const filteredCategories = categories.filter((cat) =>
+							cat.types.includes(transactionType)
+						)
+
+						// Create options for the ComboboxField
+						const categoryOptions = filteredCategories.map((cat) => ({
+							value: cat.id,
+							label: cat.name
+						}))
+
+						return (
+							<form.AppField name="category">
+								{(field) => (
+									<field.ComboboxField
+										label="Category"
+										placeholder="Select or create a category"
+										searchPlaceholder="Search categories..."
+										emptyText="No categories found"
+										options={categoryOptions}
+										allowCreate
+										createLabel={`Create ${transactionType === 'INCOME' ? 'income' : 'expense'} category`}
+									/>
+								)}
+							</form.AppField>
+						)
+					}}
+				</form.Subscribe>
+			) : (
+				<div className="space-y-4">
+					<div className="flex items-center justify-between">
+						<h3 className="text-sm font-medium">Sections</h3>
+						<form.Subscribe selector={(state) => state.values.splits}>
+							{(splits) => {
+								const totalSplits =
+									splits?.reduce((sum, s) => sum + (s.amount || 0), 0) || 0
+								const totalDiff = totalSplits - form.getFieldValue('amount')
+								const isZeroDiff = Math.abs(totalDiff) < 0.01
+
+								return (
+									<div className="flex flex-col items-end">
+										<span
+											className={`text-sm font-medium ${
+												!isZeroDiff ? 'text-red-500' : 'text-green-600'
+											}`}
+										>
+											Total:{' '}
+											{new Intl.NumberFormat('en-US', {
+												style: 'currency',
+												currency: 'SEK'
+											}).format(totalSplits)}
+											{/* {!isZeroDiff &&
+												` (Diff: ${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'SEK' }).format(totalDiff)})`} */}
+										</span>
+										{originalBillAmount !== undefined && (
+											<span className="text-xs text-muted-foreground">
+												Bill Amount:{' '}
+												{new Intl.NumberFormat('en-US', {
+													style: 'currency',
+													currency: 'SEK'
+												}).format(originalBillAmount)}
+												{Math.abs(totalSplits - originalBillAmount) > 0.001 && (
+													<span
+														className={
+															totalSplits > originalBillAmount
+																? 'text-red-500 ml-1'
+																: 'text-green-600 ml-1'
+														}
+													>
+														({totalSplits > originalBillAmount ? '+' : ''}
+														{new Intl.NumberFormat('en-US', {
+															style: 'currency',
+															currency: 'SEK'
+														}).format(totalSplits - originalBillAmount)}
+														)
+													</span>
+												)}
+											</span>
+										)}
+									</div>
+								)
+							}}
+						</form.Subscribe>
+					</div>
+
+					<form.Field name="splits" mode="array">
+						{(field) => (
+							<div className="space-y-3">
+								{(field.state.value || []).map((_, index) => (
+									<Card key={index} className="bg-muted/30">
+										<CardContent className="p-3 space-y-3">
+											<div className="flex gap-2">
+												<div className="flex-1">
+													<form.AppField
+														name={`splits[${index}].subtitle`}
+														validators={{
+															onChange: createZodValidator(
+																z.string().min(1, 'Required')
+															)
+														}}
+													>
+														{(subField) => (
+															<subField.TextField
+																label={index === 0 ? 'Subtitle' : ''}
+																placeholder="e.g. Interest"
+															/>
+														)}
+													</form.AppField>
+												</div>
+												<div className="w-32">
+													<form.AppField
+														name={`splits[${index}].amount`}
+														validators={{
+															onChange: createZodValidator(
+																z.number().positive()
+															)
+														}}
+													>
+														{(amtField) => (
+															<amtField.NumberField
+																label={index === 0 ? 'Amount' : ''}
+																placeholder="0.00"
+																min={0}
+																step="0.01"
+															/>
+														)}
+													</form.AppField>
+												</div>
+												<div className="pt-2">
+													<Button
+														type="button"
+														variant="ghost"
+														size="icon"
+														className={index === 0 ? 'mt-6' : ''}
+														onClick={() => field.removeValue(index)}
+														disabled={(field.state.value || []).length === 1}
+													>
+														<Trash2 className="h-4 w-4 text-destructive" />
+													</Button>
+												</div>
+											</div>
+
+											<form.AppField
+												name={`splits[${index}].category`}
+												validators={{
+													onChange: createZodValidator(
+														z.union([
+															z.string().min(1, 'Category is required'),
+															z.object({
+																isNew: z.literal(true),
+																name: z
+																	.string()
+																	.min(1, 'Category name is required')
+															})
+														])
+													)
+												}}
+											>
+												{(catField) => (
+													<catField.ComboboxField
+														label={index === 0 ? 'Category' : undefined}
+														placeholder="Select category"
+														options={categories
+															.filter((c) => c.types.includes('EXPENSE'))
+															.map((c) => ({ value: c.id, label: c.name }))}
+														allowCreate
+														createLabel="Create expense category"
+													/>
+												)}
+											</form.AppField>
+										</CardContent>
+									</Card>
+								))}
+								<Button
+									type="button"
+									variant="outline"
+									size="sm"
+									onClick={() =>
+										field.pushValue({ subtitle: '', amount: 0, category: '' })
+									}
+									className="w-full border-dashed"
+								>
+									<Plus className="h-4 w-4 mr-2" />
+									Add Section
+								</Button>
+							</div>
+						)}
+					</form.Field>
+				</div>
+			)}
 
 			<form.AppField
 				name="accountId"

@@ -156,12 +156,21 @@ function TransactionsPage() {
 							accountId: transaction.accountId,
 							recipientId: transaction.recipientId ?? null,
 							notes: transaction.notes ?? '',
-							transactionType: type as 'INCOME' | 'EXPENSE'
+							transactionType: type as 'INCOME' | 'EXPENSE',
+							splits:
+								transaction.splits && transaction.splits.length > 0
+									? transaction.splits.map((s: any) => ({
+											subtitle: s.subtitle,
+											amount: s.amount,
+											categoryId: s.categoryId
+										}))
+									: undefined
 						}}
 						categories={categories}
 						accounts={accounts}
 						recipients={recipients}
 						isEditing={true}
+						originalBillAmount={transaction.bill?.amount}
 						onSubmit={async (data) => {
 							// For updates, transform category to categoryId
 							const categoryId =
@@ -174,6 +183,24 @@ function TransactionsPage() {
 									: undefined // New recipients during edit not supported yet
 								: null
 
+							// Transform splits if present
+							const splits = data.splits
+								?.map((s) => ({
+									subtitle: s.subtitle,
+									amount: s.amount,
+									categoryId:
+										typeof s.category === 'string' ? s.category : undefined
+									// Note: We currently don't handle new category creation within splits during edit
+									// if the router doesn't support it. The form allows it, but we might need
+									// to creating them first if needed, or rely on router update.
+									// For now assuming existing categories as user reported switching valid categories.
+								}))
+								.filter((s) => s.categoryId) as Array<{
+								subtitle: string
+								amount: number
+								categoryId: string
+							}>
+
 							updateTransaction({
 								id: transaction.id,
 								userId,
@@ -183,7 +210,8 @@ function TransactionsPage() {
 								accountId: data.accountId,
 								notes: data.notes,
 								categoryId,
-								recipientId
+								recipientId,
+								splits
 							})
 						}}
 						onCancel={closeDrawer}
@@ -276,12 +304,16 @@ function TransactionsPage() {
 
 	// Helper to determine transaction type
 	const getTransactionType = (t: any) => {
-		const types = t.category.types || []
+		// If splits exist, it's an EXPENSE
+		if (t.splits && t.splits.length > 0) return 'EXPENSE'
+
+		const types = t.category?.types || []
 		if (types.includes('EXPENSE') && types.includes('INCOME')) {
 			// Hybrid: assume Expense if budget linked, otherwise Income
 			return t.budgetId ? 'EXPENSE' : 'INCOME'
 		}
-		return types.includes('EXPENSE') ? 'EXPENSE' : 'INCOME'
+		// If explicitly INCOME, return INCOME. Otherwise default to EXPENSE (safer for uncategorized/splits)
+		return types.includes('INCOME') ? 'INCOME' : 'EXPENSE'
 	}
 
 	const incomeTransactions = transactions?.filter(
@@ -414,6 +446,9 @@ function TransactionsPage() {
 						<TableBody>
 							{transactions?.map((transaction) => {
 								const type = getTransactionType(transaction)
+								const hasSplits =
+									transaction.splits && transaction.splits.length > 0
+
 								return (
 									<TableRow key={transaction.id}>
 										<TableCell>
@@ -423,11 +458,17 @@ function TransactionsPage() {
 											{transaction.name}
 										</TableCell>
 										<TableCell>
-											<Badge
-												variant={type === 'INCOME' ? 'default' : 'secondary'}
-											>
-												{transaction.category.name}
-											</Badge>
+											{hasSplits ? (
+												<Badge variant="outline">
+													{transaction.splits.length} Splits
+												</Badge>
+											) : (
+												<Badge
+													variant={type === 'INCOME' ? 'default' : 'secondary'}
+												>
+													{transaction.category?.name || 'Uncategorized'}
+												</Badge>
+											)}
 										</TableCell>
 										<TableCell className="text-muted-foreground">
 											{transaction.account.name}

@@ -69,7 +69,7 @@ function generateBillDates(
 				currentDate = addYears(currentDate, 1)
 				break
 			case RecurrenceType.CUSTOM:
-				currentDate = addDays(currentDate, customIntervalDays!)
+				currentDate = addDays(currentDate, customIntervalDays ?? 0)
 				break
 		}
 	}
@@ -128,7 +128,12 @@ export const billsRouter = {
 					recurringBill: {
 						include: {
 							account: true,
-							category: true
+							category: true,
+							splits: {
+								include: {
+									category: true
+								}
+							}
 						}
 					},
 					transactions: {
@@ -147,11 +152,13 @@ export const billsRouter = {
 				name: bill.recurringBill.name,
 				recipient: bill.recurringBill.recipient,
 				amount: bill.amount,
+				paidAmount: bill.transactions[0]?.amount,
 				dueDate: bill.dueDate,
 				isPaid: bill.transactions.length > 0,
 				transactionId: bill.transactions[0]?.id,
 				account: bill.recurringBill.account,
 				category: bill.recurringBill.category,
+				splits: bill.recurringBill.splits,
 				recurrenceType: bill.recurringBill.recurrenceType, // For info
 				customIntervalDays: bill.recurringBill.customIntervalDays,
 				startDate: bill.recurringBill.startDate,
@@ -173,18 +180,35 @@ export const billsRouter = {
 				customIntervalDays: z.number().int().positive().optional(),
 				estimatedAmount: z.number().positive('Amount must be positive'),
 				lastPaymentDate: z.date().optional(),
+				// Top level category logic removed/deprecated in favor of splits checks,
+				// but keys might be passed. We rely on splits.
 				categoryId: z.string().optional(),
 				newCategoryName: z.string().min(1).optional(),
 				budgetId: z.string(),
-				userId: z.string()
+				userId: z.string(),
+				splits: z
+					.array(
+						z.object({
+							categoryId: z.string().optional(),
+							newCategoryName: z.string().optional(),
+							amount: z.number().positive(),
+							subtitle: z.string()
+						})
+					)
+					.optional()
 			})
 		)
 		.mutation(async ({ ctx, input }) => {
 			// Validation (Access & Logic)
-			if (!input.categoryId && !input.newCategoryName) {
+			// Category required ONLY if no splits provided (which shouldn't happen with new UI, but for safety)
+			if (
+				!input.categoryId &&
+				!input.newCategoryName &&
+				(!input.splits || input.splits.length === 0)
+			) {
 				throw new TRPCError({
 					code: 'BAD_REQUEST',
-					message: 'Category required'
+					message: 'Category or sections required'
 				})
 			}
 
@@ -210,30 +234,66 @@ export const billsRouter = {
 			})
 			if (!householdUser) throw new TRPCError({ code: 'FORBIDDEN' })
 
-			// Category Logic
-			let finalCategoryId: string
-			if (input.newCategoryName) {
-				const budgets = await ctx.prisma.budget.findMany({
-					where: { householdId: budget.householdId },
-					select: { id: true }
-				})
-				const newCategory = await ctx.prisma.category.create({
-					data: {
-						name: input.newCategoryName,
-						types: ['EXPENSE'],
-						householdId: budget.householdId,
-						...(budgets.length > 0 && {
-							budgets: {
-								create: budgets.map((b) => ({ budgetId: b.id }))
-							}
+			// Helper to resolve category ID (existing or new)
+			const resolveCategoryId = async (
+				id?: string,
+				name?: string
+			): Promise<string | null> => {
+				if (id) return id
+				if (name) {
+					// Check for existing by name first to avoid duplicates
+					const existing = await ctx.prisma.category.findFirst({
+						where: { householdId: budget.householdId, name }
+					})
+					if (existing) return existing.id
+
+					const budgets = await ctx.prisma.budget.findMany({
+						where: { householdId: budget.householdId },
+						select: { id: true }
+					})
+					const newCategory = await ctx.prisma.category.create({
+						data: {
+							name,
+							types: ['EXPENSE'],
+							householdId: budget.householdId,
+							...(budgets.length > 0 && {
+								budgets: {
+									create: budgets.map((b) => ({ budgetId: b.id }))
+								}
+							})
+						}
+					})
+					return newCategory.id
+				}
+				return null
+			}
+
+			// Resolve top-level category if provided (legacy/fallback)
+			const finalCategoryId = await resolveCategoryId(
+				input.categoryId,
+				input.newCategoryName
+			)
+
+			// Resolve split categories
+			const resolvedSplits = []
+			if (input.splits && input.splits.length > 0) {
+				for (const split of input.splits) {
+					const catId = await resolveCategoryId(
+						split.categoryId,
+						split.newCategoryName
+					)
+					if (!catId) {
+						throw new TRPCError({
+							code: 'BAD_REQUEST',
+							message: 'Category required for all sections'
 						})
 					}
-				})
-				finalCategoryId = newCategory.id
-			} else {
-				// We assume valid categoryId if passed, though strict check is better
-				finalCategoryId = input.categoryId!
-				// Link check ...
+					resolvedSplits.push({
+						amount: split.amount,
+						subtitle: split.subtitle,
+						categoryId: catId
+					})
+				}
 			}
 
 			return ctx.prisma.$transaction(async (tx) => {
@@ -248,8 +308,18 @@ export const billsRouter = {
 						customIntervalDays: input.customIntervalDays,
 						estimatedAmount: input.estimatedAmount,
 						lastPaymentDate: input.lastPaymentDate,
-						categoryId: finalCategoryId,
-						budgetId: input.budgetId
+						categoryId: finalCategoryId, // Might be null if using splits
+						budgetId: input.budgetId,
+						splits:
+							resolvedSplits.length > 0
+								? {
+										create: resolvedSplits.map((s) => ({
+											categoryId: s.categoryId,
+											amount: s.amount,
+											subtitle: s.subtitle
+										}))
+									}
+								: undefined
 					}
 				})
 
@@ -296,7 +366,17 @@ export const billsRouter = {
 				estimatedAmount: z.number().positive().optional(),
 				lastPaymentDate: z.date().optional().nullable(),
 				categoryId: z.string().optional(),
-				isArchived: z.boolean().optional()
+				isArchived: z.boolean().optional(),
+				splits: z
+					.array(
+						z.object({
+							categoryId: z.string().optional(),
+							newCategoryName: z.string().optional(),
+							amount: z.number().positive(),
+							subtitle: z.string()
+						})
+					)
+					.optional()
 			})
 		)
 		.mutation(async ({ ctx, input }) => {
@@ -315,6 +395,62 @@ export const billsRouter = {
 			})
 			if (!householdUser) throw new TRPCError({ code: 'FORBIDDEN' })
 
+			// Helper to resolve category ID (existing or new)
+			// (Duplicate logic, could execute outside but ctx/budget access needed)
+			const resolveCategoryId = async (
+				id?: string,
+				name?: string
+			): Promise<string | null> => {
+				if (id) return id
+				if (name) {
+					const existing = await ctx.prisma.category.findFirst({
+						where: { householdId: recurringBill.budget.householdId, name }
+					})
+					if (existing) return existing.id
+
+					const budgets = await ctx.prisma.budget.findMany({
+						where: { householdId: recurringBill.budget.householdId },
+						select: { id: true }
+					})
+					const newCategory = await ctx.prisma.category.create({
+						data: {
+							name,
+							types: ['EXPENSE'],
+							householdId: recurringBill.budget.householdId,
+							...(budgets.length > 0 && {
+								budgets: {
+									create: budgets.map((b) => ({ budgetId: b.id }))
+								}
+							})
+						}
+					})
+					return newCategory.id
+				}
+				return null
+			}
+
+			// Resolve split categories
+			const resolvedSplits = []
+			if (input.splits && input.splits.length > 0) {
+				for (const split of input.splits) {
+					const catId = await resolveCategoryId(
+						split.categoryId,
+						split.newCategoryName
+					)
+					if (!catId) {
+						throw new TRPCError({
+							code: 'BAD_REQUEST',
+							message: 'Category required for all sections'
+						})
+					}
+					resolvedSplits.push({
+						amount: split.amount,
+						subtitle: split.subtitle,
+						categoryId: catId
+					})
+				}
+			}
+
 			// If schedule params changed, we need to regenerate future bills
 			const scheduleChanged =
 				data.startDate ||
@@ -323,60 +459,49 @@ export const billsRouter = {
 				data.lastPaymentDate !== undefined ||
 				data.estimatedAmount
 
-			if (scheduleChanged) {
-				return ctx.prisma.$transaction(async (tx) => {
-					// 1. Update RecurringBill
-					const updated = await tx.recurringBill.update({
-						where: { id },
-						data
+			// Prepare update data
+			// We need to handle splits specifically if present
+			const updateData: any = { ...data }
+			delete updateData.splits // Handle separately
+
+			return ctx.prisma.$transaction(async (tx) => {
+				// Update with splits logic
+				if (input.splits !== undefined) {
+					// Delete existing splits
+					await tx.recurringBillSplit.deleteMany({
+						where: { recurringBillId: id }
 					})
 
+					// Create new splits if any
+					if (resolvedSplits.length > 0) {
+						updateData.splits = {
+							create: resolvedSplits.map((s) => ({
+								categoryId: s.categoryId,
+								amount: s.amount,
+								subtitle: s.subtitle
+							}))
+						}
+					}
+				}
+
+				// 1. Update RecurringBill
+				const updated = await tx.recurringBill.update({
+					where: { id },
+					data: updateData
+				})
+
+				if (scheduleChanged) {
 					// 2. Delete future UNPAID bills
 					// We keep paid bills to maintain history
 					await tx.bill.deleteMany({
 						where: {
 							recurringBillId: id,
-							transactions: { none: {} }, // Not paid
-							dueDate: { gt: new Date() } // Future only? or all unpaid? User said "Keep it simple". Let's reset all unpaid.
+							transactions: { none: {} } // Not paid
+							//dueDate: { gt: new Date() } // We just reset all unpaid
 						}
 					})
 
-					// 3. Find the last generated bill (could be a paid one) to know where to start?
-					// OR just regenerate from start and skip existing?
-					// Simpler: Regenerate from StartDate, upsert or ignore existing?
-					// Given "Keep it simple": delete all unpaid, regenerate from StartDate up to 1 year,
-					// IF date doesn't collide with existing Paid bill?
-					// Actually, simpler approach:
-					// Just regenerate everything from StartDate. If a bill exists (Paid) on that date approximately?
-					//
-					// Let's stick to: Delete all UNPAID bills. Generate fresh list.
-					// If a Paid bill exists on a generated date, skip creating a duplicate?
-					//
-					// For now, to be safe and simple:
-					// Delete all unpaid bills.
-					// Generate new dates.
-					// Filter out dates that are close to existing Paid bills?
-					// This is getting complex.
-					//
-					// User said: "create bills one year ahead... If I create a bill with monthly... create 12 instances"
-					// If I change the amount, I probably want all unpaid bills to update amount.
-					// If I change date, I want them to move.
-
-					// Strategy: Delete ALL unpaid bills.
-					// Generate dates from StartDate.
-					// For each date, check if a Paid bill exists approximately there?
-					// This effectively "Re-plans" the bill schedule.
-
-					// Let's just implement: Update fields. If critical fields change, delete unpaid and re-create for next 1 year.
-
-					// Delete ALL unpaid bills for this series
-					await tx.bill.deleteMany({
-						where: {
-							recurringBillId: id,
-							transactions: { none: {} }
-						}
-					})
-
+					// 3. Regenerate
 					// Generate fresh dates
 					const limitDate = addYears(new Date(), 1)
 					const dates = generateBillDates(
@@ -410,16 +535,10 @@ export const billsRouter = {
 							}))
 						})
 					}
+				}
 
-					return updated
-				})
-			} else {
-				// Just basic update
-				return ctx.prisma.recurringBill.update({
-					where: { id },
-					data
-				})
-			}
+				return updated
+			})
 		}),
 
 	/**

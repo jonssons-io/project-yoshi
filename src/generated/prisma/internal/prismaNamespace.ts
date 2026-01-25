@@ -395,6 +395,8 @@ export const ModelName = {
   Transaction: 'Transaction',
   RecurringBill: 'RecurringBill',
   Bill: 'Bill',
+  RecurringBillSplit: 'RecurringBillSplit',
+  TransactionSplit: 'TransactionSplit',
   Recipient: 'Recipient',
   Transfer: 'Transfer',
   Income: 'Income',
@@ -414,7 +416,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "household" | "householdUser" | "budget" | "budgetAllocation" | "category" | "account" | "budgetCategory" | "budgetAccount" | "transaction" | "recurringBill" | "bill" | "recipient" | "transfer" | "income" | "invitation"
+    modelProps: "household" | "householdUser" | "budget" | "budgetAllocation" | "category" | "account" | "budgetCategory" | "budgetAccount" | "transaction" | "recurringBill" | "bill" | "recurringBillSplit" | "transactionSplit" | "recipient" | "transfer" | "income" | "invitation"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1232,6 +1234,154 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    RecurringBillSplit: {
+      payload: Prisma.$RecurringBillSplitPayload<ExtArgs>
+      fields: Prisma.RecurringBillSplitFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.RecurringBillSplitFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RecurringBillSplitPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.RecurringBillSplitFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RecurringBillSplitPayload>
+        }
+        findFirst: {
+          args: Prisma.RecurringBillSplitFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RecurringBillSplitPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.RecurringBillSplitFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RecurringBillSplitPayload>
+        }
+        findMany: {
+          args: Prisma.RecurringBillSplitFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RecurringBillSplitPayload>[]
+        }
+        create: {
+          args: Prisma.RecurringBillSplitCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RecurringBillSplitPayload>
+        }
+        createMany: {
+          args: Prisma.RecurringBillSplitCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.RecurringBillSplitCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RecurringBillSplitPayload>[]
+        }
+        delete: {
+          args: Prisma.RecurringBillSplitDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RecurringBillSplitPayload>
+        }
+        update: {
+          args: Prisma.RecurringBillSplitUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RecurringBillSplitPayload>
+        }
+        deleteMany: {
+          args: Prisma.RecurringBillSplitDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.RecurringBillSplitUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.RecurringBillSplitUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RecurringBillSplitPayload>[]
+        }
+        upsert: {
+          args: Prisma.RecurringBillSplitUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RecurringBillSplitPayload>
+        }
+        aggregate: {
+          args: Prisma.RecurringBillSplitAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateRecurringBillSplit>
+        }
+        groupBy: {
+          args: Prisma.RecurringBillSplitGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.RecurringBillSplitGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.RecurringBillSplitCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.RecurringBillSplitCountAggregateOutputType> | number
+        }
+      }
+    }
+    TransactionSplit: {
+      payload: Prisma.$TransactionSplitPayload<ExtArgs>
+      fields: Prisma.TransactionSplitFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.TransactionSplitFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TransactionSplitPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.TransactionSplitFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TransactionSplitPayload>
+        }
+        findFirst: {
+          args: Prisma.TransactionSplitFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TransactionSplitPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.TransactionSplitFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TransactionSplitPayload>
+        }
+        findMany: {
+          args: Prisma.TransactionSplitFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TransactionSplitPayload>[]
+        }
+        create: {
+          args: Prisma.TransactionSplitCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TransactionSplitPayload>
+        }
+        createMany: {
+          args: Prisma.TransactionSplitCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.TransactionSplitCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TransactionSplitPayload>[]
+        }
+        delete: {
+          args: Prisma.TransactionSplitDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TransactionSplitPayload>
+        }
+        update: {
+          args: Prisma.TransactionSplitUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TransactionSplitPayload>
+        }
+        deleteMany: {
+          args: Prisma.TransactionSplitDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.TransactionSplitUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.TransactionSplitUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TransactionSplitPayload>[]
+        }
+        upsert: {
+          args: Prisma.TransactionSplitUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TransactionSplitPayload>
+        }
+        aggregate: {
+          args: Prisma.TransactionSplitAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateTransactionSplit>
+        }
+        groupBy: {
+          args: Prisma.TransactionSplitGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.TransactionSplitGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.TransactionSplitCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.TransactionSplitCountAggregateOutputType> | number
+        }
+      }
+    }
     Recipient: {
       payload: Prisma.$RecipientPayload<ExtArgs>
       fields: Prisma.RecipientFieldRefs
@@ -1697,6 +1847,28 @@ export const BillScalarFieldEnum = {
 export type BillScalarFieldEnum = (typeof BillScalarFieldEnum)[keyof typeof BillScalarFieldEnum]
 
 
+export const RecurringBillSplitScalarFieldEnum = {
+  id: 'id',
+  recurringBillId: 'recurringBillId',
+  categoryId: 'categoryId',
+  amount: 'amount',
+  subtitle: 'subtitle'
+} as const
+
+export type RecurringBillSplitScalarFieldEnum = (typeof RecurringBillSplitScalarFieldEnum)[keyof typeof RecurringBillSplitScalarFieldEnum]
+
+
+export const TransactionSplitScalarFieldEnum = {
+  id: 'id',
+  transactionId: 'transactionId',
+  categoryId: 'categoryId',
+  amount: 'amount',
+  subtitle: 'subtitle'
+} as const
+
+export type TransactionSplitScalarFieldEnum = (typeof TransactionSplitScalarFieldEnum)[keyof typeof TransactionSplitScalarFieldEnum]
+
+
 export const RecipientScalarFieldEnum = {
   id: 'id',
   name: 'name',
@@ -1979,6 +2151,8 @@ export type GlobalOmitConfig = {
   transaction?: Prisma.TransactionOmit
   recurringBill?: Prisma.RecurringBillOmit
   bill?: Prisma.BillOmit
+  recurringBillSplit?: Prisma.RecurringBillSplitOmit
+  transactionSplit?: Prisma.TransactionSplitOmit
   recipient?: Prisma.RecipientOmit
   transfer?: Prisma.TransferOmit
   income?: Prisma.IncomeOmit

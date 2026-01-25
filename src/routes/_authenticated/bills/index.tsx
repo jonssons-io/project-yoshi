@@ -185,11 +185,23 @@ function BillsPage() {
 				{accountsQuery.data && categoriesQuery.data ? (
 					<BillForm
 						onSubmit={(data) => {
-							// Transform category field to API format
-							const categoryData =
-								typeof data.category === 'string'
-									? { categoryId: data.category }
-									: { newCategoryName: data.category.name }
+							// Handle splits
+							const splitsData = data.splits
+								?.map((s) => {
+									const categoryId =
+										typeof s.category === 'string' ? s.category : undefined
+									const newCategoryName =
+										typeof s.category === 'object' && s.category.isNew
+											? s.category.name
+											: undefined
+									return {
+										subtitle: s.subtitle,
+										amount: s.amount,
+										categoryId,
+										newCategoryName
+									}
+								})
+								.filter((s) => s.categoryId || s.newCategoryName)
 
 							// Transform recipient field (union) to API format (string)
 							const recipientValue = data.recipient
@@ -208,11 +220,14 @@ function BillsPage() {
 								startDate: data.startDate,
 								recurrenceType: data.recurrenceType,
 								customIntervalDays: data.customIntervalDays,
-								estimatedAmount: data.estimatedAmount,
+								estimatedAmount: data.splits.reduce(
+									(sum, s) => sum + s.amount,
+									0
+								),
 								lastPaymentDate: data.lastPaymentDate || undefined,
-								...categoryData,
 								budgetId: budgetId!,
-								userId
+								userId,
+								splits: splitsData
 							})
 						}}
 						onCancel={closeDrawer}
@@ -248,12 +263,15 @@ function BillsPage() {
 							recurrenceType: bill.recurrenceType,
 							customIntervalDays: bill.customIntervalDays,
 							estimatedAmount: bill.amount,
-							categoryId: bill.category.id
+							categoryId: bill.category?.id,
+							splits: bill.splits?.map((s: any) => ({
+								subtitle: s.subtitle,
+								amount: s.amount,
+								categoryId: s.category.id
+							}))
 						}}
 						onSubmit={(data) => {
 							// Transform to API format
-							const categoryId =
-								typeof data.category === 'string' ? data.category : undefined
 							const recipientValue = data.recipient
 							let recipientName = ''
 							if (typeof recipientValue === 'string') {
@@ -262,6 +280,23 @@ function BillsPage() {
 							} else {
 								recipientName = recipientValue.name
 							}
+
+							const splitsData = data.splits
+								?.map((s) => {
+									const categoryId =
+										typeof s.category === 'string' ? s.category : undefined
+									const newCategoryName =
+										typeof s.category === 'object' && s.category.isNew
+											? s.category.name
+											: undefined
+									return {
+										subtitle: s.subtitle,
+										amount: s.amount,
+										categoryId,
+										newCategoryName
+									}
+								})
+								.filter((s) => s.categoryId || s.newCategoryName)
 
 							updateMutation.mutate({
 								id: bill.recurringBillId, // Update the series
@@ -272,9 +307,13 @@ function BillsPage() {
 								startDate: data.startDate,
 								recurrenceType: data.recurrenceType,
 								customIntervalDays: data.customIntervalDays,
-								estimatedAmount: data.estimatedAmount,
+								estimatedAmount: data.splits.reduce(
+									(sum, s) => sum + s.amount,
+									0
+								),
 								lastPaymentDate: data.lastPaymentDate,
-								categoryId
+								// categoryId, // No longer used as top-level
+								splits: splitsData
 							})
 						}}
 						onCancel={closeDrawer}
@@ -314,11 +353,12 @@ function BillsPage() {
 					categories={categoriesQuery.data ?? []}
 					accounts={accountsQuery.data ?? []}
 					recipients={recipients ?? []}
+					bills={[{ id: bill.id, name: bill.name, recipient: bill.recipient }]}
 					defaultValues={{
 						name: bill.name,
 						amount: bill.amount,
 						date: new Date(bill.dueDate),
-						categoryId: bill.category.id, // Flattened
+						categoryId: bill.category?.id, // Flattened
 						accountId: bill.account.id, // Flattened
 						transactionType: 'EXPENSE',
 						recipient: (() => {
@@ -328,19 +368,35 @@ function BillsPage() {
 							return { isNew: true, name: bill.recipient }
 						})(),
 						notes: `Payment for ${bill.name}`,
-						billId: bill.id // Logic requires linking to the Instance
+						billId: bill.id, // Logic requires linking to the Instance
+						splits: bill.splits?.map((s: any) => ({
+							subtitle: s.subtitle,
+							amount: s.amount,
+							categoryId: s.category.id
+						}))
 					}}
 					onSubmit={(data) => {
 						// ... transformation logic ...
 						const categoryData =
-							typeof data.category === 'string'
+							typeof data.category === 'string' && data.category
 								? { categoryId: data.category }
-								: {
-										newCategory: {
-											name: data.category.name,
-											type: data.transactionType
+								: data.category
+									? {
+											newCategory: {
+												name: data.category.name,
+												type: data.transactionType
+											}
 										}
-									}
+									: {}
+
+						// Handle splits for transaction
+						const splitsData = data.splits
+							?.map((s) => ({
+								subtitle: s.subtitle,
+								amount: s.amount,
+								categoryId: typeof s.category === 'string' ? s.category : ''
+							}))
+							.filter((s) => s.categoryId)
 
 						const recipientData = data.recipient
 							? typeof data.recipient === 'string'
@@ -358,7 +414,8 @@ function BillsPage() {
 							...recipientData,
 							billId: data.billId || undefined,
 							budgetId: budgetId!,
-							userId
+							userId,
+							splits: splitsData
 						})
 					}}
 					onCancel={closeDrawer}
@@ -445,6 +502,8 @@ function BillsPage() {
 										new Date(bill.dueDate) < new Date() &&
 										!bill.isArchived
 
+									const hasSplits = bill.splits && bill.splits.length > 0
+
 									return (
 										<TableRow
 											key={bill.id}
@@ -480,7 +539,25 @@ function BillsPage() {
 													)}
 												</div>
 											</TableCell>
-											<TableCell>${bill.amount.toFixed(2)}</TableCell>
+											<TableCell>
+												{bill.isPaid && bill.paidAmount ? (
+													<TooltipProvider>
+														<Tooltip>
+															<TooltipTrigger className="cursor-help underline decoration-dotted underline-offset-2 decoration-green-500">
+																${bill.paidAmount.toFixed(2)}
+															</TooltipTrigger>
+															<TooltipContent>
+																<p>
+																	Paid Amount (Estimated: $
+																	{bill.amount.toFixed(2)})
+																</p>
+															</TooltipContent>
+														</Tooltip>
+													</TooltipProvider>
+												) : (
+													`$${bill.amount.toFixed(2)}`
+												)}
+											</TableCell>
 											<TableCell>
 												{getRecurrenceLabel(
 													bill.recurrenceType,
@@ -511,7 +588,42 @@ function BillsPage() {
 													format(new Date(bill.dueDate), 'MMM d, yyyy')
 												)}
 											</TableCell>
-											<TableCell>{bill.category.name}</TableCell>
+											<TableCell>
+												{hasSplits ? (
+													<TooltipProvider>
+														<Tooltip>
+															<TooltipTrigger asChild>
+																<Badge
+																	variant="outline"
+																	className="cursor-help"
+																>
+																	{bill.splits.length} Sections
+																</Badge>
+															</TooltipTrigger>
+															<TooltipContent className="w-64 p-0">
+																<div className="p-2 space-y-2">
+																	<p className="font-semibold text-xs border-b pb-1">
+																		Sections
+																	</p>
+																	{bill.splits.map((s: any, i: number) => (
+																		<div
+																			key={`${i}-${s.amount}`}
+																			className="flex justify-between text-xs"
+																		>
+																			<span>
+																				{s.subtitle || s.category.name}
+																			</span>
+																			<span>${s.amount.toFixed(2)}</span>
+																		</div>
+																	))}
+																</div>
+															</TooltipContent>
+														</Tooltip>
+													</TooltipProvider>
+												) : (
+													bill.category?.name
+												)}
+											</TableCell>
 											<TableCell className="text-right">
 												<DropdownMenu>
 													<DropdownMenuTrigger asChild>
@@ -526,7 +638,7 @@ function BillsPage() {
 																	onClick={() => handleCreateTransaction(bill)}
 																>
 																	<ReceiptIcon className="h-4 w-4 mr-2" />
-																	Create Transaction
+																	Pay Bill
 																</DropdownMenuItem>
 																<DropdownMenuSeparator />
 															</>
