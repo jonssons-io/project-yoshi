@@ -151,7 +151,7 @@ export const transactionsRouter = {
 							id: 'transfer-out',
 							name: 'Transfer Out',
 							types: ['EXPENSE'],
-							householdId: budget.householdId,
+							householdId: householdId,
 							createdAt: t.createdAt
 						},
 						recipientId: null,
@@ -185,7 +185,7 @@ export const transactionsRouter = {
 							id: 'transfer-in',
 							name: 'Transfer In',
 							types: ['INCOME'],
-							householdId: budget.householdId,
+							householdId: householdId,
 							createdAt: t.createdAt
 						},
 						recipientId: null,
@@ -239,9 +239,12 @@ export const transactionsRouter = {
 			}
 
 			// Verify user has access to this household
+			const householdId =
+				transaction.budget?.householdId ?? transaction.account.householdId
+
 			const householdUser = await ctx.prisma.householdUser.findFirst({
 				where: {
-					householdId: transaction.budget.householdId,
+					householdId,
 					userId: input.userId
 				}
 			})
@@ -468,16 +471,22 @@ export const transactionsRouter = {
 
 			if (input.newCategory) {
 				// Create new category
+				// Link to ALL budgets in the household
+				const budgets = await ctx.prisma.budget.findMany({
+					where: { householdId: householdId },
+					select: { id: true }
+				})
+
 				const newCategory = await ctx.prisma.category.create({
 					data: {
 						name: input.newCategory.name,
 						types: [input.newCategory.type],
 						householdId: householdId,
-						...(budget && {
+						...(budgets.length > 0 && {
 							budgets: {
-								create: {
-									budgetId: budget.id
-								}
+								create: budgets.map((b) => ({
+									budgetId: b.id
+								}))
 							}
 						})
 					}
@@ -494,11 +503,24 @@ export const transactionsRouter = {
 						}
 					})
 					if (!categoryLink) {
-						// Optionally allow if we assume user can select any category?
-						// But existing logic enforced linkage. Let's keep strictness for budget transactions.
-						throw new TRPCError({
-							code: 'BAD_REQUEST',
-							message: 'Category is not linked to this budget'
+						// Check if category exists in household
+						const category = await ctx.prisma.category.findUnique({
+							where: { id: input.categoryId }
+						})
+
+						if (!category || category.householdId !== householdId) {
+							throw new TRPCError({
+								code: 'BAD_REQUEST',
+								message: 'Category not found or invalid'
+							})
+						}
+
+						// Link it
+						await ctx.prisma.budgetCategory.create({
+							data: {
+								budgetId: budget.id,
+								categoryId: input.categoryId
+							}
 						})
 					}
 				} else {
@@ -590,7 +612,8 @@ export const transactionsRouter = {
 			const transaction = await ctx.prisma.transaction.findUnique({
 				where: { id: input.id },
 				include: {
-					budget: true
+					budget: true,
+					account: true
 				}
 			})
 
@@ -602,9 +625,12 @@ export const transactionsRouter = {
 			}
 
 			// Verify user has access to this household
+			const householdId =
+				transaction.budget?.householdId ?? transaction.account.householdId
+
 			const householdUser = await ctx.prisma.householdUser.findFirst({
 				where: {
-					householdId: transaction.budget.householdId,
+					householdId: householdId,
 					userId: input.userId
 				}
 			})
@@ -617,7 +643,7 @@ export const transactionsRouter = {
 			}
 
 			// If updating account, verify it's linked to the budget
-			if (input.accountId) {
+			if (input.accountId && transaction.budgetId) {
 				const accountLink = await ctx.prisma.budgetAccount.findFirst({
 					where: {
 						budgetId: transaction.budgetId,
@@ -634,7 +660,7 @@ export const transactionsRouter = {
 			}
 
 			// If updating category, verify it's linked to the budget
-			if (input.categoryId) {
+			if (input.categoryId && transaction.budgetId) {
 				const categoryLink = await ctx.prisma.budgetCategory.findFirst({
 					where: {
 						budgetId: transaction.budgetId,
@@ -683,7 +709,8 @@ export const transactionsRouter = {
 			const transaction = await ctx.prisma.transaction.findUnique({
 				where: { id: input.id },
 				include: {
-					budget: true
+					budget: true,
+					account: true
 				}
 			})
 
@@ -695,9 +722,12 @@ export const transactionsRouter = {
 			}
 
 			// Verify user has access to this household
+			const householdId =
+				transaction.budget?.householdId ?? transaction.account.householdId
+
 			const householdUser = await ctx.prisma.householdUser.findFirst({
 				where: {
-					householdId: transaction.budget.householdId,
+					householdId: householdId,
 					userId: input.userId
 				}
 			})
@@ -731,7 +761,7 @@ export const transactionsRouter = {
 			// Get the original transaction
 			const original = await ctx.prisma.transaction.findUnique({
 				where: { id: input.id },
-				include: { budget: true }
+				include: { budget: true, account: true }
 			})
 
 			if (!original) {
@@ -742,9 +772,12 @@ export const transactionsRouter = {
 			}
 
 			// Verify user has access to this household
+			const householdId =
+				original.budget?.householdId ?? original.account.householdId
+
 			const householdUser = await ctx.prisma.householdUser.findFirst({
 				where: {
-					householdId: original.budget.householdId,
+					householdId: householdId,
 					userId: input.userId
 				}
 			})

@@ -348,17 +348,24 @@ export const billsRouter = {
 			let finalCategoryId: string
 
 			if (input.newCategoryName) {
-				// Create new EXPENSE category (bills are always expenses) and link to budget
+				// Create new EXPENSE category (bills are always expenses) and link to all budgets
+				const budgets = await ctx.prisma.budget.findMany({
+					where: { householdId: budget.householdId },
+					select: { id: true }
+				})
+
 				const newCategory = await ctx.prisma.category.create({
 					data: {
 						name: input.newCategoryName,
-						type: 'EXPENSE', // Bills are always expenses
+						types: ['EXPENSE'], // Bills are always expenses
 						householdId: budget.householdId,
-						budgets: {
-							create: {
-								budgetId: input.budgetId
+						...(budgets.length > 0 && {
+							budgets: {
+								create: budgets.map((b) => ({
+									budgetId: b.id
+								}))
 							}
-						}
+						})
 					}
 				})
 				finalCategoryId = newCategory.id
@@ -372,9 +379,24 @@ export const billsRouter = {
 				})
 
 				if (!categoryLink) {
-					throw new TRPCError({
-						code: 'BAD_REQUEST',
-						message: 'Category is not linked to this budget'
+					// Check if category exists in household
+					const category = await ctx.prisma.category.findUnique({
+						where: { id: input.categoryId }
+					})
+
+					if (!category || category.householdId !== budget.householdId) {
+						throw new TRPCError({
+							code: 'BAD_REQUEST',
+							message: 'Category not found or invalid'
+						})
+					}
+
+					// Link it
+					await ctx.prisma.budgetCategory.create({
+						data: {
+							budgetId: input.budgetId,
+							categoryId: input.categoryId
+						}
 					})
 				}
 				finalCategoryId = input.categoryId

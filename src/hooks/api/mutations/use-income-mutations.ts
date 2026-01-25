@@ -4,14 +4,16 @@ import { createMutationHook, invalidateAll } from './create-mutation-hook'
  * Hook to create a new income
  */
 export const useCreateIncome = createMutationHook('income', 'create', () => [
-	invalidateAll('income')
+	invalidateAll('income'),
+	invalidateAll('categories')
 ])
 
 /**
  * Hook to update an existing income
  */
 export const useUpdateIncome = createMutationHook('income', 'update', () => [
-	invalidateAll('income')
+	invalidateAll('income'),
+	invalidateAll('categories')
 ])
 
 /**

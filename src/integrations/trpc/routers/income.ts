@@ -124,11 +124,23 @@ export const incomeRouter = {
 			let finalCategoryId: string
 
 			if (input.newCategoryName) {
+				const budgets = await ctx.prisma.budget.findMany({
+					where: { householdId: input.householdId },
+					select: { id: true }
+				})
+
 				const newCategory = await ctx.prisma.category.create({
 					data: {
 						name: input.newCategoryName,
 						types: ['INCOME'],
-						householdId: input.householdId
+						householdId: input.householdId,
+						...(budgets.length > 0 && {
+							budgets: {
+								create: budgets.map((b) => ({
+									budgetId: b.id
+								}))
+							}
+						})
 					}
 				})
 				finalCategoryId = newCategory.id
@@ -195,7 +207,8 @@ export const incomeRouter = {
 				categoryId: z.string().optional(),
 				recurrenceType: z.nativeEnum(RecurrenceType).optional(),
 				customIntervalDays: z.number().optional().nullable(),
-				endDate: z.date().optional().nullable()
+				endDate: z.date().optional().nullable(),
+				newCategoryName: z.string().optional()
 			})
 		)
 		.mutation(async ({ ctx, input }) => {
@@ -225,7 +238,30 @@ export const incomeRouter = {
 				})
 			}
 
-			if (input.categoryId) {
+			let finalCategoryId = input.categoryId
+
+			if (input.newCategoryName) {
+				const budgets = await ctx.prisma.budget.findMany({
+					where: { householdId: income.householdId },
+					select: { id: true }
+				})
+
+				const newCategory = await ctx.prisma.category.create({
+					data: {
+						name: input.newCategoryName,
+						types: ['INCOME'],
+						householdId: income.householdId,
+						...(budgets.length > 0 && {
+							budgets: {
+								create: budgets.map((b) => ({
+									budgetId: b.id
+								}))
+							}
+						})
+					}
+				})
+				finalCategoryId = newCategory.id
+			} else if (input.categoryId) {
 				const category = await ctx.prisma.category.findUnique({
 					where: { id: input.categoryId }
 				})
@@ -257,7 +293,7 @@ export const incomeRouter = {
 					estimatedAmount: input.amount,
 					expectedDate: input.expectedDate,
 					accountId: input.accountId,
-					categoryId: input.categoryId,
+					categoryId: finalCategoryId,
 					recurrenceType: input.recurrenceType,
 					customIntervalDays: input.customIntervalDays,
 					endDate: input.endDate

@@ -3,7 +3,12 @@
  */
 
 import { z } from 'zod'
-import { createZodValidator, useAppForm, validateForm } from '@/components/form'
+import {
+	type ComboboxValue,
+	createZodValidator,
+	useAppForm,
+	validateForm
+} from '@/components/form'
 import { RecurrenceType } from '@/generated/prisma/enums'
 
 // Schema for the form
@@ -13,9 +18,14 @@ const incomeSchema = z.object({
 	amount: z.number().positive('Amount must be positive'),
 	expectedDate: z.date({ message: 'Date is required' }),
 	accountId: z.string().min(1, 'Account is required'),
-	categoryId: z.string().min(1, 'Category is required'),
 	// Handle new category creation
-	categoryName: z.string().optional(),
+	category: z.union([
+		z.string().min(1, { message: 'Category is required' }),
+		z.object({
+			isNew: z.literal(true),
+			name: z.string().min(1, { message: 'Category name is required' })
+		})
+	]),
 	recurrenceType: z.nativeEnum(RecurrenceType),
 	customIntervalDays: z.number().optional().nullable(),
 	endDate: z.date().optional().nullable()
@@ -24,9 +34,7 @@ const incomeSchema = z.object({
 type IncomeFormData = z.infer<typeof incomeSchema>
 
 export interface IncomeFormProps {
-	defaultValues?: Partial<IncomeFormData> & {
-		category?: { id: string; name: string }
-	}
+	defaultValues?: Partial<IncomeFormData>
 	categories: Array<{ id: string; name: string; type: string }>
 	accounts: Array<{ id: string; name: string }>
 	onSubmit: (data: IncomeFormData) => Promise<void> | void
@@ -52,23 +60,12 @@ export function IncomeForm({
 			amount: defaultValues?.amount ?? 0,
 			expectedDate: defaultValues?.expectedDate ?? new Date(),
 			accountId: defaultValues?.accountId ?? '',
-			categoryId: defaultValues?.categoryId ?? '',
-			categoryName: defaultValues?.categoryName,
+			category: (defaultValues?.category ?? '') as ComboboxValue,
 			recurrenceType: defaultValues?.recurrenceType ?? RecurrenceType.MONTHLY,
 			customIntervalDays: defaultValues?.customIntervalDays,
 			endDate: defaultValues?.endDate
 		},
 		onSubmit: async ({ value }) => {
-			// If categoryId matches a known ID, use it. Otherwise assume it's a new category name?
-			// The ComboboxField usually handles this by returning the value typed if allowing custom.
-			// But here we'll assume the parent component handles the transformation logic if we pass raw data,
-			// or we refine it here.
-			// Actually, let's keep it simple: generic Combobox usually returns ID if selected, or string if typed.
-			// But our ComboboxField might enforce selection.
-			// Let's assume for now we select existing categories, or if we want to create new,
-			// the ComboboxField needs to support create.
-			// Our ComboboxField supports `onCreate` prop usually.
-
 			const data = validateForm(incomeSchema, value)
 			await onSubmit(data)
 		}
@@ -154,27 +151,17 @@ export function IncomeForm({
 			</div>
 
 			<div className="grid grid-cols-2 gap-4">
-				<form.AppField
-					name="categoryId"
-					validators={{
-						onChange: createZodValidator(incomeSchema.shape.categoryId)
-					}}
-				>
+				<form.AppField name="category">
 					{(field) => (
 						<field.ComboboxField
 							label="Category"
-							placeholder="Select category"
+							placeholder="Select or create category"
 							options={categoryOptions}
+							allowCreate
+							createLabel="Create income category"
 						/>
 					)}
 				</form.AppField>
-				{/* Note: The ComboboxField above might be tricky with "create new" because we're binding to categoryId.
-             If we type a new name, it likely won't match an option value.
-             Ideally, we'd have a separate handler or the Combobox supports creation by returning the string.
-             For simplicity, let's assume we select existing categories or the parent handles "new" via a specific prop if needed.
-             If we really need create, we might need to adjust how we pass data back.
-             For now, let's stick to selecting existing categories to be safe, or if onCreate is triggered, we handle it.
-        */}
 
 				<form.AppField
 					name="accountId"

@@ -10,9 +10,9 @@ import { Label } from '@/components/ui/label'
 
 const categorySchema = z.object({
 	name: z.string().min(1, 'Category name is required'),
-	type: z.enum(['INCOME', 'EXPENSE'], {
-		message: 'Category type is required'
-	}),
+	types: z
+		.array(z.enum(['INCOME', 'EXPENSE']))
+		.min(1, 'At least one type is required'),
 	budgetIds: z.array(z.string()).optional()
 })
 
@@ -57,15 +57,21 @@ export function CategoryForm({
 		defaultValues?.budgetIds ?? budgets.map((b) => b.id)
 	)
 
+	// Types state
+	const [selectedTypes, setSelectedTypes] = useState<('INCOME' | 'EXPENSE')[]>(
+		defaultValues?.types ?? ['EXPENSE']
+	)
+
 	const form = useAppForm({
 		defaultValues: {
 			name: defaultValues?.name ?? '',
-			type: (defaultValues?.type ?? 'EXPENSE') as 'INCOME' | 'EXPENSE',
+			types: defaultValues?.types ?? (['EXPENSE'] as ('INCOME' | 'EXPENSE')[]),
 			budgetIds: defaultValues?.budgetIds ?? budgets.map((b) => b.id)
 		},
 		onSubmit: async ({ value }) => {
 			const data = validateForm(categorySchema, {
 				...value,
+				types: selectedTypes,
 				budgetIds: selectedBudgets
 			})
 			await onSubmit(data)
@@ -78,6 +84,18 @@ export function CategoryForm({
 				? prev.filter((id) => id !== budgetId)
 				: [...prev, budgetId]
 		)
+	}
+
+	const toggleType = (type: 'INCOME' | 'EXPENSE') => {
+		setSelectedTypes((prev) => {
+			const active = prev.includes(type)
+			if (active) {
+				// Prevent unselecting the last one? Or rely on validation?
+				// Validation will catch empty array.
+				return prev.filter((t) => t !== type)
+			}
+			return [...prev, type]
+		})
 	}
 
 	return (
@@ -103,27 +121,46 @@ export function CategoryForm({
 				)}
 			</form.AppField>
 
-			<form.AppField
-				name="type"
-				validators={{
-					onChange: createZodValidator(categorySchema.shape.type)
-				}}
-			>
-				{(field) => (
-					<field.SelectField
-						label="Category Type"
-						description="Is this an income or expense category?"
-						options={[
-							{ value: 'INCOME', label: 'Income' },
-							{ value: 'EXPENSE', label: 'Expense' }
-						]}
-					/>
+			<div className="space-y-3">
+				<Label>Category Type</Label>
+				<p className="text-sm text-muted-foreground">
+					Select if this is an income or expense category (or both).
+				</p>
+				<div className="flex gap-6">
+					<div className="flex items-center space-x-2">
+						<Checkbox
+							id="type-income"
+							checked={selectedTypes.includes('INCOME')}
+							onCheckedChange={() => toggleType('INCOME')}
+						/>
+						<Label htmlFor="type-income" className="font-normal cursor-pointer">
+							Income
+						</Label>
+					</div>
+					<div className="flex items-center space-x-2">
+						<Checkbox
+							id="type-expense"
+							checked={selectedTypes.includes('EXPENSE')}
+							onCheckedChange={() => toggleType('EXPENSE')}
+						/>
+						<Label
+							htmlFor="type-expense"
+							className="font-normal cursor-pointer"
+						>
+							Expense
+						</Label>
+					</div>
+				</div>
+				{selectedTypes.length === 0 && (
+					<p className="text-sm text-destructive">
+						At least one type is required
+					</p>
 				)}
-			</form.AppField>
+			</div>
 
 			{/* Budget Selection */}
 			{budgets.length > 0 && (
-				<div className="space-y-3">
+				<div className="space-y-3 pt-2">
 					<Label>Link to Budgets</Label>
 					<p className="text-sm text-muted-foreground">
 						Select which budgets should have access to this category. All

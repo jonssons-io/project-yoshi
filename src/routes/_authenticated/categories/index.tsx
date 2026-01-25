@@ -53,11 +53,7 @@ function CategoriesPage() {
 		enabled: !!editingCategoryId
 	})
 
-	const {
-		data: categories,
-		isLoading,
-		refetch
-	} = useCategoriesList({
+	const { data: categories, refetch } = useCategoriesList({
 		householdId,
 		userId,
 		type: filter === 'ALL' ? undefined : filter
@@ -131,7 +127,7 @@ function CategoriesPage() {
 					<CategoryForm
 						defaultValues={{
 							name: editingCategory.name,
-							type: editingCategory.type,
+							types: editingCategory.types,
 							budgetIds: editingCategory.budgets.map((b) => b.budgetId)
 						}}
 						onSubmit={async (data) => {
@@ -162,9 +158,10 @@ function CategoriesPage() {
 		budgets
 	])
 
-	const incomeCount = categories?.filter((c) => c.type === 'INCOME').length ?? 0
+	const incomeCount =
+		categories?.filter((c) => c.types.includes('INCOME')).length ?? 0
 	const expenseCount =
-		categories?.filter((c) => c.type === 'EXPENSE').length ?? 0
+		categories?.filter((c) => c.types.includes('EXPENSE')).length ?? 0
 
 	return (
 		<div className="space-y-6">
@@ -231,12 +228,13 @@ function CategoriesPage() {
 								<TableRow key={category.id}>
 									<TableCell className="font-medium">{category.name}</TableCell>
 									<TableCell>
-										<Badge
-											variant={
-												category.type === 'INCOME' ? 'default' : 'secondary'
-											}
-										>
-											{category.type}
+										<Badge variant="outline">
+											{category.types
+												.map(
+													(t) =>
+														t.charAt(0).toUpperCase() + t.slice(1).toLowerCase()
+												)
+												.join(' & ')}
 										</Badge>
 									</TableCell>
 									<TableCell>{category._count.transactions}</TableCell>

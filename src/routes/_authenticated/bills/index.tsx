@@ -106,8 +106,7 @@ function BillsPage() {
 	const categoriesQuery = useCategoriesList({
 		householdId,
 		userId,
-		type: 'EXPENSE',
-		budgetId: budgetId
+		type: 'EXPENSE'
 	})
 
 	const { data: recipientsData } = useRecipientsList({

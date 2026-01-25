@@ -7,16 +7,22 @@ export const useIncomeList = createQueryHook(
 	'income',
 	'list',
 	(params: {
+		householdId?: string | null
 		budgetId?: string | null
 		userId?: string | null
 		includeArchived?: boolean
 		enabled?: boolean
 	}) => ({
-		budgetId: params.budgetId ?? '',
+		householdId: params.householdId ?? '',
 		userId: params.userId ?? '',
 		includeArchived: params.includeArchived ?? false
 	}),
-	(params) => [params.budgetId, params.userId, params.includeArchived]
+	(params) => [
+		params.householdId,
+		params.budgetId,
+		params.userId,
+		params.includeArchived
+	]
 )
 
 /**
