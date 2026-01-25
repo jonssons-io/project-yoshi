@@ -11,6 +11,7 @@
 export type * from './models/Household.ts'
 export type * from './models/HouseholdUser.ts'
 export type * from './models/Budget.ts'
+export type * from './models/BudgetAllocation.ts'
 export type * from './models/Category.ts'
 export type * from './models/Account.ts'
 export type * from './models/BudgetCategory.ts'

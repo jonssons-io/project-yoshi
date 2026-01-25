@@ -6,6 +6,7 @@
 import { useUser } from '@clerk/clerk-react'
 import { Link } from '@tanstack/react-router'
 import {
+	Calendar,
 	Check,
 	ChevronsUpDown,
 	Coins,
@@ -73,6 +74,12 @@ const navSections = {
 			url: '/budgets',
 			icon: Wallet,
 			requiresBudget: false
+		},
+		{
+			title: 'Plan',
+			url: '/plan',
+			icon: Calendar,
+			requiresBudget: true
 		},
 		{
 			title: 'Accounts',

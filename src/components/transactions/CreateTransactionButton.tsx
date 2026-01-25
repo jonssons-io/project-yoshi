@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/auth-context'
 import {
 	useAccountsList,
 	useBillsList,
+	useBudgetsList,
 	useCategoriesList,
 	useCreateBill,
 	useCreateTransaction,
@@ -59,6 +60,11 @@ export function CreateTransactionButton({
 		enabled: !!householdId
 	})
 
+	const { data: budgets } = useBudgetsList({
+		householdId,
+		userId
+	})
+
 	// Mutations
 	const { mutate: createTransaction } = useCreateTransaction({
 		onSuccess: () => {
@@ -84,6 +90,7 @@ export function CreateTransactionButton({
 						accounts={accounts}
 						recipients={recipients}
 						bills={bills}
+						budgets={budgets}
 						onSubmit={async (data, billData) => {
 							let finalBillId = data.billId
 

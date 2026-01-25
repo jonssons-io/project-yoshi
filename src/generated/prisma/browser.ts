@@ -33,6 +33,11 @@ export type HouseholdUser = Prisma.HouseholdUserModel
  */
 export type Budget = Prisma.BudgetModel
 /**
+ * Model BudgetAllocation
+ * 
+ */
+export type BudgetAllocation = Prisma.BudgetAllocationModel
+/**
  * Model Category
  * 
  */

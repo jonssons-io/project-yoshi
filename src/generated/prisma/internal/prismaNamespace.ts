@@ -387,6 +387,7 @@ export const ModelName = {
   Household: 'Household',
   HouseholdUser: 'HouseholdUser',
   Budget: 'Budget',
+  BudgetAllocation: 'BudgetAllocation',
   Category: 'Category',
   Account: 'Account',
   BudgetCategory: 'BudgetCategory',
@@ -412,7 +413,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "household" | "householdUser" | "budget" | "category" | "account" | "budgetCategory" | "budgetAccount" | "transaction" | "bill" | "recipient" | "transfer" | "income" | "invitation"
+    modelProps: "household" | "householdUser" | "budget" | "budgetAllocation" | "category" | "account" | "budgetCategory" | "budgetAccount" | "transaction" | "bill" | "recipient" | "transfer" | "income" | "invitation"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -635,6 +636,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.BudgetCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.BudgetCountAggregateOutputType> | number
+        }
+      }
+    }
+    BudgetAllocation: {
+      payload: Prisma.$BudgetAllocationPayload<ExtArgs>
+      fields: Prisma.BudgetAllocationFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.BudgetAllocationFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BudgetAllocationPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.BudgetAllocationFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BudgetAllocationPayload>
+        }
+        findFirst: {
+          args: Prisma.BudgetAllocationFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BudgetAllocationPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.BudgetAllocationFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BudgetAllocationPayload>
+        }
+        findMany: {
+          args: Prisma.BudgetAllocationFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BudgetAllocationPayload>[]
+        }
+        create: {
+          args: Prisma.BudgetAllocationCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BudgetAllocationPayload>
+        }
+        createMany: {
+          args: Prisma.BudgetAllocationCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.BudgetAllocationCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BudgetAllocationPayload>[]
+        }
+        delete: {
+          args: Prisma.BudgetAllocationDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BudgetAllocationPayload>
+        }
+        update: {
+          args: Prisma.BudgetAllocationUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BudgetAllocationPayload>
+        }
+        deleteMany: {
+          args: Prisma.BudgetAllocationDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.BudgetAllocationUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.BudgetAllocationUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BudgetAllocationPayload>[]
+        }
+        upsert: {
+          args: Prisma.BudgetAllocationUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BudgetAllocationPayload>
+        }
+        aggregate: {
+          args: Prisma.BudgetAllocationAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateBudgetAllocation>
+        }
+        groupBy: {
+          args: Prisma.BudgetAllocationGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BudgetAllocationGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.BudgetAllocationCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BudgetAllocationCountAggregateOutputType> | number
         }
       }
     }
@@ -1447,6 +1522,17 @@ export const BudgetScalarFieldEnum = {
 export type BudgetScalarFieldEnum = (typeof BudgetScalarFieldEnum)[keyof typeof BudgetScalarFieldEnum]
 
 
+export const BudgetAllocationScalarFieldEnum = {
+  id: 'id',
+  amount: 'amount',
+  date: 'date',
+  budgetId: 'budgetId',
+  createdAt: 'createdAt'
+} as const
+
+export type BudgetAllocationScalarFieldEnum = (typeof BudgetAllocationScalarFieldEnum)[keyof typeof BudgetAllocationScalarFieldEnum]
+
+
 export const CategoryScalarFieldEnum = {
   id: 'id',
   name: 'name',
@@ -1641,20 +1727,6 @@ export type ListDateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaM
 
 
 /**
- * Reference to a field of type 'CategoryType[]'
- */
-export type ListEnumCategoryTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CategoryType[]'>
-    
-
-
-/**
- * Reference to a field of type 'CategoryType'
- */
-export type EnumCategoryTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CategoryType'>
-    
-
-
-/**
  * Reference to a field of type 'Float'
  */
 export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float'>
@@ -1665,6 +1737,20 @@ export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, '
  * Reference to a field of type 'Float[]'
  */
 export type ListFloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float[]'>
+    
+
+
+/**
+ * Reference to a field of type 'CategoryType[]'
+ */
+export type ListEnumCategoryTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CategoryType[]'>
+    
+
+
+/**
+ * Reference to a field of type 'CategoryType'
+ */
+export type EnumCategoryTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CategoryType'>
     
 
 
@@ -1800,6 +1886,7 @@ export type GlobalOmitConfig = {
   household?: Prisma.HouseholdOmit
   householdUser?: Prisma.HouseholdUserOmit
   budget?: Prisma.BudgetOmit
+  budgetAllocation?: Prisma.BudgetAllocationOmit
   category?: Prisma.CategoryOmit
   account?: Prisma.AccountOmit
   budgetCategory?: Prisma.BudgetCategoryOmit

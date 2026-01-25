@@ -54,6 +54,7 @@ export const ModelName = {
   Household: 'Household',
   HouseholdUser: 'HouseholdUser',
   Budget: 'Budget',
+  BudgetAllocation: 'BudgetAllocation',
   Category: 'Category',
   Account: 'Account',
   BudgetCategory: 'BudgetCategory',
@@ -110,6 +111,17 @@ export const BudgetScalarFieldEnum = {
 } as const
 
 export type BudgetScalarFieldEnum = (typeof BudgetScalarFieldEnum)[keyof typeof BudgetScalarFieldEnum]
+
+
+export const BudgetAllocationScalarFieldEnum = {
+  id: 'id',
+  amount: 'amount',
+  date: 'date',
+  budgetId: 'budgetId',
+  createdAt: 'createdAt'
+} as const
+
+export type BudgetAllocationScalarFieldEnum = (typeof BudgetAllocationScalarFieldEnum)[keyof typeof BudgetAllocationScalarFieldEnum]
 
 
 export const CategoryScalarFieldEnum = {

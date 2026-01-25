@@ -2,6 +2,7 @@ import type { TRPCRouterRecord } from '@trpc/server'
 import { z } from 'zod'
 import { createTRPCRouter, publicProcedure } from './init'
 import { accountsRouter } from './routers/accounts'
+import { allocationsRouter } from './routers/allocations'
 import { billsRouter } from './routers/bills'
 import { budgetsRouter } from './routers/budgets'
 import { categoriesRouter } from './routers/categories'
@@ -33,6 +34,7 @@ export const trpcRouter = createTRPCRouter({
 	todos: todosRouter,
 	households: householdsRouter,
 	budgets: budgetsRouter,
+	allocations: allocationsRouter,
 	categories: categoriesRouter,
 	accounts: accountsRouter,
 	transactions: transactionsRouter,

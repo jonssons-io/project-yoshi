@@ -70,9 +70,21 @@ model Budget {
   transactions Transaction[]
   bills        Bill[]
   transfers    Transfer[]
+  allocations  BudgetAllocation[]
 
   @@index([householdId])
   @@index([createdAt])
+}
+
+model BudgetAllocation {
+  id          String   @id @default(cuid())
+  amount      Float
+  date        DateTime @default(now())
+  budgetId    String
+  budget      Budget   @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+
+  @@index([budgetId])
 }
 
 model Category {
