@@ -1,6 +1,8 @@
 import type { TRPCRouterRecord } from '@trpc/server'
 import { TRPCError } from '@trpc/server'
+import { addDays, addMonths, addWeeks, addYears } from 'date-fns'
 import { z } from 'zod'
+import { RecurrenceType } from '../../../generated/prisma/enums'
 import { protectedProcedure } from '../init'
 
 /**
@@ -568,24 +570,92 @@ export const transactionsRouter = {
 				}
 			}
 
-			return ctx.prisma.transaction.create({
-				data: {
-					name: input.name,
-					amount: input.amount,
-					date: input.date,
-					notes: input.notes,
-					budgetId: budget?.id,
-					accountId: input.accountId,
-					categoryId: finalCategoryId,
-					billId: input.billId,
-					recipientId: finalRecipientId,
-					incomeId: input.incomeId
-				},
-				include: {
-					category: true,
-					account: true,
-					recipient: true
+			return ctx.prisma.$transaction(async (tx) => {
+				const transaction = await tx.transaction.create({
+					data: {
+						name: input.name,
+						amount: input.amount,
+						date: input.date,
+						notes: input.notes,
+						budgetId: budget?.id,
+						accountId: input.accountId,
+						categoryId: finalCategoryId,
+						billId: input.billId,
+						recipientId: finalRecipientId,
+						incomeId: input.incomeId
+					},
+					include: {
+						category: true,
+						account: true,
+						recipient: true
+					}
+				})
+
+				// If this transaction pays a bill, ensure we maintain the buffer of future bills
+				if (input.billId) {
+					// 1. Get the paid bill instance to find its series
+					const paidBill = await tx.bill.findUnique({
+						where: { id: input.billId },
+						include: { recurringBill: true }
+					})
+
+					if (paidBill && paidBill.recurringBill) {
+						const { recurringBill } = paidBill
+
+						// 2. Find the last generated bill for this series
+						const lastBill = await tx.bill.findFirst({
+							where: { recurringBillId: recurringBill.id },
+							orderBy: { dueDate: 'desc' }
+						})
+
+						if (lastBill) {
+							// 3. Calculate the next due date based on the LAST bill
+							let nextDate = new Date(lastBill.dueDate)
+							switch (recurringBill.recurrenceType) {
+								case RecurrenceType.WEEKLY:
+									nextDate = addWeeks(nextDate, 1)
+									break
+								case RecurrenceType.MONTHLY:
+									nextDate = addMonths(nextDate, 1)
+									break
+								case RecurrenceType.QUARTERLY:
+									nextDate = addMonths(nextDate, 3)
+									break
+								case RecurrenceType.YEARLY:
+									nextDate = addYears(nextDate, 1)
+									break
+								case RecurrenceType.CUSTOM:
+									if (recurringBill.customIntervalDays) {
+										nextDate = addDays(
+											nextDate,
+											recurringBill.customIntervalDays
+										)
+									}
+									break
+								case RecurrenceType.NONE:
+									// No recurrence, no new bill
+									return transaction
+							}
+
+							// 4. Create proper instance if strictly after last one (and check stop date)
+							if (
+								(!recurringBill.lastPaymentDate ||
+									nextDate <= recurringBill.lastPaymentDate) &&
+								nextDate > lastBill.dueDate
+							) {
+								await tx.bill.create({
+									data: {
+										dueDate: nextDate,
+										amount: recurringBill.estimatedAmount,
+										recurringBillId: recurringBill.id
+									}
+								})
+							}
+						}
+					}
 				}
+
+				return transaction
 			})
 		}),
 

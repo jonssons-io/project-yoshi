@@ -186,7 +186,7 @@ export type BudgetWhereInput = {
   categories?: Prisma.BudgetCategoryListRelationFilter
   accounts?: Prisma.BudgetAccountListRelationFilter
   transactions?: Prisma.TransactionListRelationFilter
-  bills?: Prisma.BillListRelationFilter
+  recurringBills?: Prisma.RecurringBillListRelationFilter
   transfers?: Prisma.TransferListRelationFilter
   allocations?: Prisma.BudgetAllocationListRelationFilter
 }
@@ -201,7 +201,7 @@ export type BudgetOrderByWithRelationInput = {
   categories?: Prisma.BudgetCategoryOrderByRelationAggregateInput
   accounts?: Prisma.BudgetAccountOrderByRelationAggregateInput
   transactions?: Prisma.TransactionOrderByRelationAggregateInput
-  bills?: Prisma.BillOrderByRelationAggregateInput
+  recurringBills?: Prisma.RecurringBillOrderByRelationAggregateInput
   transfers?: Prisma.TransferOrderByRelationAggregateInput
   allocations?: Prisma.BudgetAllocationOrderByRelationAggregateInput
 }
@@ -219,7 +219,7 @@ export type BudgetWhereUniqueInput = Prisma.AtLeast<{
   categories?: Prisma.BudgetCategoryListRelationFilter
   accounts?: Prisma.BudgetAccountListRelationFilter
   transactions?: Prisma.TransactionListRelationFilter
-  bills?: Prisma.BillListRelationFilter
+  recurringBills?: Prisma.RecurringBillListRelationFilter
   transfers?: Prisma.TransferListRelationFilter
   allocations?: Prisma.BudgetAllocationListRelationFilter
 }, "id">
@@ -255,7 +255,7 @@ export type BudgetCreateInput = {
   categories?: Prisma.BudgetCategoryCreateNestedManyWithoutBudgetInput
   accounts?: Prisma.BudgetAccountCreateNestedManyWithoutBudgetInput
   transactions?: Prisma.TransactionCreateNestedManyWithoutBudgetInput
-  bills?: Prisma.BillCreateNestedManyWithoutBudgetInput
+  recurringBills?: Prisma.RecurringBillCreateNestedManyWithoutBudgetInput
   transfers?: Prisma.TransferCreateNestedManyWithoutBudgetInput
   allocations?: Prisma.BudgetAllocationCreateNestedManyWithoutBudgetInput
 }
@@ -269,7 +269,7 @@ export type BudgetUncheckedCreateInput = {
   categories?: Prisma.BudgetCategoryUncheckedCreateNestedManyWithoutBudgetInput
   accounts?: Prisma.BudgetAccountUncheckedCreateNestedManyWithoutBudgetInput
   transactions?: Prisma.TransactionUncheckedCreateNestedManyWithoutBudgetInput
-  bills?: Prisma.BillUncheckedCreateNestedManyWithoutBudgetInput
+  recurringBills?: Prisma.RecurringBillUncheckedCreateNestedManyWithoutBudgetInput
   transfers?: Prisma.TransferUncheckedCreateNestedManyWithoutBudgetInput
   allocations?: Prisma.BudgetAllocationUncheckedCreateNestedManyWithoutBudgetInput
 }
@@ -283,7 +283,7 @@ export type BudgetUpdateInput = {
   categories?: Prisma.BudgetCategoryUpdateManyWithoutBudgetNestedInput
   accounts?: Prisma.BudgetAccountUpdateManyWithoutBudgetNestedInput
   transactions?: Prisma.TransactionUpdateManyWithoutBudgetNestedInput
-  bills?: Prisma.BillUpdateManyWithoutBudgetNestedInput
+  recurringBills?: Prisma.RecurringBillUpdateManyWithoutBudgetNestedInput
   transfers?: Prisma.TransferUpdateManyWithoutBudgetNestedInput
   allocations?: Prisma.BudgetAllocationUpdateManyWithoutBudgetNestedInput
 }
@@ -297,7 +297,7 @@ export type BudgetUncheckedUpdateInput = {
   categories?: Prisma.BudgetCategoryUncheckedUpdateManyWithoutBudgetNestedInput
   accounts?: Prisma.BudgetAccountUncheckedUpdateManyWithoutBudgetNestedInput
   transactions?: Prisma.TransactionUncheckedUpdateManyWithoutBudgetNestedInput
-  bills?: Prisma.BillUncheckedUpdateManyWithoutBudgetNestedInput
+  recurringBills?: Prisma.RecurringBillUncheckedUpdateManyWithoutBudgetNestedInput
   transfers?: Prisma.TransferUncheckedUpdateManyWithoutBudgetNestedInput
   allocations?: Prisma.BudgetAllocationUncheckedUpdateManyWithoutBudgetNestedInput
 }
@@ -469,18 +469,18 @@ export type BudgetUpdateOneWithoutTransactionsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.BudgetUpdateToOneWithWhereWithoutTransactionsInput, Prisma.BudgetUpdateWithoutTransactionsInput>, Prisma.BudgetUncheckedUpdateWithoutTransactionsInput>
 }
 
-export type BudgetCreateNestedOneWithoutBillsInput = {
-  create?: Prisma.XOR<Prisma.BudgetCreateWithoutBillsInput, Prisma.BudgetUncheckedCreateWithoutBillsInput>
-  connectOrCreate?: Prisma.BudgetCreateOrConnectWithoutBillsInput
+export type BudgetCreateNestedOneWithoutRecurringBillsInput = {
+  create?: Prisma.XOR<Prisma.BudgetCreateWithoutRecurringBillsInput, Prisma.BudgetUncheckedCreateWithoutRecurringBillsInput>
+  connectOrCreate?: Prisma.BudgetCreateOrConnectWithoutRecurringBillsInput
   connect?: Prisma.BudgetWhereUniqueInput
 }
 
-export type BudgetUpdateOneRequiredWithoutBillsNestedInput = {
-  create?: Prisma.XOR<Prisma.BudgetCreateWithoutBillsInput, Prisma.BudgetUncheckedCreateWithoutBillsInput>
-  connectOrCreate?: Prisma.BudgetCreateOrConnectWithoutBillsInput
-  upsert?: Prisma.BudgetUpsertWithoutBillsInput
+export type BudgetUpdateOneRequiredWithoutRecurringBillsNestedInput = {
+  create?: Prisma.XOR<Prisma.BudgetCreateWithoutRecurringBillsInput, Prisma.BudgetUncheckedCreateWithoutRecurringBillsInput>
+  connectOrCreate?: Prisma.BudgetCreateOrConnectWithoutRecurringBillsInput
+  upsert?: Prisma.BudgetUpsertWithoutRecurringBillsInput
   connect?: Prisma.BudgetWhereUniqueInput
-  update?: Prisma.XOR<Prisma.XOR<Prisma.BudgetUpdateToOneWithWhereWithoutBillsInput, Prisma.BudgetUpdateWithoutBillsInput>, Prisma.BudgetUncheckedUpdateWithoutBillsInput>
+  update?: Prisma.XOR<Prisma.XOR<Prisma.BudgetUpdateToOneWithWhereWithoutRecurringBillsInput, Prisma.BudgetUpdateWithoutRecurringBillsInput>, Prisma.BudgetUncheckedUpdateWithoutRecurringBillsInput>
 }
 
 export type BudgetCreateNestedOneWithoutTransfersInput = {
@@ -505,7 +505,7 @@ export type BudgetCreateWithoutHouseholdInput = {
   categories?: Prisma.BudgetCategoryCreateNestedManyWithoutBudgetInput
   accounts?: Prisma.BudgetAccountCreateNestedManyWithoutBudgetInput
   transactions?: Prisma.TransactionCreateNestedManyWithoutBudgetInput
-  bills?: Prisma.BillCreateNestedManyWithoutBudgetInput
+  recurringBills?: Prisma.RecurringBillCreateNestedManyWithoutBudgetInput
   transfers?: Prisma.TransferCreateNestedManyWithoutBudgetInput
   allocations?: Prisma.BudgetAllocationCreateNestedManyWithoutBudgetInput
 }
@@ -518,7 +518,7 @@ export type BudgetUncheckedCreateWithoutHouseholdInput = {
   categories?: Prisma.BudgetCategoryUncheckedCreateNestedManyWithoutBudgetInput
   accounts?: Prisma.BudgetAccountUncheckedCreateNestedManyWithoutBudgetInput
   transactions?: Prisma.TransactionUncheckedCreateNestedManyWithoutBudgetInput
-  bills?: Prisma.BillUncheckedCreateNestedManyWithoutBudgetInput
+  recurringBills?: Prisma.RecurringBillUncheckedCreateNestedManyWithoutBudgetInput
   transfers?: Prisma.TransferUncheckedCreateNestedManyWithoutBudgetInput
   allocations?: Prisma.BudgetAllocationUncheckedCreateNestedManyWithoutBudgetInput
 }
@@ -569,7 +569,7 @@ export type BudgetCreateWithoutAllocationsInput = {
   categories?: Prisma.BudgetCategoryCreateNestedManyWithoutBudgetInput
   accounts?: Prisma.BudgetAccountCreateNestedManyWithoutBudgetInput
   transactions?: Prisma.TransactionCreateNestedManyWithoutBudgetInput
-  bills?: Prisma.BillCreateNestedManyWithoutBudgetInput
+  recurringBills?: Prisma.RecurringBillCreateNestedManyWithoutBudgetInput
   transfers?: Prisma.TransferCreateNestedManyWithoutBudgetInput
 }
 
@@ -582,7 +582,7 @@ export type BudgetUncheckedCreateWithoutAllocationsInput = {
   categories?: Prisma.BudgetCategoryUncheckedCreateNestedManyWithoutBudgetInput
   accounts?: Prisma.BudgetAccountUncheckedCreateNestedManyWithoutBudgetInput
   transactions?: Prisma.TransactionUncheckedCreateNestedManyWithoutBudgetInput
-  bills?: Prisma.BillUncheckedCreateNestedManyWithoutBudgetInput
+  recurringBills?: Prisma.RecurringBillUncheckedCreateNestedManyWithoutBudgetInput
   transfers?: Prisma.TransferUncheckedCreateNestedManyWithoutBudgetInput
 }
 
@@ -611,7 +611,7 @@ export type BudgetUpdateWithoutAllocationsInput = {
   categories?: Prisma.BudgetCategoryUpdateManyWithoutBudgetNestedInput
   accounts?: Prisma.BudgetAccountUpdateManyWithoutBudgetNestedInput
   transactions?: Prisma.TransactionUpdateManyWithoutBudgetNestedInput
-  bills?: Prisma.BillUpdateManyWithoutBudgetNestedInput
+  recurringBills?: Prisma.RecurringBillUpdateManyWithoutBudgetNestedInput
   transfers?: Prisma.TransferUpdateManyWithoutBudgetNestedInput
 }
 
@@ -624,7 +624,7 @@ export type BudgetUncheckedUpdateWithoutAllocationsInput = {
   categories?: Prisma.BudgetCategoryUncheckedUpdateManyWithoutBudgetNestedInput
   accounts?: Prisma.BudgetAccountUncheckedUpdateManyWithoutBudgetNestedInput
   transactions?: Prisma.TransactionUncheckedUpdateManyWithoutBudgetNestedInput
-  bills?: Prisma.BillUncheckedUpdateManyWithoutBudgetNestedInput
+  recurringBills?: Prisma.RecurringBillUncheckedUpdateManyWithoutBudgetNestedInput
   transfers?: Prisma.TransferUncheckedUpdateManyWithoutBudgetNestedInput
 }
 
@@ -636,7 +636,7 @@ export type BudgetCreateWithoutCategoriesInput = {
   household: Prisma.HouseholdCreateNestedOneWithoutBudgetsInput
   accounts?: Prisma.BudgetAccountCreateNestedManyWithoutBudgetInput
   transactions?: Prisma.TransactionCreateNestedManyWithoutBudgetInput
-  bills?: Prisma.BillCreateNestedManyWithoutBudgetInput
+  recurringBills?: Prisma.RecurringBillCreateNestedManyWithoutBudgetInput
   transfers?: Prisma.TransferCreateNestedManyWithoutBudgetInput
   allocations?: Prisma.BudgetAllocationCreateNestedManyWithoutBudgetInput
 }
@@ -649,7 +649,7 @@ export type BudgetUncheckedCreateWithoutCategoriesInput = {
   createdAt?: Date | string
   accounts?: Prisma.BudgetAccountUncheckedCreateNestedManyWithoutBudgetInput
   transactions?: Prisma.TransactionUncheckedCreateNestedManyWithoutBudgetInput
-  bills?: Prisma.BillUncheckedCreateNestedManyWithoutBudgetInput
+  recurringBills?: Prisma.RecurringBillUncheckedCreateNestedManyWithoutBudgetInput
   transfers?: Prisma.TransferUncheckedCreateNestedManyWithoutBudgetInput
   allocations?: Prisma.BudgetAllocationUncheckedCreateNestedManyWithoutBudgetInput
 }
@@ -678,7 +678,7 @@ export type BudgetUpdateWithoutCategoriesInput = {
   household?: Prisma.HouseholdUpdateOneRequiredWithoutBudgetsNestedInput
   accounts?: Prisma.BudgetAccountUpdateManyWithoutBudgetNestedInput
   transactions?: Prisma.TransactionUpdateManyWithoutBudgetNestedInput
-  bills?: Prisma.BillUpdateManyWithoutBudgetNestedInput
+  recurringBills?: Prisma.RecurringBillUpdateManyWithoutBudgetNestedInput
   transfers?: Prisma.TransferUpdateManyWithoutBudgetNestedInput
   allocations?: Prisma.BudgetAllocationUpdateManyWithoutBudgetNestedInput
 }
@@ -691,7 +691,7 @@ export type BudgetUncheckedUpdateWithoutCategoriesInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   accounts?: Prisma.BudgetAccountUncheckedUpdateManyWithoutBudgetNestedInput
   transactions?: Prisma.TransactionUncheckedUpdateManyWithoutBudgetNestedInput
-  bills?: Prisma.BillUncheckedUpdateManyWithoutBudgetNestedInput
+  recurringBills?: Prisma.RecurringBillUncheckedUpdateManyWithoutBudgetNestedInput
   transfers?: Prisma.TransferUncheckedUpdateManyWithoutBudgetNestedInput
   allocations?: Prisma.BudgetAllocationUncheckedUpdateManyWithoutBudgetNestedInput
 }
@@ -704,7 +704,7 @@ export type BudgetCreateWithoutAccountsInput = {
   household: Prisma.HouseholdCreateNestedOneWithoutBudgetsInput
   categories?: Prisma.BudgetCategoryCreateNestedManyWithoutBudgetInput
   transactions?: Prisma.TransactionCreateNestedManyWithoutBudgetInput
-  bills?: Prisma.BillCreateNestedManyWithoutBudgetInput
+  recurringBills?: Prisma.RecurringBillCreateNestedManyWithoutBudgetInput
   transfers?: Prisma.TransferCreateNestedManyWithoutBudgetInput
   allocations?: Prisma.BudgetAllocationCreateNestedManyWithoutBudgetInput
 }
@@ -717,7 +717,7 @@ export type BudgetUncheckedCreateWithoutAccountsInput = {
   createdAt?: Date | string
   categories?: Prisma.BudgetCategoryUncheckedCreateNestedManyWithoutBudgetInput
   transactions?: Prisma.TransactionUncheckedCreateNestedManyWithoutBudgetInput
-  bills?: Prisma.BillUncheckedCreateNestedManyWithoutBudgetInput
+  recurringBills?: Prisma.RecurringBillUncheckedCreateNestedManyWithoutBudgetInput
   transfers?: Prisma.TransferUncheckedCreateNestedManyWithoutBudgetInput
   allocations?: Prisma.BudgetAllocationUncheckedCreateNestedManyWithoutBudgetInput
 }
@@ -746,7 +746,7 @@ export type BudgetUpdateWithoutAccountsInput = {
   household?: Prisma.HouseholdUpdateOneRequiredWithoutBudgetsNestedInput
   categories?: Prisma.BudgetCategoryUpdateManyWithoutBudgetNestedInput
   transactions?: Prisma.TransactionUpdateManyWithoutBudgetNestedInput
-  bills?: Prisma.BillUpdateManyWithoutBudgetNestedInput
+  recurringBills?: Prisma.RecurringBillUpdateManyWithoutBudgetNestedInput
   transfers?: Prisma.TransferUpdateManyWithoutBudgetNestedInput
   allocations?: Prisma.BudgetAllocationUpdateManyWithoutBudgetNestedInput
 }
@@ -759,7 +759,7 @@ export type BudgetUncheckedUpdateWithoutAccountsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   categories?: Prisma.BudgetCategoryUncheckedUpdateManyWithoutBudgetNestedInput
   transactions?: Prisma.TransactionUncheckedUpdateManyWithoutBudgetNestedInput
-  bills?: Prisma.BillUncheckedUpdateManyWithoutBudgetNestedInput
+  recurringBills?: Prisma.RecurringBillUncheckedUpdateManyWithoutBudgetNestedInput
   transfers?: Prisma.TransferUncheckedUpdateManyWithoutBudgetNestedInput
   allocations?: Prisma.BudgetAllocationUncheckedUpdateManyWithoutBudgetNestedInput
 }
@@ -772,7 +772,7 @@ export type BudgetCreateWithoutTransactionsInput = {
   household: Prisma.HouseholdCreateNestedOneWithoutBudgetsInput
   categories?: Prisma.BudgetCategoryCreateNestedManyWithoutBudgetInput
   accounts?: Prisma.BudgetAccountCreateNestedManyWithoutBudgetInput
-  bills?: Prisma.BillCreateNestedManyWithoutBudgetInput
+  recurringBills?: Prisma.RecurringBillCreateNestedManyWithoutBudgetInput
   transfers?: Prisma.TransferCreateNestedManyWithoutBudgetInput
   allocations?: Prisma.BudgetAllocationCreateNestedManyWithoutBudgetInput
 }
@@ -785,7 +785,7 @@ export type BudgetUncheckedCreateWithoutTransactionsInput = {
   createdAt?: Date | string
   categories?: Prisma.BudgetCategoryUncheckedCreateNestedManyWithoutBudgetInput
   accounts?: Prisma.BudgetAccountUncheckedCreateNestedManyWithoutBudgetInput
-  bills?: Prisma.BillUncheckedCreateNestedManyWithoutBudgetInput
+  recurringBills?: Prisma.RecurringBillUncheckedCreateNestedManyWithoutBudgetInput
   transfers?: Prisma.TransferUncheckedCreateNestedManyWithoutBudgetInput
   allocations?: Prisma.BudgetAllocationUncheckedCreateNestedManyWithoutBudgetInput
 }
@@ -814,7 +814,7 @@ export type BudgetUpdateWithoutTransactionsInput = {
   household?: Prisma.HouseholdUpdateOneRequiredWithoutBudgetsNestedInput
   categories?: Prisma.BudgetCategoryUpdateManyWithoutBudgetNestedInput
   accounts?: Prisma.BudgetAccountUpdateManyWithoutBudgetNestedInput
-  bills?: Prisma.BillUpdateManyWithoutBudgetNestedInput
+  recurringBills?: Prisma.RecurringBillUpdateManyWithoutBudgetNestedInput
   transfers?: Prisma.TransferUpdateManyWithoutBudgetNestedInput
   allocations?: Prisma.BudgetAllocationUpdateManyWithoutBudgetNestedInput
 }
@@ -827,12 +827,12 @@ export type BudgetUncheckedUpdateWithoutTransactionsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   categories?: Prisma.BudgetCategoryUncheckedUpdateManyWithoutBudgetNestedInput
   accounts?: Prisma.BudgetAccountUncheckedUpdateManyWithoutBudgetNestedInput
-  bills?: Prisma.BillUncheckedUpdateManyWithoutBudgetNestedInput
+  recurringBills?: Prisma.RecurringBillUncheckedUpdateManyWithoutBudgetNestedInput
   transfers?: Prisma.TransferUncheckedUpdateManyWithoutBudgetNestedInput
   allocations?: Prisma.BudgetAllocationUncheckedUpdateManyWithoutBudgetNestedInput
 }
 
-export type BudgetCreateWithoutBillsInput = {
+export type BudgetCreateWithoutRecurringBillsInput = {
   id?: string
   name: string
   startDate: Date | string
@@ -845,7 +845,7 @@ export type BudgetCreateWithoutBillsInput = {
   allocations?: Prisma.BudgetAllocationCreateNestedManyWithoutBudgetInput
 }
 
-export type BudgetUncheckedCreateWithoutBillsInput = {
+export type BudgetUncheckedCreateWithoutRecurringBillsInput = {
   id?: string
   name: string
   startDate: Date | string
@@ -858,23 +858,23 @@ export type BudgetUncheckedCreateWithoutBillsInput = {
   allocations?: Prisma.BudgetAllocationUncheckedCreateNestedManyWithoutBudgetInput
 }
 
-export type BudgetCreateOrConnectWithoutBillsInput = {
+export type BudgetCreateOrConnectWithoutRecurringBillsInput = {
   where: Prisma.BudgetWhereUniqueInput
-  create: Prisma.XOR<Prisma.BudgetCreateWithoutBillsInput, Prisma.BudgetUncheckedCreateWithoutBillsInput>
+  create: Prisma.XOR<Prisma.BudgetCreateWithoutRecurringBillsInput, Prisma.BudgetUncheckedCreateWithoutRecurringBillsInput>
 }
 
-export type BudgetUpsertWithoutBillsInput = {
-  update: Prisma.XOR<Prisma.BudgetUpdateWithoutBillsInput, Prisma.BudgetUncheckedUpdateWithoutBillsInput>
-  create: Prisma.XOR<Prisma.BudgetCreateWithoutBillsInput, Prisma.BudgetUncheckedCreateWithoutBillsInput>
+export type BudgetUpsertWithoutRecurringBillsInput = {
+  update: Prisma.XOR<Prisma.BudgetUpdateWithoutRecurringBillsInput, Prisma.BudgetUncheckedUpdateWithoutRecurringBillsInput>
+  create: Prisma.XOR<Prisma.BudgetCreateWithoutRecurringBillsInput, Prisma.BudgetUncheckedCreateWithoutRecurringBillsInput>
   where?: Prisma.BudgetWhereInput
 }
 
-export type BudgetUpdateToOneWithWhereWithoutBillsInput = {
+export type BudgetUpdateToOneWithWhereWithoutRecurringBillsInput = {
   where?: Prisma.BudgetWhereInput
-  data: Prisma.XOR<Prisma.BudgetUpdateWithoutBillsInput, Prisma.BudgetUncheckedUpdateWithoutBillsInput>
+  data: Prisma.XOR<Prisma.BudgetUpdateWithoutRecurringBillsInput, Prisma.BudgetUncheckedUpdateWithoutRecurringBillsInput>
 }
 
-export type BudgetUpdateWithoutBillsInput = {
+export type BudgetUpdateWithoutRecurringBillsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   startDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -887,7 +887,7 @@ export type BudgetUpdateWithoutBillsInput = {
   allocations?: Prisma.BudgetAllocationUpdateManyWithoutBudgetNestedInput
 }
 
-export type BudgetUncheckedUpdateWithoutBillsInput = {
+export type BudgetUncheckedUpdateWithoutRecurringBillsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   startDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -909,7 +909,7 @@ export type BudgetCreateWithoutTransfersInput = {
   categories?: Prisma.BudgetCategoryCreateNestedManyWithoutBudgetInput
   accounts?: Prisma.BudgetAccountCreateNestedManyWithoutBudgetInput
   transactions?: Prisma.TransactionCreateNestedManyWithoutBudgetInput
-  bills?: Prisma.BillCreateNestedManyWithoutBudgetInput
+  recurringBills?: Prisma.RecurringBillCreateNestedManyWithoutBudgetInput
   allocations?: Prisma.BudgetAllocationCreateNestedManyWithoutBudgetInput
 }
 
@@ -922,7 +922,7 @@ export type BudgetUncheckedCreateWithoutTransfersInput = {
   categories?: Prisma.BudgetCategoryUncheckedCreateNestedManyWithoutBudgetInput
   accounts?: Prisma.BudgetAccountUncheckedCreateNestedManyWithoutBudgetInput
   transactions?: Prisma.TransactionUncheckedCreateNestedManyWithoutBudgetInput
-  bills?: Prisma.BillUncheckedCreateNestedManyWithoutBudgetInput
+  recurringBills?: Prisma.RecurringBillUncheckedCreateNestedManyWithoutBudgetInput
   allocations?: Prisma.BudgetAllocationUncheckedCreateNestedManyWithoutBudgetInput
 }
 
@@ -951,7 +951,7 @@ export type BudgetUpdateWithoutTransfersInput = {
   categories?: Prisma.BudgetCategoryUpdateManyWithoutBudgetNestedInput
   accounts?: Prisma.BudgetAccountUpdateManyWithoutBudgetNestedInput
   transactions?: Prisma.TransactionUpdateManyWithoutBudgetNestedInput
-  bills?: Prisma.BillUpdateManyWithoutBudgetNestedInput
+  recurringBills?: Prisma.RecurringBillUpdateManyWithoutBudgetNestedInput
   allocations?: Prisma.BudgetAllocationUpdateManyWithoutBudgetNestedInput
 }
 
@@ -964,7 +964,7 @@ export type BudgetUncheckedUpdateWithoutTransfersInput = {
   categories?: Prisma.BudgetCategoryUncheckedUpdateManyWithoutBudgetNestedInput
   accounts?: Prisma.BudgetAccountUncheckedUpdateManyWithoutBudgetNestedInput
   transactions?: Prisma.TransactionUncheckedUpdateManyWithoutBudgetNestedInput
-  bills?: Prisma.BillUncheckedUpdateManyWithoutBudgetNestedInput
+  recurringBills?: Prisma.RecurringBillUncheckedUpdateManyWithoutBudgetNestedInput
   allocations?: Prisma.BudgetAllocationUncheckedUpdateManyWithoutBudgetNestedInput
 }
 
@@ -983,7 +983,7 @@ export type BudgetUpdateWithoutHouseholdInput = {
   categories?: Prisma.BudgetCategoryUpdateManyWithoutBudgetNestedInput
   accounts?: Prisma.BudgetAccountUpdateManyWithoutBudgetNestedInput
   transactions?: Prisma.TransactionUpdateManyWithoutBudgetNestedInput
-  bills?: Prisma.BillUpdateManyWithoutBudgetNestedInput
+  recurringBills?: Prisma.RecurringBillUpdateManyWithoutBudgetNestedInput
   transfers?: Prisma.TransferUpdateManyWithoutBudgetNestedInput
   allocations?: Prisma.BudgetAllocationUpdateManyWithoutBudgetNestedInput
 }
@@ -996,7 +996,7 @@ export type BudgetUncheckedUpdateWithoutHouseholdInput = {
   categories?: Prisma.BudgetCategoryUncheckedUpdateManyWithoutBudgetNestedInput
   accounts?: Prisma.BudgetAccountUncheckedUpdateManyWithoutBudgetNestedInput
   transactions?: Prisma.TransactionUncheckedUpdateManyWithoutBudgetNestedInput
-  bills?: Prisma.BillUncheckedUpdateManyWithoutBudgetNestedInput
+  recurringBills?: Prisma.RecurringBillUncheckedUpdateManyWithoutBudgetNestedInput
   transfers?: Prisma.TransferUncheckedUpdateManyWithoutBudgetNestedInput
   allocations?: Prisma.BudgetAllocationUncheckedUpdateManyWithoutBudgetNestedInput
 }
@@ -1017,7 +1017,7 @@ export type BudgetCountOutputType = {
   categories: number
   accounts: number
   transactions: number
-  bills: number
+  recurringBills: number
   transfers: number
   allocations: number
 }
@@ -1026,7 +1026,7 @@ export type BudgetCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions
   categories?: boolean | BudgetCountOutputTypeCountCategoriesArgs
   accounts?: boolean | BudgetCountOutputTypeCountAccountsArgs
   transactions?: boolean | BudgetCountOutputTypeCountTransactionsArgs
-  bills?: boolean | BudgetCountOutputTypeCountBillsArgs
+  recurringBills?: boolean | BudgetCountOutputTypeCountRecurringBillsArgs
   transfers?: boolean | BudgetCountOutputTypeCountTransfersArgs
   allocations?: boolean | BudgetCountOutputTypeCountAllocationsArgs
 }
@@ -1065,8 +1065,8 @@ export type BudgetCountOutputTypeCountTransactionsArgs<ExtArgs extends runtime.T
 /**
  * BudgetCountOutputType without action
  */
-export type BudgetCountOutputTypeCountBillsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  where?: Prisma.BillWhereInput
+export type BudgetCountOutputTypeCountRecurringBillsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.RecurringBillWhereInput
 }
 
 /**
@@ -1094,7 +1094,7 @@ export type BudgetSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   categories?: boolean | Prisma.Budget$categoriesArgs<ExtArgs>
   accounts?: boolean | Prisma.Budget$accountsArgs<ExtArgs>
   transactions?: boolean | Prisma.Budget$transactionsArgs<ExtArgs>
-  bills?: boolean | Prisma.Budget$billsArgs<ExtArgs>
+  recurringBills?: boolean | Prisma.Budget$recurringBillsArgs<ExtArgs>
   transfers?: boolean | Prisma.Budget$transfersArgs<ExtArgs>
   allocations?: boolean | Prisma.Budget$allocationsArgs<ExtArgs>
   _count?: boolean | Prisma.BudgetCountOutputTypeDefaultArgs<ExtArgs>
@@ -1132,7 +1132,7 @@ export type BudgetInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   categories?: boolean | Prisma.Budget$categoriesArgs<ExtArgs>
   accounts?: boolean | Prisma.Budget$accountsArgs<ExtArgs>
   transactions?: boolean | Prisma.Budget$transactionsArgs<ExtArgs>
-  bills?: boolean | Prisma.Budget$billsArgs<ExtArgs>
+  recurringBills?: boolean | Prisma.Budget$recurringBillsArgs<ExtArgs>
   transfers?: boolean | Prisma.Budget$transfersArgs<ExtArgs>
   allocations?: boolean | Prisma.Budget$allocationsArgs<ExtArgs>
   _count?: boolean | Prisma.BudgetCountOutputTypeDefaultArgs<ExtArgs>
@@ -1151,7 +1151,7 @@ export type $BudgetPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs
     categories: Prisma.$BudgetCategoryPayload<ExtArgs>[]
     accounts: Prisma.$BudgetAccountPayload<ExtArgs>[]
     transactions: Prisma.$TransactionPayload<ExtArgs>[]
-    bills: Prisma.$BillPayload<ExtArgs>[]
+    recurringBills: Prisma.$RecurringBillPayload<ExtArgs>[]
     transfers: Prisma.$TransferPayload<ExtArgs>[]
     allocations: Prisma.$BudgetAllocationPayload<ExtArgs>[]
   }
@@ -1559,7 +1559,7 @@ export interface Prisma__BudgetClient<T, Null = never, ExtArgs extends runtime.T
   categories<T extends Prisma.Budget$categoriesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Budget$categoriesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$BudgetCategoryPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   accounts<T extends Prisma.Budget$accountsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Budget$accountsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$BudgetAccountPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   transactions<T extends Prisma.Budget$transactionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Budget$transactionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$TransactionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
-  bills<T extends Prisma.Budget$billsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Budget$billsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$BillPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  recurringBills<T extends Prisma.Budget$recurringBillsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Budget$recurringBillsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$RecurringBillPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   transfers<T extends Prisma.Budget$transfersArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Budget$transfersArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$TransferPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   allocations<T extends Prisma.Budget$allocationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Budget$allocationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$BudgetAllocationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
@@ -2064,27 +2064,27 @@ export type Budget$transactionsArgs<ExtArgs extends runtime.Types.Extensions.Int
 }
 
 /**
- * Budget.bills
+ * Budget.recurringBills
  */
-export type Budget$billsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+export type Budget$recurringBillsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   /**
-   * Select specific fields to fetch from the Bill
+   * Select specific fields to fetch from the RecurringBill
    */
-  select?: Prisma.BillSelect<ExtArgs> | null
+  select?: Prisma.RecurringBillSelect<ExtArgs> | null
   /**
-   * Omit specific fields from the Bill
+   * Omit specific fields from the RecurringBill
    */
-  omit?: Prisma.BillOmit<ExtArgs> | null
+  omit?: Prisma.RecurringBillOmit<ExtArgs> | null
   /**
    * Choose, which related nodes to fetch as well
    */
-  include?: Prisma.BillInclude<ExtArgs> | null
-  where?: Prisma.BillWhereInput
-  orderBy?: Prisma.BillOrderByWithRelationInput | Prisma.BillOrderByWithRelationInput[]
-  cursor?: Prisma.BillWhereUniqueInput
+  include?: Prisma.RecurringBillInclude<ExtArgs> | null
+  where?: Prisma.RecurringBillWhereInput
+  orderBy?: Prisma.RecurringBillOrderByWithRelationInput | Prisma.RecurringBillOrderByWithRelationInput[]
+  cursor?: Prisma.RecurringBillWhereUniqueInput
   take?: number
   skip?: number
-  distinct?: Prisma.BillScalarFieldEnum | Prisma.BillScalarFieldEnum[]
+  distinct?: Prisma.RecurringBillScalarFieldEnum | Prisma.RecurringBillScalarFieldEnum[]
 }
 
 /**

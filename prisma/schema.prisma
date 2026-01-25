@@ -67,10 +67,10 @@ model Budget {
   household    Household         @relation(fields: [householdId], references: [id], onDelete: Cascade)
   categories   BudgetCategory[]  // Many-to-many with Category
   accounts     BudgetAccount[]   // Many-to-many with Account
-  transactions Transaction[]
-  bills        Bill[]
-  transfers    Transfer[]
-  allocations  BudgetAllocation[]
+  transactions   Transaction[]
+  recurringBills RecurringBill[]
+  transfers      Transfer[]
+  allocations    BudgetAllocation[]
 
   @@index([householdId])
   @@index([createdAt])
@@ -98,7 +98,7 @@ model Category {
   household    Household        @relation(fields: [householdId], references: [id], onDelete: Cascade)
   budgets      BudgetCategory[] // Many-to-many with Budget
   transactions Transaction[]
-  bills        Bill[]
+  recurringBills RecurringBill[]
   incomes      Income[]
 
   @@index([householdId])
@@ -117,7 +117,7 @@ model Account {
   household     Household       @relation(fields: [householdId], references: [id], onDelete: Cascade)
   budgets       BudgetAccount[] // Many-to-many with Budget
   transactions  Transaction[]
-  bills         Bill[]
+  recurringBills RecurringBill[]
   transfersFrom Transfer[]      @relation("TransferFrom")
   transfersTo   Transfer[]      @relation("TransferTo")
   incomes       Income[]
@@ -186,7 +186,8 @@ model Transaction {
   @@index([date])
 }
 
-model Bill {
+// RecurringBill represents the template/schedule for bills
+model RecurringBill {
   id                 String         @id @default(cuid())
   name               String
   recipient          String
@@ -195,7 +196,7 @@ model Bill {
   recurrenceType     RecurrenceType @default(NONE)
   customIntervalDays Int?           // For CUSTOM recurrence
   estimatedAmount    Float
-  lastPaymentDate    DateTime?      // Final payment date (for loans, etc.)
+  lastPaymentDate    DateTime?      // Final payment date (stop date)
   categoryId         String
   budgetId           String
   isArchived         Boolean        @default(false)
@@ -205,13 +206,27 @@ model Bill {
   account      Account       @relation(fields: [accountId], references: [id], onDelete: Restrict)
   category     Category      @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   budget       Budget        @relation(fields: [budgetId], references: [id], onDelete: Cascade)
-  transactions Transaction[]
+  bills        Bill[]        // The generated instances
 
   @@index([budgetId])
   @@index([accountId])
   @@index([categoryId])
   @@index([isArchived])
-  @@index([startDate])
+}
+
+// Bill represents a specific instance/occurrence of a bill
+model Bill {
+  id              String   @id @default(cuid())
+  dueDate         DateTime
+  amount          Float
+  recurringBillId String
+
+  // Relations
+  recurringBill RecurringBill @relation(fields: [recurringBillId], references: [id], onDelete: Cascade)
+  transactions  Transaction[]
+
+  @@index([recurringBillId])
+  @@index([dueDate])
 }
 
 // Recipient model stores both expense recipients and income senders

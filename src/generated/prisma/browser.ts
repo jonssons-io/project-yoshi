@@ -63,6 +63,11 @@ export type BudgetAccount = Prisma.BudgetAccountModel
  */
 export type Transaction = Prisma.TransactionModel
 /**
+ * Model RecurringBill
+ * 
+ */
+export type RecurringBill = Prisma.RecurringBillModel
+/**
  * Model Bill
  * 
  */

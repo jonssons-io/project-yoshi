@@ -234,29 +234,26 @@ function BillsPage() {
 	const handleUpdate = (bill: any) => {
 		openDrawer(
 			<div className="p-4">
-				<h2 className="text-2xl font-bold mb-4">Edit Bill</h2>
-				<p className="text-muted-foreground mb-6">Update bill information</p>
+				<h2 className="text-2xl font-bold mb-4">Edit Bill Series</h2>
+				<p className="text-muted-foreground mb-6">
+					Update recurring bill settings
+				</p>
 				{accountsQuery.data && categoriesQuery.data ? (
 					<BillForm
 						initialData={{
 							name: bill.name,
 							recipient: bill.recipient,
-							accountId: bill.accountId,
+							accountId: bill.account.id, // Account object is in bill
 							startDate: new Date(bill.startDate),
 							recurrenceType: bill.recurrenceType,
 							customIntervalDays: bill.customIntervalDays,
-							estimatedAmount: bill.estimatedAmount,
-							lastPaymentDate: bill.lastPaymentDate
-								? new Date(bill.lastPaymentDate)
-								: null,
-							categoryId: bill.categoryId
+							estimatedAmount: bill.amount,
+							categoryId: bill.category.id
 						}}
 						onSubmit={(data) => {
-							// For updates, we only support existing category IDs (not inline creation)
+							// Transform to API format
 							const categoryId =
 								typeof data.category === 'string' ? data.category : undefined
-
-							// Transform recipient field (union) to API format (string)
 							const recipientValue = data.recipient
 							let recipientName = ''
 							if (typeof recipientValue === 'string') {
@@ -267,7 +264,7 @@ function BillsPage() {
 							}
 
 							updateMutation.mutate({
-								id: bill.id,
+								id: bill.recurringBillId, // Update the series
 								userId,
 								name: data.name,
 								recipient: recipientName,
@@ -297,7 +294,7 @@ function BillsPage() {
 	}
 
 	const handleDelete = (id: string) => {
-		if (confirm('Are you sure you want to delete this bill?')) {
+		if (confirm('Are you sure you want to delete this bill series?')) {
 			deleteMutation.mutate({ id, userId })
 		}
 	}
@@ -309,7 +306,7 @@ function BillsPage() {
 	const handleCreateTransaction = (bill: any) => {
 		openDrawer(
 			<div className="p-4">
-				<h2 className="text-2xl font-bold mb-4">Create Transaction</h2>
+				<h2 className="text-2xl font-bold mb-4">Pay Bill</h2>
 				<p className="text-muted-foreground mb-6">
 					Record payment for this bill
 				</p>
@@ -319,26 +316,22 @@ function BillsPage() {
 					recipients={recipients ?? []}
 					defaultValues={{
 						name: bill.name,
-						amount: bill.estimatedAmount,
-						date: bill.nextOccurrence
-							? new Date(bill.nextOccurrence)
-							: new Date(),
-						categoryId: bill.categoryId,
-						accountId: bill.accountId,
+						amount: bill.amount,
+						date: new Date(bill.dueDate),
+						categoryId: bill.category.id, // Flattened
+						accountId: bill.account.id, // Flattened
 						transactionType: 'EXPENSE',
-						// Try to find recipient ID by name, otherwise pass new object
 						recipient: (() => {
 							if (!recipients) return undefined
 							const match = recipients.find((r) => r.name === bill.recipient)
-							if (match) return match.id // Combobox handles ID string
-							return { isNew: true, name: bill.recipient } // Combobox handles new object
+							if (match) return match.id
+							return { isNew: true, name: bill.recipient }
 						})(),
-						// We can pass notes.
 						notes: `Payment for ${bill.name}`,
-						billId: bill.id
+						billId: bill.id // Logic requires linking to the Instance
 					}}
 					onSubmit={(data) => {
-						// Transform category field
+						// ... transformation logic ...
 						const categoryData =
 							typeof data.category === 'string'
 								? { categoryId: data.category }
@@ -349,7 +342,6 @@ function BillsPage() {
 										}
 									}
 
-						// Transform recipient field
 						const recipientData = data.recipient
 							? typeof data.recipient === 'string'
 								? { recipientId: data.recipient }
@@ -441,76 +433,94 @@ function BillsPage() {
 									<TableHead>Account</TableHead>
 									<TableHead>Amount</TableHead>
 									<TableHead>Recurrence</TableHead>
-									<TableHead>Next Occurrence</TableHead>
+									<TableHead>Due Date</TableHead>
 									<TableHead>Category</TableHead>
 									<TableHead className="text-right">Actions</TableHead>
 								</TableRow>
 							</TableHeader>
 							<TableBody>
-								{billsQuery.data?.map((bill) => (
-									<TableRow
-										key={bill.id}
-										className={bill.isArchived ? 'opacity-50' : ''}
-									>
-										<TableCell className="font-medium">
-											{bill.name}
-											{bill.isArchived && (
-												<Badge variant="secondary" className="ml-2">
-													Archived
-												</Badge>
-											)}
-										</TableCell>
-										<TableCell>{bill.recipient}</TableCell>
-										<TableCell>
-											<div className="flex items-center gap-2">
-												{bill.account.name}
-												{/* @ts-ignore - isArchived may not be in type definition yet but is in API response */}
-												{bill.account.isArchived && (
-													<TooltipProvider>
-														<Tooltip>
-															<TooltipTrigger>
-																<AlertTriangleIcon className="h-4 w-4 text-yellow-500" />
-															</TooltipTrigger>
-															<TooltipContent>
-																<p>
-																	This account is archived. Please update the
-																	bill.
-																</p>
-															</TooltipContent>
-														</Tooltip>
-													</TooltipProvider>
+								{billsQuery.data?.map((bill) => {
+									const isOverdue =
+										!bill.isPaid &&
+										new Date(bill.dueDate) < new Date() &&
+										!bill.isArchived
+
+									return (
+										<TableRow
+											key={bill.id}
+											className={bill.isArchived ? 'opacity-50' : ''}
+										>
+											<TableCell className="font-medium">
+												{bill.name}
+												{bill.isArchived && (
+													<Badge variant="secondary" className="ml-2">
+														Archived
+													</Badge>
 												)}
-											</div>
-										</TableCell>
-										<TableCell>${bill.estimatedAmount.toFixed(2)}</TableCell>
-										<TableCell>
-											{getRecurrenceLabel(
-												bill.recurrenceType,
-												bill.customIntervalDays
-											)}
-										</TableCell>
-										<TableCell>
-											{bill.nextOccurrence ? (
-												bill.hasScheduledTransaction ? (
-													<Badge variant="default">Transaction Scheduled</Badge>
+											</TableCell>
+											<TableCell>{bill.recipient}</TableCell>
+											<TableCell>
+												<div className="flex items-center gap-2">
+													{bill.account.name}
+													{/* @ts-ignore - isArchived may not be in type definition yet but is in API response */}
+													{bill.account.isArchived && (
+														<TooltipProvider>
+															<Tooltip>
+																<TooltipTrigger>
+																	<AlertTriangleIcon className="h-4 w-4 text-yellow-500" />
+																</TooltipTrigger>
+																<TooltipContent>
+																	<p>
+																		This account is archived. Please update the
+																		bill.
+																	</p>
+																</TooltipContent>
+															</Tooltip>
+														</TooltipProvider>
+													)}
+												</div>
+											</TableCell>
+											<TableCell>${bill.amount.toFixed(2)}</TableCell>
+											<TableCell>
+												{getRecurrenceLabel(
+													bill.recurrenceType,
+													bill.customIntervalDays
+												)}
+											</TableCell>
+											<TableCell>
+												{bill.isPaid ? (
+													<Badge
+														variant="outline"
+														className="bg-green-50 text-green-700 border-green-200"
+													>
+														Paid
+													</Badge>
+												) : isOverdue ? (
+													<div className="flex flex-col">
+														<span className="text-destructive font-bold">
+															{format(new Date(bill.dueDate), 'MMM d, yyyy')}
+														</span>
+														<Badge
+															variant="destructive"
+															className="w-fit mt-1 text-[10px] px-1 py-0 h-4"
+														>
+															Overdue
+														</Badge>
+													</div>
 												) : (
-													format(new Date(bill.nextOccurrence), 'MMM d, yyyy')
-												)
-											) : (
-												<span className="text-muted-foreground">Completed</span>
-											)}
-										</TableCell>
-										<TableCell>{bill.category.name}</TableCell>
-										<TableCell className="text-right">
-											<DropdownMenu>
-												<DropdownMenuTrigger asChild>
-													<Button variant="ghost" size="sm">
-														<MoreVerticalIcon className="h-4 w-4" />
-													</Button>
-												</DropdownMenuTrigger>
-												<DropdownMenuContent align="end">
-													{!bill.hasScheduledTransaction &&
-														bill.nextOccurrence && (
+													format(new Date(bill.dueDate), 'MMM d, yyyy')
+												)}
+											</TableCell>
+											<TableCell>{bill.category.name}</TableCell>
+											<TableCell className="text-right">
+												<DropdownMenu>
+													<DropdownMenuTrigger asChild>
+														<Button variant="ghost" size="sm">
+															<MoreVerticalIcon className="h-4 w-4" />
+														</Button>
+													</DropdownMenuTrigger>
+													<DropdownMenuContent align="end">
+														{!bill.isPaid && (
 															<>
 																<DropdownMenuItem
 																	onClick={() => handleCreateTransaction(bill)}
@@ -521,31 +531,37 @@ function BillsPage() {
 																<DropdownMenuSeparator />
 															</>
 														)}
-													<DropdownMenuItem onClick={() => handleUpdate(bill)}>
-														<Edit2Icon className="h-4 w-4 mr-2" />
-														Edit
-													</DropdownMenuItem>
-													<DropdownMenuItem
-														onClick={() =>
-															handleArchive(bill.id, !bill.isArchived)
-														}
-													>
-														<ArchiveIcon className="h-4 w-4 mr-2" />
-														{bill.isArchived ? 'Unarchive' : 'Archive'}
-													</DropdownMenuItem>
-													<DropdownMenuSeparator />
-													<DropdownMenuItem
-														onClick={() => handleDelete(bill.id)}
-														className="text-destructive"
-													>
-														<TrashIcon className="h-4 w-4 mr-2" />
-														Delete
-													</DropdownMenuItem>
-												</DropdownMenuContent>
-											</DropdownMenu>
-										</TableCell>
-									</TableRow>
-								))}
+														<DropdownMenuItem
+															onClick={() => handleUpdate(bill)}
+														>
+															<Edit2Icon className="h-4 w-4 mr-2" />
+															Edit Series
+														</DropdownMenuItem>
+														<DropdownMenuItem
+															onClick={() =>
+																handleArchive(
+																	bill.recurringBillId,
+																	!bill.isArchived
+																)
+															}
+														>
+															<ArchiveIcon className="h-4 w-4 mr-2" />
+															{bill.isArchived ? 'Unarchive' : 'Archive'}
+														</DropdownMenuItem>
+														<DropdownMenuSeparator />
+														<DropdownMenuItem
+															onClick={() => handleDelete(bill.recurringBillId)}
+															className="text-destructive"
+														>
+															<TrashIcon className="h-4 w-4 mr-2" />
+															Delete Series
+														</DropdownMenuItem>
+													</DropdownMenuContent>
+												</DropdownMenu>
+											</TableCell>
+										</TableRow>
+									)
+								})}
 							</TableBody>
 						</Table>
 					)}

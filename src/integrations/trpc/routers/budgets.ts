@@ -56,7 +56,7 @@ export const budgetsRouter = {
 					_count: {
 						select: {
 							transactions: true,
-							bills: true,
+							recurringBills: true,
 							categories: true,
 							accounts: true
 						}
@@ -123,7 +123,7 @@ export const budgetsRouter = {
 					_count: {
 						select: {
 							transactions: true,
-							bills: true
+							recurringBills: true
 						}
 					}
 				}

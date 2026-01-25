@@ -60,6 +60,7 @@ export const ModelName = {
   BudgetCategory: 'BudgetCategory',
   BudgetAccount: 'BudgetAccount',
   Transaction: 'Transaction',
+  RecurringBill: 'RecurringBill',
   Bill: 'Bill',
   Recipient: 'Recipient',
   Transfer: 'Transfer',
@@ -184,7 +185,7 @@ export const TransactionScalarFieldEnum = {
 export type TransactionScalarFieldEnum = (typeof TransactionScalarFieldEnum)[keyof typeof TransactionScalarFieldEnum]
 
 
-export const BillScalarFieldEnum = {
+export const RecurringBillScalarFieldEnum = {
   id: 'id',
   name: 'name',
   recipient: 'recipient',
@@ -198,6 +199,16 @@ export const BillScalarFieldEnum = {
   budgetId: 'budgetId',
   isArchived: 'isArchived',
   createdAt: 'createdAt'
+} as const
+
+export type RecurringBillScalarFieldEnum = (typeof RecurringBillScalarFieldEnum)[keyof typeof RecurringBillScalarFieldEnum]
+
+
+export const BillScalarFieldEnum = {
+  id: 'id',
+  dueDate: 'dueDate',
+  amount: 'amount',
+  recurringBillId: 'recurringBillId'
 } as const
 
 export type BillScalarFieldEnum = (typeof BillScalarFieldEnum)[keyof typeof BillScalarFieldEnum]
