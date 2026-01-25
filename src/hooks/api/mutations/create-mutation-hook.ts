@@ -19,10 +19,16 @@ type OperationName<TRoute extends RouteName> = keyof RouterInputs[TRoute]
 /**
  * Query key to invalidate after a successful mutation
  */
-export type InvalidationKey = {
-	queryKey: unknown[]
-	refetchType?: 'all' | 'active' | 'inactive'
-}
+/**
+ * Query key to invalidate after a successful mutation
+ */
+export type InvalidationKey =
+	| { strategy: 'all'; resource: string }
+	| { strategy: 'query'; resource: string; procedure: string; input?: unknown }
+	| {
+			queryKey: unknown[]
+			refetchType?: 'all' | 'active' | 'inactive'
+	  }
 
 /**
  * Factory function to create mutation hooks with automatic query invalidation
@@ -70,7 +76,28 @@ export function createMutationHook<
 				// Invalidate queries based on the provided strategy
 				const keysToInvalidate = getInvalidationKeys(variables)
 				await Promise.all(
-					keysToInvalidate.map((key) => queryClient.invalidateQueries(key))
+					keysToInvalidate.map((key) => {
+						if ('strategy' in key) {
+							// biome-ignore lint/suspicious/noExplicitAny: Dynamic access to router
+							const router = (trpc as any)[key.resource]
+							if (!router) return Promise.resolve()
+
+							if (key.strategy === 'all') {
+								if (typeof router.pathFilter === 'function') {
+									return queryClient.invalidateQueries(router.pathFilter())
+								}
+							} else if (key.strategy === 'query') {
+								const proc = router[key.procedure]
+								if (proc && typeof proc.queryKey === 'function') {
+									return queryClient.invalidateQueries({
+										queryKey: proc.queryKey(key.input)
+									})
+								}
+							}
+						}
+						// Fallback for legacy or raw keys
+						return queryClient.invalidateQueries(key as { queryKey: unknown[] })
+					})
 				)
 
 				// Call user-provided success callback
@@ -90,13 +117,27 @@ export function createMutationHook<
  * Helper to create an invalidation key that refetches all queries for a resource
  */
 export const invalidateAll = (resource: string): InvalidationKey => ({
-	queryKey: [resource],
-	refetchType: 'all'
+	strategy: 'all',
+	resource
 })
 
 /**
  * Helper to create an invalidation key for a specific query
  */
-export const invalidateQuery = (...keyParts: unknown[]): InvalidationKey => ({
-	queryKey: keyParts
-})
+export const invalidateQuery = (...keyParts: unknown[]): InvalidationKey => {
+	if (
+		keyParts.length >= 2 &&
+		typeof keyParts[0] === 'string' &&
+		typeof keyParts[1] === 'string'
+	) {
+		return {
+			strategy: 'query',
+			resource: keyParts[0],
+			procedure: keyParts[1],
+			input: keyParts[2]
+		}
+	}
+	return {
+		queryKey: keyParts
+	}
+}
