@@ -4,16 +4,12 @@
 
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { format } from 'date-fns'
-import {
-	CopyIcon,
-	MoreVerticalIcon,
-	PencilIcon,
-	PlusIcon,
-	TrashIcon
-} from 'lucide-react'
+import { CopyIcon, MoreVerticalIcon, PencilIcon, TrashIcon } from 'lucide-react'
 import { useState } from 'react'
 import { z } from 'zod'
+import { CreateTransactionButton } from '@/components/transactions/CreateTransactionButton'
 import { TransactionForm } from '@/components/transactions/TransactionForm'
+import { CreateTransferButton } from '@/components/transfers/CreateTransferButton'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -23,14 +19,7 @@ import {
 	CardHeader,
 	CardTitle
 } from '@/components/ui/card'
-import {
-	Dialog,
-	DialogContent,
-	DialogDescription,
-	DialogHeader,
-	DialogTitle,
-	DialogTrigger
-} from '@/components/ui/dialog'
+
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -46,18 +35,20 @@ import {
 	TableRow
 } from '@/components/ui/table'
 import { useAuth } from '@/contexts/auth-context'
+import { TransferForm } from '@/forms/TransferForm'
 import {
 	useAccountsList,
-	useBillById,
-	useBillsList,
 	useCategoriesList,
 	useCloneTransaction,
-	useCreateBill,
-	useCreateTransaction,
 	useDeleteTransaction,
+	useDeleteTransfer,
+	useRecipientsList,
 	useTransactionsList,
-	useUpdateTransaction
+	useUpdateTransaction,
+	useUpdateTransfer
 } from '@/hooks/api'
+import { useDrawer } from '@/hooks/use-drawer'
+
 import { useSelectedBudget } from '@/hooks/use-selected-budget'
 import { formatCurrency } from '@/lib/utils'
 
@@ -77,16 +68,7 @@ function TransactionsPage() {
 	const { userId, householdId } = useAuth()
 	const { selectedBudgetId } = useSelectedBudget(userId, householdId)
 	const budgetId = urlBudgetId || selectedBudgetId
-	const [createDialogOpen, setCreateDialogOpen] = useState(false)
-	const [editingTransaction, setEditingTransaction] = useState<{
-		id: string
-		name: string
-		amount: number
-		date: Date
-		categoryId: string
-		accountId: string
-		notes: string | null
-	} | null>(null)
+	const { openDrawer, closeDrawer } = useDrawer()
 	const [filter, setFilter] = useState<'ALL' | 'INCOME' | 'EXPENSE'>('ALL')
 
 	// All hooks must be called before any early returns
@@ -112,34 +94,20 @@ function TransactionsPage() {
 		householdId,
 		userId,
 		budgetId: budgetId || undefined,
-		enabled: !!budgetId
+		enabled: !!budgetId,
+		excludeArchived: true
 	})
 
-	const { data: bills } = useBillsList({
-		budgetId: budgetId ?? '',
+	const { data: recipients } = useRecipientsList({
+		householdId,
 		userId,
-		includeArchived: false,
-		enabled: !!budgetId
+		enabled: !!householdId
 	})
-
-	const { data: selectedBill } = useBillById({
-		billId: createFromBill,
-		enabled: !!createFromBill
-	})
-
-	const { mutate: createTransaction } = useCreateTransaction({
-		onSuccess: () => {
-			refetch()
-			setCreateDialogOpen(false)
-		}
-	})
-
-	const { mutate: createBill } = useCreateBill({})
 
 	const { mutate: updateTransaction } = useUpdateTransaction({
 		onSuccess: () => {
 			refetch()
-			setEditingTransaction(null)
+			closeDrawer()
 		}
 	})
 
@@ -154,6 +122,129 @@ function TransactionsPage() {
 			refetch()
 		}
 	})
+
+	const { mutate: updateTransfer } = useUpdateTransfer({
+		onSuccess: () => {
+			refetch()
+			closeDrawer()
+		}
+	})
+
+	const { mutate: deleteTransfer } = useDeleteTransfer({
+		onSuccess: () => {
+			refetch()
+		}
+	})
+
+	// Handlers for edit are still needed, but create handlers are extracted to buttons
+
+	const handleEditTransaction = (transaction: any) => {
+		openDrawer(
+			<div className="p-4">
+				<h2 className="text-2xl font-bold mb-4">Edit Transaction</h2>
+				<p className="text-muted-foreground mb-6">
+					Update transaction information
+				</p>
+				{categories && accounts ? (
+					<TransactionForm
+						defaultValues={{
+							name: transaction.name,
+							amount: transaction.amount,
+							date: new Date(transaction.date),
+							categoryId: transaction.categoryId,
+							accountId: transaction.accountId,
+							recipientId: transaction.recipientId ?? null,
+							notes: transaction.notes ?? '',
+							transactionType: transaction.category.type as 'INCOME' | 'EXPENSE'
+						}}
+						categories={categories}
+						accounts={accounts}
+						recipients={recipients}
+						isEditing={true}
+						onSubmit={async (data) => {
+							// For updates, transform category to categoryId
+							const categoryId =
+								typeof data.category === 'string' ? data.category : undefined
+
+							// Transform recipient field to API format for updates
+							const recipientId = data.recipient
+								? typeof data.recipient === 'string'
+									? data.recipient
+									: undefined // New recipients during edit not supported yet
+								: null
+
+							updateTransaction({
+								id: transaction.id,
+								userId,
+								name: data.name,
+								amount: data.amount,
+								date: data.date,
+								accountId: data.accountId,
+								notes: data.notes,
+								categoryId,
+								recipientId
+							})
+						}}
+						onCancel={closeDrawer}
+						submitLabel="Update Transaction"
+					/>
+				) : (
+					<div className="flex items-center justify-center p-8">
+						<p className="text-muted-foreground">Loading form data...</p>
+					</div>
+				)}
+			</div>,
+			'Edit Transaction'
+		)
+	}
+
+	const handleEditTransfer = (transfer: {
+		id: string
+		originalId: string
+		amount: number
+		date: Date
+		fromAccountId: string
+		toAccountId: string
+		notes: string | null
+	}) => {
+		openDrawer(
+			<div className="p-4">
+				<h2 className="text-2xl font-bold mb-4">Edit Transfer</h2>
+				<p className="text-muted-foreground mb-6">Update transfer details</p>
+				{accounts ? (
+					<TransferForm
+						accounts={accounts}
+						defaultValues={{
+							amount: transfer.amount,
+							date: transfer.date,
+							notes: transfer.notes ?? '',
+							fromAccountId: transfer.fromAccountId,
+							toAccountId: transfer.toAccountId
+						}}
+						isEditing={true}
+						onSubmit={(data) => {
+							updateTransfer({
+								id: transfer.originalId,
+								userId,
+								amount: data.amount,
+								date: data.date,
+								notes: data.notes,
+								fromAccountId: data.fromAccountId,
+								toAccountId: data.toAccountId
+							})
+						}}
+						onCancel={closeDrawer}
+						submitLabel="Update Transfer"
+					/>
+				) : (
+					<div className="flex items-center justify-center p-8">
+						<p className="text-muted-foreground">Loading accounts...</p>
+					</div>
+				)}
+			</div>,
+			'Edit Transfer'
+		)
+	}
 
 	// Show message if no budget selected
 	if (!budgetId) {
@@ -197,83 +288,12 @@ function TransactionsPage() {
 		<div className="space-y-6">
 			{/* Toolbar */}
 			<div className="flex items-center justify-end gap-2">
-				<Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-					<DialogTrigger asChild>
-						<Button>
-							<PlusIcon className="mr-2 h-4 w-4" />
-							Add Transaction
-						</Button>
-					</DialogTrigger>
-					<DialogContent className="max-w-2xl">
-						<DialogHeader>
-							<DialogTitle>Create New Transaction</DialogTitle>
-							<DialogDescription>
-								Add a new income or expense transaction
-							</DialogDescription>
-						</DialogHeader>
-						{categories && accounts && (
-							<TransactionForm
-								categories={categories}
-								accounts={accounts}
-								bills={bills}
-								preSelectedBillId={createFromBill}
-								defaultValues={
-									selectedBill
-										? {
-												name: selectedBill.name,
-												amount: selectedBill.estimatedAmount,
-												date: selectedBill.nextOccurrence
-													? new Date(selectedBill.nextOccurrence)
-													: new Date(),
-												categoryId: selectedBill.categoryId,
-												accountId: selectedBill.accountId,
-												notes: `Payment to ${selectedBill.recipient}`
-											}
-										: undefined
-								}
-								onSubmit={async (data, billData) => {
-									let finalBillId = data.billId
-
-									if (billData) {
-										const newBill = await new Promise<string>(
-											(resolve, reject) => {
-												createBill(
-													{
-														...billData,
-														name: data.name,
-														estimatedAmount: data.amount,
-														accountId: data.accountId,
-														categoryId: data.categoryId,
-														budgetId,
-														userId,
-														lastPaymentDate:
-															billData.lastPaymentDate ?? undefined
-													},
-													{
-														onSuccess: (bill) => resolve(bill.id),
-														onError: reject
-													}
-												)
-											}
-										)
-										finalBillId = newBill
-									}
-
-									createTransaction({
-										...data,
-										billId: finalBillId || undefined,
-										budgetId,
-										userId
-									})
-								}}
-								onCancel={() => setCreateDialogOpen(false)}
-								submitLabel="Create Transaction"
-							/>
-						)}
-					</DialogContent>
-				</Dialog>
+				<CreateTransactionButton
+					budgetId={budgetId}
+					preSelectedBillId={createFromBill}
+				/>
+				<CreateTransferButton budgetId={budgetId} />
 			</div>
-
 			{/* Summary cards */}
 			<div className="grid gap-4 md:grid-cols-3">
 				<Card>
@@ -314,7 +334,8 @@ function TransactionsPage() {
 								totalIncome - totalExpense >= 0
 									? 'text-green-600'
 									: 'text-red-600'
-							}`}
+							}
+;`}
 						>
 							{formatCurrency(totalIncome - totalExpense)}
 						</div>
@@ -324,7 +345,6 @@ function TransactionsPage() {
 					</CardContent>
 				</Card>
 			</div>
-
 			{/* Filter tabs */}
 			<div className="flex gap-2">
 				<Button
@@ -346,7 +366,6 @@ function TransactionsPage() {
 					Expenses ({expenseTransactions?.length ?? 0})
 				</Button>
 			</div>
-
 			{/* Transactions list */}
 			{transactions?.length === 0 ? (
 				<Card>
@@ -357,10 +376,15 @@ function TransactionsPage() {
 						</CardDescription>
 					</CardHeader>
 					<CardContent>
-						<Button onClick={() => setCreateDialogOpen(true)}>
-							<PlusIcon className="mr-2 h-4 w-4" />
-							Create Your First Transaction
-						</Button>
+						<CreateTransactionButton
+							budgetId={budgetId}
+							preSelectedBillId={createFromBill}
+							variant="default"
+						>
+							{/* We can't actually change text this way with current component,
+                  but the standard button text is fine or we can add a text props if needed,
+                  for now using default text "Add Transaction" is acceptable */}
+						</CreateTransactionButton>
 					</CardContent>
 				</Card>
 			) : (
@@ -417,57 +441,95 @@ function TransactionsPage() {
 												</Button>
 											</DropdownMenuTrigger>
 											<DropdownMenuContent align="end">
-												<DropdownMenuItem
-													onClick={() =>
-														setEditingTransaction({
-															id: transaction.id,
-															name: transaction.name,
-															amount: transaction.amount,
-															date: new Date(transaction.date),
-															categoryId: transaction.categoryId,
-															accountId: transaction.accountId,
-															notes: transaction.notes
-														})
-													}
-												>
-													<PencilIcon className="mr-2 h-4 w-4" />
-													Edit
-												</DropdownMenuItem>
-												<DropdownMenuItem
-													onClick={() => {
-														if (
-															confirm(
-																`Clone transaction "${transaction.name}"?`
-															)
-														) {
-															cloneTransaction({
-																id: transaction.id,
-																userId
-															})
-														}
-													}}
-												>
-													<CopyIcon className="mr-2 h-4 w-4" />
-													Clone
-												</DropdownMenuItem>
-												<DropdownMenuItem
-													className="text-red-600"
-													onClick={() => {
-														if (
-															confirm(
-																`Are you sure you want to delete "${transaction.name}"?`
-															)
-														) {
-															deleteTransaction({
-																id: transaction.id,
-																userId
-															})
-														}
-													}}
-												>
-													<TrashIcon className="mr-2 h-4 w-4" />
-													Delete
-												</DropdownMenuItem>
+												{(transaction as any).isTransfer ? (
+													<>
+														<DropdownMenuItem
+															onClick={() =>
+																handleEditTransfer({
+																	id: (transaction as any).id,
+																	originalId: (transaction as any).originalId,
+																	amount: transaction.amount,
+																	date: new Date(transaction.date),
+																	notes: transaction.notes,
+																	fromAccountId: (transaction as any)
+																		.fromAccountId,
+																	toAccountId: (transaction as any).toAccountId
+																})
+															}
+														>
+															<PencilIcon className="mr-2 h-4 w-4" />
+															Edit Transfer
+														</DropdownMenuItem>
+														<DropdownMenuItem
+															onClick={() => {
+																if (
+																	confirm(
+																		`Are you sure you want to delete this transfer?`
+																	)
+																) {
+																	deleteTransfer({
+																		id: (transaction as any).originalId,
+																		userId
+																	})
+																}
+															}}
+															className="text-red-600"
+														>
+															<TrashIcon className="mr-2 h-4 w-4" />
+															Delete Transfer
+														</DropdownMenuItem>
+													</>
+												) : (
+													<>
+														<DropdownMenuItem
+															onClick={() => handleEditTransaction(transaction)}
+														>
+															<PencilIcon className="mr-2 h-4 w-4" />
+															Edit
+														</DropdownMenuItem>
+														<DropdownMenuItem
+															onClick={() => {
+																if (
+																	confirm(
+																		`Clone transaction "${transaction.name}"?`
+																	)
+																) {
+																	cloneTransaction({
+																		id: transaction.id,
+																		userId
+																	})
+																}
+															}}
+														>
+															<CopyIcon className="mr-2 h-4 w-4" />
+															Clone
+														</DropdownMenuItem>
+														<DropdownMenuItem
+															className="text-red-600"
+															onClick={() => {
+																if (
+																	confirm(
+																		`Are
+you
+sure
+you
+want
+to
+delete "${transaction.name}"?`
+																	)
+																) {
+																	deleteTransaction({
+																		id: transaction.id,
+																		userId
+																	})
+																}
+															}}
+														>
+															<TrashIcon className="mr-2 h-4 w-4" />
+															Delete
+														</DropdownMenuItem>
+													</>
+												)}
 											</DropdownMenuContent>
 										</DropdownMenu>
 									</TableCell>
@@ -477,46 +539,6 @@ function TransactionsPage() {
 					</Table>
 				</Card>
 			)}
-
-			{/* Edit Transaction Dialog */}
-			<Dialog
-				open={!!editingTransaction}
-				onOpenChange={(open) => !open && setEditingTransaction(null)}
-			>
-				<DialogContent className="max-w-2xl">
-					<DialogHeader>
-						<DialogTitle>Edit Transaction</DialogTitle>
-						<DialogDescription>
-							Update transaction information
-						</DialogDescription>
-					</DialogHeader>
-					{editingTransaction && categories && accounts && (
-						<TransactionForm
-							defaultValues={{
-								name: editingTransaction.name,
-								amount: editingTransaction.amount,
-								date: editingTransaction.date,
-								categoryId: editingTransaction.categoryId,
-								accountId: editingTransaction.accountId,
-								notes: editingTransaction.notes ?? ''
-							}}
-							categories={categories}
-							accounts={accounts}
-							bills={bills}
-							isEditing={true}
-							onSubmit={async (data) => {
-								updateTransaction({
-									id: editingTransaction.id,
-									userId,
-									...data
-								})
-							}}
-							onCancel={() => setEditingTransaction(null)}
-							submitLabel="Update Transaction"
-						/>
-					)}
-				</DialogContent>
-			</Dialog>
 		</div>
 	)
 }

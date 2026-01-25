@@ -37,3 +37,18 @@ export const useUpdateAccount = createMutationHook(
 export const useDeleteAccount = createMutationHook('accounts', 'delete', () => [
 	invalidateAll('accounts')
 ])
+
+/**
+ * Hook to toggle account archive status
+ */
+export const useToggleAccountArchive = createMutationHook(
+	'accounts',
+	'toggleArchive',
+	(variables) => [
+		invalidateAll('accounts'),
+		invalidateQuery('accounts', 'getById', {
+			id: variables.id,
+			userId: variables.userId
+		})
+	]
+)

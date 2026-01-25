@@ -1,7 +1,12 @@
+import { createClerkClient } from '@clerk/backend'
 import type { TRPCRouterRecord } from '@trpc/server'
 import { TRPCError } from '@trpc/server'
 import { z } from 'zod'
 import { protectedProcedure } from '../init'
+
+const clerkClient = createClerkClient({
+	secretKey: process.env.CLERK_SECRET_KEY
+})
 
 /**
  * Household router for managing households and household members
@@ -312,5 +317,76 @@ export const householdsRouter = {
 			return ctx.prisma.householdUser.delete({
 				where: { id: targetUser.id }
 			})
+		}),
+
+	/**
+	 * Get members of a household
+	 */
+	getMembers: protectedProcedure
+		.input(
+			z.object({
+				householdId: z.string(),
+				userId: z.string()
+			})
+		)
+		.query(async ({ ctx, input }) => {
+			// Verify access
+			const householdUser = await ctx.prisma.householdUser.findFirst({
+				where: {
+					householdId: input.householdId,
+					userId: input.userId
+				}
+			})
+
+			if (!householdUser) {
+				throw new TRPCError({
+					code: 'FORBIDDEN',
+					message: 'You do not have access to this household'
+				})
+			}
+
+			// Get all members
+			const members = await ctx.prisma.householdUser.findMany({
+				where: {
+					householdId: input.householdId
+				}
+			})
+
+			const userIds = members.map((m) => m.userId)
+
+			try {
+				const clerkUsers = await clerkClient.users.getUserList({
+					userId: userIds,
+					limit: 100
+				})
+
+				return members.map((member) => {
+					const user = clerkUsers.data.find(
+						(u: { id: string }) => u.id === member.userId
+					)
+					return {
+						...member,
+						user: user
+							? {
+									id: user.id,
+									firstName: user.firstName,
+									lastName: user.lastName,
+									fullName: `${user.firstName} ${user.lastName}`.trim(),
+									imageUrl: user.imageUrl,
+									email: user.emailAddresses.find(
+										(e: { id: string }) => e.id === user.primaryEmailAddressId
+									)?.emailAddress
+								}
+							: null
+					}
+				})
+			} catch (error) {
+				console.error('Failed to fetch users from Clerk:', error)
+				// Return members without user details if Clerk fails
+				return members.map((member) => ({
+					...member,
+					user: null
+				}))
+			}
 		})
 } satisfies TRPCRouterRecord

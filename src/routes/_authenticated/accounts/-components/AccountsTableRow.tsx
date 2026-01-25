@@ -8,6 +8,7 @@ interface Account {
 	name: string
 	externalIdentifier: string | null
 	initialBalance: number
+	isArchived: boolean
 	_count: { transactions: number }
 }
 
@@ -32,8 +33,15 @@ export const AccountRow = ({
 	})
 
 	return (
-		<TableRow>
-			<TableCell className="font-medium">{account.name}</TableCell>
+		<TableRow className={account.isArchived ? 'opacity-50 bg-muted/50' : ''}>
+			<TableCell className="font-medium">
+				{account.name}
+				{account.isArchived && (
+					<span className="ml-2 text-xs bg-yellow-100 text-yellow-800 px-1.5 py-0.5 rounded-full dark:bg-yellow-900/30 dark:text-yellow-400">
+						Archived
+					</span>
+				)}
+			</TableCell>
 			<TableCell className="text-muted-foreground">
 				{account.externalIdentifier || '—'}
 			</TableCell>
@@ -55,7 +63,8 @@ export const AccountRow = ({
 								name: account.name,
 								externalIdentifier: account.externalIdentifier,
 								initialBalance: account.initialBalance,
-								_count: account._count
+								_count: account._count,
+								isArchived: account.isArchived
 							})
 						}
 					>
@@ -65,12 +74,6 @@ export const AccountRow = ({
 						variant="ghost"
 						size="icon"
 						onClick={() => {
-							if (account._count.transactions > 0) {
-								alert(
-									`Cannot delete "${account.name}" because it has ${account._count.transactions} transaction(s). Please reassign or delete those transactions first.`
-								)
-								return
-							}
 							if (
 								confirm(`Are you sure you want to delete "${account.name}"?`)
 							) {

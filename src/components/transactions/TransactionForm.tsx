@@ -34,6 +34,17 @@ const transactionSchema = z.object({
 		})
 	]),
 	accountId: z.string().min(1, { message: 'Account is required' }),
+	// Recipient/Sender is optional - can be ID or new name
+	recipient: z
+		.union([
+			z.string().min(1),
+			z.object({
+				isNew: z.literal(true),
+				name: z.string().min(1)
+			})
+		])
+		.nullable()
+		.optional(),
 	notes: z.string().optional(),
 	// billId uses "__none__" as sentinel for no selection (Select requires non-empty values)
 	billId: z.string().optional().nullable()
@@ -62,6 +73,8 @@ export interface TransactionFormProps {
 		date?: Date
 		categoryId?: string
 		accountId?: string
+		recipientId?: string | null
+		recipient?: ComboboxValue | null // allow passing full object
 		notes?: string
 		billId?: string | null
 		transactionType?: 'INCOME' | 'EXPENSE'
@@ -76,6 +89,11 @@ export interface TransactionFormProps {
 	 * Available accounts
 	 */
 	accounts: Array<{ id: string; name: string }>
+
+	/**
+	 * Available recipients (for both expense recipients and income senders)
+	 */
+	recipients?: Array<{ id: string; name: string }>
 
 	/**
 	 * Available bills (for linking)
@@ -131,6 +149,7 @@ export function TransactionForm({
 	defaultValues,
 	categories,
 	accounts,
+	recipients = [],
 	bills = [],
 	preSelectedBillId,
 	onSubmit,
@@ -175,6 +194,9 @@ export function TransactionForm({
 			transactionType: getInitialTransactionType(),
 			category: (defaultValues?.categoryId ?? '') as ComboboxValue,
 			accountId: defaultValues?.accountId ?? '',
+			recipient: (defaultValues?.recipient ??
+				defaultValues?.recipientId ??
+				null) as ComboboxValue | null,
 			notes: defaultValues?.notes ?? '',
 			billId: preSelectedBillId ?? defaultValues?.billId ?? null
 		},
@@ -319,6 +341,46 @@ export function TransactionForm({
 					/>
 				)}
 			</form.AppField>
+
+			{/* Recipient/Sender field - label changes based on transaction type */}
+			<form.Subscribe selector={(state) => state.values.transactionType}>
+				{(transactionType) => {
+					// Create options for recipients
+					const recipientOptions = recipients.map((r) => ({
+						value: r.id,
+						label: r.name
+					}))
+
+					const fieldLabel =
+						transactionType === 'INCOME'
+							? 'Sender (Optional)'
+							: 'Recipient (Optional)'
+					const placeholderText =
+						transactionType === 'INCOME'
+							? 'Who sent the money?'
+							: 'Who receives the money?'
+					const createLabelText =
+						transactionType === 'INCOME'
+							? 'Add new sender'
+							: 'Add new recipient'
+
+					return (
+						<form.AppField name="recipient">
+							{(field) => (
+								<field.ComboboxField
+									label={fieldLabel}
+									placeholder={placeholderText}
+									searchPlaceholder="Search..."
+									emptyText="No matches found"
+									options={recipientOptions}
+									allowCreate
+									createLabel={createLabelText}
+								/>
+							)}
+						</form.AppField>
+					)
+				}}
+			</form.Subscribe>
 
 			<form.AppField
 				name="notes"

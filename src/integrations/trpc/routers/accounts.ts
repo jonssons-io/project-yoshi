@@ -16,7 +16,8 @@ export const accountsRouter = {
 			z.object({
 				householdId: z.string(),
 				userId: z.string(), // For access verification
-				budgetId: z.string().optional() // Optional: filter by budget linkage
+				budgetId: z.string().optional(), // Optional: filter by budget linkage
+				excludeArchived: z.boolean().optional()
 			})
 		)
 		.query(async ({ ctx, input }) => {
@@ -45,6 +46,9 @@ export const accountsRouter = {
 								budgetId: input.budgetId
 							}
 						}
+					}),
+					...(input.excludeArchived && {
+						isArchived: false
 					})
 				},
 				orderBy: {
@@ -169,6 +173,21 @@ export const accountsRouter = {
 				}
 			})
 
+			// Get transfers
+			const transfersFrom = await ctx.prisma.transfer.findMany({
+				where: {
+					fromAccountId: input.id,
+					date: { lte: asOfDate }
+				}
+			})
+
+			const transfersTo = await ctx.prisma.transfer.findMany({
+				where: {
+					toAccountId: input.id,
+					date: { lte: asOfDate }
+				}
+			})
+
 			// Calculate balance: initial + income - expenses
 			const transactionTotal = transactions.reduce((sum, transaction) => {
 				if (transaction.category.type === 'INCOME') {
@@ -177,7 +196,17 @@ export const accountsRouter = {
 				return sum - transaction.amount
 			}, 0)
 
-			const currentBalance = account.initialBalance + transactionTotal
+			const transfersOutTotal = transfersFrom.reduce(
+				(sum, t) => sum + t.amount,
+				0
+			)
+			const transfersInTotal = transfersTo.reduce((sum, t) => sum + t.amount, 0)
+
+			const currentBalance =
+				account.initialBalance +
+				transactionTotal -
+				transfersOutTotal +
+				transfersInTotal
 
 			return {
 				accountId: account.id,
@@ -414,10 +443,31 @@ export const accountsRouter = {
 				})
 			}
 
-			if (account._count.transactions > 0) {
+			const transactionCount = account._count.transactions
+			const billCount = await ctx.prisma.bill.count({
+				where: { accountId: input.id }
+			})
+			const incomeCount = await ctx.prisma.income.count({
+				where: { accountId: input.id }
+			})
+			const transferFromCount = await ctx.prisma.transfer.count({
+				where: { fromAccountId: input.id }
+			})
+			const transferToCount = await ctx.prisma.transfer.count({
+				where: { toAccountId: input.id }
+			})
+
+			if (
+				transactionCount > 0 ||
+				billCount > 0 ||
+				incomeCount > 0 ||
+				transferFromCount > 0 ||
+				transferToCount > 0
+			) {
 				throw new TRPCError({
 					code: 'PRECONDITION_FAILED',
-					message: `Cannot delete account with ${account._count.transactions} transactions. Please reassign or delete transactions first.`
+					message:
+						'Cannot delete account with existing transactions, bills, or transfers. Please archive it instead.'
 				})
 			}
 
@@ -426,5 +476,49 @@ export const accountsRouter = {
 			})
 
 			return { success: true }
+		}),
+
+	/**
+	 * Toggle archive status of an account
+	 */
+	toggleArchive: protectedProcedure
+		.input(
+			z.object({
+				id: z.string(),
+				userId: z.string(),
+				isArchived: z.boolean()
+			})
+		)
+		.mutation(async ({ ctx, input }) => {
+			const account = await ctx.prisma.account.findUnique({
+				where: { id: input.id }
+			})
+
+			if (!account) {
+				throw new TRPCError({
+					code: 'NOT_FOUND',
+					message: 'Account not found'
+				})
+			}
+
+			// Verify user has access to this household
+			const householdUser = await ctx.prisma.householdUser.findFirst({
+				where: {
+					householdId: account.householdId,
+					userId: input.userId
+				}
+			})
+
+			if (!householdUser) {
+				throw new TRPCError({
+					code: 'FORBIDDEN',
+					message: 'You do not have access to this account'
+				})
+			}
+
+			return ctx.prisma.account.update({
+				where: { id: input.id },
+				data: { isArchived: input.isArchived }
+			})
 		})
 } satisfies TRPCRouterRecord

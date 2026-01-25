@@ -6,7 +6,11 @@ import { billsRouter } from './routers/bills'
 import { budgetsRouter } from './routers/budgets'
 import { categoriesRouter } from './routers/categories'
 import { householdsRouter } from './routers/households'
+import { incomeRouter } from './routers/income'
+import { invitationsRouter } from './routers/invitations'
+import { recipientsRouter } from './routers/recipients'
 import { transactionsRouter } from './routers/transactions'
+import { transfersRouter } from './routers/transfers'
 
 const todos = [
 	{ id: 1, name: 'Get groceries' },
@@ -32,6 +36,10 @@ export const trpcRouter = createTRPCRouter({
 	categories: categoriesRouter,
 	accounts: accountsRouter,
 	transactions: transactionsRouter,
-	bills: billsRouter
+	bills: billsRouter,
+	recipients: recipientsRouter,
+	transfers: transfersRouter,
+	income: incomeRouter,
+	invitations: invitationsRouter
 })
 export type TRPCRouter = typeof trpcRouter

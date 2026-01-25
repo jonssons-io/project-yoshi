@@ -6,9 +6,9 @@
 import { useUser } from '@clerk/clerk-react'
 import { Link } from '@tanstack/react-router'
 import {
-	Building2,
 	Check,
 	ChevronsUpDown,
+	Coins,
 	CreditCard,
 	FileTextIcon,
 	Home,
@@ -58,6 +58,12 @@ const navSections = {
 			title: 'Transactions',
 			url: '/transactions',
 			icon: Receipt,
+			requiresBudget: true
+		},
+		{
+			title: 'Income',
+			url: '/income',
+			icon: Coins,
 			requiresBudget: true
 		},
 		{

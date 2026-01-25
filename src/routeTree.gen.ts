@@ -24,6 +24,7 @@ import { Route as DemoPrismaRouteImport } from './routes/demo/prisma'
 import { Route as DemoFormSystemRouteImport } from './routes/demo/form-system'
 import { Route as DemoClerkRouteImport } from './routes/demo/clerk'
 import { Route as AuthenticatedTransactionsIndexRouteImport } from './routes/_authenticated/transactions/index'
+import { Route as AuthenticatedIncomeIndexRouteImport } from './routes/_authenticated/income/index'
 import { Route as AuthenticatedCategoriesIndexRouteImport } from './routes/_authenticated/categories/index'
 import { Route as AuthenticatedBudgetsIndexRouteImport } from './routes/_authenticated/budgets/index'
 import { Route as AuthenticatedBillsIndexRouteImport } from './routes/_authenticated/bills/index'
@@ -114,6 +115,12 @@ const AuthenticatedTransactionsIndexRoute =
   AuthenticatedTransactionsIndexRouteImport.update({
     id: '/transactions/',
     path: '/transactions/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedIncomeIndexRoute =
+  AuthenticatedIncomeIndexRouteImport.update({
+    id: '/income/',
+    path: '/income/',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
 const AuthenticatedCategoriesIndexRoute =
@@ -227,6 +234,7 @@ export interface FileRoutesByFullPath {
   '/bills/': typeof AuthenticatedBillsIndexRoute
   '/budgets/': typeof AuthenticatedBudgetsIndexRoute
   '/categories/': typeof AuthenticatedCategoriesIndexRoute
+  '/income/': typeof AuthenticatedIncomeIndexRoute
   '/transactions/': typeof AuthenticatedTransactionsIndexRoute
   '/demo/start/ssr/data-only': typeof DemoStartSsrDataOnlyRoute
   '/demo/start/ssr/full-ssr': typeof DemoStartSsrFullSsrRoute
@@ -259,6 +267,7 @@ export interface FileRoutesByTo {
   '/bills': typeof AuthenticatedBillsIndexRoute
   '/budgets': typeof AuthenticatedBudgetsIndexRoute
   '/categories': typeof AuthenticatedCategoriesIndexRoute
+  '/income': typeof AuthenticatedIncomeIndexRoute
   '/transactions': typeof AuthenticatedTransactionsIndexRoute
   '/demo/start/ssr/data-only': typeof DemoStartSsrDataOnlyRoute
   '/demo/start/ssr/full-ssr': typeof DemoStartSsrFullSsrRoute
@@ -293,6 +302,7 @@ export interface FileRoutesById {
   '/_authenticated/bills/': typeof AuthenticatedBillsIndexRoute
   '/_authenticated/budgets/': typeof AuthenticatedBudgetsIndexRoute
   '/_authenticated/categories/': typeof AuthenticatedCategoriesIndexRoute
+  '/_authenticated/income/': typeof AuthenticatedIncomeIndexRoute
   '/_authenticated/transactions/': typeof AuthenticatedTransactionsIndexRoute
   '/demo/start/ssr/data-only': typeof DemoStartSsrDataOnlyRoute
   '/demo/start/ssr/full-ssr': typeof DemoStartSsrFullSsrRoute
@@ -327,6 +337,7 @@ export interface FileRouteTypes {
     | '/bills/'
     | '/budgets/'
     | '/categories/'
+    | '/income/'
     | '/transactions/'
     | '/demo/start/ssr/data-only'
     | '/demo/start/ssr/full-ssr'
@@ -359,6 +370,7 @@ export interface FileRouteTypes {
     | '/bills'
     | '/budgets'
     | '/categories'
+    | '/income'
     | '/transactions'
     | '/demo/start/ssr/data-only'
     | '/demo/start/ssr/full-ssr'
@@ -392,6 +404,7 @@ export interface FileRouteTypes {
     | '/_authenticated/bills/'
     | '/_authenticated/budgets/'
     | '/_authenticated/categories/'
+    | '/_authenticated/income/'
     | '/_authenticated/transactions/'
     | '/demo/start/ssr/data-only'
     | '/demo/start/ssr/full-ssr'
@@ -531,6 +544,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedTransactionsIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/income/': {
+      id: '/_authenticated/income/'
+      path: '/income'
+      fullPath: '/income/'
+      preLoaderRoute: typeof AuthenticatedIncomeIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/categories/': {
       id: '/_authenticated/categories/'
       path: '/categories'
@@ -653,6 +673,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedBillsIndexRoute: typeof AuthenticatedBillsIndexRoute
   AuthenticatedBudgetsIndexRoute: typeof AuthenticatedBudgetsIndexRoute
   AuthenticatedCategoriesIndexRoute: typeof AuthenticatedCategoriesIndexRoute
+  AuthenticatedIncomeIndexRoute: typeof AuthenticatedIncomeIndexRoute
   AuthenticatedTransactionsIndexRoute: typeof AuthenticatedTransactionsIndexRoute
 }
 
@@ -663,6 +684,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedBillsIndexRoute: AuthenticatedBillsIndexRoute,
   AuthenticatedBudgetsIndexRoute: AuthenticatedBudgetsIndexRoute,
   AuthenticatedCategoriesIndexRoute: AuthenticatedCategoriesIndexRoute,
+  AuthenticatedIncomeIndexRoute: AuthenticatedIncomeIndexRoute,
   AuthenticatedTransactionsIndexRoute: AuthenticatedTransactionsIndexRoute,
 }
 

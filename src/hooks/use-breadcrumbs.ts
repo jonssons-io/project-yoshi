@@ -6,6 +6,7 @@ const routeLabels: Record<string, string> = {
 	'/accounts': 'Accounts',
 	'/budgets': 'Budgets',
 	'/transactions': 'Transactions',
+	'/income': 'Income',
 	'/bills': 'Bills',
 	'/categories': 'Categories'
 }

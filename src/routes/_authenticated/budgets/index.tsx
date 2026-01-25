@@ -15,14 +15,6 @@ import {
 	CardHeader,
 	CardTitle
 } from '@/components/ui/card'
-import {
-	Dialog,
-	DialogContent,
-	DialogDescription,
-	DialogHeader,
-	DialogTitle,
-	DialogTrigger
-} from '@/components/ui/dialog'
 import { useAuth } from '@/contexts/auth-context'
 import { BudgetForm } from '@/forms/BudgetForm'
 import {
@@ -31,6 +23,7 @@ import {
 	useDeleteBudget,
 	useUpdateBudget
 } from '@/hooks/api'
+import { useDrawer } from '@/hooks/use-drawer'
 
 export const Route = createFileRoute('/_authenticated/budgets/')({
 	component: BudgetsPage
@@ -38,12 +31,7 @@ export const Route = createFileRoute('/_authenticated/budgets/')({
 
 function BudgetsPage() {
 	const { userId, householdId } = useAuth()
-	const [createDialogOpen, setCreateDialogOpen] = useState(false)
-	const [editingBudget, setEditingBudget] = useState<{
-		id: string
-		name: string
-		startDate: Date
-	} | null>(null)
+	const { openDrawer, closeDrawer } = useDrawer()
 
 	const {
 		data: budgets,
@@ -58,14 +46,14 @@ function BudgetsPage() {
 	const { mutate: createBudget } = useCreateBudget({
 		onSuccess: () => {
 			refetch()
-			setCreateDialogOpen(false)
+			closeDrawer()
 		}
 	})
 
 	const { mutate: updateBudget } = useUpdateBudget({
 		onSuccess: () => {
 			refetch()
-			setEditingBudget(null)
+			closeDrawer()
 		}
 	})
 
@@ -99,37 +87,68 @@ function BudgetsPage() {
 		)
 	}
 
+	const handleCreate = () => {
+		openDrawer(
+			<div className="p-4">
+				<h2 className="text-2xl font-bold mb-4">Create New Budget</h2>
+				<p className="text-muted-foreground mb-6">
+					Create a new budget to track your income and expenses
+				</p>
+				<BudgetForm
+					onSubmit={async (data) => {
+						createBudget({
+							...data,
+							householdId,
+							userId
+						})
+					}}
+					onCancel={closeDrawer}
+					submitLabel="Create Budget"
+				/>
+			</div>,
+			'Create Budget'
+		)
+	}
+
+	const handleEdit = (budget: {
+		id: string
+		name: string
+		startDate: Date
+	}) => {
+		openDrawer(
+			<div className="p-4">
+				<h2 className="text-2xl font-bold mb-4">Edit Budget</h2>
+				<p className="text-muted-foreground mb-6">
+					Update your budget information
+				</p>
+				<BudgetForm
+					defaultValues={{
+						name: budget.name,
+						startDate: budget.startDate
+					}}
+					onSubmit={async (data) => {
+						updateBudget({
+							id: budget.id,
+							userId,
+							...data
+						})
+					}}
+					onCancel={closeDrawer}
+					submitLabel="Update Budget"
+				/>
+			</div>,
+			'Edit Budget'
+		)
+	}
+
 	return (
 		<div className="space-y-6">
 			{/* Toolbar */}
 			<div className="flex items-center justify-end">
-				<Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-					<DialogTrigger asChild>
-						<Button>
-							<PlusIcon className="mr-2 h-4 w-4" />
-							Create Budget
-						</Button>
-					</DialogTrigger>
-					<DialogContent>
-						<DialogHeader>
-							<DialogTitle>Create New Budget</DialogTitle>
-							<DialogDescription>
-								Create a new budget to track your income and expenses
-							</DialogDescription>
-						</DialogHeader>
-						<BudgetForm
-							onSubmit={async (data) => {
-								createBudget({
-									...data,
-									householdId,
-									userId
-								})
-							}}
-							onCancel={() => setCreateDialogOpen(false)}
-							submitLabel="Create Budget"
-						/>
-					</DialogContent>
-				</Dialog>
+				<Button onClick={handleCreate}>
+					<PlusIcon className="mr-2 h-4 w-4" />
+					Create Budget
+				</Button>
 			</div>
 
 			{budgets?.length === 0 ? (
@@ -141,7 +160,7 @@ function BudgetsPage() {
 						</CardDescription>
 					</CardHeader>
 					<CardContent>
-						<Button onClick={() => setCreateDialogOpen(true)}>
+						<Button onClick={handleCreate}>
 							<PlusIcon className="mr-2 h-4 w-4" />
 							Create Your First Budget
 						</Button>
@@ -192,7 +211,7 @@ function BudgetsPage() {
 									variant="outline"
 									size="icon"
 									onClick={() =>
-										setEditingBudget({
+										handleEdit({
 											id: budget.id,
 											name: budget.name,
 											startDate: new Date(budget.startDate)
@@ -224,38 +243,6 @@ function BudgetsPage() {
 					))}
 				</div>
 			)}
-
-			{/* Edit Budget Dialog */}
-			<Dialog
-				open={!!editingBudget}
-				onOpenChange={(open) => !open && setEditingBudget(null)}
-			>
-				<DialogContent>
-					<DialogHeader>
-						<DialogTitle>Edit Budget</DialogTitle>
-						<DialogDescription>
-							Update your budget information
-						</DialogDescription>
-					</DialogHeader>
-					{editingBudget && (
-						<BudgetForm
-							defaultValues={{
-								name: editingBudget.name,
-								startDate: editingBudget.startDate
-							}}
-							onSubmit={async (data) => {
-								updateBudget({
-									id: editingBudget.id,
-									userId,
-									...data
-								})
-							}}
-							onCancel={() => setEditingBudget(null)}
-							submitLabel="Update Budget"
-						/>
-					)}
-				</DialogContent>
-			</Dialog>
 		</div>
 	)
 }

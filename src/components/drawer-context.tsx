@@ -1,4 +1,10 @@
-import { createContext, type ReactNode, useContext, useState } from 'react'
+import {
+	createContext,
+	type ReactNode,
+	useCallback,
+	useContext,
+	useState
+} from 'react'
 import {
 	Drawer,
 	DrawerContent,
@@ -19,20 +25,23 @@ export function DrawerProvider({ children }: { children: ReactNode }) {
 	const [content, setContent] = useState<ReactNode>(null)
 	const [title, setTitle] = useState<string | undefined>(undefined)
 
-	const openDrawer = (drawerContent: ReactNode, drawerTitle?: string) => {
-		setContent(drawerContent)
-		setTitle(drawerTitle)
-		setIsOpen(true)
-	}
+	const openDrawer = useCallback(
+		(drawerContent: ReactNode, drawerTitle?: string) => {
+			setContent(drawerContent)
+			setTitle(drawerTitle)
+			setIsOpen(true)
+		},
+		[]
+	)
 
-	const closeDrawer = () => {
+	const closeDrawer = useCallback(() => {
 		setIsOpen(false)
 		// Clear content after animation completes
 		setTimeout(() => {
 			setContent(null)
 			setTitle(undefined)
 		}, 300)
-	}
+	}, [])
 
 	return (
 		<DrawerContext.Provider value={{ isOpen, openDrawer, closeDrawer }}>

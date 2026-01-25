@@ -1,4 +1,11 @@
-import { Check, ChevronsUpDown, LogOut, Plus, Settings } from 'lucide-react'
+import {
+	Check,
+	ChevronsUpDown,
+	LogOut,
+	Mail,
+	Plus,
+	Settings
+} from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import {
@@ -31,6 +38,7 @@ interface HeaderUserMenuProps {
 	onSelectHousehold: (id: string) => void
 	onCreateHousehold: () => void
 	onEditHousehold: () => void
+	onShowInvitations: () => void
 	onSignOut: () => void
 }
 
@@ -41,6 +49,7 @@ export function HeaderUserMenu({
 	onSelectHousehold,
 	onCreateHousehold,
 	onEditHousehold,
+	onShowInvitations,
 	onSignOut
 }: HeaderUserMenuProps) {
 	const selectedHousehold = households?.find(
@@ -107,12 +116,15 @@ export function HeaderUserMenu({
 						</DropdownMenuSubContent>
 					</DropdownMenuSub>
 
-					{selectedHousehold && (
-						<DropdownMenuItem onClick={onEditHousehold}>
-							<Settings className="mr-2 h-4 w-4" />
-							<span>Edit Household</span>
-						</DropdownMenuItem>
-					)}
+					<DropdownMenuItem onClick={onEditHousehold}>
+						<Settings className="mr-2 h-4 w-4" />
+						<span>Edit Household</span>
+					</DropdownMenuItem>
+
+					<DropdownMenuItem onClick={onShowInvitations}>
+						<Mail className="mr-2 h-4 w-4" />
+						<span>Invitations</span>
+					</DropdownMenuItem>
 				</DropdownMenuGroup>
 				<DropdownMenuSeparator />
 				<DropdownMenuItem onClick={onSignOut}>

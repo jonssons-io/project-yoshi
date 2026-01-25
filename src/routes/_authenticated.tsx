@@ -4,6 +4,7 @@ import { createFileRoute, Outlet, redirect } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { AppSidebar } from '@/components/app-sidebar'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
+import { PendingInvitations } from '@/components/dashboard/PendingInvitations'
 import { DrawerProvider } from '@/components/drawer-context'
 import { HeaderUserMenu } from '@/components/HeaderUserMenu'
 import { Separator } from '@/components/ui/separator'
@@ -113,6 +114,7 @@ function AuthenticatedLayoutContent() {
 				<h2 className="text-2xl font-bold mb-4">Edit Household</h2>
 				<HouseholdForm
 					defaultValues={{ name: currentHousehold.name }}
+					householdId={currentHousehold.id}
 					onSubmit={(data) => {
 						if (!userId) return
 						updateHousehold({
@@ -136,6 +138,21 @@ function AuthenticatedLayoutContent() {
 				/>
 			</div>,
 			'Edit Household'
+		)
+	}
+
+	const handleShowInvitations = () => {
+		openDrawer(
+			<div className="p-4">
+				<h2 className="text-2xl font-bold mb-4">Pending Invitations</h2>
+				<PendingInvitations
+					onJoin={(householdId) => {
+						setSelectedHousehold(householdId)
+						closeDrawer()
+					}}
+				/>
+			</div>,
+			'Invitations'
 		)
 	}
 
@@ -169,6 +186,7 @@ function AuthenticatedLayoutContent() {
 							onSelectHousehold={setSelectedHousehold}
 							onCreateHousehold={handleCreateHousehold}
 							onEditHousehold={handleEditHousehold}
+							onShowInvitations={handleShowInvitations}
 							onSignOut={handleSignOut}
 						/>
 					)}

@@ -4,7 +4,7 @@
 
 import { createFileRoute } from '@tanstack/react-router'
 import { PencilIcon, PlusIcon, TrashIcon } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { CategoryForm } from '@/components/categories/CategoryForm'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -15,14 +15,6 @@ import {
 	CardHeader,
 	CardTitle
 } from '@/components/ui/card'
-import {
-	Dialog,
-	DialogContent,
-	DialogDescription,
-	DialogHeader,
-	DialogTitle,
-	DialogTrigger
-} from '@/components/ui/dialog'
 import {
 	Table,
 	TableBody,
@@ -40,6 +32,7 @@ import {
 	useDeleteCategory,
 	useUpdateCategory
 } from '@/hooks/api'
+import { useDrawer } from '@/hooks/use-drawer'
 
 export const Route = createFileRoute('/_authenticated/categories/')({
 	component: CategoriesPage
@@ -47,7 +40,7 @@ export const Route = createFileRoute('/_authenticated/categories/')({
 
 function CategoriesPage() {
 	const { userId, householdId } = useAuth()
-	const [createDialogOpen, setCreateDialogOpen] = useState(false)
+	const { openDrawer, closeDrawer } = useDrawer()
 	const [editingCategoryId, setEditingCategoryId] = useState<string | null>(
 		null
 	)
@@ -79,13 +72,14 @@ function CategoriesPage() {
 	const { mutate: createCategory } = useCreateCategory({
 		onSuccess: () => {
 			refetch()
-			setCreateDialogOpen(false)
+			closeDrawer()
 		}
 	})
 
 	const { mutate: updateCategory } = useUpdateCategory({
 		onSuccess: () => {
 			refetch()
+			closeDrawer()
 			setEditingCategoryId(null)
 		}
 	})
@@ -101,13 +95,72 @@ function CategoriesPage() {
 		}
 	})
 
-	if (isLoading) {
-		return (
-			<div className="flex items-center justify-center">
-				<p className="text-muted-foreground">Loading categories...</p>
-			</div>
+	const handleCreate = () => {
+		openDrawer(
+			<div className="p-4">
+				<h2 className="text-2xl font-bold mb-4">Create New Category</h2>
+				<p className="text-muted-foreground mb-6">
+					Add a new income or expense category
+				</p>
+				<CategoryForm
+					onSubmit={async (data) => {
+						createCategory({
+							...data,
+							householdId,
+							userId
+						})
+					}}
+					onCancel={closeDrawer}
+					submitLabel="Create Category"
+					budgets={budgets ?? []}
+				/>
+			</div>,
+			'Create Category'
 		)
 	}
+
+	// Open drawer when editingCategoryId is set and data is loaded
+	useEffect(() => {
+		if (editingCategoryId && editingCategory) {
+			openDrawer(
+				<div className="p-4">
+					<h2 className="text-2xl font-bold mb-4">Edit Category</h2>
+					<p className="text-muted-foreground mb-6">
+						Update category information and budget access
+					</p>
+					<CategoryForm
+						defaultValues={{
+							name: editingCategory.name,
+							type: editingCategory.type,
+							budgetIds: editingCategory.budgets.map((b) => b.budgetId)
+						}}
+						onSubmit={async (data) => {
+							updateCategory({
+								id: editingCategory.id,
+								userId,
+								...data
+							})
+						}}
+						onCancel={() => {
+							closeDrawer()
+							setEditingCategoryId(null)
+						}}
+						submitLabel="Update Category"
+						budgets={budgets ?? []}
+					/>
+				</div>,
+				'Edit Category'
+			)
+		}
+	}, [
+		editingCategoryId,
+		editingCategory,
+		openDrawer,
+		closeDrawer,
+		updateCategory,
+		userId,
+		budgets
+	])
 
 	const incomeCount = categories?.filter((c) => c.type === 'INCOME').length ?? 0
 	const expenseCount =
@@ -141,34 +194,10 @@ function CategoriesPage() {
 					</Button>
 				</div>
 
-				<Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-					<DialogTrigger asChild>
-						<Button>
-							<PlusIcon className="mr-2 h-4 w-4" />
-							Add Category
-						</Button>
-					</DialogTrigger>
-					<DialogContent>
-						<DialogHeader>
-							<DialogTitle>Create New Category</DialogTitle>
-							<DialogDescription>
-								Add a new income or expense category
-							</DialogDescription>
-						</DialogHeader>
-						<CategoryForm
-							onSubmit={async (data) => {
-								createCategory({
-									...data,
-									householdId,
-									userId
-								})
-							}}
-							onCancel={() => setCreateDialogOpen(false)}
-							submitLabel="Create Category"
-							budgets={budgets ?? []}
-						/>
-					</DialogContent>
-				</Dialog>
+				<Button onClick={handleCreate}>
+					<PlusIcon className="mr-2 h-4 w-4" />
+					Add Category
+				</Button>
 			</div>
 
 			{categories?.length === 0 ? (
@@ -180,7 +209,7 @@ function CategoriesPage() {
 						</CardDescription>
 					</CardHeader>
 					<CardContent>
-						<Button onClick={() => setCreateDialogOpen(true)}>
+						<Button onClick={handleCreate}>
 							<PlusIcon className="mr-2 h-4 w-4" />
 							Create Your First Category
 						</Button>
@@ -252,40 +281,6 @@ function CategoriesPage() {
 					</Table>
 				</Card>
 			)}
-
-			{/* Edit Category Dialog */}
-			<Dialog
-				open={!!editingCategoryId}
-				onOpenChange={(open) => !open && setEditingCategoryId(null)}
-			>
-				<DialogContent>
-					<DialogHeader>
-						<DialogTitle>Edit Category</DialogTitle>
-						<DialogDescription>
-							Update category information and budget access
-						</DialogDescription>
-					</DialogHeader>
-					{editingCategory && (
-						<CategoryForm
-							defaultValues={{
-								name: editingCategory.name,
-								type: editingCategory.type,
-								budgetIds: editingCategory.budgets.map((b) => b.budgetId)
-							}}
-							onSubmit={async (data) => {
-								updateCategory({
-									id: editingCategory.id,
-									userId,
-									...data
-								})
-							}}
-							onCancel={() => setEditingCategoryId(null)}
-							submitLabel="Update Category"
-							budgets={budgets ?? []}
-						/>
-					)}
-				</DialogContent>
-			</Dialog>
 		</div>
 	)
 }

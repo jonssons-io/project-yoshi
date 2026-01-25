@@ -30,3 +30,20 @@ export const useHouseholdById = createQueryHook(
 	}),
 	(params) => [params.householdId, params.userId]
 )
+
+/**
+ * Hook to fetch members of a household
+ */
+export const useHouseholdMembers = createQueryHook(
+	'households',
+	'getMembers',
+	(params: {
+		householdId?: string | null
+		userId?: string | null
+		enabled?: boolean
+	}) => ({
+		householdId: params.householdId ?? '',
+		userId: params.userId ?? ''
+	}),
+	(params) => [params.householdId, params.userId]
+)

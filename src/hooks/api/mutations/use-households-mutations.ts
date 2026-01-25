@@ -10,9 +10,7 @@ import {
 export const useCreateHousehold = createMutationHook(
 	'households',
 	'create',
-	(variables) => [
-		invalidateQuery('households', 'list', { userId: variables.userId })
-	]
+	(variables) => [invalidateQuery(['households', 'list'])]
 )
 
 /**
@@ -22,11 +20,8 @@ export const useUpdateHousehold = createMutationHook(
 	'households',
 	'update',
 	(variables) => [
-		invalidateQuery('households', 'list', { userId: variables.userId }),
-		invalidateQuery('households', 'getById', {
-			id: variables.id,
-			userId: variables.userId
-		})
+		invalidateQuery(['households', 'list']),
+		invalidateQuery(['households', 'getById'])
 	]
 )
 
@@ -39,7 +34,7 @@ export const useDeleteHousehold = createMutationHook(
 	'households',
 	'delete',
 	(variables) => [
-		invalidateQuery('households', 'list', { userId: variables.userId }),
+		invalidateQuery(['households', 'list']),
 		invalidateAll('budgets'),
 		invalidateAll('categories'),
 		invalidateAll('accounts'),
@@ -55,11 +50,9 @@ export const useAddHouseholdUser = createMutationHook(
 	'households',
 	'addUser',
 	(variables) => [
-		invalidateQuery('households', 'list', { userId: variables.userId }),
-		invalidateQuery('households', 'getById', {
-			id: variables.householdId,
-			userId: variables.userId
-		})
+		invalidateQuery(['households', 'list']),
+		invalidateQuery(['households', 'getMembers']),
+		invalidateQuery(['households', 'getById'])
 	]
 )
 
@@ -70,10 +63,8 @@ export const useRemoveHouseholdUser = createMutationHook(
 	'households',
 	'removeUser',
 	(variables) => [
-		invalidateQuery('households', 'list', { userId: variables.userId }),
-		invalidateQuery('households', 'getById', {
-			id: variables.householdId,
-			userId: variables.userId
-		})
+		invalidateQuery(['households', 'list']),
+		invalidateQuery(['households', 'getMembers']),
+		invalidateQuery(['households', 'getById'])
 	]
 )

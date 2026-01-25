@@ -12,10 +12,12 @@ export const useAccountsList = createQueryHook(
 		userId?: string | null
 		budgetId?: string | null
 		enabled?: boolean
+		excludeArchived?: boolean
 	}) => ({
 		householdId: params.householdId ?? '',
 		userId: params.userId ?? '',
-		budgetId: params.budgetId || undefined
+		budgetId: params.budgetId || undefined,
+		excludeArchived: params.excludeArchived
 	}),
 	(params) => [params.householdId, params.userId]
 )

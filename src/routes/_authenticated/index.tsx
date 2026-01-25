@@ -1,21 +1,14 @@
-/**
- * Dashboard - Main landing page showing account balances and charts
- */
-
-import { createFileRoute, Link } from '@tanstack/react-router'
-import { eachDayOfInterval, endOfMonth, format, startOfMonth } from 'date-fns'
-import {
-	CalendarIcon,
-	PlusIcon,
-	TrendingDownIcon,
-	TrendingUpIcon
-} from 'lucide-react'
-import { useMemo, useState } from 'react'
-import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from 'recharts'
+// Dashboard - Main landing page showing account balances and charts
+import { createFileRoute } from '@tanstack/react-router'
+import { SettingsIcon } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { DashboardChart } from '@/components/dashboard/DashboardChart'
+import { DashboardChartSettings } from '@/components/dashboard/DashboardChartSettings'
 import { NoAccount } from '@/components/dashboard/NoAccount'
 import { NoBudget } from '@/components/dashboard/NoBudget'
+import { CreateTransactionButton } from '@/components/transactions/CreateTransactionButton'
+import { CreateTransferButton } from '@/components/transfers/CreateTransferButton'
 import { Button } from '@/components/ui/button'
-import { Calendar } from '@/components/ui/calendar'
 import {
 	Card,
 	CardContent,
@@ -23,16 +16,6 @@ import {
 	CardHeader,
 	CardTitle
 } from '@/components/ui/card'
-import {
-	ChartContainer,
-	ChartTooltip,
-	ChartTooltipContent
-} from '@/components/ui/chart'
-import {
-	Popover,
-	PopoverContent,
-	PopoverTrigger
-} from '@/components/ui/popover'
 import { useAuth } from '@/contexts/auth-context'
 import {
 	useAccountBalance,
@@ -40,6 +23,13 @@ import {
 	useBudgetsList,
 	useTransactionsList
 } from '@/hooks/api'
+import { useDrawer } from '@/hooks/use-drawer'
+import { useSelectedBudget } from '@/hooks/use-selected-budget'
+import {
+	type DateRangeOption,
+	generateChartData,
+	getDateRange
+} from '@/lib/dashboard-utils'
 import { formatCurrency } from '@/lib/utils'
 
 export const Route = createFileRoute('/_authenticated/')({
@@ -49,10 +39,40 @@ export const Route = createFileRoute('/_authenticated/')({
 function Dashboard() {
 	const { userId, householdId } = useAuth()
 
-	// Date range state
-	const [quickSelection, setQuickSelection] = useState<
-		'current-month' | 'custom'
-	>('current-month')
+	// --- Local Storage Keys ---
+	const STORAGE_PREFIX = 'yoshi-dashboard-settings'
+	const ACCOUNT_SELECTION_KEY = userId
+		? `${STORAGE_PREFIX}-accounts-${userId}`
+		: null
+	const DATE_RANGE_KEY = userId
+		? `${STORAGE_PREFIX}-date-range-${userId}`
+		: null
+
+	// --- State Management ---
+	// Date range with filtered local storage persistence
+	const [quickSelection, setQuickSelectionState] =
+		useState<DateRangeOption>('current-month')
+
+	// Initialize date range from local storage
+	useEffect(() => {
+		if (!DATE_RANGE_KEY) return
+		const stored = localStorage.getItem(DATE_RANGE_KEY)
+		if (stored) {
+			// Validate stored value is a valid option (custom logic handled separately if needed)
+			if (['current-month', '3-months', 'custom'].includes(stored)) {
+				setQuickSelectionState(stored as DateRangeOption)
+			}
+		}
+	}, [DATE_RANGE_KEY])
+
+	// Wrapper to save to local storage
+	const setQuickSelection = (val: DateRangeOption) => {
+		setQuickSelectionState(val)
+		if (DATE_RANGE_KEY) {
+			localStorage.setItem(DATE_RANGE_KEY, val)
+		}
+	}
+
 	const [customStartDate, setCustomStartDate] = useState<Date | undefined>(
 		undefined
 	)
@@ -61,30 +81,11 @@ function Dashboard() {
 	)
 
 	// Calculate date range based on selection
-	const { startDate, endDate } = useMemo(() => {
-		if (quickSelection === 'current-month') {
-			const now = new Date()
-			return {
-				startDate: startOfMonth(now),
-				endDate: endOfMonth(now)
-			}
-		}
-
-		// Custom range
-		if (customStartDate && customEndDate) {
-			return {
-				startDate: customStartDate,
-				endDate: customEndDate
-			}
-		}
-
-		// Fallback to current month if custom dates not set
-		const now = new Date()
-		return {
-			startDate: startOfMonth(now),
-			endDate: endOfMonth(now)
-		}
-	}, [quickSelection, customStartDate, customEndDate])
+	const { startDate, endDate } = getDateRange(
+		quickSelection,
+		customStartDate,
+		customEndDate
+	)
 
 	// Fetch all budgets for the selected household
 	const { data: budgets, isLoading: budgetsLoading } = useBudgetsList({
@@ -92,8 +93,10 @@ function Dashboard() {
 		userId
 	})
 
-	// Use the first budget for now (later can add budget selector)
-	const activeBudget = budgets?.[0]
+	// Use the selected budget from context/storage
+	const { selectedBudgetId } = useSelectedBudget(userId, householdId)
+	const activeBudget =
+		budgets?.find((b) => b.id === selectedBudgetId) ?? budgets?.[0]
 
 	// Fetch accounts for the selected household
 	const {
@@ -105,14 +108,171 @@ function Dashboard() {
 		userId
 	})
 
-	// Fetch transactions for the date range
+	const { openDrawer, isOpen } = useDrawer()
+
+	// Selected accounts state
+	const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>([])
+	const [isAccountSelectionInitialized, setIsAccountSelectionInitialized] =
+		useState(false)
+
+	// Initialize selected accounts from local storage OR default to all
+	useEffect(() => {
+		if (accounts && !isAccountSelectionInitialized) {
+			if (ACCOUNT_SELECTION_KEY) {
+				const stored = localStorage.getItem(ACCOUNT_SELECTION_KEY)
+				if (stored) {
+					try {
+						const parsed = JSON.parse(stored)
+						if (Array.isArray(parsed)) {
+							// Filter specifically for accounts that still exist to avoid zombies
+							const validIds = parsed.filter((id) =>
+								accounts.some((a) => a.id === id)
+							)
+							setSelectedAccountIds(
+								validIds.length > 0 ? validIds : accounts.map((a) => a.id)
+							)
+							setIsAccountSelectionInitialized(true)
+							return
+						}
+					} catch {
+						// ignore
+					}
+				}
+			}
+			// Default to all
+			setSelectedAccountIds(accounts.map((a) => a.id))
+			setIsAccountSelectionInitialized(true)
+		}
+	}, [accounts, isAccountSelectionInitialized, ACCOUNT_SELECTION_KEY])
+
+	// Helper to update account selection and persist
+	const updateSelectedAccounts = (newIds: string[]) => {
+		setSelectedAccountIds(newIds)
+		if (ACCOUNT_SELECTION_KEY) {
+			localStorage.setItem(ACCOUNT_SELECTION_KEY, JSON.stringify(newIds))
+		}
+	}
+
+	// Fetch ALL transactions for the budget to ensure accurate historical balances
 	const { data: transactions } = useTransactionsList({
 		budgetId: activeBudget?.id ?? '',
 		userId,
-		dateFrom: startDate,
-		dateTo: endDate,
+		// No date filters -> fetch all history
 		enabled: !!activeBudget
 	})
+
+	// Filter accounts for chart
+	const chartAccounts = accounts
+		? accounts.filter((a) => selectedAccountIds.includes(a.id))
+		: []
+
+	// Generate chart data
+	const chartData =
+		!accounts || !transactions
+			? []
+			: generateChartData(chartAccounts, transactions, startDate, endDate)
+
+	// Sync settings drawer when state changes if it's open
+	// This allows real-time updates of the checkboxes and sliders inside the drawer
+	// because the drawer content is otherwise static once opened.
+
+	// We track if the settings drawer was specifically opened by us,
+	// to avoid clobbering other drawers if they happen to be open.
+	// In a complex app we'd need a "drawerId" or key.
+	// For now, we assume if it's open and we have tracking state, it's ours.
+	const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+
+	// Reset tracking if drawer is closed externally
+	useEffect(() => {
+		if (!isOpen) {
+			setIsSettingsOpen(false)
+		}
+	}, [isOpen])
+
+	// Auto-update drawer content if it's open and showing settings
+	// biome-ignore lint/correctness/useExhaustiveDependencies: functions are stable via React Compiler
+	useEffect(() => {
+		if (isOpen && isSettingsOpen) {
+			openDrawer(
+				<DashboardChartSettings
+					accounts={accounts ?? []}
+					selectedAccountIds={selectedAccountIds}
+					onToggleAccount={(id, checked) => {
+						updateSelectedAccounts(
+							checked
+								? [...selectedAccountIds, id]
+								: selectedAccountIds.filter((aid) => aid !== id)
+						)
+					}}
+					onToggleAllAccounts={(checked) => {
+						updateSelectedAccounts(
+							checked ? (accounts?.map((a) => a.id) ?? []) : []
+						)
+					}}
+					dateRange={quickSelection}
+					onDateRangeChange={(range) => {
+						setQuickSelection(range)
+					}}
+					customStartDate={customStartDate}
+					customEndDate={customEndDate}
+					onCustomDateChange={(start, end) => {
+						setCustomStartDate(start)
+						setCustomEndDate(end)
+						if (start || end) {
+							setQuickSelection('custom')
+						}
+					}}
+				/>,
+				'Chart Settings'
+			)
+		}
+	}, [
+		isOpen,
+		isSettingsOpen,
+		openDrawer,
+		accounts,
+		selectedAccountIds,
+		quickSelection,
+		customStartDate,
+		customEndDate
+	])
+
+	const handleOpenSettingsWithTracking = () => {
+		if (!accounts) return
+		setIsSettingsOpen(true)
+		openDrawer(
+			<DashboardChartSettings
+				accounts={accounts ?? []}
+				selectedAccountIds={selectedAccountIds}
+				onToggleAccount={(id, checked) => {
+					updateSelectedAccounts(
+						checked
+							? [...selectedAccountIds, id]
+							: selectedAccountIds.filter((aid) => aid !== id)
+					)
+				}}
+				onToggleAllAccounts={(checked) => {
+					updateSelectedAccounts(
+						checked ? (accounts?.map((a) => a.id) ?? []) : []
+					)
+				}}
+				dateRange={quickSelection}
+				onDateRangeChange={(range) => {
+					setQuickSelection(range)
+				}}
+				customStartDate={customStartDate}
+				customEndDate={customEndDate}
+				onCustomDateChange={(start, end) => {
+					setCustomStartDate(start)
+					setCustomEndDate(end)
+					if (start || end) {
+						setQuickSelection('custom')
+					}
+				}}
+			/>,
+			'Chart Settings'
+		)
+	}
 
 	if (budgetsLoading || accountsLoading) {
 		return (
@@ -138,124 +298,60 @@ function Dashboard() {
 
 	return (
 		<div className="space-y-6">
-			{/* Toolbar with date range info and selectors */}
-			<div className="flex items-center justify-between">
-				<p className="text-sm text-muted-foreground">
-					{activeBudget.name} –{' '}
-					{quickSelection === 'current-month'
-						? format(startDate, 'MMMM yyyy')
-						: `${format(startDate, 'MMM dd, yyyy')} - ${format(endDate, 'MMM dd, yyyy')}`}
-				</p>
-				<div className="flex gap-2">
-					<Button
-						variant={quickSelection === 'current-month' ? 'default' : 'outline'}
-						onClick={() => setQuickSelection('current-month')}
-						size="sm"
-					>
-						Current Month
-					</Button>
-
-					<Popover>
-						<PopoverTrigger asChild>
-							<Button
-								variant={quickSelection === 'custom' ? 'default' : 'outline'}
-								size="sm"
-							>
-								<CalendarIcon className="mr-2 h-4 w-4" />
-								Custom Range
-							</Button>
-						</PopoverTrigger>
-						<PopoverContent className="w-auto p-0" align="end">
-							<div className="p-4 space-y-4">
-								<div>
-									<p className="mb-2 text-sm font-medium">Start Date</p>
-									<Calendar
-										mode="single"
-										selected={customStartDate}
-										onSelect={(date) => {
-											setCustomStartDate(date)
-											if (date) {
-												setQuickSelection('custom')
-											}
-										}}
-										initialFocus
-									/>
-								</div>
-								<div>
-									<p className="mb-2 text-sm font-medium">End Date</p>
-									<Calendar
-										mode="single"
-										selected={customEndDate}
-										onSelect={(date) => {
-											setCustomEndDate(date)
-											if (date && customStartDate) {
-												setQuickSelection('custom')
-											}
-										}}
-										disabled={(date) =>
-											customStartDate ? date < customStartDate : false
-										}
-									/>
-								</div>
-							</div>
-						</PopoverContent>
-					</Popover>
-				</div>
+			{/* Toolbar with date range info, selectors and quick actions */}
+			<div className="flex items-center gap-2 justify-end">
+				<CreateTransactionButton
+					budgetId={activeBudget.id}
+					variant="default"
+					className="h-9"
+				/>
+				<CreateTransferButton
+					budgetId={activeBudget.id}
+					variant="outline"
+					className="h-9"
+				/>
 			</div>
 
-			{/* Account Cards with Charts */}
-			<div className="space-y-6">
+			{/* Main Chart */}
+			<Card>
+				<CardHeader className="flex flex-row items-center justify-between">
+					<div className="space-y-1.5">
+						<CardTitle>Balance History</CardTitle>
+						<CardDescription>
+							Account balances over time. Check for potential negative balances.
+						</CardDescription>
+					</div>
+					<Button
+						variant="ghost"
+						size="icon"
+						onClick={handleOpenSettingsWithTracking}
+					>
+						<SettingsIcon className="h-4 w-4" />
+					</Button>
+				</CardHeader>
+				<CardContent>
+					<DashboardChart data={chartData} accounts={chartAccounts} />
+				</CardContent>
+			</Card>
+
+			{/* Account Summaries Grid */}
+			<div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
 				{accounts.map((account) => (
-					<AccountCard
+					<AccountSummaryCard
 						key={account.id}
 						account={account}
 						userId={userId}
-						transactions={transactions?.filter(
-							(t) => t.accountId === account.id
-						)}
-						startDate={startDate}
-						endDate={endDate}
 					/>
 				))}
 			</div>
-
-			{/* Quick Actions */}
-			<Card>
-				<CardHeader>
-					<CardTitle>Quick Actions</CardTitle>
-				</CardHeader>
-				<CardContent>
-					<div className="flex flex-wrap gap-2">
-						<Button asChild>
-							<Link to="/transactions" search={{ budgetId: activeBudget.id }}>
-								<PlusIcon className="mr-2 h-4 w-4" />
-								Add Transaction
-							</Link>
-						</Button>
-						<Button asChild variant="outline">
-							<Link to="/accounts" search={{ budgetId: activeBudget.id }}>
-								View All Accounts
-							</Link>
-						</Button>
-						<Button asChild variant="outline">
-							<Link to="/categories" search={{ budgetId: activeBudget.id }}>
-								Manage Categories
-							</Link>
-						</Button>
-					</div>
-				</CardContent>
-			</Card>
 		</div>
 	)
 }
 
-// Account card component with balance chart
-function AccountCard({
+// Simple Account summary card
+function AccountSummaryCard({
 	account,
-	userId,
-	transactions,
-	startDate,
-	endDate
+	userId
 }: {
 	account: {
 		id: string
@@ -264,154 +360,29 @@ function AccountCard({
 		externalIdentifier: string | null
 	}
 	userId: string
-	transactions?: Array<{
-		id: string
-		amount: number
-		date: Date | string
-		category: { type: string }
-	}>
-	startDate: Date
-	endDate: Date
 }) {
-	// Fetch current balance
 	const { data: balanceData } = useAccountBalance({
 		accountId: account.id,
 		userId,
 		enabled: true
 	})
 
-	// Calculate balance over time for the chart
-	const chartData = useMemo(() => {
-		if (!transactions) return []
-
-		const days = eachDayOfInterval({ start: startDate, end: endDate })
-		let runningBalance = account.initialBalance
-
-		return days.map((day) => {
-			// Get transactions for this day
-			const dayTransactions = transactions.filter((t) => {
-				const transactionDate = new Date(t.date)
-				return (
-					transactionDate.getFullYear() === day.getFullYear() &&
-					transactionDate.getMonth() === day.getMonth() &&
-					transactionDate.getDate() === day.getDate()
-				)
-			})
-
-			// Calculate balance change for this day
-			const dayChange = dayTransactions.reduce((sum, t) => {
-				return sum + (t.category.type === 'INCOME' ? t.amount : -t.amount)
-			}, 0)
-
-			runningBalance += dayChange
-
-			return {
-				date: format(day, 'MMM dd'),
-				balance: runningBalance
-			}
-		})
-	}, [transactions, startDate, endDate, account.initialBalance])
-
 	const currentBalance = balanceData?.currentBalance ?? account.initialBalance
-	const balanceChange =
-		transactions?.reduce((sum, t) => {
-			return sum + (t.category.type === 'INCOME' ? t.amount : -t.amount)
-		}, 0) ?? 0
 
 	return (
 		<Card>
-			<CardHeader>
-				<div className="flex items-center justify-between">
-					<div>
-						<CardTitle>{account.name}</CardTitle>
-						{account.externalIdentifier && (
-							<CardDescription>{account.externalIdentifier}</CardDescription>
-						)}
-					</div>
-					<div className="text-right">
-						<div className="text-3xl font-bold">
-							{formatCurrency(currentBalance)}
-						</div>
-						{balanceChange !== 0 && (
-							<div
-								className={`flex items-center justify-end gap-1 text-sm ${
-									balanceChange >= 0 ? 'text-green-600' : 'text-red-600'
-								}`}
-							>
-								{balanceChange >= 0 ? (
-									<TrendingUpIcon className="h-4 w-4" />
-								) : (
-									<TrendingDownIcon className="h-4 w-4" />
-								)}
-								<span>
-									{balanceChange >= 0 ? '+' : ''}
-									{formatCurrency(balanceChange)} this month
-								</span>
-							</div>
-						)}
-					</div>
-				</div>
+			<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+				<CardTitle className="text-sm font-medium">{account.name}</CardTitle>
+				{account.externalIdentifier && (
+					<span className="text-xs text-muted-foreground truncate max-w-[100px]">
+						{account.externalIdentifier}
+					</span>
+				)}
 			</CardHeader>
 			<CardContent>
-				{chartData.length > 0 ? (
-					<ChartContainer
-						config={{
-							balance: {
-								label: 'Balance',
-								color: 'hsl(var(--chart-1))'
-							}
-						}}
-						className="h-50"
-					>
-						<AreaChart data={chartData}>
-							<defs>
-								<linearGradient id="colorBalance" x1="0" y1="0" x2="0" y2="1">
-									<stop
-										offset="5%"
-										stopColor="hsl(var(--chart-1))"
-										stopOpacity={0.3}
-									/>
-									<stop
-										offset="95%"
-										stopColor="hsl(var(--chart-1))"
-										stopOpacity={0}
-									/>
-								</linearGradient>
-							</defs>
-							<CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-							<XAxis
-								dataKey="date"
-								tick={{ fontSize: 12 }}
-								tickLine={false}
-								axisLine={false}
-							/>
-							<YAxis
-								tick={{ fontSize: 12 }}
-								tickLine={false}
-								axisLine={false}
-								tickFormatter={(value) => `$${(value / 1000).toFixed(1)}k`}
-							/>
-							<ChartTooltip
-								content={
-									<ChartTooltipContent
-										formatter={(value) => formatCurrency(Number(value))}
-									/>
-								}
-							/>
-							<Area
-								type="monotone"
-								dataKey="balance"
-								stroke="hsl(var(--chart-1))"
-								strokeWidth={2}
-								fill="url(#colorBalance)"
-							/>
-						</AreaChart>
-					</ChartContainer>
-				) : (
-					<div className="flex h-50 items-center justify-center text-muted-foreground">
-						No transactions this month
-					</div>
-				)}
+				<div className="text-2xl font-bold">
+					{formatCurrency(currentBalance)}
+				</div>
 			</CardContent>
 		</Card>
 	)
