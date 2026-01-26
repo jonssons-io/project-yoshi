@@ -38,6 +38,7 @@ import { useAuth } from '@/contexts/auth-context'
 import { TransferForm } from '@/forms/TransferForm'
 import {
 	useAccountsList,
+	useBudgetsList,
 	useCategoriesList,
 	useCloneTransaction,
 	useDeleteTransaction,
@@ -102,6 +103,11 @@ function TransactionsPage() {
 		householdId,
 		userId,
 		enabled: !!householdId
+	})
+
+	const { data: budgets } = useBudgetsList({
+		householdId,
+		userId
 	})
 
 	const { mutate: updateTransaction } = useUpdateTransaction({
@@ -169,6 +175,7 @@ function TransactionsPage() {
 						categories={categories}
 						accounts={accounts}
 						recipients={recipients}
+						budgets={budgets ?? []}
 						isEditing={true}
 						originalBillAmount={transaction.bill?.amount}
 						onSubmit={async (data) => {
@@ -322,8 +329,11 @@ function TransactionsPage() {
 	const expenseTransactions = transactions?.filter(
 		(t) => getTransactionType(t) === 'EXPENSE'
 	)
+	const totalInitialBalance =
+		accounts?.reduce((sum, a) => sum + a.initialBalance, 0) ?? 0
 	const totalIncome =
-		incomeTransactions?.reduce((sum, t) => sum + t.amount, 0) ?? 0
+		(incomeTransactions?.reduce((sum, t) => sum + t.amount, 0) ?? 0) +
+		totalInitialBalance
 	const totalExpense =
 		expenseTransactions?.reduce((sum, t) => sum + t.amount, 0) ?? 0
 
@@ -447,7 +457,9 @@ function TransactionsPage() {
 							{transactions?.map((transaction) => {
 								const type = getTransactionType(transaction)
 								const hasSplits =
-									transaction.splits && transaction.splits.length > 0
+									'splits' in transaction &&
+									transaction.splits &&
+									transaction.splits.length > 0
 
 								return (
 									<TableRow key={transaction.id}>

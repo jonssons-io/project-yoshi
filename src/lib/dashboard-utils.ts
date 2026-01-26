@@ -111,8 +111,8 @@ export function generateChartData(
 				// If both, default to - (Expense) as per conservative budgeting.
 
 				const isIncome =
-					tx.category.types.includes('INCOME') &&
-					!tx.category.types.includes('EXPENSE')
+					tx.category?.types?.includes('INCOME') &&
+					!tx.category?.types?.includes('EXPENSE')
 				const change = isIncome ? amount : -amount
 				balances.set(accId, current + change)
 			}
@@ -162,8 +162,8 @@ export function generateChartData(
 					const current = Number(balances.get(accId) ?? 0)
 					const amount = Number(tx.amount)
 					const isIncome =
-						tx.category.types.includes('INCOME') &&
-						!tx.category.types.includes('EXPENSE')
+						tx.category?.types?.includes('INCOME') &&
+						!tx.category?.types?.includes('EXPENSE')
 					const change = isIncome ? amount : -amount
 					balances.set(accId, current + change)
 				}

@@ -190,7 +190,11 @@ export const accountsRouter = {
 
 			// Calculate balance: initial + income - expenses
 			const transactionTotal = transactions.reduce((sum, transaction) => {
-				if (transaction.category.type === 'INCOME') {
+				const isIncome =
+					transaction.category?.types?.includes('INCOME') &&
+					!transaction.category?.types?.includes('EXPENSE')
+
+				if (isIncome) {
 					return sum + transaction.amount
 				}
 				return sum - transaction.amount
@@ -444,7 +448,7 @@ export const accountsRouter = {
 			}
 
 			const transactionCount = account._count.transactions
-			const billCount = await ctx.prisma.bill.count({
+			const recurringBillCount = await ctx.prisma.recurringBill.count({
 				where: { accountId: input.id }
 			})
 			const incomeCount = await ctx.prisma.income.count({
@@ -459,7 +463,7 @@ export const accountsRouter = {
 
 			if (
 				transactionCount > 0 ||
-				billCount > 0 ||
+				recurringBillCount > 0 ||
 				incomeCount > 0 ||
 				transferFromCount > 0 ||
 				transferToCount > 0

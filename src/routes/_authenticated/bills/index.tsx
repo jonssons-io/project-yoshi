@@ -53,6 +53,7 @@ import {
 	useAccountsList,
 	useArchiveBill,
 	useBillsList,
+	useBudgetsList, // Added
 	useCategoriesList,
 	useCreateBill,
 	useCreateTransaction,
@@ -115,6 +116,11 @@ function BillsPage() {
 		enabled: !!budgetId
 	})
 	const recipients = recipientsData ?? []
+
+	const { data: budgets } = useBudgetsList({
+		householdId,
+		userId
+	})
 
 	// Categories are already filtered for EXPENSE type in the query
 	const expenseCategories = categoriesQuery.data ?? []
@@ -353,6 +359,7 @@ function BillsPage() {
 					categories={categoriesQuery.data ?? []}
 					accounts={accountsQuery.data ?? []}
 					recipients={recipients ?? []}
+					budgets={budgets ?? []}
 					bills={[{ id: bill.id, name: bill.name, recipient: bill.recipient }]}
 					defaultValues={{
 						name: bill.name,

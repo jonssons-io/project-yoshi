@@ -43,10 +43,17 @@ export const budgetsRouter = {
 				},
 				include: {
 					transactions: {
-						select: { amount: true, categoryId: true },
-						where: {
+						select: {
+							amount: true,
 							category: {
-								types: { has: 'EXPENSE' }
+								select: {
+									types: true
+								}
+							},
+							splits: {
+								select: {
+									id: true
+								}
 							}
 						}
 					},
@@ -69,10 +76,20 @@ export const budgetsRouter = {
 					(acc, curr) => acc + curr.amount,
 					0
 				)
-				const spent = budget.transactions.reduce(
-					(acc, curr) => acc + curr.amount,
-					0
-				)
+				const spent = budget.transactions.reduce((acc, curr) => {
+					// Check if transaction is an expense
+					const hasSplits = curr.splits.length > 0
+					const types = curr.category?.types ?? []
+					const isIncome =
+						types.includes('INCOME') && !types.includes('EXPENSE')
+
+					// If splits exist, it's an expense
+					// If no category (and no splits), default to expense (conservative)
+					// If income, subtract from spent (refund)
+					if (hasSplits) return acc + curr.amount
+					if (isIncome) return acc - curr.amount
+					return acc + curr.amount
+				}, 0)
 				return {
 					...budget,
 					allocatedAmount: allocated,
@@ -110,10 +127,17 @@ export const budgetsRouter = {
 						}
 					},
 					transactions: {
-						select: { amount: true },
-						where: {
+						select: {
+							amount: true,
 							category: {
-								types: { has: 'EXPENSE' }
+								select: {
+									types: true
+								}
+							},
+							splits: {
+								select: {
+									id: true
+								}
 							}
 						}
 					},
@@ -155,10 +179,19 @@ export const budgetsRouter = {
 				(acc: number, curr: { amount: number }) => acc + curr.amount,
 				0
 			)
-			const spent = budget.transactions.reduce(
-				(acc: number, curr: { amount: number }) => acc + curr.amount,
-				0
-			)
+			const spent = budget.transactions.reduce((acc, curr) => {
+				// Check if transaction is an expense
+				const hasSplits = curr.splits.length > 0
+				const types = curr.category?.types ?? []
+				const isIncome = types.includes('INCOME') && !types.includes('EXPENSE')
+
+				// If splits exist, it's an expense
+				// If no category (and no splits), default to expense (conservative)
+				// If income, subtract from spent (refund)
+				if (hasSplits) return acc + curr.amount
+				if (isIncome) return acc - curr.amount
+				return acc + curr.amount
+			}, 0)
 
 			return {
 				...budget,

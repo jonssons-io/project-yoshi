@@ -18,12 +18,14 @@ interface CreateTransactionButtonProps {
 	budgetId?: string
 	className?: string
 	variant?: 'default' | 'outline' | 'secondary' | 'ghost' | 'link'
+	preSelectedBillId?: string
 }
 
 export function CreateTransactionButton({
 	budgetId: propsBudgetId,
 	className,
-	variant = 'default'
+	variant = 'default',
+	preSelectedBillId
 }: CreateTransactionButtonProps) {
 	const { openDrawer, closeDrawer } = useDrawer()
 	const { userId, householdId } = useAuth()
@@ -91,12 +93,13 @@ export function CreateTransactionButton({
 						recipients={recipients}
 						bills={bills}
 						budgets={budgets}
+						preSelectedBillId={preSelectedBillId}
 						onSubmit={async (data, billData) => {
 							let finalBillId = data.billId
 
 							// Transform category field to API format
-							const categoryData =
-								typeof data.category === 'string'
+							const categoryData = data.category
+								? typeof data.category === 'string'
 									? { categoryId: data.category }
 									: {
 											newCategory: {
@@ -104,6 +107,7 @@ export function CreateTransactionButton({
 												type: data.transactionType
 											}
 										}
+								: {}
 
 							if (billData) {
 								const newBill = await new Promise<string>((resolve, reject) => {
@@ -113,9 +117,11 @@ export function CreateTransactionButton({
 											name: data.name,
 											estimatedAmount: data.amount,
 											accountId: data.accountId,
-											...(typeof data.category === 'string'
-												? { categoryId: data.category }
-												: { newCategoryName: data.category.name }),
+											...(data.category
+												? typeof data.category === 'string'
+													? { categoryId: data.category }
+													: { newCategoryName: data.category.name }
+												: {}),
 											budgetId: budgetId,
 											userId,
 											lastPaymentDate: billData.lastPaymentDate ?? undefined
