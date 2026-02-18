@@ -9,6 +9,7 @@
  */
 
 import { Loader2 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { useFormContext } from '@/hooks/form'
 import { CancelButton, type CancelButtonProps } from './CancelButton'
@@ -53,17 +54,23 @@ export interface FormButtonGroupProps {
 export function FormButtonGroup({
 	onDelete,
 	onCancel,
-	submitLabel = 'Save',
-	deleteLabel = 'Delete',
-	cancelLabel = 'Cancel',
-	loadingText = 'Saving...'
+	submitLabel,
+	deleteLabel,
+	cancelLabel,
+	loadingText
 }: FormButtonGroupProps) {
+	const { t } = useTranslation()
 	const form = useFormContext()
+
+	const effectiveSubmitLabel = submitLabel || t('common.save')
+	const effectiveDeleteLabel = deleteLabel || t('common.delete')
+	const effectiveCancelLabel = cancelLabel || t('common.cancel')
+	const effectiveLoadingText = loadingText || t('common.loading')
 
 	return (
 		<div className="flex gap-2 justify-end">
-			<DeleteButton onDelete={onDelete}>{deleteLabel}</DeleteButton>
-			<CancelButton onCancel={onCancel}>{cancelLabel}</CancelButton>
+			<DeleteButton onDelete={onDelete}>{effectiveDeleteLabel}</DeleteButton>
+			<CancelButton onCancel={onCancel}>{effectiveCancelLabel}</CancelButton>
 			<form.Subscribe
 				selector={(state) => ({
 					canSubmit: state.canSubmit,
@@ -73,7 +80,7 @@ export function FormButtonGroup({
 				{({ canSubmit, isSubmitting }) => (
 					<Button type="submit" disabled={!canSubmit || isSubmitting}>
 						{isSubmitting && <Loader2 className="animate-spin" />}
-						{isSubmitting ? loadingText : submitLabel}
+						{isSubmitting ? effectiveLoadingText : effectiveSubmitLabel}
 					</Button>
 				)}
 			</form.Subscribe>

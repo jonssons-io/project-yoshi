@@ -14,6 +14,7 @@ import {
 	TrashIcon
 } from 'lucide-react'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { z } from 'zod'
 import { BillForm, type BillFormData } from '@/components/bills/BillForm'
 import { TransactionForm } from '@/components/transactions/TransactionForm'
@@ -75,6 +76,7 @@ export const Route = createFileRoute('/_authenticated/bills/')({
 })
 
 function BillsPage() {
+	const { t } = useTranslation()
 	const { budgetId: urlBudgetId } = Route.useSearch()
 	const { userId, householdId } = useAuth()
 	const { selectedBudgetId } = useSelectedBudget(userId, householdId)
@@ -167,14 +169,12 @@ function BillsPage() {
 		return (
 			<Card>
 				<CardHeader>
-					<CardTitle>No Budget Selected</CardTitle>
-					<CardDescription>
-						Please select a budget to manage bills
-					</CardDescription>
+					<CardTitle>{t('bills.noBudgetSelected')}</CardTitle>
+					<CardDescription>{t('bills.selectBudget')}</CardDescription>
 				</CardHeader>
 				<CardContent>
 					<Button asChild>
-						<Link to="/budgets">Go to Budgets</Link>
+						<Link to="/budgets">{t('bills.goToBudgets')}</Link>
 					</Button>
 				</CardContent>
 			</Card>
@@ -184,9 +184,9 @@ function BillsPage() {
 	const handleCreate = () => {
 		openDrawer(
 			<div className="p-4">
-				<h2 className="text-2xl font-bold mb-4">Create New Bill</h2>
+				<h2 className="text-2xl font-bold mb-4">{t('bills.createBill')}</h2>
 				<p className="text-muted-foreground mb-6">
-					Add a new bill to track recurring or one-time payments
+					{t('bills.createBillDesc')}
 				</p>
 				{accountsQuery.data && categoriesQuery.data ? (
 					<BillForm
@@ -244,21 +244,19 @@ function BillsPage() {
 					/>
 				) : (
 					<div className="flex items-center justify-center p-8">
-						<p className="text-muted-foreground">Loading form data...</p>
+						<p className="text-muted-foreground">{t('common.loading')}</p>
 					</div>
 				)}
 			</div>,
-			'Create Bill'
+			t('bills.createBill')
 		)
 	}
 
 	const handleUpdate = (bill: any) => {
 		openDrawer(
 			<div className="p-4">
-				<h2 className="text-2xl font-bold mb-4">Edit Bill Series</h2>
-				<p className="text-muted-foreground mb-6">
-					Update recurring bill settings
-				</p>
+				<h2 className="text-2xl font-bold mb-4">{t('bills.editBill')}</h2>
+				<p className="text-muted-foreground mb-6">{t('bills.editBillDesc')}</p>
 				{accountsQuery.data && categoriesQuery.data ? (
 					<BillForm
 						initialData={{
@@ -330,16 +328,16 @@ function BillsPage() {
 					/>
 				) : (
 					<div className="flex items-center justify-center p-8">
-						<p className="text-muted-foreground">Loading form data...</p>
+						<p className="text-muted-foreground">{t('common.loading')}</p>
 					</div>
 				)}
 			</div>,
-			'Edit Bill'
+			t('bills.editBill')
 		)
 	}
 
 	const handleDelete = (id: string) => {
-		if (confirm('Are you sure you want to delete this bill series?')) {
+		if (confirm(t('bills.deleteConfirm'))) {
 			deleteMutation.mutate({ id, userId })
 		}
 	}
@@ -351,10 +349,8 @@ function BillsPage() {
 	const handleCreateTransaction = (bill: any) => {
 		openDrawer(
 			<div className="p-4">
-				<h2 className="text-2xl font-bold mb-4">Pay Bill</h2>
-				<p className="text-muted-foreground mb-6">
-					Record payment for this bill
-				</p>
+				<h2 className="text-2xl font-bold mb-4">{t('bills.payBill')}</h2>
+				<p className="text-muted-foreground mb-6">{t('bills.payBillDesc')}</p>
 				<TransactionForm
 					categories={categoriesQuery.data ?? []}
 					accounts={accountsQuery.data ?? []}
@@ -426,10 +422,10 @@ function BillsPage() {
 						})
 					}}
 					onCancel={closeDrawer}
-					submitLabel="Create Transaction"
+					submitLabel={t('transactions.createTransaction')}
 				/>
 			</div>,
-			'Create Transaction'
+			t('transactions.createTransaction')
 		)
 	}
 
@@ -439,17 +435,17 @@ function BillsPage() {
 	) => {
 		switch (type) {
 			case RecurrenceType.NONE:
-				return 'One-time'
+				return t('recurrence.none')
 			case RecurrenceType.WEEKLY:
-				return 'Weekly'
+				return t('recurrence.weekly')
 			case RecurrenceType.MONTHLY:
-				return 'Monthly'
+				return t('recurrence.monthly')
 			case RecurrenceType.QUARTERLY:
-				return 'Quarterly'
+				return t('recurrence.quarterly')
 			case RecurrenceType.YEARLY:
-				return 'Yearly'
+				return t('recurrence.yearly')
 			case RecurrenceType.CUSTOM:
-				return `Every ${customDays} days`
+				return t('recurrence.custom')
 			default:
 				return type
 		}
@@ -464,42 +460,44 @@ function BillsPage() {
 					onClick={() => setThisMonthOnly(!thisMonthOnly)}
 					size="sm"
 				>
-					This Month
+					{t('bills.thisMonth')}
 				</Button>
 				<Button
 					variant={includeArchived ? 'default' : 'outline'}
 					onClick={() => setIncludeArchived(!includeArchived)}
 					size="sm"
 				>
-					{includeArchived ? 'Hide Archived' : 'Show Archived'}
+					{includeArchived ? t('bills.hideArchived') : t('bills.showArchived')}
 				</Button>
 				<Button onClick={handleCreate}>
 					<PlusIcon className="h-4 w-4 mr-2" />
-					New Bill
+					{t('bills.newBill')}
 				</Button>
 			</div>
 			<Card>
 				<CardContent>
 					{billsQuery.isLoading ? (
 						<div className="text-center py-8 text-muted-foreground">
-							Loading bills...
+							{t('common.loading')}
 						</div>
 					) : billsQuery.data?.length === 0 ? (
 						<div className="text-center py-8 text-muted-foreground">
-							No bills found. Create your first bill to get started.
+							{t('bills.noBills')}
 						</div>
 					) : (
 						<Table>
 							<TableHeader>
 								<TableRow>
-									<TableHead>Name</TableHead>
-									<TableHead>Recipient</TableHead>
-									<TableHead>Account</TableHead>
-									<TableHead>Amount</TableHead>
-									<TableHead>Recurrence</TableHead>
-									<TableHead>Due Date</TableHead>
-									<TableHead>Category</TableHead>
-									<TableHead className="text-right">Actions</TableHead>
+									<TableHead>{t('common.name')}</TableHead>
+									<TableHead>{t('common.recipient')}</TableHead>
+									<TableHead>{t('common.account')}</TableHead>
+									<TableHead>{t('common.amount')}</TableHead>
+									<TableHead>{t('recurrence.label')}</TableHead>
+									<TableHead>{t('forms.nextExpectedDate')}</TableHead>
+									<TableHead>{t('common.category')}</TableHead>
+									<TableHead className="text-right">
+										{t('common.actions')}
+									</TableHead>
 								</TableRow>
 							</TableHeader>
 							<TableBody>
@@ -520,7 +518,7 @@ function BillsPage() {
 												{bill.name}
 												{bill.isArchived && (
 													<Badge variant="secondary" className="ml-2">
-														Archived
+														{t('common.archived')}
 													</Badge>
 												)}
 											</TableCell>
@@ -536,10 +534,7 @@ function BillsPage() {
 																	<AlertTriangleIcon className="h-4 w-4 text-yellow-500" />
 																</TooltipTrigger>
 																<TooltipContent>
-																	<p>
-																		This account is archived. Please update the
-																		bill.
-																	</p>
+																	<p>{t('bills.archivedAccountWarning')}</p>
 																</TooltipContent>
 															</Tooltip>
 														</TooltipProvider>
@@ -555,8 +550,9 @@ function BillsPage() {
 															</TooltipTrigger>
 															<TooltipContent>
 																<p>
-																	Paid Amount (Estimated: $
-																	{bill.amount.toFixed(2)})
+																	{t('bills.paidTooltip', {
+																		amount: bill.amount.toFixed(2)
+																	})}
 																</p>
 															</TooltipContent>
 														</Tooltip>
@@ -577,7 +573,7 @@ function BillsPage() {
 														variant="outline"
 														className="bg-green-50 text-green-700 border-green-200"
 													>
-														Paid
+														{t('bills.paid')}
 													</Badge>
 												) : isOverdue ? (
 													<div className="flex flex-col">
@@ -588,7 +584,7 @@ function BillsPage() {
 															variant="destructive"
 															className="w-fit mt-1 text-[10px] px-1 py-0 h-4"
 														>
-															Overdue
+															{t('bills.overdue')}
 														</Badge>
 													</div>
 												) : (
@@ -604,13 +600,13 @@ function BillsPage() {
 																	variant="outline"
 																	className="cursor-help"
 																>
-																	{bill.splits.length} Sections
+																	{bill.splits.length} {t('bills.sections')}
 																</Badge>
 															</TooltipTrigger>
 															<TooltipContent className="w-64 p-0">
 																<div className="p-2 space-y-2">
 																	<p className="font-semibold text-xs border-b pb-1">
-																		Sections
+																		{t('bills.sections')}
 																	</p>
 																	{bill.splits.map((s: any, i: number) => (
 																		<div
@@ -645,7 +641,7 @@ function BillsPage() {
 																	onClick={() => handleCreateTransaction(bill)}
 																>
 																	<ReceiptIcon className="h-4 w-4 mr-2" />
-																	Pay Bill
+																	{t('bills.payBill')}
 																</DropdownMenuItem>
 																<DropdownMenuSeparator />
 															</>
@@ -654,7 +650,7 @@ function BillsPage() {
 															onClick={() => handleUpdate(bill)}
 														>
 															<Edit2Icon className="h-4 w-4 mr-2" />
-															Edit Series
+															{t('common.edit')}
 														</DropdownMenuItem>
 														<DropdownMenuItem
 															onClick={() =>
@@ -665,7 +661,9 @@ function BillsPage() {
 															}
 														>
 															<ArchiveIcon className="h-4 w-4 mr-2" />
-															{bill.isArchived ? 'Unarchive' : 'Archive'}
+															{bill.isArchived
+																? t('common.unarchive')
+																: t('common.archive')}
 														</DropdownMenuItem>
 														<DropdownMenuSeparator />
 														<DropdownMenuItem
@@ -673,7 +671,7 @@ function BillsPage() {
 															className="text-destructive"
 														>
 															<TrashIcon className="h-4 w-4 mr-2" />
-															Delete Series
+															{t('common.delete')}
 														</DropdownMenuItem>
 													</DropdownMenuContent>
 												</DropdownMenu>

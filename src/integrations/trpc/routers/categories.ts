@@ -1,6 +1,7 @@
 import type { TRPCRouterRecord } from '@trpc/server'
 import { TRPCError } from '@trpc/server'
 import { z } from 'zod'
+import i18n from '@/lib/i18n'
 import { protectedProcedure } from '../init'
 
 /**
@@ -31,7 +32,7 @@ export const categoriesRouter = {
 			if (!householdUser) {
 				throw new TRPCError({
 					code: 'FORBIDDEN',
-					message: 'You do not have access to this household'
+					message: i18n.t('server.forbidden.householdAccess')
 				})
 			}
 
@@ -94,7 +95,7 @@ export const categoriesRouter = {
 			if (!category) {
 				throw new TRPCError({
 					code: 'NOT_FOUND',
-					message: 'Category not found'
+					message: i18n.t('categories.notFound')
 				})
 			}
 
@@ -108,7 +109,7 @@ export const categoriesRouter = {
 			if (!householdUser) {
 				throw new TRPCError({
 					code: 'FORBIDDEN',
-					message: 'You do not have access to this category'
+					message: i18n.t('server.forbidden.categoryAccess')
 				})
 			}
 
@@ -120,10 +121,10 @@ export const categoriesRouter = {
 			z.object({
 				householdId: z.string(),
 				userId: z.string(),
-				name: z.string().min(1, 'Name is required'),
+				name: z.string().min(1, i18n.t('validation.nameRequired')),
 				types: z
 					.array(z.enum(['INCOME', 'EXPENSE']))
-					.min(1, 'At least one type is required'),
+					.min(1, i18n.t('categories.atleastOneTypeRequired')),
 				budgetIds: z.array(z.string()).optional()
 			})
 		)
@@ -138,7 +139,7 @@ export const categoriesRouter = {
 			if (!householdUser) {
 				throw new TRPCError({
 					code: 'FORBIDDEN',
-					message: 'You do not have access to this household'
+					message: i18n.t('server.forbidden.householdAccess')
 				})
 			}
 
@@ -184,7 +185,7 @@ export const categoriesRouter = {
 			z.object({
 				id: z.string(),
 				userId: z.string(),
-				name: z.string().min(1, 'Name is required').optional(),
+				name: z.string().min(1, i18n.t('validation.nameRequired')).optional(),
 				types: z
 					.array(z.enum(['INCOME', 'EXPENSE']))
 					.min(1)
@@ -203,7 +204,7 @@ export const categoriesRouter = {
 			if (!category) {
 				throw new TRPCError({
 					code: 'NOT_FOUND',
-					message: 'Category not found'
+					message: i18n.t('categories.notFound')
 				})
 			}
 
@@ -217,7 +218,7 @@ export const categoriesRouter = {
 			if (!householdUser) {
 				throw new TRPCError({
 					code: 'FORBIDDEN',
-					message: 'You do not have access to this category'
+					message: i18n.t('server.forbidden.categoryAccess')
 				})
 			}
 
@@ -289,7 +290,7 @@ export const categoriesRouter = {
 			if (!category) {
 				throw new TRPCError({
 					code: 'NOT_FOUND',
-					message: 'Category not found'
+					message: i18n.t('categories.notFound')
 				})
 			}
 
@@ -304,14 +305,16 @@ export const categoriesRouter = {
 			if (!householdUser) {
 				throw new TRPCError({
 					code: 'FORBIDDEN',
-					message: 'You do not have access to this category'
+					message: i18n.t('server.forbidden.categoryAccess')
 				})
 			}
 
 			if (category._count.transactions > 0) {
 				throw new TRPCError({
 					code: 'PRECONDITION_FAILED',
-					message: `Cannot delete category with ${category._count.transactions} transactions. Please reassign or delete transactions first.`
+					message: i18n.t('categories.deleteErrorCount', {
+						count: category._count.transactions
+					})
 				})
 			}
 

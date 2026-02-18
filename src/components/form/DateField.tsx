@@ -6,7 +6,9 @@
  */
 
 import { format } from 'date-fns'
+import { sv } from 'date-fns/locale'
 import { CalendarIcon } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
 import {
@@ -49,9 +51,12 @@ export interface DateFieldProps {
 export function DateField({
 	label,
 	description,
-	placeholder = 'Pick a date',
+	placeholder,
 	disabled
 }: DateFieldProps) {
+	const { t } = useTranslation()
+	const effectivePlaceholder = placeholder || t('common.pickDate')
+
 	const field = useFieldContext<Date>()
 
 	const hasError =
@@ -75,9 +80,9 @@ export function DateField({
 						>
 							<CalendarIcon className="mr-2 h-4 w-4" />
 							{field.state.value ? (
-								format(field.state.value, 'PPP')
+								format(field.state.value, 'PPP', { locale: sv })
 							) : (
-								<span>{placeholder}</span>
+								<span>{effectivePlaceholder}</span>
 							)}
 						</Button>
 					</PopoverTrigger>
@@ -91,6 +96,7 @@ export function DateField({
 								}
 							}}
 							initialFocus
+							locale={sv}
 						/>
 					</PopoverContent>
 				</Popover>
@@ -98,7 +104,9 @@ export function DateField({
 					<FieldError>{field.state.meta.errors.join(', ')}</FieldError>
 				)}
 				{field.state.meta.isValidating && (
-					<span className="text-sm text-muted-foreground">Validating...</span>
+					<span className="text-sm text-muted-foreground">
+						{t('common.validating')}
+					</span>
 				)}
 			</FieldContent>
 		</Field>

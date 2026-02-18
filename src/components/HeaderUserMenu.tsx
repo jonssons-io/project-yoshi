@@ -6,6 +6,7 @@ import {
 	Plus,
 	Settings
 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import {
@@ -52,9 +53,8 @@ export function HeaderUserMenu({
 	onShowInvitations,
 	onSignOut
 }: HeaderUserMenuProps) {
-	const selectedHousehold = households?.find(
-		(h) => h.id === selectedHouseholdId
-	)
+	const { t } = useTranslation()
+
 	const userInitials = user.firstName
 		? user.firstName.slice(0, 2).toUpperCase()
 		: 'U'
@@ -67,7 +67,10 @@ export function HeaderUserMenu({
 					className="relative h-8 w-8 rounded-full cursor-pointer"
 				>
 					<Avatar className="h-8 w-8">
-						<AvatarImage src={user.imageUrl} alt={user.fullName ?? 'User'} />
+						<AvatarImage
+							src={user.imageUrl}
+							alt={user.fullName ?? t('dashboard.userAlt')}
+						/>
 						<AvatarFallback>{userInitials}</AvatarFallback>
 					</Avatar>
 				</Button>
@@ -86,7 +89,7 @@ export function HeaderUserMenu({
 					<DropdownMenuSub>
 						<DropdownMenuSubTrigger>
 							<ChevronsUpDown className="mr-2 h-4 w-4" />
-							<span>Switch Household</span>
+							<span>{t('dashboard.switchHousehold')}</span>
 						</DropdownMenuSubTrigger>
 						<DropdownMenuSubContent className="p-0">
 							{households && households.length > 0 && (
@@ -111,25 +114,25 @@ export function HeaderUserMenu({
 							)}
 							<DropdownMenuItem onClick={onCreateHousehold}>
 								<Plus className="mr-2 h-4 w-4" />
-								<span>Create New Household</span>
+								<span>{t('forms.createHousehold')}</span>
 							</DropdownMenuItem>
 						</DropdownMenuSubContent>
 					</DropdownMenuSub>
 
 					<DropdownMenuItem onClick={onEditHousehold}>
 						<Settings className="mr-2 h-4 w-4" />
-						<span>Edit Household</span>
+						<span>{t('forms.editHousehold')}</span>
 					</DropdownMenuItem>
 
 					<DropdownMenuItem onClick={onShowInvitations}>
 						<Mail className="mr-2 h-4 w-4" />
-						<span>Invitations</span>
+						<span>{t('forms.invitations')}</span>
 					</DropdownMenuItem>
 				</DropdownMenuGroup>
 				<DropdownMenuSeparator />
 				<DropdownMenuItem onClick={onSignOut}>
 					<LogOut className="mr-2 h-4 w-4" />
-					<span>Sign out</span>
+					<span>{t('dashboard.signOut')}</span>
 				</DropdownMenuItem>
 			</DropdownMenuContent>
 		</DropdownMenu>

@@ -11,6 +11,7 @@
 import type { inferRouterOutputs } from '@trpc/server'
 import { AlertTriangleIcon, Plus, Trash2 } from 'lucide-react'
 import { useEffect, useId, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { z } from 'zod'
 import {
 	type ComboboxValue,
@@ -33,21 +34,23 @@ type BudgetWithDetails = RouterOutputs['budgets']['list'][number]
 // Schema with discriminated category field
 const transactionSchema = z
 	.object({
-		name: z.string().min(1, { message: 'Transaction name is required' }),
-		amount: z.number().positive({ message: 'Amount must be positive' }),
-		date: z.date({ message: 'Date is required' }),
+		name: z.string().min(1, { message: 'validation.nameRequired' }),
+		amount: z.number().positive({ message: 'validation.positive' }),
+		date: z.date({ message: 'validation.dateRequired' }),
 		transactionType: z.enum(['INCOME', 'EXPENSE']),
 		// Category can be either an existing ID or a new category to create
 		category: z
 			.union([
-				z.string().min(1, { message: 'Category is required' }),
+				z.string().min(1, { message: 'validation.categoryRequired' }),
 				z.object({
 					isNew: z.literal(true),
-					name: z.string().min(1, { message: 'Category name is required' })
+					name: z
+						.string()
+						.min(1, { message: 'validation.categoryNameRequired' })
 				})
 			])
 			.optional(), // Optional now because of splits
-		accountId: z.string().min(1, { message: 'Account is required' }),
+		accountId: z.string().min(1, { message: 'validation.accountRequired' }),
 		// Recipient/Sender is optional - can be ID or new name
 		recipient: z
 			.union([
@@ -67,14 +70,16 @@ const transactionSchema = z
 		splits: z
 			.array(
 				z.object({
-					subtitle: z.string().min(1, 'Subtitle is required'),
-					amount: z.number().positive('Amount must be positive'),
+					subtitle: z.string().min(1, 'validation.subtitleRequired'),
+					amount: z.number().positive('validation.positive'),
 					// Category logic same as before but per split
 					category: z.union([
-						z.string().min(1, { message: 'Category is required' }),
+						z.string().min(1, { message: 'validation.categoryRequired' }),
 						z.object({
 							isNew: z.literal(true),
-							name: z.string().min(1, { message: 'Category name is required' })
+							name: z
+								.string()
+								.min(1, { message: 'validation.categoryNameRequired' })
 						})
 					])
 				})
@@ -96,7 +101,7 @@ const transactionSchema = z
 			return false
 		},
 		{
-			message: 'Category is required',
+			message: 'validation.categoryRequired',
 			path: ['category']
 		}
 	)
@@ -198,20 +203,6 @@ export interface TransactionFormProps {
 	originalBillAmount?: number
 }
 
-const recurrenceOptions = [
-	{ value: RecurrenceType.NONE, label: 'No recurrence (one-time)' },
-	{ value: RecurrenceType.WEEKLY, label: 'Weekly' },
-	{ value: RecurrenceType.MONTHLY, label: 'Monthly' },
-	{ value: RecurrenceType.QUARTERLY, label: 'Quarterly (every 3 months)' },
-	{ value: RecurrenceType.YEARLY, label: 'Yearly' },
-	{ value: RecurrenceType.CUSTOM, label: 'Custom interval' }
-]
-
-const transactionTypeOptions = [
-	{ value: 'EXPENSE', label: 'Expense' },
-	{ value: 'INCOME', label: 'Income' }
-]
-
 export function TransactionForm({
 	defaultValues,
 	categories,
@@ -223,9 +214,24 @@ export function TransactionForm({
 	originalBillAmount,
 	onSubmit,
 	onCancel,
-	submitLabel = 'Save Transaction',
+	submitLabel,
 	isEditing = false
 }: TransactionFormProps) {
+	const { t } = useTranslation()
+
+	const recurrenceOptions = [
+		{ value: RecurrenceType.NONE, label: t('recurrence.none') },
+		{ value: RecurrenceType.WEEKLY, label: t('recurrence.weekly') },
+		{ value: RecurrenceType.MONTHLY, label: t('recurrence.monthly') },
+		{ value: RecurrenceType.QUARTERLY, label: t('recurrence.quarterly') },
+		{ value: RecurrenceType.YEARLY, label: t('recurrence.yearly') },
+		{ value: RecurrenceType.CUSTOM, label: t('recurrence.custom') }
+	]
+
+	const transactionTypeOptions = [
+		{ value: 'EXPENSE', label: t('transactions.expense') },
+		{ value: 'INCOME', label: t('transactions.income') }
+	]
 	// Generate unique ID for the checkbox
 	const createBillCheckboxId = useId()
 
@@ -298,7 +304,7 @@ export function TransactionForm({
 				transformedValue.splits = undefined
 			} else {
 				// If splits are used, category is undefined
-				transformedValue.category = undefined
+				transformedValue.category = null as unknown as ComboboxValue
 			}
 
 			const data = validateForm(transactionSchema, transformedValue)
@@ -382,7 +388,7 @@ export function TransactionForm({
 			<form.AppField name="transactionType">
 				{(field) => (
 					<field.RadioGroupField
-						label="Transaction Type"
+						label={t('forms.transactionType')}
 						options={transactionTypeOptions}
 						onValueChange={handleTransactionTypeChange}
 					/>
@@ -397,8 +403,8 @@ export function TransactionForm({
 			>
 				{(field) => (
 					<field.TextField
-						label="Transaction Name"
-						placeholder="e.g., Grocery shopping, Salary payment"
+						label={t('forms.transactionName')}
+						placeholder={t('forms.placeholderName')}
 					/>
 				)}
 			</form.AppField>
@@ -411,7 +417,7 @@ export function TransactionForm({
 			>
 				{(field) => (
 					<field.NumberField
-						label="Amount"
+						label={t('common.amount')}
 						placeholder="0.00"
 						step="0.01"
 						min={0}
@@ -425,7 +431,7 @@ export function TransactionForm({
 					onChange: createZodValidator(transactionSchema.shape.date)
 				}}
 			>
-				{(field) => <field.DateField label="Date" />}
+				{(field) => <field.DateField label={t('common.date')} />}
 			</form.AppField>
 
 			{/* Check for Overdraft */}
@@ -450,30 +456,32 @@ export function TransactionForm({
 						<div className="space-y-2">
 							<div className="text-sm">
 								<span className="text-muted-foreground">
-									Remaining in {budget.name}:{' '}
+									{t('validation.remainingIn', { budget: budget.name })}{' '}
 								</span>
 								<span
 									className={
 										remaining < 0 ? 'text-red-500 font-bold' : 'font-bold'
 									}
 								>
-									{new Intl.NumberFormat('en-US', {
+									{new Intl.NumberFormat('sv-SE', {
 										style: 'currency',
 										currency: 'SEK'
-									}).format(remaining)}
+									}).format(Number(remaining || 0))}
 								</span>
 							</div>
 							{willOverdraft && (
 								<Alert variant="destructive" className="py-2">
 									<AlertTriangleIcon className="h-4 w-4" />
-									<AlertTitle>Overdraft Warning</AlertTitle>
+									<AlertTitle>{t('validation.overdraftTitle')}</AlertTitle>
 									<AlertDescription>
-										This transaction exceeds the remaining allocated funds by{' '}
-										{new Intl.NumberFormat('en-US', {
-											style: 'currency',
-											currency: 'SEK'
-										}).format(Math.abs(remaining - (amount || 0)))}
-										.
+										{t('validation.overdraftDesc', {
+											amount: new Intl.NumberFormat('sv-SE', {
+												style: 'currency',
+												currency: 'SEK'
+											}).format(
+												Math.abs(Number(remaining || 0) - Number(amount || 0))
+											)
+										})}
 									</AlertDescription>
 								</Alert>
 							)}
@@ -491,8 +499,8 @@ export function TransactionForm({
 				>
 					{(field) => (
 						<field.SelectField
-							label="Budget (Optional)"
-							placeholder="Select a budget"
+							label={t('forms.budgetOptional')}
+							placeholder={t('forms.selectBudget')}
 							options={budgets.map((b) => ({
 								value: b.id,
 								label: b.name
@@ -515,11 +523,7 @@ export function TransactionForm({
 										!checked &&
 										(form.getFieldValue('splits') || []).length > 1
 									) {
-										if (
-											!confirm(
-												'Disabling split mode will remove additional sections. Continue?'
-											)
-										) {
+										if (!confirm(t('validation.disableSplitsConfirm'))) {
 											return
 										}
 										// Reset to single split (optional, or just let validatForm handle it?
@@ -529,7 +533,7 @@ export function TransactionForm({
 								}}
 							/>
 							<Label htmlFor="useSplits" className="cursor-pointer">
-								Split this transaction (multiple categories)
+								{t('forms.splitTransaction')}
 							</Label>
 						</div>
 					)
@@ -555,13 +559,17 @@ export function TransactionForm({
 							<form.AppField name="category">
 								{(field) => (
 									<field.ComboboxField
-										label="Category"
-										placeholder="Select or create a category"
-										searchPlaceholder="Search categories..."
-										emptyText="No categories found"
+										label={t('common.category')}
+										placeholder={t('forms.selectCategory')}
+										searchPlaceholder={t('forms.searchCategories')}
+										emptyText={t('forms.noCategories')}
 										options={categoryOptions}
 										allowCreate
-										createLabel={`Create ${transactionType === 'INCOME' ? 'income' : 'expense'} category`}
+										createLabel={
+											transactionType === 'INCOME'
+												? t('forms.createIncomeCategory')
+												: t('forms.createExpenseCategory')
+										}
 									/>
 								)}
 							</form.AppField>
@@ -571,7 +579,7 @@ export function TransactionForm({
 			) : (
 				<div className="space-y-4">
 					<div className="flex items-center justify-between">
-						<h3 className="text-sm font-medium">Sections</h3>
+						<h3 className="text-sm font-medium">{t('forms.sections')}</h3>
 						<form.Subscribe selector={(state) => state.values.splits}>
 							{(splits) => {
 								const totalSplits =
@@ -586,18 +594,18 @@ export function TransactionForm({
 												!isZeroDiff ? 'text-red-500' : 'text-green-600'
 											}`}
 										>
-											Total:{' '}
-											{new Intl.NumberFormat('en-US', {
+											{t('forms.total')}:{' '}
+											{new Intl.NumberFormat('sv-SE', {
 												style: 'currency',
 												currency: 'SEK'
 											}).format(totalSplits)}
 											{/* {!isZeroDiff &&
-												` (Diff: ${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'SEK' }).format(totalDiff)})`} */}
+												` (Diff: ${new Intl.NumberFormat('sv-SE', { style: 'currency', currency: 'SEK' }).format(totalDiff)})`} */}
 										</span>
 										{originalBillAmount !== undefined && (
 											<span className="text-xs text-muted-foreground">
-												Bill Amount:{' '}
-												{new Intl.NumberFormat('en-US', {
+												{t('forms.billAmount')}:{' '}
+												{new Intl.NumberFormat('sv-SE', {
 													style: 'currency',
 													currency: 'SEK'
 												}).format(originalBillAmount)}
@@ -609,12 +617,13 @@ export function TransactionForm({
 																: 'text-green-600 ml-1'
 														}
 													>
-														({totalSplits > originalBillAmount ? '+' : ''}
-														{new Intl.NumberFormat('en-US', {
-															style: 'currency',
-															currency: 'SEK'
-														}).format(totalSplits - originalBillAmount)}
-														)
+														{`(${totalSplits > originalBillAmount ? '+' : ''}${new Intl.NumberFormat(
+															'sv-SE',
+															{
+																style: 'currency',
+																currency: 'SEK'
+															}
+														).format(totalSplits - originalBillAmount)})`}
 													</span>
 												)}
 											</span>
@@ -637,14 +646,14 @@ export function TransactionForm({
 														name={`splits[${index}].subtitle`}
 														validators={{
 															onChange: createZodValidator(
-																z.string().min(1, 'Required')
+																z.string().min(1, t('forms.requiredField'))
 															)
 														}}
 													>
 														{(subField) => (
 															<subField.TextField
-																label={index === 0 ? 'Subtitle' : ''}
-																placeholder="e.g. Interest"
+																label={index === 0 ? t('forms.subtitle') : ''}
+																placeholder={t('forms.subtitlePlaceholder')}
 															/>
 														)}
 													</form.AppField>
@@ -660,10 +669,10 @@ export function TransactionForm({
 													>
 														{(amtField) => (
 															<amtField.NumberField
-																label={index === 0 ? 'Amount' : ''}
-																placeholder="0.00"
+																label={index === 0 ? t('common.amount') : ''}
+																placeholder={t('forms.amountPlaceholder')}
 																min={0}
-																step="0.01"
+																step="1"
 															/>
 														)}
 													</form.AppField>
@@ -687,12 +696,14 @@ export function TransactionForm({
 												validators={{
 													onChange: createZodValidator(
 														z.union([
-															z.string().min(1, 'Category is required'),
+															z
+																.string()
+																.min(1, t('validation.categoryRequired')),
 															z.object({
 																isNew: z.literal(true),
 																name: z
 																	.string()
-																	.min(1, 'Category name is required')
+																	.min(1, t('forms.categoryNameRequired'))
 															})
 														])
 													)
@@ -700,13 +711,15 @@ export function TransactionForm({
 											>
 												{(catField) => (
 													<catField.ComboboxField
-														label={index === 0 ? 'Category' : undefined}
-														placeholder="Select category"
+														label={
+															index === 0 ? t('common.category') : undefined
+														}
+														placeholder={t('forms.selectCategory')}
 														options={categories
 															.filter((c) => c.types.includes('EXPENSE'))
 															.map((c) => ({ value: c.id, label: c.name }))}
 														allowCreate
-														createLabel="Create expense category"
+														createLabel={t('forms.createExpenseCategory')}
 													/>
 												)}
 											</form.AppField>
@@ -723,7 +736,7 @@ export function TransactionForm({
 									className="w-full border-dashed"
 								>
 									<Plus className="h-4 w-4 mr-2" />
-									Add Section
+									{t('forms.addSection')}
 								</Button>
 							</div>
 						)}
@@ -739,8 +752,8 @@ export function TransactionForm({
 			>
 				{(field) => (
 					<field.SelectField
-						label="Account"
-						placeholder="Select an account"
+						label={t('common.account')}
+						placeholder={t('forms.selectAccount')}
 						options={accounts.map((acc) => ({
 							value: acc.id,
 							label: acc.name
@@ -760,16 +773,16 @@ export function TransactionForm({
 
 					const fieldLabel =
 						transactionType === 'INCOME'
-							? 'Sender (Optional)'
-							: 'Recipient (Optional)'
+							? t('forms.senderOptional')
+							: t('forms.recipientOptional')
 					const placeholderText =
 						transactionType === 'INCOME'
-							? 'Who sent the money?'
-							: 'Who receives the money?'
+							? t('forms.whoSent')
+							: t('forms.whoReceives')
 					const createLabelText =
 						transactionType === 'INCOME'
-							? 'Add new sender'
-							: 'Add new recipient'
+							? t('forms.addSender')
+							: t('forms.addRecipient')
 
 					return (
 						<form.AppField name="recipient">
@@ -777,8 +790,8 @@ export function TransactionForm({
 								<field.ComboboxField
 									label={fieldLabel}
 									placeholder={placeholderText}
-									searchPlaceholder="Search..."
-									emptyText="No matches found"
+									searchPlaceholder={t('forms.searchPlaceholder')}
+									emptyText={t('forms.noMatches')}
 									options={recipientOptions}
 									allowCreate
 									createLabel={createLabelText}
@@ -797,8 +810,8 @@ export function TransactionForm({
 			>
 				{(field) => (
 					<field.TextField
-						label="Notes (Optional)"
-						placeholder="Additional details..."
+						label={t('forms.notesOptional')}
+						placeholder={t('forms.notesPlaceholder')}
 					/>
 				)}
 			</form.AppField>
@@ -813,7 +826,7 @@ export function TransactionForm({
 							onCheckedChange={(checked) => setCreateBill(checked as boolean)}
 						/>
 						<Label htmlFor={createBillCheckboxId} className="cursor-pointer">
-							Create Bill for this transaction
+							{t('transactions.createBill')}
 						</Label>
 					</div>
 
@@ -826,10 +839,10 @@ export function TransactionForm({
 						>
 							{(field) => (
 								<field.SelectField
-									label="Link to Bill (Optional)"
-									placeholder="Select a bill"
+									label={t('forms.linkToBillOptional')}
+									placeholder={t('forms.selectBill')}
 									options={[
-										{ value: NO_BILL_VALUE, label: 'No bill' },
+										{ value: NO_BILL_VALUE, label: t('forms.noBill') },
 										...bills.map((bill) => ({
 											value: bill.id,
 											label: `${bill.name} - ${bill.recipient}`
@@ -842,21 +855,23 @@ export function TransactionForm({
 
 					{createBill && (
 						<div className="space-y-4 bg-muted p-4 rounded-lg">
-							<h4 className="font-semibold text-sm">Bill Details</h4>
+							<h4 className="font-semibold text-sm">
+								{t('forms.billDetails')}
+							</h4>
 
 							<div className="space-y-2">
-								<Label>Recipient</Label>
+								<Label>{t('common.recipient')}</Label>
 								<input
 									type="text"
 									className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
 									value={billRecipient}
 									onChange={(e) => setBillRecipient(e.target.value)}
-									placeholder="e.g., Tibber, Netflix"
+									placeholder={t('forms.recipientPlaceholder')}
 								/>
 							</div>
 
 							<div className="space-y-2">
-								<Label>Start Date (First Payment)</Label>
+								<Label>{t('forms.startDateFirstPayment')}</Label>
 								<input
 									type="date"
 									className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
@@ -866,7 +881,7 @@ export function TransactionForm({
 							</div>
 
 							<div className="space-y-2">
-								<Label>Recurrence</Label>
+								<Label>{t('recurrence.label')}</Label>
 								<select
 									className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
 									value={billRecurrence}
@@ -884,7 +899,7 @@ export function TransactionForm({
 
 							{billRecurrence === RecurrenceType.CUSTOM && (
 								<div className="space-y-2">
-									<Label>Days Between Payments</Label>
+									<Label>{t('forms.daysBetweenPayments')}</Label>
 									<input
 										type="number"
 										className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
@@ -892,14 +907,14 @@ export function TransactionForm({
 										onChange={(e) =>
 											setBillCustomDays(Number(e.target.value) || undefined)
 										}
-										placeholder="e.g., 30"
+										placeholder={t('forms.daysExample')}
 										min={1}
 									/>
 								</div>
 							)}
 
 							<div className="space-y-2">
-								<Label>Last Payment Date (Optional)</Label>
+								<Label>{t('forms.lastPaymentDateOptional')}</Label>
 								<input
 									type="date"
 									className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
@@ -911,7 +926,7 @@ export function TransactionForm({
 									}
 								/>
 								<p className="text-xs text-muted-foreground">
-									For bills that will end (e.g., loan payoff date)
+									{t('forms.billLastPaymentDesc')}
 								</p>
 							</div>
 						</div>

@@ -5,6 +5,7 @@
  * Only renders when onCancel is provided.
  */
 
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 
 export interface CancelButtonProps {
@@ -42,11 +43,14 @@ export interface CancelButtonProps {
 
 export function CancelButton({
 	onCancel,
-	children = 'Cancel',
+	children,
 	variant = 'outline',
 	size = 'default',
 	buttonProps
 }: CancelButtonProps) {
+	const { t } = useTranslation()
+	const content = children || t('common.cancel')
+
 	if (!onCancel) {
 		return null
 	}
@@ -59,7 +63,7 @@ export function CancelButton({
 			onClick={onCancel}
 			{...buttonProps}
 		>
-			{children}
+			{content}
 		</Button>
 	)
 }

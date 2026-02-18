@@ -5,6 +5,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { PlusIcon } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Card } from '@/components/card/Card'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/contexts/auth-context'
@@ -24,6 +25,7 @@ export const Route = createFileRoute('/_authenticated/accounts/')({
 })
 
 function AccountsPage() {
+	const { t } = useTranslation()
 	const { userId, householdId } = useAuth()
 	const [editingAccountId, setEditingAccountId] = useState<string | null>(null)
 	const { openDrawer, closeDrawer } = useDrawer()
@@ -69,10 +71,8 @@ function AccountsPage() {
 
 		openDrawer(
 			<div className="p-4">
-				<h2 className="text-2xl font-bold mb-4">Edit Account</h2>
-				<p className="text-muted-foreground mb-6">
-					Update account information and budget access
-				</p>
+				<h2 className="text-2xl font-bold mb-4">{t('accounts.edit')}</h2>
+				<p className="text-muted-foreground mb-6">{t('accounts.editDesc')}</p>
 				<AccountForm
 					defaultValues={{
 						name: editingAccount.name,
@@ -91,11 +91,11 @@ function AccountsPage() {
 						setEditingAccountId(null)
 						closeDrawer()
 					}}
-					submitLabel="Update Account"
+					submitLabel={t('accounts.update')}
 					budgets={budgets ?? []}
 				/>
 			</div>,
-			'Edit Account'
+			t('accounts.edit')
 		)
 	}
 
@@ -109,10 +109,8 @@ function AccountsPage() {
 	const handleCreateAccount = () => {
 		openDrawer(
 			<div className="p-4">
-				<h2 className="text-2xl font-bold mb-4">Create New Account</h2>
-				<p className="text-muted-foreground mb-6">
-					Add a new financial account to track
-				</p>
+				<h2 className="text-2xl font-bold mb-4">{t('accounts.create')}</h2>
+				<p className="text-muted-foreground mb-6">{t('accounts.createDesc')}</p>
 				<AccountForm
 					onSubmit={async (data) => {
 						createAccount({
@@ -122,18 +120,18 @@ function AccountsPage() {
 						})
 					}}
 					onCancel={closeDrawer}
-					submitLabel="Create Account"
+					submitLabel={t('accounts.createAction')}
 					budgets={budgets ?? []}
 				/>
 			</div>,
-			'Create Account'
+			t('accounts.create')
 		)
 	}
 
 	if (isLoading) {
 		return (
 			<div className="flex items-center justify-center">
-				<p className="text-muted-foreground">Loading accounts...</p>
+				<p className="text-muted-foreground">{t('accounts.loading')}</p>
 			</div>
 		)
 	}
@@ -144,18 +142,18 @@ function AccountsPage() {
 			<div className="flex items-center justify-end">
 				<Button onClick={handleCreateAccount}>
 					<PlusIcon className="mr-2 h-4 w-4" />
-					Add Account
+					{t('accounts.add')}
 				</Button>
 			</div>
 
 			{accounts?.length === 0 ? (
 				<Card
-					title="No accounts yet"
-					description="Get started by creating your first account"
+					title={t('accounts.noAccounts')}
+					description={t('accounts.getStarted')}
 				>
 					<Button onClick={handleCreateAccount}>
 						<PlusIcon className="mr-2 h-4 w-4" />
-						Create Your First Account
+						{t('accounts.createFirst')}
 					</Button>
 				</Card>
 			) : (

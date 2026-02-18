@@ -1,4 +1,5 @@
 import { PlusIcon } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { AccountForm } from '@/forms/AccountForm'
 import { useBudgetsList, useCreateAccount } from '@/hooks/api'
 import { useDrawer } from '@/hooks/use-drawer'
@@ -16,6 +17,7 @@ export const NoAccount = ({
 	householdId,
 	onAccountCreated
 }: NoAccountProps) => {
+	const { t } = useTranslation()
 	const { openDrawer, closeDrawer } = useDrawer()
 
 	// Fetch budgets for linking
@@ -35,10 +37,11 @@ export const NoAccount = ({
 	const handleCreateAccount = () => {
 		openDrawer(
 			<div className="p-4">
-				<h2 className="text-2xl font-bold mb-4">Create Your First Account</h2>
+				<h2 className="text-2xl font-bold mb-4">
+					{t('dashboard.createAccount')}
+				</h2>
 				<p className="text-muted-foreground mb-6">
-					An account tracks your actual financial accounts like checking,
-					savings, or credit cards.
+					{t('dashboard.createAccountDesc')}
 				</p>
 				<AccountForm
 					onSubmit={(data) => {
@@ -49,23 +52,23 @@ export const NoAccount = ({
 						})
 					}}
 					onCancel={closeDrawer}
-					submitLabel="Create Account"
+					submitLabel={t('dashboard.createAccountButton')}
 					budgets={budgets ?? []}
 				/>
 			</div>,
-			'Create Account'
+			t('dashboard.createAccountButton')
 		)
 	}
 
 	return (
 		<div className="container py-8 flex items-center justify-center">
 			<Card
-				title="No Accounts Yet"
-				description="Create accounts to start tracking your finances"
+				title={t('dashboard.noAccountsTitle')}
+				description={t('dashboard.noAccountsDesc')}
 			>
 				<Button onClick={handleCreateAccount}>
 					<PlusIcon className="mr-2 h-4 w-4" />
-					Create Your First Account
+					{t('dashboard.createAccount')}
 				</Button>
 			</Card>
 		</div>

@@ -1,4 +1,5 @@
 import { PlusIcon } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { BudgetForm } from '@/forms/BudgetForm'
 import { useCreateBudget } from '@/hooks/api'
 import { useDrawer } from '@/hooks/use-drawer'
@@ -12,6 +13,7 @@ interface NoBudgetProps {
 }
 
 export const NoBudget = ({ userId, householdId }: NoBudgetProps) => {
+	const { t } = useTranslation()
 	const { openDrawer, closeDrawer } = useDrawer()
 	const { setSelectedBudget } = useSelectedBudget(userId, householdId)
 
@@ -25,10 +27,11 @@ export const NoBudget = ({ userId, householdId }: NoBudgetProps) => {
 	const handleCreateBudget = () => {
 		openDrawer(
 			<div className="p-4">
-				<h2 className="text-2xl font-bold mb-4">Create Your First Budget</h2>
+				<h2 className="text-2xl font-bold mb-4">
+					{t('dashboard.createBudget')}
+				</h2>
 				<p className="text-muted-foreground mb-6">
-					A budget helps you track your income and expenses over a period of
-					time.
+					{t('dashboard.selectBudgetHelp')}
 				</p>
 				<BudgetForm
 					onSubmit={(data) => {
@@ -40,22 +43,22 @@ export const NoBudget = ({ userId, householdId }: NoBudgetProps) => {
 						})
 					}}
 					onCancel={closeDrawer}
-					submitLabel="Create Budget"
+					submitLabel={t('dashboard.createBudgetButton')}
 				/>
 			</div>,
-			'Create Budget'
+			t('dashboard.createBudgetButton')
 		)
 	}
 
 	return (
 		<div className="container py-8 flex items-center justify-center">
 			<Card
-				title="Welcome to Your Budget App!"
-				description="Get started by creating your first budget"
+				title={t('dashboard.welcome')}
+				description={t('dashboard.createBudget')}
 			>
 				<Button onClick={handleCreateBudget}>
 					<PlusIcon className="mr-2 h-4 w-4" />
-					Create Your First Budget
+					{t('dashboard.createBudgetButton')}
 				</Button>
 			</Card>
 		</div>

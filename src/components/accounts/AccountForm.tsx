@@ -2,20 +2,22 @@
  * AccountForm - Form for creating and editing accounts
  */
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { z } from 'zod'
 import { createZodValidator, useAppForm, validateForm } from '@/components/form'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 
-const accountSchema = z.object({
-	name: z.string().min(1, 'Account name is required'),
-	externalIdentifier: z.string().optional(),
-	initialBalance: z.number().default(0),
-	budgetIds: z.array(z.string()).optional()
-})
+const createAccountSchema = (t: (key: string) => string) =>
+	z.object({
+		name: z.string().min(1, t('validation.accountNameRequired')),
+		externalIdentifier: z.string().optional(),
+		initialBalance: z.number().default(0),
+		budgetIds: z.array(z.string()).optional()
+	})
 
-type AccountFormData = z.infer<typeof accountSchema>
+type AccountFormData = z.infer<ReturnType<typeof createAccountSchema>>
 
 export interface AccountFormProps {
 	/**
@@ -48,9 +50,12 @@ export function AccountForm({
 	defaultValues,
 	onSubmit,
 	onCancel,
-	submitLabel = 'Save Account',
+	submitLabel,
 	budgets = []
 }: AccountFormProps) {
+	const { t } = useTranslation()
+	const accountSchema = useMemo(() => createAccountSchema(t), [t])
+	const effectiveSubmitLabel = submitLabel ?? t('common.save')
 	// All budgets selected by default for new accounts
 	const [selectedBudgets, setSelectedBudgets] = useState<string[]>(
 		defaultValues?.budgetIds ?? budgets.map((b) => b.id)
@@ -97,8 +102,8 @@ export function AccountForm({
 			>
 				{(field) => (
 					<field.TextField
-						label="Account Name"
-						placeholder="e.g., Checking Account, Savings"
+						label={t('forms.accountName')}
+						placeholder={t('forms.accountNamePlaceholder')}
 					/>
 				)}
 			</form.AppField>
@@ -111,9 +116,9 @@ export function AccountForm({
 			>
 				{(field) => (
 					<field.TextField
-						label="External Identifier (Optional)"
-						description="Account number or external reference"
-						placeholder="e.g., ****1234"
+						label={t('forms.externalId')}
+						description={t('forms.externalIdDesc')}
+						placeholder={t('forms.externalIdPlaceholder')}
 					/>
 				)}
 			</form.AppField>
@@ -126,8 +131,8 @@ export function AccountForm({
 			>
 				{(field) => (
 					<field.NumberField
-						label="Initial Balance"
-						placeholder="0.00"
+						label={t('forms.initialBalance')}
+						placeholder={t('forms.zeroPlaceholder')}
 						step="0.01"
 						min={0}
 					/>
@@ -137,10 +142,9 @@ export function AccountForm({
 			{/* Budget Selection */}
 			{budgets.length > 0 && (
 				<div className="space-y-3">
-					<Label>Link to Budgets</Label>
+					<Label>{t('forms.linkToBudgets')}</Label>
 					<p className="text-sm text-muted-foreground">
-						Select which budgets should have access to this account. All budgets
-						are selected by default.
+						{t('forms.linkToBudgetsDesc')}
 					</p>
 					<div className="space-y-2">
 						{budgets.map((budget) => (
@@ -163,7 +167,10 @@ export function AccountForm({
 			)}
 
 			<form.AppForm>
-				<form.FormButtonGroup onCancel={onCancel} submitLabel={submitLabel} />
+				<form.FormButtonGroup
+					onCancel={onCancel}
+					submitLabel={effectiveSubmitLabel}
+				/>
 			</form.AppForm>
 		</form>
 	)

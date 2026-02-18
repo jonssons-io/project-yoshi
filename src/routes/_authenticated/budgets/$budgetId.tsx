@@ -3,6 +3,7 @@
  */
 
 import { createFileRoute, Link } from '@tanstack/react-router'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import {
 	Card,
@@ -19,6 +20,7 @@ export const Route = createFileRoute('/_authenticated/budgets/$budgetId')({
 })
 
 function BudgetDetailPage() {
+	const { t } = useTranslation()
 	const { budgetId } = Route.useParams()
 	const { userId } = useAuth()
 
@@ -31,7 +33,7 @@ function BudgetDetailPage() {
 	if (isLoading) {
 		return (
 			<div className="flex items-center justify-center">
-				<p className="text-muted-foreground">Loading...</p>
+				<p className="text-muted-foreground">{t('common.loading')}</p>
 			</div>
 		)
 	}
@@ -40,15 +42,12 @@ function BudgetDetailPage() {
 		return (
 			<Card>
 				<CardHeader>
-					<CardTitle>Budget Not Found</CardTitle>
-					<CardDescription>
-						The budget you're looking for doesn't exist or you don't have access
-						to it.
-					</CardDescription>
+					<CardTitle>{t('budgets.notFound')}</CardTitle>
+					<CardDescription>{t('budgets.notFoundDesc')}</CardDescription>
 				</CardHeader>
 				<CardContent>
 					<Button asChild>
-						<Link to="/budgets">Back to Budgets</Link>
+						<Link to="/budgets">{t('budgets.backToBudgets')}</Link>
 					</Button>
 				</CardContent>
 			</Card>
@@ -60,8 +59,10 @@ function BudgetDetailPage() {
 			<div className="grid gap-6 md:grid-cols-2">
 				<Card>
 					<CardHeader>
-						<CardTitle>Transactions</CardTitle>
-						<CardDescription>Income and expenses</CardDescription>
+						<CardTitle>{t('transactions.title')}</CardTitle>
+						<CardDescription>
+							{t('transactions.createTransactionDesc')}
+						</CardDescription>
 					</CardHeader>
 					<CardContent>
 						<div className="space-y-4">
@@ -70,7 +71,7 @@ function BudgetDetailPage() {
 							</div>
 							<Button asChild className="w-full">
 								<Link to="/transactions" search={{ budgetId }}>
-									View Transactions
+									{t('budgets.viewTransactions')}
 								</Link>
 							</Button>
 						</div>
@@ -79,8 +80,8 @@ function BudgetDetailPage() {
 
 				<Card>
 					<CardHeader>
-						<CardTitle>Bills</CardTitle>
-						<CardDescription>Recurring and one-time bills</CardDescription>
+						<CardTitle>{t('bills.title')}</CardTitle>
+						<CardDescription>{t('bills.createBillDesc')}</CardDescription>
 					</CardHeader>
 					<CardContent>
 						<div className="space-y-4">
@@ -89,7 +90,7 @@ function BudgetDetailPage() {
 							</div>
 							<Button asChild className="w-full">
 								<Link to="/bills" search={{ budgetId }}>
-									Manage Bills
+									{t('budgets.manageBills')}
 								</Link>
 							</Button>
 						</div>
@@ -99,26 +100,26 @@ function BudgetDetailPage() {
 
 			<Card>
 				<CardHeader>
-					<CardTitle>Quick Actions</CardTitle>
-					<CardDescription>Manage your budget data</CardDescription>
+					<CardTitle>{t('budgets.quickActions')}</CardTitle>
+					<CardDescription>{t('budgets.manageData')}</CardDescription>
 				</CardHeader>
 				<CardContent>
 					<div className="flex flex-wrap gap-2">
 						<Button asChild>
 							<Link to="/transactions" search={{ budgetId }}>
-								Add Transaction
+								{t('transactions.addTransaction')}
 							</Link>
 						</Button>
 						<Button asChild variant="outline">
 							<Link to="/bills" search={{ budgetId }}>
-								Add Bill
+								{t('bills.newBill')}
 							</Link>
 						</Button>
 						<Button asChild variant="outline">
-							<Link to="/categories">Manage Categories</Link>
+							<Link to="/categories">{t('budgets.manageCategories')}</Link>
 						</Button>
 						<Button asChild variant="outline">
-							<Link to="/accounts">Manage Accounts</Link>
+							<Link to="/accounts">{t('budgets.manageAccounts')}</Link>
 						</Button>
 					</div>
 				</CardContent>

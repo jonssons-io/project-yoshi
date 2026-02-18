@@ -1,6 +1,7 @@
 import type { TRPCRouterRecord } from '@trpc/server'
 import { TRPCError } from '@trpc/server'
 import { z } from 'zod'
+import i18n from '@/lib/i18n'
 import { protectedProcedure } from '../init'
 
 /**
@@ -30,7 +31,7 @@ export const budgetsRouter = {
 			if (!householdUser) {
 				throw new TRPCError({
 					code: 'FORBIDDEN',
-					message: 'You do not have access to this household'
+					message: i18n.t('server.forbidden.householdAccess')
 				})
 			}
 
@@ -156,7 +157,7 @@ export const budgetsRouter = {
 			if (!budget) {
 				throw new TRPCError({
 					code: 'NOT_FOUND',
-					message: 'Budget not found'
+					message: i18n.t('budgets.notFound')
 				})
 			}
 
@@ -171,7 +172,7 @@ export const budgetsRouter = {
 			if (!householdUser) {
 				throw new TRPCError({
 					code: 'FORBIDDEN',
-					message: 'You do not have access to this budget'
+					message: i18n.t('server.forbidden.budgetAccess')
 				})
 			}
 
@@ -208,7 +209,7 @@ export const budgetsRouter = {
 	create: protectedProcedure
 		.input(
 			z.object({
-				name: z.string().min(1, 'Name is required'),
+				name: z.string().min(1, i18n.t('validation.nameRequired')),
 				startDate: z.date(),
 				householdId: z.string(),
 				userId: z.string(), // For access verification
@@ -228,7 +229,7 @@ export const budgetsRouter = {
 			if (!householdUser) {
 				throw new TRPCError({
 					code: 'FORBIDDEN',
-					message: 'You do not have access to this household'
+					message: i18n.t('server.forbidden.householdAccess')
 				})
 			}
 
@@ -286,7 +287,7 @@ export const budgetsRouter = {
 			z.object({
 				id: z.string(),
 				userId: z.string(), // For access verification
-				name: z.string().min(1, 'Name is required').optional(),
+				name: z.string().min(1, i18n.t('validation.nameRequired')).optional(),
 				startDate: z.date().optional()
 			})
 		)
@@ -298,7 +299,7 @@ export const budgetsRouter = {
 			if (!budget) {
 				throw new TRPCError({
 					code: 'NOT_FOUND',
-					message: 'Budget not found'
+					message: i18n.t('budgets.notFound')
 				})
 			}
 
@@ -313,7 +314,7 @@ export const budgetsRouter = {
 			if (!householdUser) {
 				throw new TRPCError({
 					code: 'FORBIDDEN',
-					message: 'You do not have access to this budget'
+					message: i18n.t('server.forbidden.budgetAccess')
 				})
 			}
 
@@ -344,7 +345,7 @@ export const budgetsRouter = {
 			if (!budget) {
 				throw new TRPCError({
 					code: 'NOT_FOUND',
-					message: 'Budget not found'
+					message: i18n.t('budgets.notFound')
 				})
 			}
 
@@ -359,7 +360,7 @@ export const budgetsRouter = {
 			if (!householdUser) {
 				throw new TRPCError({
 					code: 'FORBIDDEN',
-					message: 'You do not have access to this budget'
+					message: i18n.t('server.forbidden.budgetAccess')
 				})
 			}
 
@@ -389,7 +390,7 @@ export const budgetsRouter = {
 			if (!budget) {
 				throw new TRPCError({
 					code: 'NOT_FOUND',
-					message: 'Budget not found'
+					message: i18n.t('budgets.notFound')
 				})
 			}
 
@@ -404,7 +405,7 @@ export const budgetsRouter = {
 			if (!householdUser) {
 				throw new TRPCError({
 					code: 'FORBIDDEN',
-					message: 'You do not have access to this budget'
+					message: i18n.t('server.forbidden.budgetAccess')
 				})
 			}
 
@@ -416,7 +417,7 @@ export const budgetsRouter = {
 			if (!category || category.householdId !== budget.householdId) {
 				throw new TRPCError({
 					code: 'BAD_REQUEST',
-					message: 'Category not found or does not belong to this household'
+					message: i18n.t('categories.notFoundOrInvalid')
 				})
 			}
 
@@ -447,7 +448,7 @@ export const budgetsRouter = {
 			if (!budget) {
 				throw new TRPCError({
 					code: 'NOT_FOUND',
-					message: 'Budget not found'
+					message: i18n.t('budgets.notFound')
 				})
 			}
 
@@ -462,7 +463,7 @@ export const budgetsRouter = {
 			if (!householdUser) {
 				throw new TRPCError({
 					code: 'FORBIDDEN',
-					message: 'You do not have access to this budget'
+					message: i18n.t('server.forbidden.budgetAccess')
 				})
 			}
 
@@ -476,7 +477,7 @@ export const budgetsRouter = {
 			if (!link) {
 				throw new TRPCError({
 					code: 'NOT_FOUND',
-					message: 'Category is not linked to this budget'
+					message: i18n.t('server.badRequest.categoryNotLinked')
 				})
 			}
 
@@ -504,7 +505,7 @@ export const budgetsRouter = {
 			if (!budget) {
 				throw new TRPCError({
 					code: 'NOT_FOUND',
-					message: 'Budget not found'
+					message: i18n.t('budgets.notFound')
 				})
 			}
 
@@ -519,7 +520,7 @@ export const budgetsRouter = {
 			if (!householdUser) {
 				throw new TRPCError({
 					code: 'FORBIDDEN',
-					message: 'You do not have access to this budget'
+					message: i18n.t('server.forbidden.budgetAccess')
 				})
 			}
 
@@ -531,7 +532,7 @@ export const budgetsRouter = {
 			if (!account || account.householdId !== budget.householdId) {
 				throw new TRPCError({
 					code: 'BAD_REQUEST',
-					message: 'Account not found or does not belong to this household'
+					message: i18n.t('accounts.notFoundOrInvalid')
 				})
 			}
 
@@ -562,7 +563,7 @@ export const budgetsRouter = {
 			if (!budget) {
 				throw new TRPCError({
 					code: 'NOT_FOUND',
-					message: 'Budget not found'
+					message: i18n.t('budgets.notFound')
 				})
 			}
 
@@ -577,7 +578,7 @@ export const budgetsRouter = {
 			if (!householdUser) {
 				throw new TRPCError({
 					code: 'FORBIDDEN',
-					message: 'You do not have access to this budget'
+					message: i18n.t('server.forbidden.budgetAccess')
 				})
 			}
 
@@ -591,7 +592,7 @@ export const budgetsRouter = {
 			if (!link) {
 				throw new TRPCError({
 					code: 'NOT_FOUND',
-					message: 'Account is not linked to this budget'
+					message: i18n.t('server.badRequest.accountNotLinked')
 				})
 			}
 

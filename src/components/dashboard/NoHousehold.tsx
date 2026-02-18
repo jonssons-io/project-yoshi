@@ -1,4 +1,5 @@
 import { PlusIcon } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { HouseholdForm } from '@/forms/HouseholdForm'
 import { useCreateHousehold } from '@/hooks/api'
 import { useDrawer } from '@/hooks/use-drawer'
@@ -7,6 +8,7 @@ import { Card } from '../card/Card'
 import { Button } from '../ui/button'
 
 export const NoHousehold = ({ userId }: { userId: string }) => {
+	const { t } = useTranslation()
 	const { openDrawer, closeDrawer } = useDrawer()
 	const { setSelectedHousehold } = useSelectedHousehold(userId)
 
@@ -20,10 +22,9 @@ export const NoHousehold = ({ userId }: { userId: string }) => {
 	const handleCreateHousehold = () => {
 		openDrawer(
 			<div className="p-4">
-				<h2 className="text-2xl font-bold mb-4">Create Your First Household</h2>
+				<h2 className="text-2xl font-bold mb-4">{t('dashboard.welcome')}</h2>
 				<p className="text-muted-foreground mb-6">
-					A household is a shared space for managing budgets and finances
-					together.
+					{t('dashboard.createHousehold')}
 				</p>
 				<HouseholdForm
 					onSubmit={(data) => {
@@ -33,22 +34,22 @@ export const NoHousehold = ({ userId }: { userId: string }) => {
 						})
 					}}
 					onCancel={closeDrawer}
-					submitLabel="Create Household"
+					submitLabel={t('dashboard.createHouseholdButton')}
 				/>
 			</div>,
-			'Create Household'
+			t('dashboard.createHouseholdButton')
 		)
 	}
 
 	return (
 		<div className="container py-8 flex items-center justify-center">
 			<Card
-				title="Welcome to Your Budget App!"
-				description="Get started by creating your first household"
+				title={t('dashboard.welcome')}
+				description={t('dashboard.createHousehold')}
 			>
 				<Button onClick={handleCreateHousehold}>
 					<PlusIcon className="mr-2 h-4 w-4" />
-					Create Your First Household
+					{t('dashboard.createHouseholdButton')}
 				</Button>
 			</Card>
 		</div>

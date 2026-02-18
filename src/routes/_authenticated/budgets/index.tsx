@@ -6,6 +6,7 @@ import { createFileRoute, Link } from '@tanstack/react-router'
 import { format } from 'date-fns'
 import { PencilIcon, PlusIcon, TrashIcon } from 'lucide-react'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import {
 	Card,
@@ -30,6 +31,7 @@ export const Route = createFileRoute('/_authenticated/budgets/')({
 })
 
 function BudgetsPage() {
+	const { t } = useTranslation()
 	const { userId, householdId } = useAuth()
 	const { openDrawer, closeDrawer } = useDrawer()
 
@@ -66,7 +68,7 @@ function BudgetsPage() {
 	if (isLoading) {
 		return (
 			<div className="flex items-center justify-center">
-				<p className="text-muted-foreground">Loading budgets...</p>
+				<p className="text-muted-foreground">{t('common.loading')}</p>
 			</div>
 		)
 	}
@@ -75,13 +77,13 @@ function BudgetsPage() {
 		return (
 			<Card>
 				<CardHeader>
-					<CardTitle>Error Loading Budgets</CardTitle>
+					<CardTitle>{t('budgets.error')}</CardTitle>
 					<CardDescription>
-						{error instanceof Error ? error.message : 'An error occurred'}
+						{error instanceof Error ? error.message : t('common.error')}
 					</CardDescription>
 				</CardHeader>
 				<CardContent>
-					<Button onClick={() => refetch()}>Try Again</Button>
+					<Button onClick={() => refetch()}>{t('budgets.tryAgain')}</Button>
 				</CardContent>
 			</Card>
 		)
@@ -90,10 +92,8 @@ function BudgetsPage() {
 	const handleCreate = () => {
 		openDrawer(
 			<div className="p-4">
-				<h2 className="text-2xl font-bold mb-4">Create New Budget</h2>
-				<p className="text-muted-foreground mb-6">
-					Create a new budget to track your income and expenses
-				</p>
+				<h2 className="text-2xl font-bold mb-4">{t('budgets.create')}</h2>
+				<p className="text-muted-foreground mb-6">{t('budgets.createDesc')}</p>
 				<BudgetForm
 					onSubmit={async (data) => {
 						createBudget({
@@ -103,10 +103,10 @@ function BudgetsPage() {
 						})
 					}}
 					onCancel={closeDrawer}
-					submitLabel="Create Budget"
+					submitLabel={t('budgets.create')}
 				/>
 			</div>,
-			'Create Budget'
+			t('budgets.create')
 		)
 	}
 
@@ -117,10 +117,8 @@ function BudgetsPage() {
 	}) => {
 		openDrawer(
 			<div className="p-4">
-				<h2 className="text-2xl font-bold mb-4">Edit Budget</h2>
-				<p className="text-muted-foreground mb-6">
-					Update your budget information
-				</p>
+				<h2 className="text-2xl font-bold mb-4">{t('budgets.edit')}</h2>
+				<p className="text-muted-foreground mb-6">{t('budgets.editDesc')}</p>
 				<BudgetForm
 					defaultValues={{
 						name: budget.name,
@@ -134,10 +132,10 @@ function BudgetsPage() {
 						})
 					}}
 					onCancel={closeDrawer}
-					submitLabel="Update Budget"
+					submitLabel={t('common.update')}
 				/>
 			</div>,
-			'Edit Budget'
+			t('budgets.edit')
 		)
 	}
 
@@ -147,22 +145,20 @@ function BudgetsPage() {
 			<div className="flex items-center justify-end">
 				<Button onClick={handleCreate}>
 					<PlusIcon className="mr-2 h-4 w-4" />
-					Create Budget
+					{t('budgets.create')}
 				</Button>
 			</div>
 
 			{budgets?.length === 0 ? (
 				<Card>
 					<CardHeader>
-						<CardTitle>No budgets yet</CardTitle>
-						<CardDescription>
-							Get started by creating your first budget
-						</CardDescription>
+						<CardTitle>{t('budgets.noBudgets')}</CardTitle>
+						<CardDescription>{t('budgets.getStarted')}</CardDescription>
 					</CardHeader>
 					<CardContent>
 						<Button onClick={handleCreate}>
 							<PlusIcon className="mr-2 h-4 w-4" />
-							Create Your First Budget
+							{t('budgets.createFirst')}
 						</Button>
 					</CardContent>
 				</Card>
@@ -173,25 +169,32 @@ function BudgetsPage() {
 							<CardHeader>
 								<CardTitle>{budget.name}</CardTitle>
 								<CardDescription>
-									Started {format(new Date(budget.startDate), 'PP')}
+									{t('budgets.started')}{' '}
+									{format(new Date(budget.startDate), 'PP')}
 								</CardDescription>
 							</CardHeader>
 							<CardContent>
 								<div className="space-y-2 text-sm">
 									<div className="flex justify-between">
-										<span className="text-muted-foreground">Categories:</span>
+										<span className="text-muted-foreground">
+											{t('common.category')}:
+										</span>
 										<span className="font-medium">
 											{budget._count.categories}
 										</span>
 									</div>
 									<div className="flex justify-between">
-										<span className="text-muted-foreground">Accounts:</span>
+										<span className="text-muted-foreground">
+											{t('common.account')}:
+										</span>
 										<span className="font-medium">
 											{budget._count.accounts}
 										</span>
 									</div>
 									<div className="flex justify-between">
-										<span className="text-muted-foreground">Transactions:</span>
+										<span className="text-muted-foreground">
+											{t('transactions.title')}:
+										</span>
 										<span className="font-medium">
 											{budget._count.transactions}
 										</span>
@@ -204,7 +207,7 @@ function BudgetsPage() {
 										to="/budgets/$budgetId"
 										params={{ budgetId: budget.id }}
 									>
-										View Details
+										{t('budgets.viewDetails')}
 									</Link>
 								</Button>
 								<Button
@@ -225,9 +228,7 @@ function BudgetsPage() {
 									size="icon"
 									onClick={() => {
 										if (
-											confirm(
-												`Are you sure you want to delete ${budget.name}? This will delete all associated categories, accounts, and transactions.`
-											)
+											confirm(t('budgets.deleteConfirm', { name: budget.name }))
 										) {
 											deleteBudget({
 												id: budget.id,

@@ -8,16 +8,17 @@
  * - Optional notes
  */
 
+import { useTranslation } from 'react-i18next'
 import { z } from 'zod'
 import { createZodValidator, useAppForm, validateForm } from '@/components/form'
 
 const transferSchema = z.object({
-	fromAccountId: z.string().min(1, { message: 'Source account is required' }),
-	toAccountId: z
+	fromAccountId: z
 		.string()
-		.min(1, { message: 'Destination account is required' }),
-	amount: z.number().positive({ message: 'Amount must be positive' }),
-	date: z.date({ message: 'Date is required' }),
+		.min(1, { message: 'validation.sourceAccountRequired' }),
+	toAccountId: z.string().min(1, { message: 'validation.destAccountRequired' }),
+	amount: z.number().positive({ message: 'validation.positive' }),
+	date: z.date({ message: 'validation.dateRequired' }),
 	notes: z.string().optional()
 })
 
@@ -66,8 +67,11 @@ export function TransferForm({
 	accounts,
 	onSubmit,
 	onCancel,
-	submitLabel = 'Create Transfer'
+	submitLabel
 }: TransferFormProps) {
+	const { t } = useTranslation()
+	const effectiveSubmitLabel = submitLabel || t('transfers.create')
+
 	const form = useAppForm({
 		defaultValues: {
 			fromAccountId: defaultValues?.fromAccountId ?? '',
@@ -111,8 +115,8 @@ export function TransferForm({
 						>
 							{(field) => (
 								<field.SelectField
-									label="From Account"
-									placeholder="Select source account"
+									label={t('transfers.fromAccount')}
+									placeholder={t('transfers.selectFromAccount')}
 									options={sourceOptions}
 								/>
 							)}
@@ -141,8 +145,8 @@ export function TransferForm({
 						>
 							{(field) => (
 								<field.SelectField
-									label="To Account"
-									placeholder="Select destination account"
+									label={t('transfers.toAccount')}
+									placeholder={t('transfers.selectToAccount')}
 									options={destOptions}
 								/>
 							)}
@@ -159,7 +163,7 @@ export function TransferForm({
 			>
 				{(field) => (
 					<field.NumberField
-						label="Amount"
+						label={t('common.amount')}
 						placeholder="0.00"
 						step="0.01"
 						min={0}
@@ -173,7 +177,7 @@ export function TransferForm({
 					onChange: createZodValidator(transferSchema.shape.date)
 				}}
 			>
-				{(field) => <field.DateField label="Date" />}
+				{(field) => <field.DateField label={t('common.date')} />}
 			</form.AppField>
 
 			<form.AppField
@@ -184,14 +188,17 @@ export function TransferForm({
 			>
 				{(field) => (
 					<field.TextField
-						label="Notes (Optional)"
-						placeholder="Add any notes about this transfer..."
+						label={t('forms.notesOptional')}
+						placeholder={t('transfers.notesPlaceholder')}
 					/>
 				)}
 			</form.AppField>
 
 			<form.AppForm>
-				<form.FormButtonGroup onCancel={onCancel} submitLabel={submitLabel} />
+				<form.FormButtonGroup
+					onCancel={onCancel}
+					submitLabel={effectiveSubmitLabel}
+				/>
 			</form.AppForm>
 		</form>
 	)

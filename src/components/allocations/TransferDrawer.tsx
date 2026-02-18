@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import {
 	Drawer,
@@ -41,6 +42,7 @@ export function TransferDrawer({
 		preselectedSourceBudgetId || ''
 	)
 	const [toBudgetId, setToBudgetId] = React.useState('')
+	const { t } = useTranslation()
 
 	const amountId = React.useId()
 	const fromBudgetIdId = React.useId()
@@ -83,17 +85,21 @@ export function TransferDrawer({
 			<DrawerContent>
 				<form onSubmit={handleSubmit} className="h-full flex flex-col">
 					<DrawerHeader>
-						<DrawerTitle>Transfer Funds</DrawerTitle>
+						<DrawerTitle>{t('plan.transferDrawer.title')}</DrawerTitle>
 						<DrawerDescription>
-							Move allocated funds from one budget to another.
+							{t('plan.transferDrawer.description')}
 						</DrawerDescription>
 					</DrawerHeader>
 					<div className="p-4 space-y-4">
 						<div className="space-y-2">
-							<Label htmlFor={fromBudgetIdId}>From Budget</Label>
+							<Label htmlFor={fromBudgetIdId}>
+								{t('plan.transferDrawer.fromBudget')}
+							</Label>
 							<Select value={fromBudgetId} onValueChange={setFromBudgetId}>
 								<SelectTrigger id={fromBudgetIdId}>
-									<SelectValue placeholder="Select source budget" />
+									<SelectValue
+										placeholder={t('plan.transferDrawer.selectSource')}
+									/>
 								</SelectTrigger>
 								<SelectContent>
 									{budgets.map((budget: Budget) => (
@@ -105,10 +111,14 @@ export function TransferDrawer({
 							</Select>
 						</div>
 						<div className="space-y-2">
-							<Label htmlFor={toBudgetIdId}>To Budget</Label>
+							<Label htmlFor={toBudgetIdId}>
+								{t('plan.transferDrawer.toBudget')}
+							</Label>
 							<Select value={toBudgetId} onValueChange={setToBudgetId}>
 								<SelectTrigger id={toBudgetIdId}>
-									<SelectValue placeholder="Select destination budget" />
+									<SelectValue
+										placeholder={t('plan.transferDrawer.selectDest')}
+									/>
 								</SelectTrigger>
 								<SelectContent>
 									{budgets
@@ -122,13 +132,13 @@ export function TransferDrawer({
 							</Select>
 						</div>
 						<div className="space-y-2">
-							<Label htmlFor={amountId}>Amount</Label>
+							<Label htmlFor={amountId}>{t('common.amount')}</Label>
 							<Input
 								id={amountId}
 								type="number"
 								min="0.01"
 								step="0.01"
-								placeholder="0.00"
+								placeholder={t('forms.zeroPlaceholder')}
 								value={amount}
 								onChange={(e) => setAmount(e.target.value)}
 							/>
@@ -144,14 +154,16 @@ export function TransferDrawer({
 								!amount
 							}
 						>
-							{transferMutation.isPending ? 'Transferring...' : 'Transfer'}
+							{transferMutation.isPending
+								? t('plan.transferDrawer.transferring')
+								: t('plan.transferDrawer.transfer')}
 						</Button>
 						<Button
 							variant="outline"
 							onClick={() => onOpenChange(false)}
 							type="button"
 						>
-							Cancel
+							{t('common.cancel')}
 						</Button>
 					</DrawerFooter>
 				</form>

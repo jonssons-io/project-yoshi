@@ -6,6 +6,7 @@
 import type { TRPCRouterRecord } from '@trpc/server'
 import { TRPCError } from '@trpc/server'
 import { z } from 'zod'
+import i18n from '@/lib/i18n'
 import { RecurrenceType } from '../../../generated/prisma/enums'
 import { protectedProcedure } from '../init'
 
@@ -29,7 +30,7 @@ export const incomeRouter = {
 			if (!householdUser) {
 				throw new TRPCError({
 					code: 'FORBIDDEN',
-					message: 'You do not have access to this household'
+					message: i18n.t('server.forbidden.householdAccess')
 				})
 			}
 
@@ -68,7 +69,7 @@ export const incomeRouter = {
 			if (!income) {
 				throw new TRPCError({
 					code: 'NOT_FOUND',
-					message: 'Income not found'
+					message: i18n.t('income.notFound')
 				})
 			}
 
@@ -82,7 +83,7 @@ export const incomeRouter = {
 			if (!householdUser) {
 				throw new TRPCError({
 					code: 'FORBIDDEN',
-					message: 'You do not have access to this income'
+					message: i18n.t('server.forbidden.incomeAccess')
 				})
 			}
 
@@ -94,9 +95,9 @@ export const incomeRouter = {
 			z.object({
 				householdId: z.string(),
 				userId: z.string(),
-				name: z.string().min(1, 'Name is required'),
-				source: z.string().min(1, 'Source is required'),
-				amount: z.number().positive('Amount must be positive'),
+				name: z.string().min(1, i18n.t('validation.nameRequired')),
+				source: z.string().min(1, i18n.t('validation.sourceRequired')),
+				amount: z.number().positive(i18n.t('validation.positive')),
 				expectedDate: z.date(),
 				accountId: z.string(),
 				categoryId: z.string().optional(),
@@ -117,7 +118,7 @@ export const incomeRouter = {
 			if (!householdUser) {
 				throw new TRPCError({
 					code: 'FORBIDDEN',
-					message: 'You do not have access to this household'
+					message: i18n.t('server.forbidden.householdAccess')
 				})
 			}
 
@@ -152,14 +153,14 @@ export const incomeRouter = {
 				if (!category || category.householdId !== input.householdId) {
 					throw new TRPCError({
 						code: 'BAD_REQUEST',
-						message: 'Category not found or invalid'
+						message: i18n.t('categories.notFoundOrInvalid')
 					})
 				}
 				finalCategoryId = input.categoryId
 			} else {
 				throw new TRPCError({
 					code: 'BAD_REQUEST',
-					message: 'Category or new category name is required'
+					message: i18n.t('validation.categoryOrNameRequired')
 				})
 			}
 
@@ -170,7 +171,7 @@ export const incomeRouter = {
 			if (!account || account.householdId !== input.householdId) {
 				throw new TRPCError({
 					code: 'BAD_REQUEST',
-					message: 'Account not found or invalid'
+					message: i18n.t('accounts.notFoundOrInvalid')
 				})
 			}
 
@@ -220,7 +221,7 @@ export const incomeRouter = {
 			if (!income) {
 				throw new TRPCError({
 					code: 'NOT_FOUND',
-					message: 'Income not found'
+					message: i18n.t('income.notFound')
 				})
 			}
 
@@ -234,7 +235,7 @@ export const incomeRouter = {
 			if (!householdUser) {
 				throw new TRPCError({
 					code: 'FORBIDDEN',
-					message: 'You do not have access to this income'
+					message: i18n.t('server.forbidden.incomeAccess')
 				})
 			}
 
@@ -268,7 +269,7 @@ export const incomeRouter = {
 				if (!category || category.householdId !== income.householdId) {
 					throw new TRPCError({
 						code: 'BAD_REQUEST',
-						message: 'Category not found or invalid'
+						message: i18n.t('categories.notFoundOrInvalid')
 					})
 				}
 			}
@@ -280,7 +281,7 @@ export const incomeRouter = {
 				if (!account || account.householdId !== income.householdId) {
 					throw new TRPCError({
 						code: 'BAD_REQUEST',
-						message: 'Account not found or invalid'
+						message: i18n.t('accounts.notFoundOrInvalid')
 					})
 				}
 			}
@@ -321,7 +322,7 @@ export const incomeRouter = {
 			if (!income) {
 				throw new TRPCError({
 					code: 'NOT_FOUND',
-					message: 'Income not found'
+					message: i18n.t('income.notFound')
 				})
 			}
 
@@ -335,7 +336,7 @@ export const incomeRouter = {
 			if (!householdUser) {
 				throw new TRPCError({
 					code: 'FORBIDDEN',
-					message: 'You do not have access to this income'
+					message: i18n.t('server.forbidden.incomeAccess')
 				})
 			}
 
@@ -363,7 +364,7 @@ export const incomeRouter = {
 			if (!income) {
 				throw new TRPCError({
 					code: 'NOT_FOUND',
-					message: 'Income not found'
+					message: i18n.t('income.notFound')
 				})
 			}
 
@@ -377,7 +378,7 @@ export const incomeRouter = {
 			if (!householdUser) {
 				throw new TRPCError({
 					code: 'FORBIDDEN',
-					message: 'You do not have access to this income'
+					message: i18n.t('server.forbidden.incomeAccess')
 				})
 			}
 

@@ -5,6 +5,7 @@
  * Only renders when onDelete is provided.
  */
 
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 
 export interface DeleteButtonProps {
@@ -36,10 +37,13 @@ export interface DeleteButtonProps {
 
 export function DeleteButton({
 	onDelete,
-	children = 'Delete',
+	children,
 	size = 'default',
 	buttonProps
 }: DeleteButtonProps) {
+	const { t } = useTranslation()
+	const content = children || t('common.delete')
+
 	if (!onDelete) {
 		return null
 	}
@@ -53,7 +57,7 @@ export function DeleteButton({
 			className="mr-auto"
 			{...buttonProps}
 		>
-			{children}
+			{content}
 		</Button>
 	)
 }

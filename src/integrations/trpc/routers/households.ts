@@ -2,6 +2,7 @@ import { createClerkClient } from '@clerk/backend'
 import type { TRPCRouterRecord } from '@trpc/server'
 import { TRPCError } from '@trpc/server'
 import { z } from 'zod'
+import i18n from '@/lib/i18n'
 import { protectedProcedure } from '../init'
 
 const clerkClient = createClerkClient({
@@ -84,7 +85,7 @@ export const householdsRouter = {
 			if (!householdUser) {
 				throw new TRPCError({
 					code: 'NOT_FOUND',
-					message: 'Household not found or you do not have access'
+					message: i18n.t('server.notFound.householdOrAccess')
 				})
 			}
 
@@ -98,7 +99,7 @@ export const householdsRouter = {
 		.input(
 			z.object({
 				userId: z.string(),
-				name: z.string().min(1, 'Name is required')
+				name: z.string().min(1, i18n.t('validation.nameRequired'))
 			})
 		)
 		.mutation(async ({ ctx, input }) => {
@@ -135,7 +136,7 @@ export const householdsRouter = {
 			z.object({
 				id: z.string(),
 				userId: z.string(),
-				name: z.string().min(1, 'Name is required').optional()
+				name: z.string().min(1, i18n.t('validation.nameRequired')).optional()
 			})
 		)
 		.mutation(async ({ ctx, input }) => {
@@ -150,7 +151,7 @@ export const householdsRouter = {
 			if (!householdUser) {
 				throw new TRPCError({
 					code: 'NOT_FOUND',
-					message: 'Household not found or you do not have access'
+					message: i18n.t('server.notFound.householdOrAccess')
 				})
 			}
 
@@ -184,7 +185,7 @@ export const householdsRouter = {
 			if (!householdUser) {
 				throw new TRPCError({
 					code: 'NOT_FOUND',
-					message: 'Household not found or you do not have access'
+					message: i18n.t('server.notFound.householdOrAccess')
 				})
 			}
 
@@ -196,7 +197,9 @@ export const householdsRouter = {
 			if (budgetCount > 0) {
 				throw new TRPCError({
 					code: 'PRECONDITION_FAILED',
-					message: `Cannot delete household with ${budgetCount} budget(s). Please delete all budgets first.`
+					message: i18n.t('households.cannotDeleteWithBudgets', {
+						count: budgetCount
+					})
 				})
 			}
 
@@ -228,7 +231,7 @@ export const householdsRouter = {
 			if (!householdUser) {
 				throw new TRPCError({
 					code: 'FORBIDDEN',
-					message: 'You do not have access to this household'
+					message: i18n.t('server.forbidden.householdAccess')
 				})
 			}
 
@@ -243,7 +246,7 @@ export const householdsRouter = {
 			if (existing) {
 				throw new TRPCError({
 					code: 'CONFLICT',
-					message: 'User is already a member of this household'
+					message: i18n.t('households.userAlreadyMember')
 				})
 			}
 
@@ -282,7 +285,7 @@ export const householdsRouter = {
 			if (!householdUser) {
 				throw new TRPCError({
 					code: 'FORBIDDEN',
-					message: 'You do not have access to this household'
+					message: i18n.t('server.forbidden.householdAccess')
 				})
 			}
 
@@ -294,8 +297,7 @@ export const householdsRouter = {
 			if (userCount <= 1) {
 				throw new TRPCError({
 					code: 'PRECONDITION_FAILED',
-					message:
-						'Cannot remove the last user from a household. Delete the household instead.'
+					message: i18n.t('households.cannotRemoveLastUser')
 				})
 			}
 
@@ -310,7 +312,7 @@ export const householdsRouter = {
 			if (!targetUser) {
 				throw new TRPCError({
 					code: 'NOT_FOUND',
-					message: 'User is not a member of this household'
+					message: i18n.t('households.userNotMember')
 				})
 			}
 
@@ -341,7 +343,7 @@ export const householdsRouter = {
 			if (!householdUser) {
 				throw new TRPCError({
 					code: 'FORBIDDEN',
-					message: 'You do not have access to this household'
+					message: i18n.t('server.forbidden.householdAccess')
 				})
 			}
 

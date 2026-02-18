@@ -1,5 +1,6 @@
 import { format } from 'date-fns'
 import { useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
 	CartesianGrid,
 	Line,
@@ -24,6 +25,7 @@ type DashboardChartProps = {
 }
 
 export function DashboardChart({ data, accounts }: DashboardChartProps) {
+	const { t } = useTranslation()
 	const chartConfig = useMemo(() => {
 		const config: ChartConfig = {
 			// Define a base balance label if needed, though we use dynamic keys
@@ -45,7 +47,7 @@ export function DashboardChart({ data, accounts }: DashboardChartProps) {
 	if (!data || data.length === 0) {
 		return (
 			<div className="flex h-[300px] w-full items-center justify-center text-muted-foreground border rounded-lg bg-card/50">
-				No data available for the selected period
+				{t('common.noDataForSelectedPeriod')}
 			</div>
 		)
 	}
@@ -105,6 +107,7 @@ export function DashboardChart({ data, accounts }: DashboardChartProps) {
 }
 
 function CustomTooltip({ active, payload, label }: any) {
+	const { t } = useTranslation()
 	if (!active || !payload || !payload.length) return null
 
 	const date = payload[0]?.payload?.originalDate
@@ -140,7 +143,9 @@ function CustomTooltip({ active, payload, label }: any) {
 			<div className="my-1 border-t border-border" />
 			<div className="flex w-full items-center gap-2">
 				<div className="h-2.5 w-2.5 shrink-0" /> {/* Spacer for alignment */}
-				<span className="text-muted-foreground font-medium flex-1">Total</span>
+				<span className="text-muted-foreground font-medium flex-1">
+					{t('common.total')}
+				</span>
 				<span className="text-foreground font-mono font-bold tabular-nums">
 					{formatCurrency(total)}
 				</span>

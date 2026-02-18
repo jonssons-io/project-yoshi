@@ -2,6 +2,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { SettingsIcon } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { DashboardChart } from '@/components/dashboard/DashboardChart'
 import { DashboardChartSettings } from '@/components/dashboard/DashboardChartSettings'
 import { NoAccount } from '@/components/dashboard/NoAccount'
@@ -37,6 +38,7 @@ export const Route = createFileRoute('/_authenticated/')({
 })
 
 function Dashboard() {
+	const { t } = useTranslation()
 	const { userId, householdId } = useAuth()
 
 	// --- Local Storage Keys ---
@@ -223,7 +225,7 @@ function Dashboard() {
 						}
 					}}
 				/>,
-				'Chart Settings'
+				t('dashboard.chartSettings')
 			)
 		}
 	}, [
@@ -270,14 +272,14 @@ function Dashboard() {
 					}
 				}}
 			/>,
-			'Chart Settings'
+			t('dashboard.chartSettings')
 		)
 	}
 
 	if (budgetsLoading || accountsLoading) {
 		return (
 			<div className="flex items-center justify-center">
-				<p className="text-muted-foreground">Loading dashboard...</p>
+				<p className="text-muted-foreground">{t('common.loading')}</p>
 			</div>
 		)
 	}
@@ -316,9 +318,9 @@ function Dashboard() {
 			<Card>
 				<CardHeader className="flex flex-row items-center justify-between">
 					<div className="space-y-1.5">
-						<CardTitle>Balance History</CardTitle>
+						<CardTitle>{t('dashboard.balanceHistory')}</CardTitle>
 						<CardDescription>
-							Account balances over time. Check for potential negative balances.
+							{t('dashboard.balanceHistoryDesc')}
 						</CardDescription>
 					</div>
 					<Button

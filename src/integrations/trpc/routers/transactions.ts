@@ -2,6 +2,7 @@ import type { TRPCRouterRecord } from '@trpc/server'
 import { TRPCError } from '@trpc/server'
 import { addDays, addMonths, addWeeks, addYears } from 'date-fns'
 import { z } from 'zod'
+import i18n from '@/lib/i18n'
 import { RecurrenceType } from '../../../generated/prisma/enums'
 import { protectedProcedure } from '../init'
 
@@ -29,7 +30,7 @@ export const transactionsRouter = {
 			if (!input.budgetId && !input.householdId) {
 				throw new TRPCError({
 					code: 'BAD_REQUEST',
-					message: 'Either budgetId or householdId must be provided'
+					message: i18n.t('server.badRequest.missingBudgetOrHousehold')
 				})
 			}
 
@@ -42,7 +43,7 @@ export const transactionsRouter = {
 				if (!budget)
 					throw new TRPCError({
 						code: 'NOT_FOUND',
-						message: 'Budget not found'
+						message: i18n.t('budgets.notFound')
 					})
 				householdId = budget.householdId
 			}
@@ -50,7 +51,7 @@ export const transactionsRouter = {
 			if (!householdId)
 				throw new TRPCError({
 					code: 'BAD_REQUEST',
-					message: 'Household ID missing'
+					message: i18n.t('server.badRequest.missingHouseholdId')
 				})
 
 			const householdUser = await ctx.prisma.householdUser.findFirst({
@@ -63,7 +64,7 @@ export const transactionsRouter = {
 			if (!householdUser) {
 				throw new TRPCError({
 					code: 'FORBIDDEN',
-					message: 'You do not have access to this household'
+					message: i18n.t('server.forbidden.householdAccess')
 				})
 			}
 
@@ -245,7 +246,7 @@ export const transactionsRouter = {
 			if (!transaction) {
 				throw new TRPCError({
 					code: 'NOT_FOUND',
-					message: 'Transaction not found'
+					message: i18n.t('transactions.notFound')
 				})
 			}
 
@@ -263,7 +264,7 @@ export const transactionsRouter = {
 			if (!householdUser) {
 				throw new TRPCError({
 					code: 'NOT_FOUND',
-					message: 'Transaction not found'
+					message: i18n.t('transactions.notFound')
 				})
 			}
 
@@ -292,7 +293,7 @@ export const transactionsRouter = {
 			if (!budget) {
 				throw new TRPCError({
 					code: 'NOT_FOUND',
-					message: 'Budget not found'
+					message: i18n.t('budgets.notFound')
 				})
 			}
 
@@ -307,7 +308,7 @@ export const transactionsRouter = {
 			if (!householdUser) {
 				throw new TRPCError({
 					code: 'FORBIDDEN',
-					message: 'You do not have access to this budget'
+					message: i18n.t('server.forbidden.budgetAccess')
 				})
 			}
 
@@ -341,10 +342,16 @@ export const transactionsRouter = {
 			// Group by category
 			const grouped = transactions.reduce(
 				(acc, transaction) => {
-					const categoryId = transaction.categoryId
+					const categoryId = transaction.categoryId ?? 'uncategorized'
 					if (!acc[categoryId]) {
 						acc[categoryId] = {
-							category: transaction.category,
+							category: transaction.category ?? {
+								id: 'uncategorized',
+								name: i18n.t('common.uncategorized'),
+								types: [],
+								// biome-ignore lint/suspicious/noExplicitAny: Transaction type inference issue
+								householdId: (transaction as any).account.householdId
+							},
 							transactions: [],
 							total: 0,
 							count: 0
@@ -389,12 +396,12 @@ export const transactionsRouter = {
 				// Or provide data to create a new category
 				newCategory: z
 					.object({
-						name: z.string().min(1, 'Category name is required'),
+						name: z.string().min(1, i18n.t('validation.categoryNameRequired')),
 						type: z.enum(['INCOME', 'EXPENSE'])
 					})
 					.optional(),
-				name: z.string().min(1, 'Name is required'),
-				amount: z.number().positive('Amount must be positive'),
+				name: z.string().min(1, i18n.t('validation.nameRequired')),
+				amount: z.number().positive(i18n.t('validation.positive')),
 				date: z.date(),
 				notes: z.string().optional(),
 				billId: z.string().optional(),
@@ -423,7 +430,7 @@ export const transactionsRouter = {
 			) {
 				throw new TRPCError({
 					code: 'BAD_REQUEST',
-					message: 'Either categoryId, newCategory, or splits must be provided'
+					message: i18n.t('server.badRequest.missingCategoryInfo')
 				})
 			}
 
@@ -439,7 +446,7 @@ export const transactionsRouter = {
 				if (!budget) {
 					throw new TRPCError({
 						code: 'NOT_FOUND',
-						message: 'Budget not found'
+						message: i18n.t('budgets.notFound')
 					})
 				}
 				householdId = budget.householdId
@@ -451,7 +458,7 @@ export const transactionsRouter = {
 				if (!account) {
 					throw new TRPCError({
 						code: 'NOT_FOUND',
-						message: 'Account not found'
+						message: i18n.t('accounts.notFound')
 					})
 				}
 				householdId = account.householdId
@@ -468,7 +475,7 @@ export const transactionsRouter = {
 			if (!householdUser) {
 				throw new TRPCError({
 					code: 'FORBIDDEN',
-					message: 'You do not have access to this household'
+					message: i18n.t('server.forbidden.householdAccess')
 				})
 			}
 
@@ -484,7 +491,7 @@ export const transactionsRouter = {
 				if (!accountLink) {
 					throw new TRPCError({
 						code: 'BAD_REQUEST',
-						message: 'Account is not linked to this budget'
+						message: i18n.t('server.badRequest.accountNotLinked')
 					})
 				}
 			} else {
@@ -536,7 +543,7 @@ export const transactionsRouter = {
 						if (!category || category.householdId !== householdId) {
 							throw new TRPCError({
 								code: 'BAD_REQUEST',
-								message: 'Category not found or invalid'
+								message: i18n.t('categories.notFoundOrInvalid')
 							})
 						}
 
@@ -556,7 +563,7 @@ export const transactionsRouter = {
 					if (!category || category.householdId !== householdId) {
 						throw new TRPCError({
 							code: 'BAD_REQUEST',
-							message: 'Category not found or invalid'
+							message: i18n.t('categories.notFoundOrInvalid')
 						})
 					}
 				}
@@ -630,7 +637,7 @@ export const transactionsRouter = {
 						include: { recurringBill: true }
 					})
 
-					if (paidBill && paidBill.recurringBill) {
+					if (paidBill?.recurringBill) {
 						const { recurringBill } = paidBill
 
 						// 2. Find the last generated bill for this series
@@ -705,7 +712,6 @@ export const transactionsRouter = {
 				date: z.date().optional(),
 				notes: z.string().nullable().optional(),
 				recipientId: z.string().nullable().optional(),
-				recipientId: z.string().nullable().optional(),
 				incomeId: z.string().nullable().optional(),
 				splits: z
 					.array(
@@ -731,7 +737,7 @@ export const transactionsRouter = {
 			if (!transaction) {
 				throw new TRPCError({
 					code: 'NOT_FOUND',
-					message: 'Transaction not found'
+					message: i18n.t('transactions.notFound')
 				})
 			}
 
@@ -749,7 +755,7 @@ export const transactionsRouter = {
 			if (!householdUser) {
 				throw new TRPCError({
 					code: 'FORBIDDEN',
-					message: 'You do not have access to this transaction'
+					message: i18n.t('server.forbidden.transactionAccess')
 				})
 			}
 
@@ -765,7 +771,7 @@ export const transactionsRouter = {
 				if (!accountLink) {
 					throw new TRPCError({
 						code: 'BAD_REQUEST',
-						message: 'Account is not linked to this budget'
+						message: i18n.t('server.badRequest.accountNotLinked')
 					})
 				}
 			}
@@ -782,7 +788,7 @@ export const transactionsRouter = {
 				if (!categoryLink) {
 					throw new TRPCError({
 						code: 'BAD_REQUEST',
-						message: 'Category is not linked to this budget'
+						message: i18n.t('server.badRequest.categoryNotLinked')
 					})
 				}
 			}
@@ -877,7 +883,7 @@ export const transactionsRouter = {
 			if (!transaction) {
 				throw new TRPCError({
 					code: 'NOT_FOUND',
-					message: 'Transaction not found'
+					message: i18n.t('transactions.notFound')
 				})
 			}
 
@@ -895,7 +901,7 @@ export const transactionsRouter = {
 			if (!householdUser) {
 				throw new TRPCError({
 					code: 'NOT_FOUND',
-					message: 'Transaction not found'
+					message: i18n.t('transactions.notFound')
 				})
 			}
 
@@ -927,7 +933,7 @@ export const transactionsRouter = {
 			if (!original) {
 				throw new TRPCError({
 					code: 'NOT_FOUND',
-					message: 'Transaction not found'
+					message: i18n.t('transactions.notFound')
 				})
 			}
 

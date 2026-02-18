@@ -16,52 +16,59 @@ import {
 import { RecurrenceType } from '@/generated/prisma/enums'
 
 // Schema for bill form - categoryId is handled via ComboboxValue
-const billSchema = z.object({
-	name: z.string().min(1, { message: 'Name is required' }),
-	// Recipient can be string (ID) or new object
-	recipient: z.union([
-		z.string().min(1, { message: 'Recipient is required' }),
-		z.object({
-			isNew: z.literal(true),
-			name: z.string().min(1, { message: 'Recipient name is required' })
-		})
-	]),
-	accountId: z.string().min(1, { message: 'Account is required' }),
-	startDate: z.date({ message: 'Start date is required' }),
-	recurrenceType: z.enum(
-		[
-			RecurrenceType.NONE,
-			RecurrenceType.WEEKLY,
-			RecurrenceType.MONTHLY,
-			RecurrenceType.QUARTERLY,
-			RecurrenceType.YEARLY,
-			RecurrenceType.CUSTOM
-		],
-		{ message: 'Recurrence type is required' }
-	),
-	customIntervalDays: z.number().int().positive().optional(),
-	lastPaymentDate: z.date().optional().nullable(),
-
-	// Splits
-	splits: z
-		.array(
+// Schema for bill form - categoryId is handled via ComboboxValue
+const createBillSchema = (t: (key: string) => string) =>
+	z.object({
+		name: z.string().min(1, { message: t('validation.nameRequired') }),
+		// Recipient can be string (ID) or new object
+		recipient: z.union([
+			z.string().min(1, { message: t('validation.recipientRequired') }),
 			z.object({
-				subtitle: z.string().min(1, 'Subtitle is required'),
-				amount: z.number().positive('Amount must be positive'),
-				// Category logic same as before but per split
-				category: z.union([
-					z.string().min(1, { message: 'Category is required' }),
-					z.object({
-						isNew: z.literal(true),
-						name: z.string().min(1, { message: 'Category name is required' })
-					})
-				])
+				isNew: z.literal(true),
+				name: z
+					.string()
+					.min(1, { message: t('validation.recipientNameRequired') })
 			})
-		)
-		.min(1, 'At least one section is required')
-})
+		]),
+		accountId: z.string().min(1, { message: t('validation.accountRequired') }),
+		startDate: z.date({ message: t('validation.dateRequired') }),
+		recurrenceType: z.enum(
+			[
+				RecurrenceType.NONE,
+				RecurrenceType.WEEKLY,
+				RecurrenceType.MONTHLY,
+				RecurrenceType.QUARTERLY,
+				RecurrenceType.YEARLY,
+				RecurrenceType.CUSTOM
+			],
+			{ message: t('validation.recurrenceTypeRequired') }
+		),
+		customIntervalDays: z.number().int().positive().optional(),
+		lastPaymentDate: z.date().optional().nullable(),
 
-export type BillFormData = z.infer<typeof billSchema>
+		// Splits
+		splits: z
+			.array(
+				z.object({
+					id: z.string(),
+					subtitle: z.string().min(1, t('validation.subtitleRequired')),
+					amount: z.number().positive(t('validation.positive')),
+					// Category logic same as before but per split
+					category: z.union([
+						z.string().min(1, { message: t('validation.categoryRequired') }),
+						z.object({
+							isNew: z.literal(true),
+							name: z
+								.string()
+								.min(1, { message: t('validation.categoryNameRequired') })
+						})
+					])
+				})
+			)
+			.min(1, t('validation.minOneSection'))
+	})
+
+export type BillFormData = z.infer<ReturnType<typeof createBillSchema>>
 
 interface BillFormProps {
 	initialData?: {
@@ -75,6 +82,7 @@ interface BillFormProps {
 		lastPaymentDate?: Date | null
 		categoryId?: string
 		splits?: Array<{
+			id?: string
 			subtitle: string
 			amount: number
 			categoryId: string
@@ -89,17 +97,9 @@ interface BillFormProps {
 	isSubmitting?: boolean
 }
 
-const recurrenceOptions = [
-	{ value: RecurrenceType.NONE, label: 'No recurrence (one-time)' },
-	{ value: RecurrenceType.WEEKLY, label: 'Weekly' },
-	{ value: RecurrenceType.MONTHLY, label: 'Monthly' },
-	{ value: RecurrenceType.QUARTERLY, label: 'Quarterly (every 3 months)' },
-	{ value: RecurrenceType.YEARLY, label: 'Yearly' },
-	{ value: RecurrenceType.CUSTOM, label: 'Custom interval' }
-]
-
 import { Plus, Trash2 } from 'lucide-react'
-import { useState } from 'react'
+import { useId, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
@@ -114,17 +114,38 @@ export function BillForm({
 	recipients,
 	isSubmitting
 }: BillFormProps) {
+	const { t } = useTranslation()
+	const billSchema = useMemo(() => createBillSchema(t), [t])
+
+	const recurrenceOptions = useMemo(
+		() => [
+			{ value: RecurrenceType.NONE, label: t('recurrence.none') },
+			{ value: RecurrenceType.WEEKLY, label: t('recurrence.weekly') },
+			{ value: RecurrenceType.MONTHLY, label: t('recurrence.monthly') },
+			{
+				value: RecurrenceType.QUARTERLY,
+				label: t('recurrence.quarterly')
+			},
+			{ value: RecurrenceType.YEARLY, label: t('recurrence.yearly') },
+			{ value: RecurrenceType.CUSTOM, label: t('recurrence.custom') }
+		],
+		[t]
+	)
+
+	const splitBillSwitchId = useId()
 	// Prepare initial splits
 	const initialSplits =
 		initialData?.splits && initialData.splits.length > 0
 			? initialData.splits.map((s) => ({
+					id: s.id ?? crypto.randomUUID(),
 					subtitle: s.subtitle,
 					amount: s.amount,
 					category: s.categoryId as ComboboxValue
 				}))
 			: [
 					{
-						subtitle: 'Main',
+						id: crypto.randomUUID(),
+						subtitle: t('forms.splitBillDefaultName'),
 						amount: initialData?.estimatedAmount ?? 0,
 						category: (initialData?.categoryId ?? '') as ComboboxValue
 					}
@@ -182,23 +203,26 @@ export function BillForm({
 				}}
 			>
 				{(field) => (
-					<field.TextField label="Bill Name" placeholder="e.g. Electricity" />
+					<field.TextField
+						label={t('common.title')}
+						placeholder={t('forms.billNamePlaceholder')}
+					/>
 				)}
 			</form.AppField>
 
 			<form.AppField name="recipient">
 				{(field) => (
 					<field.ComboboxField
-						label="Recipient"
-						placeholder="Select or create recipient"
-						searchPlaceholder="Search recipients..."
-						emptyText="No recipients found"
+						label={t('common.recipient')}
+						placeholder={t('forms.selectOrCreateRecipient')}
+						searchPlaceholder={t('forms.searchRecipient')}
+						emptyText={t('forms.noRecipientsFound')}
 						options={recipients.map((r) => ({
 							value: r.id,
 							label: r.name
 						}))}
 						allowCreate
-						createLabel="Create recipient"
+						createLabel={t('forms.addRecipient')}
 					/>
 				)}
 			</form.AppField>
@@ -211,8 +235,8 @@ export function BillForm({
 			>
 				{(field) => (
 					<field.SelectField
-						label="Account"
-						placeholder="Select account"
+						label={t('common.account')}
+						placeholder={t('forms.selectAccount')}
 						options={accounts.map((account) => ({
 							value: account.id,
 							label: account.name
@@ -225,15 +249,11 @@ export function BillForm({
 				<div className="flex items-center justify-between">
 					<div className="flex items-center space-x-2">
 						<Switch
-							id="split-mode"
+							id={splitBillSwitchId}
 							checked={isSplit}
 							onCheckedChange={(checked) => {
 								if (!checked && form.getFieldValue('splits').length > 1) {
-									if (
-										!confirm(
-											'Disabling split mode will remove additional sections. Continue?'
-										)
-									) {
+									if (!confirm(t('forms.disableSplitBill'))) {
 										return
 									}
 									// Reset to single split
@@ -243,13 +263,13 @@ export function BillForm({
 								setIsSplit(checked)
 							}}
 						/>
-						<Label htmlFor="split-mode">Split this bill</Label>
+						<Label htmlFor={splitBillSwitchId}>{t('forms.splitBill')}</Label>
 					</div>
 					{isSplit && (
 						<form.Subscribe selector={(state) => state.values.splits}>
 							{(splits) => (
 								<span className="text-sm text-muted-foreground font-medium">
-									Total:{' '}
+									{`${t('common.total')}: `}
 									{new Intl.NumberFormat('en-US', {
 										style: 'currency',
 										currency: 'SEK'
@@ -271,15 +291,16 @@ export function BillForm({
 									<form.AppField
 										name="splits[0].amount"
 										validators={{
-											onChange: createZodValidator(z.number().positive())
+											onChange: createZodValidator(
+												z.number().positive(t('validation.positive'))
+											)
 										}}
 									>
 										{(amtField) => (
 											<amtField.NumberField
-												label="Amount"
-												placeholder="0.00"
+												label={t('common.amount')}
 												min={0}
-												step="0.01"
+												step="1"
 											/>
 										)}
 									</form.AppField>
@@ -289,10 +310,12 @@ export function BillForm({
 										validators={{
 											onChange: createZodValidator(
 												z.union([
-													z.string().min(1, 'Category is required'),
+													z.string().min(1, t('validation.categoryRequired')),
 													z.object({
 														isNew: z.literal(true),
-														name: z.string().min(1, 'Category name is required')
+														name: z
+															.string()
+															.min(1, t('validation.categoryNameRequired'))
 													})
 												])
 											)
@@ -300,11 +323,11 @@ export function BillForm({
 									>
 										{(catField) => (
 											<catField.ComboboxField
-												label="Category"
-												placeholder="Select category"
+												label={t('common.category')}
+												placeholder={t('forms.selectCategory')}
 												options={categoryOptions}
 												allowCreate
-												createLabel="Create expense category"
+												createLabel={t('categories.create')}
 											/>
 										)}
 									</form.AppField>
@@ -312,8 +335,8 @@ export function BillForm({
 							) : (
 								// Split Mode: Multiple Sections
 								<>
-									{field.state.value.map((_, index) => (
-										<Card key={index} className="bg-muted/30">
+									{field.state.value.map((split, index) => (
+										<Card key={split.id} className="bg-muted/30">
 											<CardContent className="p-3 space-y-3">
 												<div className="flex gap-2">
 													<div className="flex-1">
@@ -321,14 +344,16 @@ export function BillForm({
 															name={`splits[${index}].subtitle`}
 															validators={{
 																onChange: createZodValidator(
-																	z.string().min(1, 'Required')
+																	z.string().min(1, t('validation.required'))
 																)
 															}}
 														>
 															{(subField) => (
 																<subField.TextField
-																	label={index === 0 ? 'Subtitle' : ''}
-																	placeholder="e.g. Interest"
+																	label={t('forms.splitBillSubtitle')}
+																	placeholder={t(
+																		'forms.splitBillNamePlaceholder'
+																	)}
 																/>
 															)}
 														</form.AppField>
@@ -338,16 +363,15 @@ export function BillForm({
 															name={`splits[${index}].amount`}
 															validators={{
 																onChange: createZodValidator(
-																	z.number().positive()
+																	z.number().positive(t('validation.positive'))
 																)
 															}}
 														>
 															{(amtField) => (
 																<amtField.NumberField
-																	label={index === 0 ? 'Amount' : ''}
-																	placeholder="0.00"
+																	label={t('common.amount')}
 																	min={0}
-																	step="0.01"
+																	step="1"
 																/>
 															)}
 														</form.AppField>
@@ -360,7 +384,7 @@ export function BillForm({
 																size="icon"
 																className={index === 0 ? 'mt-6' : ''}
 																onClick={() => field.removeValue(index)}
-																title="Remove section"
+																title={t('forms.splitBillRemoveSection')}
 															>
 																<Trash2 className="h-4 w-4 text-destructive" />
 															</Button>
@@ -373,12 +397,12 @@ export function BillForm({
 													validators={{
 														onChange: createZodValidator(
 															z.union([
-																z.string().min(1, 'Category is required'),
+																z.string().min(1, t('validation.required')),
 																z.object({
 																	isNew: z.literal(true),
 																	name: z
 																		.string()
-																		.min(1, 'Category name is required')
+																		.min(1, t('validation.required'))
 																})
 															])
 														)
@@ -386,11 +410,11 @@ export function BillForm({
 												>
 													{(catField) => (
 														<catField.ComboboxField
-															label={index === 0 ? 'Category' : ''}
-															placeholder="Select category"
+															label={t('common.category')}
+															placeholder={t('forms.selectCategory')}
 															options={categoryOptions}
 															allowCreate
-															createLabel="Create expense category"
+															createLabel={t('categories.create')}
 														/>
 													)}
 												</form.AppField>
@@ -403,6 +427,7 @@ export function BillForm({
 										size="sm"
 										onClick={() =>
 											field.pushValue({
+												id: crypto.randomUUID(),
 												subtitle: '',
 												amount: 0,
 												category: ''
@@ -411,7 +436,7 @@ export function BillForm({
 										className="w-full border-dashed"
 									>
 										<Plus className="h-4 w-4 mr-2" />
-										Add Section
+										{t('forms.splitBillAddSection')}
 									</Button>
 								</>
 							)}
@@ -426,7 +451,9 @@ export function BillForm({
 					onChange: createZodValidator(billSchema.shape.startDate)
 				}}
 			>
-				{(field) => <field.DateField label="Start Date (First Payment)" />}
+				{(field) => (
+					<field.DateField label={t('forms.startDateFirstPayment')} />
+				)}
 			</form.AppField>
 
 			<form.AppField
@@ -437,8 +464,8 @@ export function BillForm({
 			>
 				{(field) => (
 					<field.SelectField
-						label="Recurrence"
-						placeholder="Select recurrence"
+						label={t('recurrence.label')}
+						placeholder={t('forms.selectRecurrence')}
 						options={recurrenceOptions}
 					/>
 				)}
@@ -458,8 +485,8 @@ export function BillForm({
 							>
 								{(field) => (
 									<field.NumberField
-										label="Days Between Payments"
-										placeholder="e.g. 30"
+										label={t('forms.daysBetweenPayments')}
+										placeholder={t('forms.daysExample')}
 										min={1}
 									/>
 								)}
@@ -477,8 +504,8 @@ export function BillForm({
 			>
 				{(field) => (
 					<field.DateField
-						label="Last Payment Date (Optional)"
-						description="For bills that will end (e.g. loan payoff date)"
+						label={t('forms.lastPaymentDateOptional')}
+						description={t('forms.lastPaymentDateDesc')}
 					/>
 				)}
 			</form.AppField>
@@ -488,10 +515,10 @@ export function BillForm({
 					onCancel={onCancel}
 					submitLabel={
 						isSubmitting
-							? 'Saving...'
+							? t('common.saving')
 							: initialData
-								? 'Update Bill'
-								: 'Create Bill'
+								? t('bills.update')
+								: t('bills.create')
 					}
 				/>
 			</form.AppForm>

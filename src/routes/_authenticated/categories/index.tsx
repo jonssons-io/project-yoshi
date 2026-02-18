@@ -5,6 +5,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { PencilIcon, PlusIcon, TrashIcon } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { CategoryForm } from '@/components/categories/CategoryForm'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -39,6 +40,7 @@ export const Route = createFileRoute('/_authenticated/categories/')({
 })
 
 function CategoriesPage() {
+	const { t } = useTranslation()
 	const { userId, householdId } = useAuth()
 	const { openDrawer, closeDrawer } = useDrawer()
 	const [editingCategoryId, setEditingCategoryId] = useState<string | null>(
@@ -94,9 +96,9 @@ function CategoriesPage() {
 	const handleCreate = () => {
 		openDrawer(
 			<div className="p-4">
-				<h2 className="text-2xl font-bold mb-4">Create New Category</h2>
+				<h2 className="text-2xl font-bold mb-4">{t('categories.create')}</h2>
 				<p className="text-muted-foreground mb-6">
-					Add a new income or expense category
+					{t('categories.createDesc')}
 				</p>
 				<CategoryForm
 					onSubmit={async (data) => {
@@ -107,11 +109,11 @@ function CategoriesPage() {
 						})
 					}}
 					onCancel={closeDrawer}
-					submitLabel="Create Category"
+					submitLabel={t('categories.createAction')}
 					budgets={budgets ?? []}
 				/>
 			</div>,
-			'Create Category'
+			t('categories.create')
 		)
 	}
 
@@ -120,9 +122,9 @@ function CategoriesPage() {
 		if (editingCategoryId && editingCategory) {
 			openDrawer(
 				<div className="p-4">
-					<h2 className="text-2xl font-bold mb-4">Edit Category</h2>
+					<h2 className="text-2xl font-bold mb-4">{t('categories.edit')}</h2>
 					<p className="text-muted-foreground mb-6">
-						Update category information and budget access
+						{t('categories.editDesc')}
 					</p>
 					<CategoryForm
 						defaultValues={{
@@ -141,11 +143,11 @@ function CategoriesPage() {
 							closeDrawer()
 							setEditingCategoryId(null)
 						}}
-						submitLabel="Update Category"
+						submitLabel={t('categories.update')}
 						budgets={budgets ?? []}
 					/>
 				</div>,
-				'Edit Category'
+				t('categories.edit')
 			)
 		}
 	}, [
@@ -173,42 +175,40 @@ function CategoriesPage() {
 						onClick={() => setFilter('ALL')}
 						size="sm"
 					>
-						All ({categories?.length ?? 0})
+						{t('categories.all')} ({categories?.length ?? 0})
 					</Button>
 					<Button
 						variant={filter === 'INCOME' ? 'default' : 'outline'}
 						onClick={() => setFilter('INCOME')}
 						size="sm"
 					>
-						Income ({incomeCount})
+						{t('categories.income')} ({incomeCount})
 					</Button>
 					<Button
 						variant={filter === 'EXPENSE' ? 'default' : 'outline'}
 						onClick={() => setFilter('EXPENSE')}
 						size="sm"
 					>
-						Expenses ({expenseCount})
+						{t('categories.expense')} ({expenseCount})
 					</Button>
 				</div>
 
 				<Button onClick={handleCreate}>
 					<PlusIcon className="mr-2 h-4 w-4" />
-					Add Category
+					{t('categories.add')}
 				</Button>
 			</div>
 
 			{categories?.length === 0 ? (
 				<Card>
 					<CardHeader>
-						<CardTitle>No categories yet</CardTitle>
-						<CardDescription>
-							Get started by creating your first category
-						</CardDescription>
+						<CardTitle>{t('categories.noCategories')}</CardTitle>
+						<CardDescription>{t('categories.getStarted')}</CardDescription>
 					</CardHeader>
 					<CardContent>
 						<Button onClick={handleCreate}>
 							<PlusIcon className="mr-2 h-4 w-4" />
-							Create Your First Category
+							{t('categories.createFirst')}
 						</Button>
 					</CardContent>
 				</Card>
@@ -217,10 +217,12 @@ function CategoriesPage() {
 					<Table>
 						<TableHeader>
 							<TableRow>
-								<TableHead>Name</TableHead>
-								<TableHead>Type</TableHead>
-								<TableHead>Transactions</TableHead>
-								<TableHead className="text-right">Actions</TableHead>
+								<TableHead>{t('common.name')}</TableHead>
+								<TableHead>{t('common.type')}</TableHead>
+								<TableHead>{t('categories.transactions')}</TableHead>
+								<TableHead className="text-right">
+									{t('common.actions')}
+								</TableHead>
 							</TableRow>
 						</TableHeader>
 						<TableBody>
@@ -253,13 +255,18 @@ function CategoriesPage() {
 												onClick={() => {
 													if (category._count.transactions > 0) {
 														alert(
-															`Cannot delete "${category.name}" because it has ${category._count.transactions} transaction(s). Please reassign or delete those transactions first.`
+															t('categories.deleteError', {
+																name: category.name,
+																count: category._count.transactions
+															})
 														)
 														return
 													}
 													if (
 														confirm(
-															`Are you sure you want to delete "${category.name}"?`
+															t('categories.deleteConfirm', {
+																name: category.name
+															})
 														)
 													) {
 														deleteCategory({

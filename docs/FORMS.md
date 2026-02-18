@@ -175,7 +175,7 @@ const form = useAppForm({
 });
 ```
 
-See `src/components/form/SimplifiedLoginForm.tsx` for a complete example using these helpers.
+
 
 ## Basic Usage
 
@@ -522,16 +522,130 @@ export const { useAppForm, withForm } = createFormHook({
 </form.AppField>
 ```
 
+
+
+### Complete Login Form Example
+
+Here is a complete example of a login form using the validation helpers:
+
+```tsx
+import { z } from 'zod'
+import { useAppForm } from '@/hooks/form'
+import {
+	createAsyncValidator,
+	createZodValidator,
+	validateForm
+} from '@/lib/form-validation'
+
+const loginSchema = z.object({
+	email: z.string().email('Invalid email address'),
+	password: z.string().min(8, 'Password must be at least 8 characters')
+})
+
+export function LoginForm() {
+	const form = useAppForm({
+		defaultValues: {
+			email: '',
+			password: ''
+		},
+		onSubmit: async ({ value }) => {
+			try {
+				const data = validateForm(loginSchema, value)
+				console.log('Valid login data:', data)
+				// Handle login...
+			} catch (error) {
+				console.error('Validation failed:', error)
+			}
+		}
+	})
+
+	return (
+		<form
+			onSubmit={(e) => {
+				e.preventDefault()
+				e.stopPropagation()
+				form.handleSubmit()
+			}}
+			className="space-y-4"
+		>
+			<form.AppField
+				name="email"
+				validators={{
+					// Sync validation
+					onChange: createZodValidator(loginSchema.shape.email),
+					// Async validation example
+					...createAsyncValidator(async (value: string) => {
+						await new Promise((resolve) => setTimeout(resolve, 300))
+						if (value === 'notfound@example.com') {
+							return 'This email is not registered'
+						}
+						return undefined
+					}, 500)
+				}}
+			>
+				{(field) => (
+					<field.TextField
+						label="Email"
+						type="email"
+						placeholder="you@example.com"
+					/>
+				)}
+			</form.AppField>
+
+			<form.AppField
+				name="password"
+				validators={{
+					onChange: createZodValidator(loginSchema.shape.password)
+				}}
+			>
+				{(field) => (
+					<field.TextField
+						label="Password"
+						type="password"
+						placeholder="••••••••"
+					/>
+				)}
+			</form.AppField>
+
+			<form.AppForm>
+				<form.SubmitButton>Sign In</form.SubmitButton>
+			</form.AppForm>
+		</form>
+	)
+}
+```
+
 ## Examples
 
-See `src/components/form/ExampleUserForm.tsx` for a complete example with:
+### Complex Validation with Address Form
 
-- Multiple field types
-- Zod validation
-- Async validation
-- Error handling
-- Loading states
-- Form reset
+```tsx
+const addressSchema = z.object({
+    street: z.string().min(1, 'Street is required'),
+    city: z.string().min(1, 'City is required'),
+    zipCode: z.string().regex(/^\d{5}(-\d{4})?$/, 'Invalid zip code'),
+})
+
+// nesting fields
+<form.AppField name="address.street">
+    {(field) => <field.TextField label="Street" />}
+</form.AppField>
+```
+
+### Disabled Fields
+
+```tsx
+<form.AppField name="userId">
+    {(field) => (
+        <field.TextField
+            label="User ID"
+            description="This field cannot be modified"
+            disabled={true}
+        />
+    )}
+</form.AppField>
+```
+
 
 ## Best Practices
 

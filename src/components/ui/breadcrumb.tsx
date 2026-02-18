@@ -1,6 +1,7 @@
 import { Slot } from '@radix-ui/react-slot'
 import { ChevronRight, MoreHorizontal } from 'lucide-react'
 import type * as React from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { cn } from '@/lib/utils'
 
@@ -53,8 +54,6 @@ function BreadcrumbPage({ className, ...props }: React.ComponentProps<'span'>) {
 	return (
 		<span
 			data-slot="breadcrumb-page"
-			role="link"
-			aria-disabled="true"
 			aria-current="page"
 			className={cn('text-foreground font-normal', className)}
 			{...props}
@@ -84,6 +83,8 @@ function BreadcrumbEllipsis({
 	className,
 	...props
 }: React.ComponentProps<'span'>) {
+	const { t } = useTranslation()
+
 	return (
 		<span
 			data-slot="breadcrumb-ellipsis"
@@ -93,7 +94,7 @@ function BreadcrumbEllipsis({
 			{...props}
 		>
 			<MoreHorizontal className="size-4" />
-			<span className="sr-only">More</span>
+			<span className="sr-only">{t('common.more')}</span>
 		</span>
 	)
 }

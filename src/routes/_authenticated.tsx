@@ -41,6 +41,8 @@ export const Route = createFileRoute('/_authenticated')({
 	component: AuthenticatedLayout
 })
 
+import { useTranslation } from 'react-i18next'
+
 function AuthenticatedLayout() {
 	return (
 		<DrawerProvider>
@@ -50,6 +52,7 @@ function AuthenticatedLayout() {
 }
 
 function AuthenticatedLayoutContent() {
+	const { t } = useTranslation()
 	const { user } = useUser()
 	const { signOut } = useClerk()
 	const userId = user?.id
@@ -82,10 +85,11 @@ function AuthenticatedLayoutContent() {
 	const handleCreateHousehold = () => {
 		openDrawer(
 			<div className="p-4">
-				<h2 className="text-2xl font-bold mb-4">Create New Household</h2>
+				<h2 className="text-2xl font-bold mb-4">
+					{t('forms.createHousehold')}
+				</h2>
 				<p className="text-muted-foreground mb-6">
-					A household is a shared space for managing budgets and finances
-					together.
+					{t('forms.createHouseholdDesc')}
 				</p>
 				<HouseholdForm
 					onSubmit={(data) => {
@@ -96,10 +100,10 @@ function AuthenticatedLayoutContent() {
 						})
 					}}
 					onCancel={closeDrawer}
-					submitLabel="Create Household"
+					submitLabel={t('forms.createHouseholdButton')}
 				/>
 			</div>,
-			'Create Household'
+			t('forms.createHouseholdButton')
 		)
 	}
 
@@ -111,7 +115,7 @@ function AuthenticatedLayoutContent() {
 
 		openDrawer(
 			<div className="p-4">
-				<h2 className="text-2xl font-bold mb-4">Edit Household</h2>
+				<h2 className="text-2xl font-bold mb-4">{t('forms.editHousehold')}</h2>
 				<HouseholdForm
 					defaultValues={{ name: currentHousehold.name }}
 					householdId={currentHousehold.id}
@@ -126,25 +130,23 @@ function AuthenticatedLayoutContent() {
 					onCancel={closeDrawer}
 					onDelete={() => {
 						if (!userId) return
-						if (
-							confirm(
-								'Are you sure you want to delete this household? This action cannot be undone.'
-							)
-						) {
+						if (confirm(t('forms.deleteHouseholdConfirm'))) {
 							deleteHousehold({ id: currentHousehold.id, userId })
 						}
 					}}
-					submitLabel="Save Changes"
+					submitLabel={t('forms.saveChanges')}
 				/>
 			</div>,
-			'Edit Household'
+			t('forms.editHousehold')
 		)
 	}
 
 	const handleShowInvitations = () => {
 		openDrawer(
 			<div className="p-4">
-				<h2 className="text-2xl font-bold mb-4">Pending Invitations</h2>
+				<h2 className="text-2xl font-bold mb-4">
+					{t('forms.pendingInvitationsTitle')}
+				</h2>
 				<PendingInvitations
 					onJoin={(householdId) => {
 						setSelectedHousehold(householdId)
@@ -152,7 +154,7 @@ function AuthenticatedLayoutContent() {
 					}}
 				/>
 			</div>,
-			'Invitations'
+			t('forms.invitations')
 		)
 	}
 

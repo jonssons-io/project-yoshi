@@ -1,4 +1,5 @@
 import { PlusIcon } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { TransactionForm } from '@/components/transactions/TransactionForm'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/contexts/auth-context'
@@ -27,6 +28,7 @@ export function CreateTransactionButton({
 	variant = 'default',
 	preSelectedBillId
 }: CreateTransactionButtonProps) {
+	const { t } = useTranslation()
 	const { openDrawer, closeDrawer } = useDrawer()
 	const { userId, householdId } = useAuth()
 	const { selectedBudgetId } = useSelectedBudget(userId, householdId)
@@ -81,9 +83,11 @@ export function CreateTransactionButton({
 
 		openDrawer(
 			<div className="p-4">
-				<h2 className="text-2xl font-bold mb-4">Create New Transaction</h2>
+				<h2 className="text-2xl font-bold mb-4">
+					{t('transactions.createTransaction')}
+				</h2>
 				<p className="text-muted-foreground mb-6">
-					Add a new income or expense transaction
+					{t('transactions.createTransactionDesc')}
 				</p>
 
 				{categories && accounts ? (
@@ -156,15 +160,17 @@ export function CreateTransactionButton({
 							})
 						}}
 						onCancel={closeDrawer}
-						submitLabel="Create Transaction"
+						submitLabel={t('transactions.createTransaction')}
 					/>
 				) : (
 					<div className="flex items-center justify-center p-8">
-						<p className="text-muted-foreground">Loading form data...</p>
+						<p className="text-muted-foreground">
+							{t('transactions.loadingArgs')}
+						</p>
 					</div>
 				)}
 			</div>,
-			'Create Transaction'
+			t('transactions.createTransaction')
 		)
 	}
 
@@ -176,7 +182,7 @@ export function CreateTransactionButton({
 			disabled={!budgetId}
 		>
 			<PlusIcon className="mr-2 h-4 w-4" />
-			Add Transaction
+			{t('transactions.addTransaction')}
 		</Button>
 	)
 }

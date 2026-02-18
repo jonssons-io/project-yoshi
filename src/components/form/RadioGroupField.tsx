@@ -4,6 +4,7 @@
  * A form field component that wraps shadcn RadioGroup for use in forms.
  */
 
+import { useTranslation } from 'react-i18next'
 import {
 	Field,
 	FieldContent,
@@ -63,6 +64,7 @@ export function RadioGroupField({
 	direction = 'horizontal',
 	onValueChange
 }: RadioGroupFieldProps) {
+	const { t } = useTranslation()
 	const field = useFieldContext<string>()
 
 	const hasError =
@@ -109,7 +111,9 @@ export function RadioGroupField({
 					<FieldError>{field.state.meta.errors.join(', ')}</FieldError>
 				)}
 				{field.state.meta.isValidating && (
-					<span className="text-sm text-muted-foreground">Validating...</span>
+					<span className="text-sm text-muted-foreground">
+						{t('common.validating')}
+					</span>
 				)}
 			</FieldContent>
 		</Field>

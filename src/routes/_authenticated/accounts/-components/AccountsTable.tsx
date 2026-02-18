@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import {
 	Table,
 	TableBody,
@@ -22,6 +23,7 @@ export const AccountsTable = ({
 	selectedHouseholdId: string
 	setEditingAccountId: (id: string) => void
 }) => {
+	const { t } = useTranslation()
 	const { data: accounts, refetch } = useAccountsList({
 		householdId: selectedHouseholdId,
 		userId,
@@ -45,11 +47,7 @@ export const AccountsTable = ({
 			await deleteAccount(data)
 		} catch (error: any) {
 			if (error.message?.includes('Archive instead')) {
-				if (
-					confirm(
-						'This account has transactions, bills, or transfers and cannot be deleted. Would you like to archive it instead?\n\nArchived accounts are hidden from selection menus but preserve your history.'
-					)
-				) {
+				if (confirm(t('accounts.archiveInsteadConfirm'))) {
 					toggleArchive({
 						id: data.id,
 						userId: data.userId,
@@ -57,7 +55,7 @@ export const AccountsTable = ({
 					})
 				}
 			} else {
-				alert(`Failed to delete account: ${error.message}`)
+				alert(`${t('accounts.deleteError')}${error.message}`)
 			}
 		}
 	}
@@ -66,11 +64,13 @@ export const AccountsTable = ({
 		<Table>
 			<TableHeader>
 				<TableRow>
-					<TableHead>Name</TableHead>
-					<TableHead>External ID</TableHead>
-					<TableHead className="text-right">Current Balance</TableHead>
-					<TableHead>Transactions</TableHead>
-					<TableHead className="text-right">Actions</TableHead>
+					<TableHead>{t('common.name')}</TableHead>
+					<TableHead>{t('accounts.externalId')}</TableHead>
+					<TableHead className="text-right">
+						{t('accounts.currentBalance')}
+					</TableHead>
+					<TableHead>{t('accounts.transactions')}</TableHead>
+					<TableHead className="text-right">{t('common.actions')}</TableHead>
 				</TableRow>
 			</TableHeader>
 			<TableBody>

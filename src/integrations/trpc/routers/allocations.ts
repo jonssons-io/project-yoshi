@@ -1,6 +1,7 @@
 import type { TRPCRouterRecord } from '@trpc/server'
 import { TRPCError } from '@trpc/server'
 import { z } from 'zod'
+import i18n from '@/lib/i18n'
 import { protectedProcedure } from '../init'
 
 export const allocationsRouter = {
@@ -23,7 +24,7 @@ export const allocationsRouter = {
 			if (!budget) {
 				throw new TRPCError({
 					code: 'NOT_FOUND',
-					message: 'Budget not found'
+					message: i18n.t('budgets.notFound')
 				})
 			}
 
@@ -38,7 +39,7 @@ export const allocationsRouter = {
 			if (!householdUser) {
 				throw new TRPCError({
 					code: 'FORBIDDEN',
-					message: 'You do not have access to this budget'
+					message: i18n.t('server.forbidden.budgetAccess')
 				})
 			}
 
@@ -74,14 +75,14 @@ export const allocationsRouter = {
 			if (!fromBudget || !toBudget) {
 				throw new TRPCError({
 					code: 'NOT_FOUND',
-					message: 'One or both budgets not found'
+					message: i18n.t('budgets.oneOrBothNotFound')
 				})
 			}
 
 			if (fromBudget.householdId !== toBudget.householdId) {
 				throw new TRPCError({
 					code: 'BAD_REQUEST',
-					message: 'Budgets must belong to the same household'
+					message: i18n.t('budgets.mustBeSameHousehold')
 				})
 			}
 
@@ -96,7 +97,7 @@ export const allocationsRouter = {
 			if (!householdUser) {
 				throw new TRPCError({
 					code: 'FORBIDDEN',
-					message: 'You do not have access to these budgets'
+					message: i18n.t('server.forbidden.budgetsAccess')
 				})
 			}
 
@@ -139,7 +140,7 @@ export const allocationsRouter = {
 			if (!householdUser) {
 				throw new TRPCError({
 					code: 'FORBIDDEN',
-					message: 'You do not have access to this household'
+					message: i18n.t('server.forbidden.householdAccess')
 				})
 			}
 

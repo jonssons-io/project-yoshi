@@ -1,4 +1,5 @@
 import { CalendarIcon } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -32,24 +33,26 @@ export function DashboardChartSettings({
 	customEndDate,
 	onCustomDateChange
 }: DashboardChartSettingsProps) {
+	const { t } = useTranslation()
+
 	return (
 		<div className="flex flex-col gap-6 p-4">
 			<div className="space-y-4">
-				<h3 className="text-lg font-medium">Date Range</h3>
+				<h3 className="text-lg font-medium">{t('dashboard.dateRange')}</h3>
 				<div className="flex flex-wrap gap-2">
 					<Button
 						variant={dateRange === 'current-month' ? 'default' : 'outline'}
 						onClick={() => onDateRangeChange('current-month')}
 						size="sm"
 					>
-						Current Month
+						{t('dashboard.currentMonth')}
 					</Button>
 					<Button
 						variant={dateRange === '3-months' ? 'default' : 'outline'}
 						onClick={() => onDateRangeChange('3-months')}
 						size="sm"
 					>
-						3 Months
+						{t('dashboard.threeMonths')}
 					</Button>
 
 					<Popover>
@@ -59,13 +62,15 @@ export function DashboardChartSettings({
 								size="sm"
 							>
 								<CalendarIcon className="mr-2 h-4 w-4" />
-								Custom
+								{t('dashboard.custom')}
 							</Button>
 						</PopoverTrigger>
 						<PopoverContent className="w-auto p-0" align="start">
 							<div className="p-4 space-y-4">
 								<div>
-									<p className="mb-2 text-sm font-medium">Start Date</p>
+									<p className="mb-2 text-sm font-medium">
+										{t('dashboard.startDate')}
+									</p>
 									<Calendar
 										mode="single"
 										selected={customStartDate}
@@ -76,7 +81,9 @@ export function DashboardChartSettings({
 									/>
 								</div>
 								<div>
-									<p className="mb-2 text-sm font-medium">End Date</p>
+									<p className="mb-2 text-sm font-medium">
+										{t('dashboard.endDate')}
+									</p>
 									<Calendar
 										mode="single"
 										selected={customEndDate}
@@ -96,7 +103,7 @@ export function DashboardChartSettings({
 
 			<div className="space-y-4">
 				<div className="flex items-center justify-between">
-					<h3 className="text-lg font-medium">Accounts</h3>
+					<h3 className="text-lg font-medium">{t('accounts.title')}</h3>
 					<Button
 						variant="ghost"
 						size="sm"
@@ -106,8 +113,8 @@ export function DashboardChartSettings({
 						}}
 					>
 						{selectedAccountIds.length === accounts.length
-							? 'Deselect All'
-							: 'Select All'}
+							? t('dashboard.deselectAll')
+							: t('dashboard.selectAll')}
 					</Button>
 				</div>
 				<div className="grid gap-2">

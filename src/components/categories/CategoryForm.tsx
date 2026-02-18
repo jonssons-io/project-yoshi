@@ -2,21 +2,23 @@
  * CategoryForm - Form for creating and editing categories
  */
 
-import { useState } from 'react'
+import { useId, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { z } from 'zod'
 import { createZodValidator, useAppForm, validateForm } from '@/components/form'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 
-const categorySchema = z.object({
-	name: z.string().min(1, 'Category name is required'),
-	types: z
-		.array(z.enum(['INCOME', 'EXPENSE']))
-		.min(1, 'At least one type is required'),
-	budgetIds: z.array(z.string()).optional()
-})
+const createCategorySchema = (t: (key: string) => string) =>
+	z.object({
+		name: z.string().min(1, t('validation.categoryNameRequired')),
+		types: z
+			.array(z.enum(['INCOME', 'EXPENSE']))
+			.min(1, t('validation.categoryTypeRequired')),
+		budgetIds: z.array(z.string()).optional()
+	})
 
-type CategoryFormData = z.infer<typeof categorySchema>
+type CategoryFormData = z.infer<ReturnType<typeof createCategorySchema>>
 
 export interface CategoryFormProps {
 	/**
@@ -49,9 +51,14 @@ export function CategoryForm({
 	defaultValues,
 	onSubmit,
 	onCancel,
-	submitLabel = 'Save Category',
+	submitLabel,
 	budgets = []
 }: CategoryFormProps) {
+	const { t } = useTranslation()
+	const categorySchema = useMemo(() => createCategorySchema(t), [t])
+	const effectiveSubmitLabel = submitLabel ?? t('common.save')
+	const incomeCheckboxId = useId()
+	const expenseCheckboxId = useId()
 	// All budgets selected by default for new categories
 	const [selectedBudgets, setSelectedBudgets] = useState<string[]>(
 		defaultValues?.budgetIds ?? budgets.map((b) => b.id)
@@ -115,45 +122,48 @@ export function CategoryForm({
 			>
 				{(field) => (
 					<field.TextField
-						label="Category Name"
-						placeholder="e.g., Groceries, Salary, Utilities"
+						label={t('forms.categoryName')}
+						placeholder={t('forms.categoryNamePlaceholder')}
 					/>
 				)}
 			</form.AppField>
 
 			<div className="space-y-3">
-				<Label>Category Type</Label>
+				<Label>{t('categories.type')}</Label>
 				<p className="text-sm text-muted-foreground">
-					Select if this is an income or expense category (or both).
+					{t('categories.selectCategoryType')}
 				</p>
 				<div className="flex gap-6">
 					<div className="flex items-center space-x-2">
 						<Checkbox
-							id="type-income"
+							id={incomeCheckboxId}
 							checked={selectedTypes.includes('INCOME')}
 							onCheckedChange={() => toggleType('INCOME')}
 						/>
-						<Label htmlFor="type-income" className="font-normal cursor-pointer">
-							Income
+						<Label
+							htmlFor={incomeCheckboxId}
+							className="font-normal cursor-pointer"
+						>
+							{t('categories.income')}
 						</Label>
 					</div>
 					<div className="flex items-center space-x-2">
 						<Checkbox
-							id="type-expense"
+							id={expenseCheckboxId}
 							checked={selectedTypes.includes('EXPENSE')}
 							onCheckedChange={() => toggleType('EXPENSE')}
 						/>
 						<Label
-							htmlFor="type-expense"
+							htmlFor={expenseCheckboxId}
 							className="font-normal cursor-pointer"
 						>
-							Expense
+							{t('categories.expense')}
 						</Label>
 					</div>
 				</div>
 				{selectedTypes.length === 0 && (
 					<p className="text-sm text-destructive">
-						At least one type is required
+						{t('categories.atleastOneTypeRequired')}
 					</p>
 				)}
 			</div>
@@ -161,10 +171,9 @@ export function CategoryForm({
 			{/* Budget Selection */}
 			{budgets.length > 0 && (
 				<div className="space-y-3 pt-2">
-					<Label>Link to Budgets</Label>
+					<Label>{t('categories.linkToBudgets')}</Label>
 					<p className="text-sm text-muted-foreground">
-						Select which budgets should have access to this category. All
-						budgets are selected by default.
+						{t('categories.selectBudgets')}
 					</p>
 					<div className="space-y-2">
 						{budgets.map((budget) => (
@@ -187,7 +196,10 @@ export function CategoryForm({
 			)}
 
 			<form.AppForm>
-				<form.FormButtonGroup onCancel={onCancel} submitLabel={submitLabel} />
+				<form.FormButtonGroup
+					onCancel={onCancel}
+					submitLabel={effectiveSubmitLabel}
+				/>
 			</form.AppForm>
 		</form>
 	)
