@@ -1,4 +1,5 @@
 import { ArrowRightLeftIcon } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/contexts/auth-context'
 import { TransferForm } from '@/forms/TransferForm'
@@ -17,6 +18,7 @@ export function CreateTransferButton({
 	className,
 	variant = 'outline'
 }: CreateTransferButtonProps) {
+	const { t } = useTranslation()
 	const { openDrawer, closeDrawer } = useDrawer()
 	const { userId, householdId } = useAuth()
 	const { selectedBudgetId } = useSelectedBudget(userId, householdId)
@@ -43,9 +45,11 @@ export function CreateTransferButton({
 
 		openDrawer(
 			<div className="p-4">
-				<h2 className="text-2xl font-bold mb-4">Transfer Funds</h2>
+				<h2 className="text-2xl font-bold mb-4">
+					{t('transactions.transferFunds')}
+				</h2>
 				<p className="text-muted-foreground mb-6">
-					Move money between accounts in this budget
+					{t('transactions.transferFundsDesc')}
 				</p>
 
 				{accounts ? (
@@ -66,11 +70,13 @@ export function CreateTransferButton({
 					/>
 				) : (
 					<div className="flex items-center justify-center p-8">
-						<p className="text-muted-foreground">Loading accounts...</p>
+						<p className="text-muted-foreground">
+							{t('transactions.loadingArgs')}
+						</p>
 					</div>
 				)}
 			</div>,
-			'Transfer Funds'
+			t('transactions.transferFunds')
 		)
 	}
 
@@ -82,7 +88,7 @@ export function CreateTransferButton({
 			disabled={!budgetId}
 		>
 			<ArrowRightLeftIcon className="mr-2 h-4 w-4" />
-			Transfer Funds
+			{t('transactions.transferFunds')}
 		</Button>
 	)
 }

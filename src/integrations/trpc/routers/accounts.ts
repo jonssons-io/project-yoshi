@@ -1,6 +1,7 @@
 import type { TRPCRouterRecord } from '@trpc/server'
 import { TRPCError } from '@trpc/server'
 import { z } from 'zod'
+import i18n from '@/lib/i18n'
 import { protectedProcedure } from '../init'
 
 /**
@@ -32,7 +33,7 @@ export const accountsRouter = {
 			if (!householdUser) {
 				throw new TRPCError({
 					code: 'FORBIDDEN',
-					message: 'You do not have access to this household'
+					message: i18n.t('server.forbidden.householdAccess')
 				})
 			}
 
@@ -97,7 +98,7 @@ export const accountsRouter = {
 			if (!account) {
 				throw new TRPCError({
 					code: 'NOT_FOUND',
-					message: 'Account not found'
+					message: i18n.t('accounts.notFound')
 				})
 			}
 
@@ -112,7 +113,7 @@ export const accountsRouter = {
 			if (!householdUser) {
 				throw new TRPCError({
 					code: 'FORBIDDEN',
-					message: 'You do not have access to this account'
+					message: i18n.t('server.forbidden.accountAccess')
 				})
 			}
 
@@ -139,7 +140,7 @@ export const accountsRouter = {
 			if (!account) {
 				throw new TRPCError({
 					code: 'NOT_FOUND',
-					message: 'Account not found'
+					message: i18n.t('accounts.notFound')
 				})
 			}
 
@@ -154,7 +155,7 @@ export const accountsRouter = {
 			if (!householdUser) {
 				throw new TRPCError({
 					code: 'FORBIDDEN',
-					message: 'You do not have access to this account'
+					message: i18n.t('server.forbidden.accountAccess')
 				})
 			}
 
@@ -231,7 +232,7 @@ export const accountsRouter = {
 			z.object({
 				householdId: z.string(),
 				userId: z.string(), // For access verification
-				name: z.string().min(1, 'Name is required'),
+				name: z.string().min(1, i18n.t('validation.nameRequired')),
 				externalIdentifier: z.string().optional(),
 				initialBalance: z.number().default(0),
 				budgetIds: z.array(z.string()).optional() // Optional: specific budgets to link (defaults to all)
@@ -249,7 +250,7 @@ export const accountsRouter = {
 			if (!householdUser) {
 				throw new TRPCError({
 					code: 'FORBIDDEN',
-					message: 'You do not have access to this household'
+					message: i18n.t('server.forbidden.householdAccess')
 				})
 			}
 
@@ -303,7 +304,7 @@ export const accountsRouter = {
 			z.object({
 				id: z.string(),
 				userId: z.string(), // For access verification
-				name: z.string().min(1, 'Name is required').optional(),
+				name: z.string().min(1, i18n.t('validation.nameRequired')).optional(),
 				externalIdentifier: z.string().nullable().optional(),
 				initialBalance: z.number().optional(),
 				budgetIds: z.array(z.string()).optional() // Optional: update budget links
@@ -320,7 +321,7 @@ export const accountsRouter = {
 			if (!account) {
 				throw new TRPCError({
 					code: 'NOT_FOUND',
-					message: 'Account not found'
+					message: i18n.t('accounts.notFound')
 				})
 			}
 
@@ -335,7 +336,7 @@ export const accountsRouter = {
 			if (!householdUser) {
 				throw new TRPCError({
 					code: 'FORBIDDEN',
-					message: 'You do not have access to this account'
+					message: i18n.t('server.forbidden.accountAccess')
 				})
 			}
 
@@ -428,7 +429,7 @@ export const accountsRouter = {
 			if (!account) {
 				throw new TRPCError({
 					code: 'NOT_FOUND',
-					message: 'Account not found'
+					message: i18n.t('accounts.notFound')
 				})
 			}
 
@@ -443,7 +444,7 @@ export const accountsRouter = {
 			if (!householdUser) {
 				throw new TRPCError({
 					code: 'NOT_FOUND',
-					message: 'Account not found'
+					message: i18n.t('accounts.notFound')
 				})
 			}
 
@@ -470,8 +471,7 @@ export const accountsRouter = {
 			) {
 				throw new TRPCError({
 					code: 'PRECONDITION_FAILED',
-					message:
-						'Cannot delete account with existing transactions, bills, or transfers. Please archive it instead.'
+					message: i18n.t('accounts.cannotDeleteNotEmpty')
 				})
 			}
 
@@ -501,7 +501,7 @@ export const accountsRouter = {
 			if (!account) {
 				throw new TRPCError({
 					code: 'NOT_FOUND',
-					message: 'Account not found'
+					message: i18n.t('accounts.notFound')
 				})
 			}
 
@@ -516,7 +516,7 @@ export const accountsRouter = {
 			if (!householdUser) {
 				throw new TRPCError({
 					code: 'FORBIDDEN',
-					message: 'You do not have access to this account'
+					message: i18n.t('server.forbidden.accountAccess')
 				})
 			}
 

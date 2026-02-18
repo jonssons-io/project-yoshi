@@ -6,6 +6,7 @@ import { createFileRoute, Link } from '@tanstack/react-router'
 import { format } from 'date-fns'
 import { CopyIcon, MoreVerticalIcon, PencilIcon, TrashIcon } from 'lucide-react'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { z } from 'zod'
 import { CreateTransactionButton } from '@/components/transactions/CreateTransactionButton'
 import { TransactionForm } from '@/components/transactions/TransactionForm'
@@ -70,6 +71,7 @@ function TransactionsPage() {
 	const { selectedBudgetId } = useSelectedBudget(userId, householdId)
 	const budgetId = urlBudgetId || selectedBudgetId
 	const { openDrawer, closeDrawer } = useDrawer()
+	const { t } = useTranslation()
 	const [filter, setFilter] = useState<'ALL' | 'INCOME' | 'EXPENSE'>('ALL')
 
 	// All hooks must be called before any early returns
@@ -148,9 +150,9 @@ function TransactionsPage() {
 		const type = getTransactionType(transaction)
 		openDrawer(
 			<div className="p-4">
-				<h2 className="text-2xl font-bold mb-4">Edit Transaction</h2>
+				<h2 className="text-2xl font-bold mb-4">{t('transactions.edit')}</h2>
 				<p className="text-muted-foreground mb-6">
-					Update transaction information
+					{t('transactions.updateInfo')}
 				</p>
 				{categories && accounts ? (
 					<TransactionForm
@@ -222,15 +224,15 @@ function TransactionsPage() {
 							})
 						}}
 						onCancel={closeDrawer}
-						submitLabel="Update Transaction"
+						submitLabel={t('transactions.update')}
 					/>
 				) : (
 					<div className="flex items-center justify-center p-8">
-						<p className="text-muted-foreground">Loading form data...</p>
+						<p className="text-muted-foreground">{t('common.loading')}</p>
 					</div>
 				)}
 			</div>,
-			'Edit Transaction'
+			t('transactions.edit')
 		)
 	}
 
@@ -245,8 +247,10 @@ function TransactionsPage() {
 	}) => {
 		openDrawer(
 			<div className="p-4">
-				<h2 className="text-2xl font-bold mb-4">Edit Transfer</h2>
-				<p className="text-muted-foreground mb-6">Update transfer details</p>
+				<h2 className="text-2xl font-bold mb-4">{t('transfers.edit')}</h2>
+				<p className="text-muted-foreground mb-6">
+					{t('transfers.updateInfo')}
+				</p>
 				{accounts ? (
 					<TransferForm
 						accounts={accounts}
@@ -270,15 +274,15 @@ function TransactionsPage() {
 							})
 						}}
 						onCancel={closeDrawer}
-						submitLabel="Update Transfer"
+						submitLabel={t('transfers.update')}
 					/>
 				) : (
 					<div className="flex items-center justify-center p-8">
-						<p className="text-muted-foreground">Loading accounts...</p>
+						<p className="text-muted-foreground">{t('common.loading')}</p>
 					</div>
 				)}
 			</div>,
-			'Edit Transfer'
+			t('transfers.edit')
 		)
 	}
 
@@ -287,14 +291,12 @@ function TransactionsPage() {
 		return (
 			<Card>
 				<CardHeader>
-					<CardTitle>No Budget Selected</CardTitle>
-					<CardDescription>
-						Please select a budget to manage transactions
-					</CardDescription>
+					<CardTitle>{t('budgets.noBudgetSelected')}</CardTitle>
+					<CardDescription>{t('budgets.selectBudget')}</CardDescription>
 				</CardHeader>
 				<CardContent>
 					<Button asChild>
-						<Link to="/budgets">Go to Budgets</Link>
+						<Link to="/budgets">{t('budgets.goToBudgets')}</Link>
 					</Button>
 				</CardContent>
 			</Card>
@@ -304,7 +306,7 @@ function TransactionsPage() {
 	if (isLoading) {
 		return (
 			<div className="flex items-center justify-center">
-				<p className="text-muted-foreground">Loading transactions...</p>
+				<p className="text-muted-foreground">{t('common.loading')}</p>
 			</div>
 		)
 	}
@@ -351,21 +353,24 @@ function TransactionsPage() {
 			<div className="grid gap-4 md:grid-cols-3">
 				<Card>
 					<CardHeader>
-						<CardTitle className="text-sm font-medium">Total Income</CardTitle>
+						<CardTitle className="text-sm font-medium">
+							{t('transactions.totalIncome')}
+						</CardTitle>
 					</CardHeader>
 					<CardContent>
 						<div className="text-2xl font-bold text-green-600">
 							{formatCurrency(totalIncome)}
 						</div>
 						<p className="text-xs text-muted-foreground">
-							{incomeTransactions?.length ?? 0} transactions
+							{incomeTransactions?.length ?? 0}{' '}
+							{t('transactions.title').toLowerCase()}
 						</p>
 					</CardContent>
 				</Card>
 				<Card>
 					<CardHeader>
 						<CardTitle className="text-sm font-medium">
-							Total Expenses
+							{t('transactions.totalExpenses')}
 						</CardTitle>
 					</CardHeader>
 					<CardContent>
@@ -373,13 +378,16 @@ function TransactionsPage() {
 							{formatCurrency(totalExpense)}
 						</div>
 						<p className="text-xs text-muted-foreground">
-							{expenseTransactions?.length ?? 0} transactions
+							{expenseTransactions?.length ?? 0}{' '}
+							{t('transactions.title').toLowerCase()}
 						</p>
 					</CardContent>
 				</Card>
 				<Card>
 					<CardHeader>
-						<CardTitle className="text-sm font-medium">Net</CardTitle>
+						<CardTitle className="text-sm font-medium">
+							{t('transactions.net')}
+						</CardTitle>
 					</CardHeader>
 					<CardContent>
 						<div
@@ -393,7 +401,8 @@ function TransactionsPage() {
 							{formatCurrency(totalIncome - totalExpense)}
 						</div>
 						<p className="text-xs text-muted-foreground">
-							{transactions?.length ?? 0} total transactions
+							{transactions?.length ?? 0}{' '}
+							{t('transactions.title').toLowerCase()}
 						</p>
 					</CardContent>
 				</Card>
@@ -404,29 +413,27 @@ function TransactionsPage() {
 					variant={filter === 'ALL' ? 'default' : 'outline'}
 					onClick={() => setFilter('ALL')}
 				>
-					All ({transactions?.length ?? 0})
+					{t('transactions.all')} ({transactions?.length ?? 0})
 				</Button>
 				<Button
 					variant={filter === 'INCOME' ? 'default' : 'outline'}
 					onClick={() => setFilter('INCOME')}
 				>
-					Income ({incomeTransactions?.length ?? 0})
+					{t('transactions.income')} ({incomeTransactions?.length ?? 0})
 				</Button>
 				<Button
 					variant={filter === 'EXPENSE' ? 'default' : 'outline'}
 					onClick={() => setFilter('EXPENSE')}
 				>
-					Expenses ({expenseTransactions?.length ?? 0})
+					{t('transactions.expense')} ({expenseTransactions?.length ?? 0})
 				</Button>
 			</div>
 			{/* Transactions list */}
 			{transactions?.length === 0 ? (
 				<Card>
 					<CardHeader>
-						<CardTitle>No transactions yet</CardTitle>
-						<CardDescription>
-							Get started by creating your first transaction
-						</CardDescription>
+						<CardTitle>{t('transactions.noTransactions')}</CardTitle>
+						<CardDescription>{t('transactions.getStarted')}</CardDescription>
 					</CardHeader>
 					<CardContent>
 						<CreateTransactionButton
@@ -445,12 +452,16 @@ function TransactionsPage() {
 					<Table>
 						<TableHeader>
 							<TableRow>
-								<TableHead>Date</TableHead>
-								<TableHead>Name</TableHead>
-								<TableHead>Category</TableHead>
-								<TableHead>Account</TableHead>
-								<TableHead className="text-right">Amount</TableHead>
-								<TableHead className="text-right">Actions</TableHead>
+								<TableHead>{t('common.date')}</TableHead>
+								<TableHead>{t('common.name')}</TableHead>
+								<TableHead>{t('common.category')}</TableHead>
+								<TableHead>{t('common.account')}</TableHead>
+								<TableHead className="text-right">
+									{t('common.amount')}
+								</TableHead>
+								<TableHead className="text-right">
+									{t('common.actions')}
+								</TableHead>
 							</TableRow>
 						</TableHeader>
 						<TableBody>
@@ -472,13 +483,14 @@ function TransactionsPage() {
 										<TableCell>
 											{hasSplits ? (
 												<Badge variant="outline">
-													{transaction.splits.length} Splits
+													{transaction.splits.length} {t('common.splits')}
 												</Badge>
 											) : (
 												<Badge
 													variant={type === 'INCOME' ? 'default' : 'secondary'}
 												>
-													{transaction.category?.name || 'Uncategorized'}
+													{transaction.category?.name ||
+														t('common.uncategorized')}
 												</Badge>
 											)}
 										</TableCell>
@@ -519,15 +531,11 @@ function TransactionsPage() {
 																}
 															>
 																<PencilIcon className="mr-2 h-4 w-4" />
-																Edit Transfer
+																{t('transfers.edit')}
 															</DropdownMenuItem>
 															<DropdownMenuItem
 																onClick={() => {
-																	if (
-																		confirm(
-																			`Are you sure you want to delete this transfer?`
-																		)
-																	) {
+																	if (confirm(t('transfers.deleteConfirm'))) {
 																		deleteTransfer({
 																			id: (transaction as any).originalId,
 																			userId
@@ -537,7 +545,7 @@ function TransactionsPage() {
 																className="text-red-600"
 															>
 																<TrashIcon className="mr-2 h-4 w-4" />
-																Delete Transfer
+																{t('common.delete')} {t('common.transfer')}
 															</DropdownMenuItem>
 														</>
 													) : (
@@ -548,13 +556,15 @@ function TransactionsPage() {
 																}
 															>
 																<PencilIcon className="mr-2 h-4 w-4" />
-																Edit
+																{t('common.edit')}
 															</DropdownMenuItem>
 															<DropdownMenuItem
 																onClick={() => {
 																	if (
 																		confirm(
-																			`Clone transaction "${transaction.name}"?`
+																			t('transactions.cloneConfirm', {
+																				name: transaction.name
+																			})
 																		)
 																	) {
 																		cloneTransaction({
@@ -565,14 +575,16 @@ function TransactionsPage() {
 																}}
 															>
 																<CopyIcon className="mr-2 h-4 w-4" />
-																Clone
+																{t('common.clone')}
 															</DropdownMenuItem>
 															<DropdownMenuItem
 																className="text-red-600"
 																onClick={() => {
 																	if (
 																		confirm(
-																			`Are you sure you want to delete "${transaction.name}"?`
+																			t('transactions.deleteConfirm', {
+																				name: transaction.name
+																			})
 																		)
 																	) {
 																		deleteTransaction({
@@ -583,7 +595,7 @@ function TransactionsPage() {
 																}}
 															>
 																<TrashIcon className="mr-2 h-4 w-4" />
-																Delete
+																{t('common.delete')}
 															</DropdownMenuItem>
 														</>
 													)}

@@ -15,6 +15,7 @@ import {
 	startOfDay
 } from 'date-fns'
 import { z } from 'zod'
+import i18n from '@/lib/i18n'
 import { RecurrenceType } from '../../../generated/prisma/enums'
 import { protectedProcedure } from '../init'
 
@@ -38,7 +39,7 @@ function generateBillDates(
 		recurrenceType === RecurrenceType.CUSTOM &&
 		(!customIntervalDays || customIntervalDays <= 0)
 	) {
-		throw new Error('Custom interval must be positive')
+		throw new Error(i18n.t('validation.customIntervalPositive'))
 	}
 
 	while (
@@ -101,7 +102,10 @@ export const billsRouter = {
 			})
 
 			if (!budget) {
-				throw new TRPCError({ code: 'NOT_FOUND', message: 'Budget not found' })
+				throw new TRPCError({
+					code: 'NOT_FOUND',
+					message: i18n.t('budgets.notFound')
+				})
 			}
 
 			const householdUser = await ctx.prisma.householdUser.findFirst({
@@ -111,7 +115,7 @@ export const billsRouter = {
 			if (!householdUser) {
 				throw new TRPCError({
 					code: 'FORBIDDEN',
-					message: 'You do not have access to this budget'
+					message: i18n.t('server.forbidden.budgetAccess')
 				})
 			}
 
@@ -172,13 +176,13 @@ export const billsRouter = {
 	create: protectedProcedure
 		.input(
 			z.object({
-				name: z.string().min(1, 'Name is required'),
-				recipient: z.string().min(1, 'Recipient is required'),
+				name: z.string().min(1, i18n.t('validation.nameRequired')),
+				recipient: z.string().min(1, i18n.t('validation.recipientRequired')),
 				accountId: z.string(),
 				startDate: z.date(),
 				recurrenceType: z.nativeEnum(RecurrenceType),
 				customIntervalDays: z.number().int().positive().optional(),
-				estimatedAmount: z.number().positive('Amount must be positive'),
+				estimatedAmount: z.number().positive(i18n.t('validation.positive')),
 				lastPaymentDate: z.date().optional(),
 				// Top level category logic removed/deprecated in favor of splits checks,
 				// but keys might be passed. We rely on splits.
@@ -208,7 +212,7 @@ export const billsRouter = {
 			) {
 				throw new TRPCError({
 					code: 'BAD_REQUEST',
-					message: 'Category or sections required'
+					message: i18n.t('validation.categoryOrSectionsRequired')
 				})
 			}
 
@@ -219,7 +223,7 @@ export const billsRouter = {
 			) {
 				throw new TRPCError({
 					code: 'BAD_REQUEST',
-					message: 'Custom interval days required'
+					message: i18n.t('validation.customIntervalRequired')
 				})
 			}
 
@@ -285,7 +289,7 @@ export const billsRouter = {
 					if (!catId) {
 						throw new TRPCError({
 							code: 'BAD_REQUEST',
-							message: 'Category required for all sections'
+							message: i18n.t('validation.categoryRequiredForSections')
 						})
 					}
 					resolvedSplits.push({
@@ -440,7 +444,7 @@ export const billsRouter = {
 					if (!catId) {
 						throw new TRPCError({
 							code: 'BAD_REQUEST',
-							message: 'Category required for all sections'
+							message: i18n.t('validation.categoryRequiredForSections')
 						})
 					}
 					resolvedSplits.push({

@@ -2,6 +2,7 @@ import { createClerkClient } from '@clerk/backend'
 import type { TRPCRouterRecord } from '@trpc/server'
 import { TRPCError } from '@trpc/server'
 import { z } from 'zod'
+import i18n from '@/lib/i18n'
 import { protectedProcedure } from '../init'
 
 // Initialize Clerk Client
@@ -34,7 +35,7 @@ export const invitationsRouter = {
 			if (!membership) {
 				throw new TRPCError({
 					code: 'FORBIDDEN',
-					message: 'You are not a member of this household'
+					message: i18n.t('households.userNotMember')
 				})
 			}
 
@@ -51,7 +52,7 @@ export const invitationsRouter = {
 				if (existingInvitation.status === 'PENDING') {
 					throw new TRPCError({
 						code: 'CONFLICT',
-						message: 'Invitation already sent to this email'
+						message: i18n.t('invitations.alreadySent')
 					})
 				}
 
@@ -141,7 +142,7 @@ export const invitationsRouter = {
 			if (!invitation || invitation.status !== 'PENDING') {
 				throw new TRPCError({
 					code: 'NOT_FOUND',
-					message: 'Invitation not found or no longer valid'
+					message: i18n.t('invitations.notFoundOrInvalid')
 				})
 			}
 
@@ -154,7 +155,7 @@ export const invitationsRouter = {
 				if (invitation.email !== email) {
 					throw new TRPCError({
 						code: 'FORBIDDEN',
-						message: 'This invitation is not for you'
+						message: i18n.t('invitations.notForYou')
 					})
 				}
 			} catch (error) {
@@ -162,7 +163,7 @@ export const invitationsRouter = {
 				// Fallback or fail? stricter security says fail.
 				throw new TRPCError({
 					code: 'INTERNAL_SERVER_ERROR',
-					message: 'Could not verify user identity'
+					message: i18n.t('server.error.identityVerification')
 				})
 			}
 
@@ -208,7 +209,7 @@ export const invitationsRouter = {
 			if (!invitation || invitation.status !== 'PENDING') {
 				throw new TRPCError({
 					code: 'NOT_FOUND',
-					message: 'Invitation not found'
+					message: i18n.t('invitations.notFound')
 				})
 			}
 
@@ -222,14 +223,14 @@ export const invitationsRouter = {
 				if (invitation.email !== email) {
 					throw new TRPCError({
 						code: 'FORBIDDEN',
-						message: 'This invitation is not for you'
+						message: i18n.t('invitations.notForYou')
 					})
 				}
 			} catch (error) {
 				console.error('Clerk verification failed:', error)
 				throw new TRPCError({
 					code: 'INTERNAL_SERVER_ERROR',
-					message: 'Could not verify user identity'
+					message: i18n.t('server.error.identityVerification')
 				})
 			}
 
@@ -251,7 +252,7 @@ export const invitationsRouter = {
 			if (!invitation) {
 				throw new TRPCError({
 					code: 'NOT_FOUND',
-					message: 'Invitation not found'
+					message: i18n.t('invitations.notFound')
 				})
 			}
 
@@ -267,7 +268,7 @@ export const invitationsRouter = {
 			if (!membership) {
 				throw new TRPCError({
 					code: 'FORBIDDEN',
-					message: 'You do not have permission to revoke this invitation'
+					message: i18n.t('invitations.revokePermissionError')
 				})
 			}
 
@@ -293,7 +294,7 @@ export const invitationsRouter = {
 			if (!membership) {
 				throw new TRPCError({
 					code: 'FORBIDDEN',
-					message: 'You are not a member of this household'
+					message: i18n.t('households.userNotMember')
 				})
 			}
 

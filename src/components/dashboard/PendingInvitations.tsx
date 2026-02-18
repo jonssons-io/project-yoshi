@@ -1,5 +1,6 @@
 import { useUser } from '@clerk/clerk-react'
 import { Check, X } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import {
 	useAcceptInvitation,
@@ -12,6 +13,7 @@ interface PendingInvitationsProps {
 }
 
 export function PendingInvitations({ onJoin }: PendingInvitationsProps) {
+	const { t } = useTranslation()
 	const { user } = useUser()
 	const userId = user?.id
 
@@ -35,9 +37,7 @@ export function PendingInvitations({ onJoin }: PendingInvitationsProps) {
 	if (!invitations || invitations.length === 0) {
 		return (
 			<div className="flex flex-col items-center justify-center p-8 text-center bg-muted/20 rounded-lg">
-				<p className="text-muted-foreground">
-					You have no pending invitations.
-				</p>
+				<p className="text-muted-foreground">{t('dashboard.noInvitations')}</p>
 			</div>
 		)
 	}
@@ -51,13 +51,13 @@ export function PendingInvitations({ onJoin }: PendingInvitationsProps) {
 				>
 					<div className="space-y-1">
 						<p className="font-medium">
-							Join{' '}
+							{t('dashboard.join')}{' '}
 							<span className="font-bold">
-								{invitation.household?.name ?? 'Household'}
+								{invitation.household?.name ?? t('forms.household')}
 							</span>
 						</p>
 						<p className="text-xs text-muted-foreground">
-							Invited by {invitation.inviterName}
+							{t('dashboard.invitedBy')} {invitation.inviterName}
 						</p>
 					</div>
 					<div className="flex items-center gap-2">
@@ -65,7 +65,7 @@ export function PendingInvitations({ onJoin }: PendingInvitationsProps) {
 							size="icon"
 							variant="outline"
 							className="text-destructive hover:text-destructive hover:bg-destructive/10"
-							title="Decline"
+							title={t('dashboard.decline')}
 							onClick={() => {
 								if (!userId) return
 								declineInvitation({
@@ -78,7 +78,7 @@ export function PendingInvitations({ onJoin }: PendingInvitationsProps) {
 						</Button>
 						<Button
 							size="icon"
-							title="Accept"
+							title={t('dashboard.accept')}
 							onClick={() => {
 								if (!userId) return
 								acceptInvitation({

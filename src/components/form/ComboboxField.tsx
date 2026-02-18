@@ -9,6 +9,7 @@
 
 import { CheckIcon, ChevronsUpDownIcon, PlusIcon } from 'lucide-react'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import {
 	Command,
@@ -95,17 +96,24 @@ export interface ComboboxFieldProps {
 export function ComboboxField({
 	label,
 	description,
-	placeholder = 'Select an option',
-	searchPlaceholder = 'Search...',
-	emptyText = 'No results found.',
+	placeholder,
+	searchPlaceholder,
+	emptyText,
 	disabled,
 	options,
 	allowCreate = false,
-	createLabel = 'Create'
+	createLabel
 }: ComboboxFieldProps) {
 	const field = useFieldContext<ComboboxValue>()
 	const [open, setOpen] = useState(false)
 	const [searchValue, setSearchValue] = useState('')
+	const { t } = useTranslation()
+	const textValues = {
+		create: t('common.create'),
+		placeholder: t('common.selectAnOption'),
+		searchPlaceholder: t('common.search'),
+		emptyText: t('common.noResultsFound')
+	}
 
 	const hasError =
 		field.state.meta.isTouched && field.state.meta.errors.length > 0
@@ -180,13 +188,13 @@ export function ComboboxField({
 									<span className="flex items-center gap-2">
 										{isNewValue && (
 											<span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded">
-												New
+												{t('common.new')}
 											</span>
 										)}
 										{displayValue}
 									</span>
 								) : (
-									placeholder
+									(placeholder ?? textValues.placeholder)
 								)}
 							</span>
 							<ChevronsUpDownIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -195,13 +203,15 @@ export function ComboboxField({
 					<PopoverContent className="w-(--radix-popover-trigger-width) p-0">
 						<Command shouldFilter={false}>
 							<CommandInput
-								placeholder={searchPlaceholder}
+								placeholder={searchPlaceholder ?? textValues.searchPlaceholder}
 								value={searchValue}
 								onValueChange={setSearchValue}
 							/>
 							<CommandList>
 								{filteredOptions.length === 0 && !showCreateOption && (
-									<CommandEmpty>{emptyText}</CommandEmpty>
+									<CommandEmpty>
+										{emptyText ?? textValues.emptyText}
+									</CommandEmpty>
 								)}
 
 								{filteredOptions.length > 0 && (
@@ -234,7 +244,7 @@ export function ComboboxField({
 											className="text-primary"
 										>
 											<PlusIcon className="mr-2 h-4 w-4" />
-											{createLabel} "{searchValue.trim()}"
+											{`${createLabel || textValues.create} "${searchValue.trim()}"`}
 										</CommandItem>
 									</CommandGroup>
 								)}
@@ -247,7 +257,9 @@ export function ComboboxField({
 					<FieldError>{field.state.meta.errors.join(', ')}</FieldError>
 				)}
 				{field.state.meta.isValidating && (
-					<span className="text-sm text-muted-foreground">Validating...</span>
+					<span className="text-sm text-muted-foreground">
+						{t('common.validating')}
+					</span>
 				)}
 			</FieldContent>
 		</Field>

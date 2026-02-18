@@ -6,12 +6,12 @@
 import { useUser } from '@clerk/clerk-react'
 import { Trash2, X } from 'lucide-react'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { z } from 'zod'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
-	useAddHouseholdUser,
 	useCreateInvitation,
 	useHouseholdInvitations,
 	useHouseholdMembers,
@@ -22,7 +22,7 @@ import { useAppForm } from '@/hooks/form'
 import { createZodValidator, validateForm } from '@/lib/form-validation'
 
 const householdSchema = z.object({
-	name: z.string().min(1, { message: 'Name is required' })
+	name: z.string().min(1, { message: 'validation.nameRequired' })
 })
 
 type HouseholdFormData = z.infer<typeof householdSchema>
@@ -41,10 +41,12 @@ export function HouseholdForm({
 	onSubmit,
 	onCancel,
 	onDelete,
-	submitLabel = 'Save',
+	submitLabel,
 	householdId
 }: HouseholdFormProps) {
+	const { t } = useTranslation()
 	const { user } = useUser()
+	const effectiveSubmitLabel = submitLabel ?? t('common.save')
 	const userId = user?.id
 
 	const form = useAppForm({
@@ -108,8 +110,8 @@ export function HouseholdForm({
 					>
 						{(field) => (
 							<field.TextField
-								label="Household Name"
-								placeholder="e.g., Smith Family, Roommates"
+								label={t('forms.householdName')}
+								placeholder={t('forms.householdPlaceholder')}
 							/>
 						)}
 					</form.AppField>
@@ -118,7 +120,7 @@ export function HouseholdForm({
 						<form.FormButtonGroup
 							onDelete={onDelete}
 							onCancel={onCancel}
-							submitLabel={submitLabel}
+							submitLabel={effectiveSubmitLabel}
 						/>
 					</form.AppForm>
 				</div>
@@ -127,7 +129,7 @@ export function HouseholdForm({
 			{householdId && userId && (
 				<div className="space-y-6 pt-6 border-t">
 					<div>
-						<h3 className="text-lg font-medium mb-4">Members</h3>
+						<h3 className="text-lg font-medium mb-4">{t('forms.members')}</h3>
 						<div className="space-y-3">
 							{members?.map((member) => (
 								<div
@@ -139,12 +141,12 @@ export function HouseholdForm({
 											<AvatarImage src={member.user?.imageUrl} />
 											<AvatarFallback>
 												{member.user?.firstName?.slice(0, 2).toUpperCase() ??
-													'U'}
+													t('common.unknownInitial')}
 											</AvatarFallback>
 										</Avatar>
 										<div>
 											<p className="text-sm font-medium">
-												{member.user?.fullName ?? 'Unknown User'}
+												{member.user?.fullName ?? t('forms.unknownUser')}
 											</p>
 											<p className="text-xs text-muted-foreground">
 												{member.user?.email}
@@ -173,10 +175,12 @@ export function HouseholdForm({
 					</div>
 
 					<div>
-						<h3 className="text-lg font-medium mb-4">Invite Member</h3>
+						<h3 className="text-lg font-medium mb-4">
+							{t('forms.inviteMember')}
+						</h3>
 						<div className="flex gap-2 mb-4">
 							<Input
-								placeholder="Email address"
+								placeholder={t('forms.emailAddress')}
 								value={inviteEmail}
 								onChange={(e) => setInviteEmail(e.target.value)}
 								type="email"
@@ -185,14 +189,14 @@ export function HouseholdForm({
 								onClick={handleInvite}
 								disabled={!inviteEmail || isInviting}
 							>
-								Send
+								{t('forms.send')}
 							</Button>
 						</div>
 
 						{invitations && invitations.length > 0 && (
 							<div className="space-y-2">
 								<h4 className="text-sm font-medium text-muted-foreground">
-									Pending Invitations
+									{t('forms.pendingInvitations')}
 								</h4>
 								<div className="space-y-2">
 									{invitations.map((invitation) => (

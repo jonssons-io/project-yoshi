@@ -3,14 +3,15 @@
  * Used for creating and editing budgets
  */
 
+import { useTranslation } from 'react-i18next'
 import { z } from 'zod'
 import { useAppForm } from '@/hooks/form'
 import { createZodValidator, validateForm } from '@/lib/form-validation'
 
 const budgetSchema = z.object({
-	name: z.string().min(1, { message: 'Budget name is required' }),
+	name: z.string().min(1, { message: 'validation.budgetNameRequired' }),
 	startDate: z.date({
-		error: 'Start date is required'
+		error: 'validation.startDateRequired'
 	})
 })
 
@@ -31,6 +32,9 @@ export function BudgetForm({
 	onDelete,
 	submitLabel = 'Save'
 }: BudgetFormProps) {
+	const { t } = useTranslation()
+	const effectiveSubmitLabel = submitLabel ?? t('common.save')
+
 	const form = useAppForm({
 		defaultValues: {
 			name: defaultValues?.name ?? '',
@@ -59,8 +63,8 @@ export function BudgetForm({
 				>
 					{(field) => (
 						<field.TextField
-							label="Budget Name"
-							placeholder="e.g., My Household Budget"
+							label={t('forms.budgetName')}
+							placeholder={t('forms.budgetPlaceholder')}
 						/>
 					)}
 				</form.AppField>
@@ -73,8 +77,8 @@ export function BudgetForm({
 				>
 					{(field) => (
 						<field.DateField
-							label="Start Date"
-							description="When does this budget period begin?"
+							label={t('forms.startDate')}
+							description={t('forms.startDateDescription')}
 						/>
 					)}
 				</form.AppField>
@@ -83,7 +87,7 @@ export function BudgetForm({
 					<form.FormButtonGroup
 						onDelete={onDelete}
 						onCancel={onCancel}
-						submitLabel={submitLabel}
+						submitLabel={effectiveSubmitLabel}
 					/>
 				</form.AppForm>
 			</div>

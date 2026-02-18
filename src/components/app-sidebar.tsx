@@ -17,6 +17,7 @@ import {
 	Tags,
 	Wallet
 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -39,64 +40,8 @@ import { useSelectedBudget } from '@/hooks/use-selected-budget'
 import { useSelectedHousehold } from '@/hooks/use-selected-household'
 import { cn } from '@/lib/utils'
 
-const navSections = {
-	overview: [
-		{
-			title: 'Dashboard',
-			url: '/',
-			icon: Home,
-			requiresBudget: false
-		}
-	],
-	budget: [
-		{
-			title: 'Transactions',
-			url: '/transactions',
-			icon: Receipt,
-			requiresBudget: true
-		},
-		{
-			title: 'Bills',
-			url: '/bills',
-			icon: FileTextIcon,
-			requiresBudget: true
-		}
-	],
-	household: [
-		{
-			title: 'Income',
-			url: '/income',
-			icon: Coins,
-			requiresBudget: true
-		},
-		{
-			title: 'Budgets',
-			url: '/budgets',
-			icon: Wallet,
-			requiresBudget: false
-		},
-		{
-			title: 'Plan',
-			url: '/plan',
-			icon: Calendar,
-			requiresBudget: true
-		},
-		{
-			title: 'Accounts',
-			url: '/accounts',
-			icon: CreditCard,
-			requiresBudget: false
-		},
-		{
-			title: 'Categories',
-			url: '/categories',
-			icon: Tags,
-			requiresBudget: false
-		}
-	]
-}
-
 export function AppSidebar() {
+	const { t } = useTranslation()
 	const { user } = useUser()
 	const userId = user?.id!
 	const { selectedHouseholdId } = useSelectedHousehold(userId)
@@ -104,6 +49,63 @@ export function AppSidebar() {
 		userId,
 		selectedHouseholdId ?? undefined
 	)
+
+	const navSections = {
+		overview: [
+			{
+				title: t('nav.dashboard'),
+				url: '/',
+				icon: Home,
+				requiresBudget: false
+			}
+		],
+		budget: [
+			{
+				title: t('nav.transactions'),
+				url: '/transactions',
+				icon: Receipt,
+				requiresBudget: true
+			},
+			{
+				title: t('nav.bills'),
+				url: '/bills',
+				icon: FileTextIcon,
+				requiresBudget: true
+			}
+		],
+		household: [
+			{
+				title: t('nav.income'),
+				url: '/income',
+				icon: Coins,
+				requiresBudget: true
+			},
+			{
+				title: t('nav.budgets'),
+				url: '/budgets',
+				icon: Wallet,
+				requiresBudget: false
+			},
+			{
+				title: t('nav.plan'),
+				url: '/plan',
+				icon: Calendar,
+				requiresBudget: true
+			},
+			{
+				title: t('nav.accounts'),
+				url: '/accounts',
+				icon: CreditCard,
+				requiresBudget: false
+			},
+			{
+				title: t('nav.categories'),
+				url: '/categories',
+				icon: Tags,
+				requiresBudget: false
+			}
+		]
+	}
 
 	// Fetch budgets for selected household
 	const { data: budgets } = useBudgetsList({
@@ -122,12 +124,14 @@ export function AppSidebar() {
 						<SidebarMenuButton size="lg" asChild>
 							<Link to="/">
 								<div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-									<span className="text-xl font-bold">Y</span>
+									<span className="text-xl font-bold">
+										{t('common.appLogo')}
+									</span>
 								</div>
 								<div className="flex flex-col gap-0.5 leading-none">
-									<span className="font-semibold">Yoshi</span>
+									<span className="font-semibold">{t('common.appName')}</span>
 									<span className="text-xs text-muted-foreground">
-										Budget App
+										{t('common.appDescription')}
 									</span>
 								</div>
 							</Link>
@@ -141,7 +145,7 @@ export function AppSidebar() {
 				{/* Budget Selector (only shown if household is selected) */}
 				{selectedHouseholdId && budgets && budgets.length > 0 && (
 					<SidebarGroup>
-						<SidebarGroupLabel>Active Budget</SidebarGroupLabel>
+						<SidebarGroupLabel>{t('nav.activeBudget')}</SidebarGroupLabel>
 						<SidebarGroupContent>
 							<SidebarMenu>
 								<SidebarMenuItem>
@@ -150,7 +154,7 @@ export function AppSidebar() {
 											<SidebarMenuButton className="w-full">
 												<Wallet className="h-4 w-4" />
 												<span className="flex-1 truncate text-left">
-													{selectedBudget?.name ?? 'Select Budget'}
+													{selectedBudget?.name ?? t('nav.selectBudget')}
 												</span>
 												<ChevronsUpDown className="ml-auto h-4 w-4 opacity-50" />
 											</SidebarMenuButton>
@@ -185,7 +189,7 @@ export function AppSidebar() {
 
 				{/* Overview Section */}
 				<SidebarGroup>
-					<SidebarGroupLabel>Overview</SidebarGroupLabel>
+					<SidebarGroupLabel>{t('nav.dashboard')}</SidebarGroupLabel>
 					<SidebarGroupContent>
 						<SidebarMenu>
 							{navSections.overview.map((item) => (
@@ -211,7 +215,7 @@ export function AppSidebar() {
 
 				{/* Budget Management Section */}
 				<SidebarGroup>
-					<SidebarGroupLabel>Budget Management</SidebarGroupLabel>
+					<SidebarGroupLabel>{t('nav.budgetManagement')}</SidebarGroupLabel>
 					<SidebarGroupContent>
 						<SidebarMenu>
 							{navSections.budget.map((item) => (
@@ -244,7 +248,7 @@ export function AppSidebar() {
 
 				{/* Household Section */}
 				<SidebarGroup>
-					<SidebarGroupLabel>Household</SidebarGroupLabel>
+					<SidebarGroupLabel>{t('nav.household')}</SidebarGroupLabel>
 					<SidebarGroupContent>
 						<SidebarMenu>
 							{navSections.household.map((item) => (

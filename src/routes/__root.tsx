@@ -13,7 +13,8 @@ import { trpcClient } from '@/integrations/tanstack-query/root-provider'
 import { TRPCProvider } from '@/integrations/trpc/react'
 import type { TRPCRouter } from '@/integrations/trpc/router'
 import TanStackQueryDevtools from '../integrations/tanstack-query/devtools'
-import StoreDevtools from '../lib/demo-store-devtools'
+
+import '../lib/i18n'
 import appCss from '../styles.css?url'
 
 interface MyRouterContext {
@@ -51,7 +52,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 	const context = Route.useRouteContext()
 
 	return (
-		<html lang="en">
+		<html lang="sv">
 			<head>
 				<HeadContent />
 			</head>
@@ -74,7 +75,6 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 										name: 'Tanstack Router',
 										render: <TanStackRouterDevtoolsPanel />
 									},
-									StoreDevtools,
 									TanStackQueryDevtools
 								]}
 							/>

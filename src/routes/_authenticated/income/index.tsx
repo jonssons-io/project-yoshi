@@ -5,15 +5,18 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { format } from 'date-fns'
 import {
-	AlertTriangleIcon,
-	ArchiveIcon,
-	Edit2Icon,
+	AlertCircle,
+	Archive,
+	ArchiveRestore,
 	MoreVerticalIcon,
-	PlusIcon,
-	ReceiptIcon,
-	TrashIcon
+	Pencil,
+	Plus,
+	PlusCircle,
+	Trash2,
+	Wallet
 } from 'lucide-react'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { z } from 'zod'
 import { TransactionForm } from '@/components/transactions/TransactionForm'
 import { Badge } from '@/components/ui/badge'
@@ -76,6 +79,7 @@ export const Route = createFileRoute('/_authenticated/income/')({
 })
 
 function IncomePage() {
+	const { t } = useTranslation()
 	const { budgetId: urlBudgetId } = Route.useSearch()
 	const { userId, householdId } = useAuth()
 	const { selectedBudgetId } = useSelectedBudget(userId, householdId)
@@ -167,14 +171,12 @@ function IncomePage() {
 		return (
 			<Card>
 				<CardHeader>
-					<CardTitle>No Budget Selected</CardTitle>
-					<CardDescription>
-						Please select a budget to manage income
-					</CardDescription>
+					<CardTitle>{t('budgets.noBudgetSelected')}</CardTitle>
+					<CardDescription>{t('income.selectBudget')}</CardDescription>
 				</CardHeader>
 				<CardContent>
 					<Button asChild>
-						<Link to="/budgets">Go to Budgets</Link>
+						<Link to="/budgets">{t('budgets.goToBudgets')}</Link>
 					</Button>
 				</CardContent>
 			</Card>
@@ -184,10 +186,8 @@ function IncomePage() {
 	const handleCreate = () => {
 		openDrawer(
 			<div className="p-4">
-				<h2 className="text-2xl font-bold mb-4">Add New Income</h2>
-				<p className="text-muted-foreground mb-6">
-					Track recurring income like salary, dividends, etc.
-				</p>
+				<h2 className="text-2xl font-bold mb-4">{t('income.add')}</h2>
+				<p className="text-muted-foreground mb-6">{t('income.createDesc')}</p>
 				{accountsQuery.data && categoriesQuery.data ? (
 					<IncomeForm
 						onSubmit={(data) => {
@@ -218,19 +218,19 @@ function IncomePage() {
 					/>
 				) : (
 					<div className="flex items-center justify-center p-8">
-						<p className="text-muted-foreground">Loading form data...</p>
+						<p className="text-muted-foreground">{t('income.loadingForm')}</p>
 					</div>
 				)}
 			</div>,
-			'Add New Income'
+			t('income.add')
 		)
 	}
 
 	const handleEdit = (income: any) => {
 		openDrawer(
 			<div className="p-4">
-				<h2 className="text-2xl font-bold mb-4">Edit Income</h2>
-				<p className="text-muted-foreground mb-6">Update income details</p>
+				<h2 className="text-2xl font-bold mb-4">{t('income.edit')}</h2>
+				<p className="text-muted-foreground mb-6">{t('income.editDesc')}</p>
 				{accountsQuery.data && categoriesQuery.data ? (
 					<IncomeForm
 						defaultValues={{
@@ -281,16 +281,16 @@ function IncomePage() {
 					/>
 				) : (
 					<div className="flex items-center justify-center p-8">
-						<p className="text-muted-foreground">Loading form data...</p>
+						<p className="text-muted-foreground">{t('income.loadingForm')}</p>
 					</div>
 				)}
 			</div>,
-			'Edit Income'
+			t('income.edit')
 		)
 	}
 
 	const handleDelete = (id: string) => {
-		if (confirm('Are you sure you want to delete this income source?')) {
+		if (confirm(t('income.deleteConfirm'))) {
 			deleteMutation.mutate({ id, userId })
 		}
 	}
@@ -303,12 +303,12 @@ function IncomePage() {
 		openDrawer(
 			<div className="p-4">
 				<h2 className="text-2xl font-bold mb-4">
-					Create Transaction from Income
+					{t('income.createTransaction')}
 				</h2>
 				<p className="text-muted-foreground mb-6">
-					Record actual income received
+					{t('income.createTransactionDesc')}
 				</p>
-				{categoriesQuery.data && accountsQuery.data ? (
+				{accountsQuery.data && categoriesQuery.data ? (
 					<TransactionForm
 						categories={categoriesQuery.data}
 						accounts={accountsQuery.data}
@@ -357,15 +357,15 @@ function IncomePage() {
 							})
 						}}
 						onCancel={closeDrawer}
-						submitLabel="Create Transaction"
+						submitLabel={t('income.createTransactionAction')}
 					/>
 				) : (
 					<div className="flex items-center justify-center p-8">
-						<p className="text-muted-foreground">Loading form data...</p>
+						<p className="text-muted-foreground">{t('income.loadingForm')}</p>
 					</div>
 				)}
 			</div>,
-			'Create Transaction'
+			t('income.createTransactionAction')
 		)
 	}
 
@@ -375,17 +375,17 @@ function IncomePage() {
 	) => {
 		switch (type) {
 			case RecurrenceType.NONE:
-				return 'One-time'
+				return t('income.oneTime')
 			case RecurrenceType.WEEKLY:
-				return 'Weekly'
+				return t('income.weekly')
 			case RecurrenceType.MONTHLY:
-				return 'Monthly'
+				return t('income.monthly')
 			case RecurrenceType.QUARTERLY:
-				return 'Quarterly'
+				return t('income.quarterly')
 			case RecurrenceType.YEARLY:
-				return 'Yearly'
+				return t('income.yearly')
 			case RecurrenceType.CUSTOM:
-				return `Every ${customDays} days`
+				return t('income.custom', { days: customDays })
 			default:
 				return type
 		}
@@ -396,55 +396,68 @@ function IncomePage() {
 			{/* Toolbar */}
 			<div className="flex items-center justify-end gap-2">
 				<Button
-					variant={includeArchived ? 'default' : 'outline'}
+					variant="outline"
 					onClick={() => setIncludeArchived(!includeArchived)}
-					size="sm"
 				>
-					{includeArchived ? 'Hide Archived' : 'Show Archived'}
+					{includeArchived
+						? t('income.hideArchived')
+						: t('income.showArchived')}
 				</Button>
 				<Button onClick={handleCreate}>
-					<PlusIcon className="h-4 w-4 mr-2" />
-					New Income
+					<Plus className="mr-2 h-4 w-4" />
+					{t('income.add')}
 				</Button>
 			</div>
-			<Card>
-				<CardContent>
-					{incomeQuery.isLoading ? (
-						<div className="text-center py-8 text-muted-foreground">
-							Loading income...
-						</div>
-					) : incomeQuery.data?.length === 0 ? (
-						<div className="text-center py-8 text-muted-foreground">
-							No recurring income found. Add your salary or other income
-							sources.
-						</div>
-					) : (
+
+			{incomeQuery.isLoading ? (
+				<div className="flex items-center justify-center p-8">
+					<p className="text-muted-foreground">{t('income.loading')}</p>
+				</div>
+			) : !incomeQuery.data || incomeQuery.data.length === 0 ? (
+				<div className="flex flex-col items-center justify-center p-12 border rounded-lg bg-card text-card-foreground shadow-sm">
+					<div className="bg-primary/10 p-4 rounded-full mb-4">
+						<Wallet className="h-8 w-8 text-primary" />
+					</div>
+					<h3 className="text-lg font-semibold mb-2">{t('nav.income')}</h3>
+					<p className="text-muted-foreground text-center max-w-sm mb-6">
+						{t('income.noIncome')}
+					</p>
+					<Button onClick={handleCreate}>
+						<Plus className="mr-2 h-4 w-4" />
+						{t('income.add')}
+					</Button>
+				</div>
+			) : (
+				<Card>
+					<CardContent>
 						<Table>
 							<TableHeader>
 								<TableRow>
-									<TableHead>Name</TableHead>
-									<TableHead>Source</TableHead>
-									<TableHead>Account</TableHead>
-									<TableHead>Amount</TableHead>
-									<TableHead>Recurrence</TableHead>
-									<TableHead>Next Expected</TableHead>
-									<TableHead>Category</TableHead>
-									<TableHead className="text-right">Actions</TableHead>
+									<TableHead>{t('common.name')}</TableHead>
+									<TableHead>{t('income.source')}</TableHead>
+									<TableHead>{t('common.account')}</TableHead>
+									<TableHead>{t('common.amount')}</TableHead>
+									<TableHead>{t('recurrence.label')}</TableHead>
+									<TableHead>{t('income.nextExpected')}</TableHead>
+									<TableHead>{t('common.category')}</TableHead>
+									<TableHead className="text-right">
+										{t('common.actions')}
+									</TableHead>
 								</TableRow>
 							</TableHeader>
 							<TableBody>
-								{incomeQuery.data?.map((income) => (
+								{incomeQuery.data.map((income) => (
 									<TableRow
 										key={income.id}
 										className={income.isArchived ? 'opacity-50' : ''}
 									>
 										<TableCell className="font-medium">
-											{income.name}
 											{income.isArchived && (
-												<Badge variant="secondary" className="ml-2">
-													Archived
+												<Badge variant="secondary" className="mr-2">
+													{t('income.archived')}
 												</Badge>
 											)}
+											{income.name}
 										</TableCell>
 										<TableCell>{income.source}</TableCell>
 										<TableCell>
@@ -455,20 +468,22 @@ function IncomePage() {
 													<TooltipProvider>
 														<Tooltip>
 															<TooltipTrigger>
-																<AlertTriangleIcon className="h-4 w-4 text-yellow-500" />
+																<AlertCircle className="h-4 w-4 text-yellow-500" />
 															</TooltipTrigger>
 															<TooltipContent>
-																<p>
-																	This account is archived. Please update the
-																	income source.
-																</p>
+																<p>{t('income.archivedAccountWarning')}</p>
 															</TooltipContent>
 														</Tooltip>
 													</TooltipProvider>
 												)}
 											</div>
 										</TableCell>
-										<TableCell>${income.estimatedAmount.toFixed(2)}</TableCell>
+										<TableCell>
+											{new Intl.NumberFormat('sv-SE', {
+												style: 'currency',
+												currency: 'SEK'
+											}).format(income.estimatedAmount)}
+										</TableCell>
 										<TableCell>
 											{getRecurrenceLabel(
 												income.recurrenceType,
@@ -490,29 +505,40 @@ function IncomePage() {
 													<DropdownMenuItem
 														onClick={() => handleCreateTransactionClick(income)}
 													>
-														<ReceiptIcon className="h-4 w-4 mr-2" />
-														Create Transaction
+														<PlusCircle className="mr-2 h-4 w-4" />
+														{t('income.createTransactionAction')}
 													</DropdownMenuItem>
 													<DropdownMenuSeparator />
 													<DropdownMenuItem onClick={() => handleEdit(income)}>
-														<Edit2Icon className="h-4 w-4 mr-2" />
-														Edit
+														<Pencil className="mr-2 h-4 w-4" />
+														{t('common.edit')}
 													</DropdownMenuItem>
 													<DropdownMenuItem
 														onClick={() =>
-															handleArchive(income.id, !income.isArchived)
+															income.isArchived
+																? handleArchive(income.id, false)
+																: handleArchive(income.id, true)
 														}
 													>
-														<ArchiveIcon className="h-4 w-4 mr-2" />
-														{income.isArchived ? 'Unarchive' : 'Archive'}
+														{income.isArchived ? (
+															<>
+																<ArchiveRestore className="mr-2 h-4 w-4" />
+																{t('common.unarchive')}
+															</>
+														) : (
+															<>
+																<Archive className="mr-2 h-4 w-4" />
+																{t('common.archive')}
+															</>
+														)}
 													</DropdownMenuItem>
 													<DropdownMenuSeparator />
 													<DropdownMenuItem
 														onClick={() => handleDelete(income.id)}
 														className="text-destructive"
 													>
-														<TrashIcon className="h-4 w-4 mr-2" />
-														Delete
+														<Trash2 className="mr-2 h-4 w-4" />
+														{t('common.delete')}
 													</DropdownMenuItem>
 												</DropdownMenuContent>
 											</DropdownMenu>
@@ -521,9 +547,9 @@ function IncomePage() {
 								))}
 							</TableBody>
 						</Table>
-					)}
-				</CardContent>
-			</Card>
+					</CardContent>
+				</Card>
+			)}
 		</div>
 	)
 }

@@ -1,5 +1,6 @@
 import { useUser } from '@clerk/clerk-react'
 import { createContext, type ReactNode, useContext } from 'react'
+import { useTranslation } from 'react-i18next'
 import { NoHousehold } from '@/components/dashboard/NoHousehold'
 import { useSelectedHousehold } from '@/hooks/use-selected-household'
 
@@ -24,6 +25,7 @@ interface AuthProviderProps {
  * Handles loading states and shows NoHousehold when no household is selected.
  */
 export function AuthProvider({ children }: AuthProviderProps) {
+	const { t } = useTranslation()
 	const { user, isLoaded } = useUser()
 	const userId = user?.id
 
@@ -37,7 +39,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 	if (!isLoaded || isHouseholdLoading) {
 		return (
 			<div className="flex items-center justify-center">
-				<p className="text-muted-foreground">Loading...</p>
+				<p className="text-muted-foreground">{t('common.loading')}</p>
 			</div>
 		)
 	}

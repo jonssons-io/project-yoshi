@@ -2,6 +2,7 @@
  * IncomeForm - Form for creating and editing recurring income
  */
 
+import { useTranslation } from 'react-i18next'
 import { z } from 'zod'
 import {
 	type ComboboxValue,
@@ -13,17 +14,17 @@ import { RecurrenceType } from '@/generated/prisma/enums'
 
 // Schema for the form
 const incomeSchema = z.object({
-	name: z.string().min(1, 'Name is required'),
-	source: z.string().min(1, 'Source is required'),
-	amount: z.number().positive('Amount must be positive'),
-	expectedDate: z.date({ message: 'Date is required' }),
-	accountId: z.string().min(1, 'Account is required'),
+	name: z.string().min(1, 'validation.nameRequired'),
+	source: z.string().min(1, 'validation.sourceRequired'),
+	amount: z.number().positive('validation.positive'),
+	expectedDate: z.date({ message: 'validation.dateRequired' }),
+	accountId: z.string().min(1, 'validation.accountRequired'),
 	// Handle new category creation
 	category: z.union([
-		z.string().min(1, { message: 'Category is required' }),
+		z.string().min(1, { message: 'validation.categoryRequired' }),
 		z.object({
 			isNew: z.literal(true),
-			name: z.string().min(1, { message: 'Category name is required' })
+			name: z.string().min(1, { message: 'validation.categoryNameRequired' })
 		})
 	]),
 	recurrenceType: z.nativeEnum(RecurrenceType),
@@ -48,8 +49,10 @@ export function IncomeForm({
 	accounts,
 	onSubmit,
 	onCancel,
-	submitLabel = 'Save Income'
+	submitLabel
 }: IncomeFormProps) {
+	const { t } = useTranslation()
+	const effectiveSubmitLabel = submitLabel || t('forms.saveIncome')
 	// Filter for only INCOME categories
 	const incomeCategories = categories.filter((c) => c.type === 'INCOME')
 
@@ -81,10 +84,14 @@ export function IncomeForm({
 		label: a.name
 	}))
 
-	const recurrenceOptions = Object.values(RecurrenceType).map((t) => ({
-		value: t,
-		label: t.charAt(0) + t.slice(1).toLowerCase() // Capitalize
-	}))
+	const recurrenceOptions = [
+		{ value: RecurrenceType.NONE, label: t('recurrence.none') },
+		{ value: RecurrenceType.WEEKLY, label: t('recurrence.weekly') },
+		{ value: RecurrenceType.MONTHLY, label: t('recurrence.monthly') },
+		{ value: RecurrenceType.QUARTERLY, label: t('recurrence.quarterly') },
+		{ value: RecurrenceType.YEARLY, label: t('recurrence.yearly') },
+		{ value: RecurrenceType.CUSTOM, label: t('recurrence.custom') }
+	]
 
 	return (
 		<form
@@ -103,8 +110,8 @@ export function IncomeForm({
 			>
 				{(field) => (
 					<field.TextField
-						label="Income Name"
-						placeholder="e.g. Salary, Dividend"
+						label={t('forms.incomeName')}
+						placeholder={t('forms.incomePlaceholder')}
 					/>
 				)}
 			</form.AppField>
@@ -117,8 +124,8 @@ export function IncomeForm({
 			>
 				{(field) => (
 					<field.TextField
-						label="Source / Payer"
-						placeholder="e.g. Employer Name"
+						label={t('forms.source')}
+						placeholder={t('forms.sourcePlaceholder')}
 					/>
 				)}
 			</form.AppField>
@@ -132,7 +139,7 @@ export function IncomeForm({
 				>
 					{(field) => (
 						<field.NumberField
-							label="Estimated Amount"
+							label={t('forms.estimatedAmount')}
 							placeholder="0.00"
 							min={0}
 							step="0.01"
@@ -146,7 +153,7 @@ export function IncomeForm({
 						onChange: createZodValidator(incomeSchema.shape.expectedDate)
 					}}
 				>
-					{(field) => <field.DateField label="Next Expected Date" />}
+					{(field) => <field.DateField label={t('forms.nextExpectedDate')} />}
 				</form.AppField>
 			</div>
 
@@ -154,11 +161,11 @@ export function IncomeForm({
 				<form.AppField name="category">
 					{(field) => (
 						<field.ComboboxField
-							label="Category"
-							placeholder="Select or create category"
+							label={t('common.category')}
+							placeholder={t('forms.selectCategory')}
 							options={categoryOptions}
 							allowCreate
-							createLabel="Create income category"
+							createLabel={t('forms.createIncomeCategory')}
 						/>
 					)}
 				</form.AppField>
@@ -171,8 +178,8 @@ export function IncomeForm({
 				>
 					{(field) => (
 						<field.SelectField
-							label="Deposit Account"
-							placeholder="Select account"
+							label={t('forms.depositAccount')}
+							placeholder={t('forms.selectAccount')}
 							options={accountOptions}
 						/>
 					)}
@@ -188,8 +195,8 @@ export function IncomeForm({
 				>
 					{(field) => (
 						<field.SelectField
-							label="Recurrence"
-							placeholder="Select frequency"
+							label={t('recurrence.label')}
+							placeholder={t('forms.selectFrequency')}
 							options={recurrenceOptions}
 						/>
 					)}
@@ -208,8 +215,8 @@ export function IncomeForm({
 							>
 								{(field) => (
 									<field.NumberField
-										label="Interval (Days)"
-										placeholder="e.g. 14"
+										label={t('forms.intervalDays')}
+										placeholder={t('forms.intervalPlaceholder')}
 										min={1}
 									/>
 								)}
@@ -225,11 +232,14 @@ export function IncomeForm({
 					onChange: createZodValidator(incomeSchema.shape.endDate)
 				}}
 			>
-				{(field) => <field.DateField label="End Date (Optional)" />}
+				{(field) => <field.DateField label={t('forms.endDate')} />}
 			</form.AppField>
 
 			<form.AppForm>
-				<form.FormButtonGroup onCancel={onCancel} submitLabel={submitLabel} />
+				<form.FormButtonGroup
+					onCancel={onCancel}
+					submitLabel={effectiveSubmitLabel}
+				/>
 			</form.AppForm>
 		</form>
 	)

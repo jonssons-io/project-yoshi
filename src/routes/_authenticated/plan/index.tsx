@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { ArrowLeftRight, Plus } from 'lucide-react'
 import * as React from 'react'
+import { useTranslation } from 'react-i18next'
 import { AllocationDrawer } from '@/components/allocations/AllocationDrawer'
 import { TransferDrawer } from '@/components/allocations/TransferDrawer'
 import { Button } from '@/components/ui/button'
@@ -15,6 +16,7 @@ export const Route = createFileRoute('/_authenticated/plan/')({
 })
 
 function PlanPage() {
+	const { t } = useTranslation()
 	const { userId, householdId } = useAuth()
 
 	// Drawers state
@@ -41,7 +43,7 @@ function PlanPage() {
 	}
 
 	if (allocations.isLoading || budgets.isLoading) {
-		return <div className="p-8">Loading plan...</div>
+		return <div className="p-8">{t('plan.loading')}</div>
 	}
 
 	const unallocatedAmount = allocations.data?.unallocated ?? 0
@@ -54,11 +56,11 @@ function PlanPage() {
 			<div className="flex justify-end gap-2">
 				<Button onClick={handleGeneralAllocate}>
 					<Plus className="mr-2 h-4 w-4" />
-					Allocate Funds
+					{t('plan.allocateFunds')}
 				</Button>
 				<Button variant="outline" onClick={() => setTransferOpen(true)}>
 					<ArrowLeftRight className="mr-2 h-4 w-4" />
-					Transfer Funds
+					{t('plan.transferFunds')}
 				</Button>
 			</div>
 
@@ -68,18 +70,18 @@ function PlanPage() {
 				<Card>
 					<CardHeader>
 						<CardTitle className="text-sm font-medium">
-							Total Available Funds
+							{t('plan.totalAvailable')}
 						</CardTitle>
 					</CardHeader>
 					<CardContent>
 						<div className="text-3xl font-bold">
-							{new Intl.NumberFormat('en-US', {
+							{new Intl.NumberFormat('sv-SE', {
 								style: 'currency',
 								currency: 'SEK'
 							}).format(totalFunds)}
 						</div>
 						<p className="text-xs text-muted-foreground mt-1">
-							Allocated + Unallocated
+							{t('plan.allocatedPlusUnallocated')}
 						</p>
 					</CardContent>
 				</Card>
@@ -88,14 +90,16 @@ function PlanPage() {
 				<Card>
 					<CardHeader>
 						<CardTitle className="text-sm font-medium">
-							Funds Breakdown
+							{t('plan.breakdown')}
 						</CardTitle>
 					</CardHeader>
 					<CardContent className="flex justify-between items-center">
 						<div>
-							<div className="text-sm text-muted-foreground">Allocated</div>
+							<div className="text-sm text-muted-foreground">
+								{t('plan.allocated')}
+							</div>
 							<div className="text-2xl font-bold">
-								{new Intl.NumberFormat('en-US', {
+								{new Intl.NumberFormat('sv-SE', {
 									style: 'currency',
 									currency: 'SEK'
 								}).format(totalAllocatedAmount)}
@@ -103,9 +107,11 @@ function PlanPage() {
 						</div>
 						<div className="h-8 w-[1px] bg-border mx-4" />
 						<div className="text-right">
-							<div className="text-sm text-muted-foreground">Unallocated</div>
+							<div className="text-sm text-muted-foreground">
+								{t('plan.unallocated')}
+							</div>
 							<div className="text-2xl font-bold text-primary">
-								{new Intl.NumberFormat('en-US', {
+								{new Intl.NumberFormat('sv-SE', {
 									style: 'currency',
 									currency: 'SEK'
 								}).format(unallocatedAmount)}
@@ -139,7 +145,7 @@ function PlanPage() {
 										variant="ghost"
 										className="h-8 w-8"
 										onClick={() => handleAllocateToBudget(budget.id)}
-										title="Allocate to this budget"
+										title={t('plan.allocateToBudget')}
 									>
 										<Plus className="h-4 w-4" />
 									</Button>
@@ -147,21 +153,22 @@ function PlanPage() {
 							</CardHeader>
 							<CardContent>
 								<div className="text-2xl font-bold">
-									{new Intl.NumberFormat('en-US', {
+									{new Intl.NumberFormat('sv-SE', {
 										style: 'currency',
 										currency: 'SEK'
 									}).format(remaining)}
 								</div>
 								<p className="text-xs text-muted-foreground">
-									{new Intl.NumberFormat('en-US', {
-										style: 'currency',
-										currency: 'SEK'
-									}).format(spent)}{' '}
-									spent of{' '}
-									{new Intl.NumberFormat('en-US', {
-										style: 'currency',
-										currency: 'SEK'
-									}).format(allocated)}
+									{t('plan.spentOf', {
+										spent: new Intl.NumberFormat('sv-SE', {
+											style: 'currency',
+											currency: 'SEK'
+										}).format(spent),
+										total: new Intl.NumberFormat('sv-SE', {
+											style: 'currency',
+											currency: 'SEK'
+										}).format(allocated)
+									})}
 								</p>
 								<Progress value={progress} className="mt-3" />
 							</CardContent>
