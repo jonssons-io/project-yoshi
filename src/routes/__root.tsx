@@ -9,6 +9,7 @@ import {
 } from '@tanstack/react-router'
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import type { TRPCOptionsProxy } from '@trpc/tanstack-react-query'
+import { MockProvider } from '@/__mocks__/MockProvider'
 import { trpcClient } from '@/integrations/tanstack-query/root-provider'
 import { TRPCProvider } from '@/integrations/trpc/react'
 import type { TRPCRouter } from '@/integrations/trpc/router'
@@ -57,30 +58,32 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 				<HeadContent />
 			</head>
 			<body>
-				<QueryClientProvider client={context.queryClient}>
-					<TRPCProvider
-						trpcClient={trpcClient}
-						queryClient={context.queryClient}
-					>
-						<ClerkProvider
-							publishableKey={import.meta.env.VITE_CLERK_PUBLISHABLE_KEY}
+				<MockProvider>
+					<QueryClientProvider client={context.queryClient}>
+						<TRPCProvider
+							trpcClient={trpcClient}
+							queryClient={context.queryClient}
 						>
-							{children}
-							<TanStackDevtools
-								config={{
-									position: 'bottom-right'
-								}}
-								plugins={[
-									{
-										name: 'Tanstack Router',
-										render: <TanStackRouterDevtoolsPanel />
-									},
-									TanStackQueryDevtools
-								]}
-							/>
-						</ClerkProvider>
-					</TRPCProvider>
-				</QueryClientProvider>
+							<ClerkProvider
+								publishableKey={import.meta.env.VITE_CLERK_PUBLISHABLE_KEY}
+							>
+								{children}
+								<TanStackDevtools
+									config={{
+										position: 'bottom-right'
+									}}
+									plugins={[
+										{
+											name: 'Tanstack Router',
+											render: <TanStackRouterDevtoolsPanel />
+										},
+										TanStackQueryDevtools
+									]}
+								/>
+							</ClerkProvider>
+						</TRPCProvider>
+					</QueryClientProvider>
+				</MockProvider>
 				<Scripts />
 			</body>
 		</html>
