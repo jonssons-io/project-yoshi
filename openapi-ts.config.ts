@@ -6,7 +6,10 @@ export default defineConfig({
 		path: './src/api/generated'
 	},
 	plugins: [
-		'@hey-api/typescript',
+		{
+			name: '@hey-api/typescript',
+			enums: 'javascript'
+		},
 		{
 			name: '@hey-api/sdk',
 			auth: true,

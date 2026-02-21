@@ -4,11 +4,28 @@ export type ClientOptions = {
     baseUrl: `${string}://${string}/api/v1` | (string & {});
 };
 
-export type CategoryType = 'INCOME' | 'EXPENSE';
+export const CategoryType = { INCOME: 'INCOME', EXPENSE: 'EXPENSE' } as const;
 
-export type RecurrenceType = 'NONE' | 'WEEKLY' | 'MONTHLY' | 'QUARTERLY' | 'YEARLY' | 'CUSTOM';
+export type CategoryType = typeof CategoryType[keyof typeof CategoryType];
 
-export type InvitationStatus = 'PENDING' | 'ACCEPTED' | 'DECLINED';
+export const RecurrenceType = {
+    NONE: 'NONE',
+    WEEKLY: 'WEEKLY',
+    MONTHLY: 'MONTHLY',
+    QUARTERLY: 'QUARTERLY',
+    YEARLY: 'YEARLY',
+    CUSTOM: 'CUSTOM'
+} as const;
+
+export type RecurrenceType = typeof RecurrenceType[keyof typeof RecurrenceType];
+
+export const InvitationStatus = {
+    PENDING: 'PENDING',
+    ACCEPTED: 'ACCEPTED',
+    DECLINED: 'DECLINED'
+} as const;
+
+export type InvitationStatus = typeof InvitationStatus[keyof typeof InvitationStatus];
 
 export type Household = {
     id: string;
@@ -141,7 +158,13 @@ export type TransactionGroupedByCategory = {
     count: number;
 };
 
-export type BillUpdateType = 'INSTANCE' | 'FUTURE' | 'ALL';
+export const BillUpdateType = {
+    INSTANCE: 'INSTANCE',
+    FUTURE: 'FUTURE',
+    ALL: 'ALL'
+} as const;
+
+export type BillUpdateType = typeof BillUpdateType[keyof typeof BillUpdateType];
 
 export type Bill = {
     id: string;
