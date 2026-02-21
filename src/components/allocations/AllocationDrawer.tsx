@@ -18,7 +18,7 @@ import {
 	SelectTrigger,
 	SelectValue
 } from '@/components/ui/select'
-import type { Budget } from '@/generated/prisma/client'
+import type { Budget } from '@/api/generated/types.gen'
 import { useBudgetsList } from '@/hooks/api/queries/use-budgets-query'
 import { useCreateAllocationMutation } from '@/hooks/api/use-allocations'
 

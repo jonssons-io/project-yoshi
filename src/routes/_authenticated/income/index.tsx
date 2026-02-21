@@ -52,7 +52,7 @@ import {
 } from '@/components/ui/tooltip'
 import { useAuth } from '@/contexts/auth-context'
 import { IncomeForm } from '@/forms/IncomeForm'
-import { RecurrenceType } from '@/generated/prisma/enums'
+import { RecurrenceType } from '@/api/generated/types.gen'
 import {
 	useAccountsList,
 	useArchiveIncome,

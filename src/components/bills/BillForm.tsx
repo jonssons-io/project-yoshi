@@ -13,7 +13,7 @@ import {
 	useAppForm,
 	validateForm
 } from '@/components/form'
-import { RecurrenceType } from '@/generated/prisma/enums'
+import { RecurrenceType } from '@/api/generated/types.gen'
 
 // Schema for bill form - categoryId is handled via ComboboxValue
 // Schema for bill form - categoryId is handled via ComboboxValue

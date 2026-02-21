@@ -10,7 +10,7 @@ import {
 	useAppForm,
 	validateForm
 } from '@/components/form'
-import { RecurrenceType } from '@/generated/prisma/enums'
+import { RecurrenceType } from '@/api/generated/types.gen'
 
 // Schema for the form
 const incomeSchema = z.object({

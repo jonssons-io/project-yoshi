@@ -1,41 +1,48 @@
-import { createQueryHook } from './create-query-hook'
+import { useQuery } from '@tanstack/react-query'
+import {
+	getCategoryOptions,
+	listCategoriesOptions
+} from '@/api/generated/@tanstack/react-query.gen'
 
 /**
  * Hook to fetch list of categories for a household
  * Query is auto-disabled when householdId or userId is undefined/null
  */
-export const useCategoriesList = createQueryHook(
-	'categories',
-	'list',
-	(params: {
-		householdId?: string | null
-		userId?: string | null
-		budgetId?: string | null
-		type?: 'INCOME' | 'EXPENSE'
-		enabled?: boolean
-	}) => ({
-		householdId: params.householdId ?? '',
-		userId: params.userId ?? '',
-		budgetId: params.budgetId || undefined,
-		type: params.type
-	}),
-	(params) => [params.householdId, params.userId]
-)
+export function useCategoriesList(params: {
+	householdId?: string | null
+	userId?: string | null
+	budgetId?: string | null
+	type?: 'INCOME' | 'EXPENSE'
+	enabled?: boolean
+}) {
+	const { householdId, budgetId, type, enabled = true } = params
+	return useQuery({
+		...listCategoriesOptions({
+			path: { householdId: householdId ?? '' },
+			query: {
+				budgetId: budgetId ?? undefined,
+				type: type as never
+			}
+		}),
+		enabled: enabled && !!householdId,
+		select: (response) => response.data ?? []
+	})
+}
 
 /**
  * Hook to fetch a single category by ID
  * Query is auto-disabled when categoryId or userId is undefined/null
  */
-export const useCategoryById = createQueryHook(
-	'categories',
-	'getById',
-	(params: {
-		categoryId?: string | null
-		userId?: string | null
-		enabled?: boolean
-	}) => ({
-		id: params.categoryId ?? '',
-		userId: params.userId ?? ''
-	}),
-	(params) => [params.categoryId, params.userId]
-)
+export function useCategoryById(params: {
+	categoryId?: string | null
+	userId?: string | null
+	enabled?: boolean
+}) {
+	const { categoryId, enabled = true } = params
+	return useQuery({
+		...getCategoryOptions({
+			path: { categoryId: categoryId ?? '' }
+		}),
+		enabled: enabled && !!categoryId
+	})
+}

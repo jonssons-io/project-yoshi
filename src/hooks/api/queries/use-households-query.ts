@@ -1,49 +1,58 @@
-import { createQueryHook } from './create-query-hook'
+import { useQuery } from '@tanstack/react-query'
+import {
+	getHouseholdMembersOptions,
+	getHouseholdOptions,
+	listHouseholdsOptions
+} from '@/api/generated/@tanstack/react-query.gen'
 
 /**
  * Hook to fetch list of households for a user
  * Query is auto-disabled when userId is undefined/null
  */
-export const useHouseholdsList = createQueryHook(
-	'households',
-	'list',
-	(params: { userId?: string | null; enabled?: boolean }) => ({
-		userId: params.userId ?? ''
-	}),
-	(params) => [params.userId]
-)
+export function useHouseholdsList(params: {
+	userId?: string | null
+	enabled?: boolean
+}) {
+	const { enabled = true } = params
+	return useQuery({
+		...listHouseholdsOptions(),
+		enabled,
+		select: (response) => response.data ?? []
+	})
+}
 
 /**
  * Hook to fetch a single household by ID
  * Query is auto-disabled when householdId or userId is undefined/null
  */
-export const useHouseholdById = createQueryHook(
-	'households',
-	'getById',
-	(params: {
-		householdId?: string | null
-		userId?: string | null
-		enabled?: boolean
-	}) => ({
-		id: params.householdId ?? '',
-		userId: params.userId ?? ''
-	}),
-	(params) => [params.householdId, params.userId]
-)
+export function useHouseholdById(params: {
+	householdId?: string | null
+	userId?: string | null
+	enabled?: boolean
+}) {
+	const { householdId, enabled = true } = params
+	return useQuery({
+		...getHouseholdOptions({
+			path: { householdId: householdId ?? '' }
+		}),
+		enabled: enabled && !!householdId
+	})
+}
 
 /**
  * Hook to fetch members of a household
  */
-export const useHouseholdMembers = createQueryHook(
-	'households',
-	'getMembers',
-	(params: {
-		householdId?: string | null
-		userId?: string | null
-		enabled?: boolean
-	}) => ({
-		householdId: params.householdId ?? '',
-		userId: params.userId ?? ''
-	}),
-	(params) => [params.householdId, params.userId]
-)
+export function useHouseholdMembers(params: {
+	householdId?: string | null
+	userId?: string | null
+	enabled?: boolean
+}) {
+	const { householdId, enabled = true } = params
+	return useQuery({
+		...getHouseholdMembersOptions({
+			path: { householdId: householdId ?? '' }
+		}),
+		enabled: enabled && !!householdId,
+		select: (response) => response.data ?? []
+	})
+}

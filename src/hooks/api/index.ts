@@ -26,5 +26,5 @@ export * from './queries/use-recipients-query'
 export * from './queries/use-transactions-query'
 export * from './queries/use-transfers-query'
 // Types
-export type { MutationCallbacks, RouterInputs, RouterOutputs } from './types'
+export type { MutationCallbacks } from './types'
 export * from './use-allocations'

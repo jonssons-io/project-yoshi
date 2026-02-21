@@ -1,37 +1,42 @@
-import { createQueryHook } from './create-query-hook'
+import { useQuery } from '@tanstack/react-query'
+import {
+	getRecipientOptions,
+	listRecipientsOptions
+} from '@/api/generated/@tanstack/react-query.gen'
 
 /**
  * Hook to fetch list of recipients for a household
  * Query is auto-disabled when householdId or userId is undefined/null
  */
-export const useRecipientsList = createQueryHook(
-	'recipients',
-	'list',
-	(params: {
-		householdId?: string | null
-		userId?: string | null
-		enabled?: boolean
-	}) => ({
-		householdId: params.householdId ?? '',
-		userId: params.userId ?? ''
-	}),
-	(params) => [params.householdId, params.userId]
-)
+export function useRecipientsList(params: {
+	householdId?: string | null
+	userId?: string | null
+	enabled?: boolean
+}) {
+	const { householdId, enabled = true } = params
+	return useQuery({
+		...listRecipientsOptions({
+			path: { householdId: householdId ?? '' }
+		}),
+		enabled: enabled && !!householdId,
+		select: (response) => response.data ?? []
+	})
+}
 
 /**
  * Hook to fetch a single recipient by ID
  * Query is auto-disabled when recipientId or userId is undefined/null
  */
-export const useRecipientById = createQueryHook(
-	'recipients',
-	'getById',
-	(params: {
-		recipientId?: string | null
-		userId?: string | null
-		enabled?: boolean
-	}) => ({
-		id: params.recipientId ?? '',
-		userId: params.userId ?? ''
-	}),
-	(params) => [params.recipientId, params.userId]
-)
+export function useRecipientById(params: {
+	recipientId?: string | null
+	userId?: string | null
+	enabled?: boolean
+}) {
+	const { recipientId, enabled = true } = params
+	return useQuery({
+		...getRecipientOptions({
+			path: { recipientId: recipientId ?? '' }
+		}),
+		enabled: enabled && !!recipientId
+	})
+}
