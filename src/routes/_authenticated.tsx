@@ -1,7 +1,10 @@
 import { useClerk, useUser } from '@clerk/clerk-react'
+import { useAuth } from '@clerk/tanstack-react-start'
 import { auth } from '@clerk/tanstack-react-start/server'
 import { createFileRoute, Outlet, redirect } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
+import { useEffect } from 'react'
+import { configureApiClient } from '@/api/client-config'
 import { AppSidebar } from '@/components/app-sidebar'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
 import { PendingInvitations } from '@/components/dashboard/PendingInvitations'
@@ -54,9 +57,14 @@ function AuthenticatedLayout() {
 function AuthenticatedLayoutContent() {
 	const { t } = useTranslation()
 	const { user } = useUser()
+	const { getToken } = useAuth()
 	const { signOut } = useClerk()
 	const userId = user?.id
 	const { openDrawer, closeDrawer } = useDrawer()
+
+	useEffect(() => {
+		configureApiClient(getToken)
+	}, [getToken])
 
 	const { selectedHouseholdId, setSelectedHousehold } =
 		useSelectedHousehold(userId)

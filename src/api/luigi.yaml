@@ -1,0 +1,2663 @@
+openapi: 3.1.0
+info:
+  title: Project Luigi API
+  description: |
+    Household budgeting and finance management API.
+    Extracted from the existing tRPC-based implementation for migration to a standalone REST backend with PostgreSQL.
+
+    ## Authentication
+    All endpoints (except where noted) require a valid Bearer token (Clerk JWT).
+    The authenticated user's ID is derived from the token — it is **no longer passed in the request body**.
+
+    ## Key Concepts
+    - **Household** — Top-level unit. Users, accounts, budgets, and categories are scoped to a household.
+    - **Budget** — A spending plan linked to categories and accounts via many-to-many join tables.
+    - **Account** — A financial account (bank, cash, etc.) with an initial balance.
+    - **Category** — Tagged as INCOME, EXPENSE, or both. Linked to budgets.
+    - **Transaction** — An income or expense entry tied to an account and optionally a budget.
+    - **Transfer** — Moves funds between two accounts within the same budget.
+    - **Bill / Bill** — A bill template and its generated instances.
+    - **Income** — A recurring income source definition.
+    - **Recipient** — A payee or payer, scoped to a household.
+    - **Invitation** — Email-based invite to join a household.
+    - **Allocation** — Funds allocated (or transferred) between budgets.
+
+    ## Snapshot Recalculation
+    Creating, updating, or deleting a transaction triggers asynchronous recalculation of account balance snapshots from the affected date forward. Similarly, changes affecting budget totals trigger budget snapshot recalculation.
+
+    ## Pagination
+    List endpoints support `limit` (max 100, default 50) and `offset` (default 0) query parameters. Responses include pagination metadata.
+  version: 1.0.0
+  contact:
+    name: Project Yoshi
+
+servers:
+  - url: /api/v1
+    description: API v1
+
+# ─────────────────────────────────────────────
+# Security
+# ─────────────────────────────────────────────
+security:
+  - bearerAuth: []
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  # ───────── Enums ─────────
+  schemas:
+    CategoryType:
+      type: string
+      enum: [INCOME, EXPENSE]
+
+    RecurrenceType:
+      type: string
+      enum: [NONE, WEEKLY, MONTHLY, QUARTERLY, YEARLY, CUSTOM]
+
+    InvitationStatus:
+      type: string
+      enum: [PENDING, ACCEPTED, DECLINED]
+
+    # ───────── Core Models ─────────
+    Household:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        _count:
+          type: object
+          properties:
+            users:
+              type: integer
+            budgets:
+              type: integer
+            categories:
+              type: integer
+            accounts:
+              type: integer
+      required: [id, name, createdAt]
+
+    HouseholdUser:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        householdId:
+          type: string
+        joinedAt:
+          type: string
+          format: date-time
+      required: [id, userId, householdId, joinedAt]
+
+    HouseholdMember:
+      allOf:
+        - $ref: '#/components/schemas/HouseholdUser'
+        - type: object
+          properties:
+            user:
+              type: object
+              nullable: true
+              properties:
+                id:
+                  type: string
+                firstName:
+                  type: string
+                  nullable: true
+                lastName:
+                  type: string
+                  nullable: true
+                fullName:
+                  type: string
+                imageUrl:
+                  type: string
+                email:
+                  type: string
+
+    Account:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        externalIdentifier:
+          type: string
+          nullable: true
+        initialBalance:
+          type: number
+          format: double
+        householdId:
+          type: string
+        isArchived:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        _count:
+          type: object
+          properties:
+            transactions:
+              type: integer
+            budgets:
+              type: integer
+      required: [id, name, initialBalance, householdId, isArchived, createdAt]
+
+    AccountBalance:
+      type: object
+      properties:
+        accountId:
+          type: string
+        accountName:
+          type: string
+        initialBalance:
+          type: number
+          format: double
+        currentBalance:
+          type: number
+          format: double
+        transactionCount:
+          type: integer
+        latestSnapshot:
+          $ref: '#/components/schemas/AccountBalanceSnapshot'
+      required: [accountId, accountName, initialBalance, currentBalance, transactionCount]
+
+    Budget:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        startDate:
+          type: string
+          format: date-time
+        householdId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        allocatedAmount:
+          type: number
+          format: double
+        spentAmount:
+          type: number
+          format: double
+        remainingAmount:
+          type: number
+          format: double
+        _count:
+          type: object
+          properties:
+            transactions:
+              type: integer
+            bills:
+              type: integer
+            categories:
+              type: integer
+            accounts:
+              type: integer
+      required: [id, name, startDate, householdId, createdAt]
+
+    BudgetDetail:
+      allOf:
+        - $ref: '#/components/schemas/Budget'
+        - type: object
+          properties:
+            household:
+              $ref: '#/components/schemas/Household'
+            categories:
+              type: array
+              items:
+                type: object
+                properties:
+                  budgetId:
+                    type: string
+                  categoryId:
+                    type: string
+                  category:
+                    $ref: '#/components/schemas/Category'
+            accounts:
+              type: array
+              items:
+                type: object
+                properties:
+                  budgetId:
+                    type: string
+                  accountId:
+                    type: string
+                  account:
+                    $ref: '#/components/schemas/Account'
+
+    Category:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        types:
+          type: array
+          items:
+            $ref: '#/components/schemas/CategoryType'
+        householdId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        _count:
+          type: object
+          properties:
+            transactions:
+              type: integer
+            budgets:
+              type: integer
+      required: [id, name, types, householdId, createdAt]
+
+    Transaction:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        amount:
+          type: number
+          format: double
+        date:
+          type: string
+          format: date-time
+        notes:
+          type: string
+          nullable: true
+        categoryId:
+          type: string
+          nullable: true
+        accountId:
+          type: string
+        budgetId:
+          type: string
+          nullable: true
+        billId:
+          type: string
+          nullable: true
+        recipientId:
+          type: string
+          nullable: true
+        incomeId:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        category:
+          $ref: '#/components/schemas/Category'
+        account:
+          $ref: '#/components/schemas/Account'
+        recipient:
+          $ref: '#/components/schemas/Recipient'
+        splits:
+          type: array
+          items:
+            $ref: '#/components/schemas/TransactionSplit'
+      required: [id, name, amount, date, accountId, createdAt]
+
+    TransactionSplit:
+      type: object
+      properties:
+        id:
+          type: string
+        transactionId:
+          type: string
+        categoryId:
+          type: string
+        amount:
+          type: number
+          format: double
+        subtitle:
+          type: string
+        category:
+          $ref: '#/components/schemas/Category'
+      required: [id, transactionId, categoryId, amount, subtitle]
+
+    TransactionGroupedByCategory:
+      type: object
+      properties:
+        category:
+          $ref: '#/components/schemas/Category'
+        transactions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Transaction'
+        total:
+          type: number
+          format: double
+        count:
+          type: integer
+      required: [category, transactions, total, count]
+
+    BillUpdateType:
+      type: string
+      enum: [INSTANCE, FUTURE, ALL]
+
+    Bill:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        recipient:
+          type: string
+        accountId:
+          type: string
+        startDate:
+          type: string
+          format: date-time
+        recurrenceType:
+          $ref: '#/components/schemas/RecurrenceType'
+        customIntervalDays:
+          type: integer
+          nullable: true
+        estimatedAmount:
+          type: number
+          format: double
+        lastPaymentDate:
+          type: string
+          format: date-time
+          nullable: true
+        categoryId:
+          type: string
+          nullable: true
+        budgetId:
+          type: string
+        isArchived:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, name, recipient, accountId, startDate, recurrenceType, estimatedAmount, budgetId, isArchived, createdAt]
+
+    BillInstance:
+      type: object
+      description: A flattened view of a bill instance with its recurring bill details.
+      properties:
+        id:
+          type: string
+          description: Bill instance ID
+        billId:
+          type: string
+        name:
+          type: string
+        recipient:
+          type: string
+        amount:
+          type: number
+          format: double
+        paidAmount:
+          type: number
+          format: double
+          nullable: true
+        dueDate:
+          type: string
+          format: date-time
+        isPaid:
+          type: boolean
+        transactionId:
+          type: string
+          nullable: true
+        account:
+          $ref: '#/components/schemas/Account'
+        category:
+          $ref: '#/components/schemas/Category'
+        splits:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillSplit'
+        recurrenceType:
+          $ref: '#/components/schemas/RecurrenceType'
+        customIntervalDays:
+          type: integer
+          nullable: true
+        startDate:
+          type: string
+          format: date-time
+        isArchived:
+          type: boolean
+      required: [id, billId, name, recipient, amount, dueDate, isPaid, recurrenceType, startDate, isArchived]
+
+    BillSplit:
+      type: object
+      properties:
+        id:
+          type: string
+        billId:
+          type: string
+        categoryId:
+          type: string
+        amount:
+          type: number
+          format: double
+        subtitle:
+          type: string
+        category:
+          $ref: '#/components/schemas/Category'
+      required: [id, billId, categoryId, amount, subtitle]
+
+    Transfer:
+      type: object
+      properties:
+        id:
+          type: string
+        fromAccountId:
+          type: string
+        toAccountId:
+          type: string
+        amount:
+          type: number
+          format: double
+        date:
+          type: string
+          format: date-time
+        notes:
+          type: string
+          nullable: true
+        budgetId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        fromAccount:
+          $ref: '#/components/schemas/Account'
+        toAccount:
+          $ref: '#/components/schemas/Account'
+      required: [id, fromAccountId, toAccountId, amount, date, budgetId, createdAt]
+
+    Income:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        source:
+          type: string
+        accountId:
+          type: string
+        expectedDate:
+          type: string
+          format: date-time
+        recurrenceType:
+          $ref: '#/components/schemas/RecurrenceType'
+        customIntervalDays:
+          type: integer
+          nullable: true
+        estimatedAmount:
+          type: number
+          format: double
+        endDate:
+          type: string
+          format: date-time
+          nullable: true
+        categoryId:
+          type: string
+        householdId:
+          type: string
+        isArchived:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        category:
+          $ref: '#/components/schemas/Category'
+        account:
+          $ref: '#/components/schemas/Account'
+      required: [id, name, source, accountId, expectedDate, recurrenceType, estimatedAmount, categoryId, householdId, isArchived, createdAt]
+
+    Recipient:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        householdId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, name, householdId, createdAt]
+
+    Invitation:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+          format: email
+        householdId:
+          type: string
+        status:
+          $ref: '#/components/schemas/InvitationStatus'
+        invitedBy:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        household:
+          type: object
+          properties:
+            name:
+              type: string
+        inviterName:
+          type: string
+      required: [id, email, householdId, status, invitedBy, createdAt, updatedAt]
+
+    BudgetAllocation:
+      type: object
+      properties:
+        id:
+          type: string
+        amount:
+          type: number
+          format: double
+        date:
+          type: string
+          format: date-time
+        budgetId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, amount, date, budgetId, createdAt]
+
+    UnallocatedFunds:
+      type: object
+      properties:
+        totalFunds:
+          type: number
+          format: double
+        totalAllocated:
+          type: number
+          format: double
+        unallocated:
+          type: number
+          format: double
+      required: [totalFunds, totalAllocated, unallocated]
+
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+      required: [success]
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+          required: [code, message]
+
+    # ───────── Snapshot Models ─────────
+    AccountBalanceSnapshot:
+      type: object
+      properties:
+        id:
+          type: string
+        accountId:
+          type: string
+        date:
+          type: string
+          format: date
+        balance:
+          type: number
+          format: double
+        transactionCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, accountId, date, balance, transactionCount, createdAt]
+
+    BudgetSnapshot:
+      type: object
+      properties:
+        id:
+          type: string
+        budgetId:
+          type: string
+        date:
+          type: string
+          format: date
+        allocatedAmount:
+          type: number
+          format: double
+        spentAmount:
+          type: number
+          format: double
+        remainingAmount:
+          type: number
+          format: double
+        transactionCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, budgetId, date, allocatedAmount, spentAmount, remainingAmount, transactionCount, createdAt]
+
+    # ───────── Pagination ─────────
+    PaginationMeta:
+      type: object
+      properties:
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+        hasMore:
+          type: boolean
+      required: [total, limit, offset, hasMore]
+    CreateHouseholdRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+      required: [name]
+    UpdateHouseholdRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+    CreateAccountRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        externalIdentifier:
+          type: string
+        initialBalance:
+          type: number
+          format: double
+          default: 0
+        budgetIds:
+          type: array
+          items:
+            type: string
+          description: Budget IDs to link. If omitted, links to all household budgets.
+      required: [name]
+    UpdateAccountRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        externalIdentifier:
+          type: string
+          nullable: true
+        initialBalance:
+          type: number
+          format: double
+        budgetIds:
+          type: array
+          items:
+            type: string
+          description: Replace budget links with this set
+    ToggleAccountArchiveRequest:
+      type: object
+      properties:
+        isArchived:
+          type: boolean
+      required: [isArchived]
+    CreateBudgetRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        startDate:
+          type: string
+          format: date-time
+        categoryIds:
+          type: array
+          items:
+            type: string
+          description: If omitted, links all household categories
+        accountIds:
+          type: array
+          items:
+            type: string
+          description: If omitted, links all household accounts
+      required: [name, startDate]
+    UpdateBudgetRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        startDate:
+          type: string
+          format: date-time
+    CreateCategoryRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        types:
+          type: array
+          items:
+            $ref: '#/components/schemas/CategoryType'
+          minItems: 1
+        budgetIds:
+          type: array
+          items:
+            type: string
+          description: If omitted, links to all household budgets
+      required: [name, types]
+    UpdateCategoryRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        types:
+          type: array
+          items:
+            $ref: '#/components/schemas/CategoryType'
+          minItems: 1
+        budgetIds:
+          type: array
+          items:
+            type: string
+          description: Replace budget links with this set
+    CreateAllocationRequest:
+      type: object
+      properties:
+        amount:
+          type: number
+          format: double
+          exclusiveMinimum: 0
+      required: [amount]
+    TransferAllocationRequest:
+      type: object
+      properties:
+        fromBudgetId:
+          type: string
+        toBudgetId:
+          type: string
+        amount:
+          type: number
+          format: double
+          exclusiveMinimum: 0
+      required: [fromBudgetId, toBudgetId, amount]
+    CreateTransactionRequest:
+      type: object
+      properties:
+        budgetId:
+          type: string
+        accountId:
+          type: string
+        categoryId:
+          type: string
+        newCategory:
+          type: object
+          properties:
+            name:
+              type: string
+              minLength: 1
+            type:
+              $ref: '#/components/schemas/CategoryType'
+          required: [name, type]
+        name:
+          type: string
+          minLength: 1
+        amount:
+          type: number
+          format: double
+          exclusiveMinimum: 0
+        date:
+          type: string
+          format: date-time
+        notes:
+          type: string
+        billId:
+          type: string
+        recipientId:
+          type: string
+        newRecipientName:
+          type: string
+          minLength: 1
+        incomeId:
+          type: string
+        splits:
+          type: array
+          items:
+            type: object
+            properties:
+              categoryId:
+                type: string
+              amount:
+                type: number
+                format: double
+                exclusiveMinimum: 0
+              subtitle:
+                type: string
+            required: [categoryId, amount, subtitle]
+      required: [accountId, name, amount, date]
+    UpdateTransactionRequest:
+      type: object
+      properties:
+        accountId:
+          type: string
+        categoryId:
+          type: string
+        name:
+          type: string
+          minLength: 1
+        amount:
+          type: number
+          format: double
+          exclusiveMinimum: 0
+        date:
+          type: string
+          format: date-time
+        notes:
+          type: string
+          nullable: true
+        recipientId:
+          type: string
+          nullable: true
+        incomeId:
+          type: string
+          nullable: true
+        splits:
+          type: array
+          items:
+            type: object
+            properties:
+              categoryId:
+                type: string
+              amount:
+                type: number
+                format: double
+                exclusiveMinimum: 0
+              subtitle:
+                type: string
+            required: [categoryId, amount, subtitle]
+    CloneTransactionRequest:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date-time
+    CreateBillRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        recipient:
+          type: string
+          minLength: 1
+        accountId:
+          type: string
+        startDate:
+          type: string
+          format: date-time
+        recurrenceType:
+          $ref: '#/components/schemas/RecurrenceType'
+        customIntervalDays:
+          type: integer
+          minimum: 1
+        estimatedAmount:
+          type: number
+          format: double
+          exclusiveMinimum: 0
+        lastPaymentDate:
+          type: string
+          format: date-time
+        categoryId:
+          type: string
+        newCategoryName:
+          type: string
+          minLength: 1
+        splits:
+          type: array
+          items:
+            type: object
+            properties:
+              categoryId:
+                type: string
+              newCategoryName:
+                type: string
+              amount:
+                type: number
+                format: double
+                exclusiveMinimum: 0
+              subtitle:
+                type: string
+            required: [amount, subtitle]
+      required: [name, recipient, accountId, startDate, recurrenceType, estimatedAmount]
+    UpdateBillRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        recipient:
+          type: string
+        accountId:
+          type: string
+        startDate:
+          type: string
+          format: date-time
+        recurrenceType:
+          $ref: '#/components/schemas/RecurrenceType'
+        customIntervalDays:
+          type: integer
+          minimum: 1
+        estimatedAmount:
+          type: number
+          format: double
+          exclusiveMinimum: 0
+        lastPaymentDate:
+          type: string
+          format: date-time
+          nullable: true
+        categoryId:
+          type: string
+        isArchived:
+          type: boolean
+        splits:
+          type: array
+          items:
+            type: object
+            properties:
+              categoryId:
+                type: string
+              newCategoryName:
+                type: string
+              amount:
+                type: number
+                format: double
+                exclusiveMinimum: 0
+              subtitle:
+                type: string
+            required: [amount, subtitle]
+    ArchiveBillRequest:
+      type: object
+      properties:
+        archived:
+          type: boolean
+      required: [archived]
+    UpdateBillInstanceRequest:
+      type: object
+      properties:
+        updateType:
+          $ref: '#/components/schemas/BillUpdateType'
+        name:
+          type: string
+        recipient:
+          type: string
+        amount:
+          type: number
+          format: double
+          exclusiveMinimum: 0
+        dueDate:
+          type: string
+          format: date-time
+        accountId:
+          type: string
+        categoryId:
+          type: string
+      required: [updateType]
+    CreateTransferRequest:
+      type: object
+      properties:
+        fromAccountId:
+          type: string
+        toAccountId:
+          type: string
+        amount:
+          type: number
+          format: double
+          exclusiveMinimum: 0
+        date:
+          type: string
+          format: date-time
+        notes:
+          type: string
+      required: [fromAccountId, toAccountId, amount, date]
+    UpdateTransferRequest:
+      type: object
+      properties:
+        fromAccountId:
+          type: string
+        toAccountId:
+          type: string
+        amount:
+          type: number
+          format: double
+          exclusiveMinimum: 0
+        date:
+          type: string
+          format: date-time
+        notes:
+          type: string
+          nullable: true
+    CreateIncomeRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        source:
+          type: string
+          minLength: 1
+        amount:
+          type: number
+          format: double
+          exclusiveMinimum: 0
+        expectedDate:
+          type: string
+          format: date-time
+        accountId:
+          type: string
+        categoryId:
+          type: string
+        newCategoryName:
+          type: string
+        recurrenceType:
+          $ref: '#/components/schemas/RecurrenceType'
+        customIntervalDays:
+          type: integer
+          nullable: true
+        endDate:
+          type: string
+          format: date-time
+          nullable: true
+      required: [name, source, amount, expectedDate, accountId, recurrenceType]
+    UpdateIncomeRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        source:
+          type: string
+          minLength: 1
+        amount:
+          type: number
+          format: double
+          exclusiveMinimum: 0
+        expectedDate:
+          type: string
+          format: date-time
+        accountId:
+          type: string
+        categoryId:
+          type: string
+        newCategoryName:
+          type: string
+        recurrenceType:
+          $ref: '#/components/schemas/RecurrenceType'
+        customIntervalDays:
+          type: integer
+          nullable: true
+        endDate:
+          type: string
+          format: date-time
+          nullable: true
+    ArchiveIncomeRequest:
+      type: object
+      properties:
+        isArchived:
+          type: boolean
+      required: [isArchived]
+    CreateRecipientRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+      required: [name]
+    GetOrCreateRecipientRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+      required: [name]
+    UpdateRecipientRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+    CreateInvitationRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+      required: [email]
+
+  # ───────── Reusable Parameters ─────────
+  parameters:
+    householdId:
+      name: householdId
+      in: path
+      required: true
+      schema:
+        type: string
+    budgetId:
+      name: budgetId
+      in: path
+      required: true
+      schema:
+        type: string
+    accountId:
+      name: accountId
+      in: path
+      required: true
+      schema:
+        type: string
+    categoryId:
+      name: categoryId
+      in: path
+      required: true
+      schema:
+        type: string
+    transactionId:
+      name: transactionId
+      in: path
+      required: true
+      schema:
+        type: string
+    transferId:
+      name: transferId
+      in: path
+      required: true
+      schema:
+        type: string
+    recipientId:
+      name: recipientId
+      in: path
+      required: true
+      schema:
+        type: string
+    incomeId:
+      name: incomeId
+      in: path
+      required: true
+      schema:
+        type: string
+    billId:
+      name: billId
+      in: path
+      required: true
+      schema:
+        type: string
+    invitationId:
+      name: invitationId
+      in: path
+      required: true
+      schema:
+        type: string
+    limit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 50
+      description: Maximum number of items to return
+    offset:
+      name: offset
+      in: query
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+      description: Number of items to skip
+
+# ═══════════════════════════════════════════════
+# Paths
+# ═══════════════════════════════════════════════
+paths:
+  # ─────────────────────────
+  # HOUSEHOLDS
+  # ─────────────────────────
+  /households:
+    get:
+      operationId: listHouseholds
+      summary: List all households for the authenticated user
+      tags: [Households]
+      parameters:
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/offset'
+      responses:
+        '200':
+          description: List of households
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Household'
+                  pagination:
+                    $ref: '#/components/schemas/PaginationMeta'
+    post:
+      operationId: createHousehold
+      summary: Create a new household
+      tags: [Households]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateHouseholdRequest'
+      responses:
+        '201':
+          description: Created household
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Household'
+
+  /households/{householdId}:
+    parameters:
+      - $ref: '#/components/parameters/householdId'
+    get:
+      operationId: getHousehold
+      summary: Get a specific household
+      tags: [Households]
+      responses:
+        '200':
+          description: Household details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Household'
+        '404':
+          description: Household not found
+    patch:
+      operationId: updateHousehold
+      summary: Update a household
+      tags: [Households]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateHouseholdRequest'
+      responses:
+        '200':
+          description: Updated household
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Household'
+    delete:
+      operationId: deleteHousehold
+      summary: Delete a household (must have no budgets)
+      tags: [Households]
+      responses:
+        '200':
+          description: Deleted household
+        '412':
+          description: Household has budgets, cannot delete
+
+  /households/{householdId}/members:
+    parameters:
+      - $ref: '#/components/parameters/householdId'
+    get:
+      operationId: getHouseholdMembers
+      summary: Get household members with user details (from Clerk)
+      tags: [Households]
+      parameters:
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/offset'
+      responses:
+        '200':
+          description: List of household members
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/HouseholdMember'
+                  pagination:
+                    $ref: '#/components/schemas/PaginationMeta'
+
+  /households/{householdId}/members/{userId}:
+    parameters:
+      - $ref: '#/components/parameters/householdId'
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: string
+    put:
+      operationId: addHouseholdMember
+      summary: Add a user to a household
+      tags: [Households]
+      responses:
+        '201':
+          description: User added
+        '409':
+          description: User already a member
+    delete:
+      operationId: removeHouseholdMember
+      summary: Remove a user from a household
+      tags: [Households]
+      responses:
+        '200':
+          description: User removed
+        '412':
+          description: Cannot remove last user
+
+  # ─────────────────────────
+  # ACCOUNTS
+  # ─────────────────────────
+  /households/{householdId}/accounts:
+    parameters:
+      - $ref: '#/components/parameters/householdId'
+    get:
+      operationId: listAccounts
+      summary: List accounts for a household
+      tags: [Accounts]
+      parameters:
+        - name: budgetId
+          in: query
+          schema:
+            type: string
+          description: Filter by budget linkage
+        - name: excludeArchived
+          in: query
+          schema:
+            type: boolean
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/offset'
+      responses:
+        '200':
+          description: List of accounts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Account'
+                  pagination:
+                    $ref: '#/components/schemas/PaginationMeta'
+    post:
+      operationId: createAccount
+      summary: Create a new account
+      tags: [Accounts]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAccountRequest'
+      responses:
+        '201':
+          description: Created account
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Account'
+
+  /accounts/{accountId}:
+    parameters:
+      - $ref: '#/components/parameters/accountId'
+    get:
+      operationId: getAccount
+      summary: Get account by ID
+      tags: [Accounts]
+      responses:
+        '200':
+          description: Account details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Account'
+    patch:
+      operationId: updateAccount
+      summary: Update an account
+      tags: [Accounts]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAccountRequest'
+      responses:
+        '200':
+          description: Updated account
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Account'
+    delete:
+      operationId: deleteAccount
+      summary: Delete an account (must have no transactions, bills, or transfers)
+      tags: [Accounts]
+      responses:
+        '200':
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '412':
+          description: Account has linked records
+
+  /accounts/{accountId}/balance:
+    parameters:
+      - $ref: '#/components/parameters/accountId'
+    get:
+      operationId: getAccountBalance
+      summary: Get current balance for an account
+      tags: [Accounts]
+      responses:
+        '200':
+          description: Account balance
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountBalance'
+
+  /accounts/{accountId}/balance-history:
+    parameters:
+      - $ref: '#/components/parameters/accountId'
+    get:
+      operationId: getAccountBalanceHistory
+      summary: Get historical balance snapshots for an account
+      tags: [Accounts]
+      parameters:
+        - name: dateFrom
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: dateTo
+          in: query
+          schema:
+            type: string
+            format: date
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/offset'
+      responses:
+        '200':
+          description: Paginated list of account balance snapshots
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AccountBalanceSnapshot'
+                  pagination:
+                    $ref: '#/components/schemas/PaginationMeta'
+
+  /accounts/{accountId}/archive:
+    parameters:
+      - $ref: '#/components/parameters/accountId'
+    patch:
+      operationId: toggleAccountArchive
+      summary: Toggle archive status of an account
+      tags: [Accounts]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ToggleAccountArchiveRequest'
+      responses:
+        '200':
+          description: Updated account
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Account'
+
+  # ─────────────────────────
+  # BUDGETS
+  # ─────────────────────────
+  /households/{householdId}/budgets:
+    parameters:
+      - $ref: '#/components/parameters/householdId'
+    get:
+      operationId: listBudgets
+      summary: List all budgets for a household (with computed totals)
+      tags: [Budgets]
+      parameters:
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/offset'
+      responses:
+        '200':
+          description: List of budgets with allocated/spent/remaining amounts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Budget'
+                  pagination:
+                    $ref: '#/components/schemas/PaginationMeta'
+    post:
+      operationId: createBudget
+      summary: Create a new budget
+      tags: [Budgets]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBudgetRequest'
+      responses:
+        '201':
+          description: Created budget
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BudgetDetail'
+
+  /budgets/{budgetId}:
+    parameters:
+      - $ref: '#/components/parameters/budgetId'
+    get:
+      operationId: getBudget
+      summary: Get a specific budget with related details
+      tags: [Budgets]
+      responses:
+        '200':
+          description: Budget details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BudgetDetail'
+    patch:
+      operationId: updateBudget
+      summary: Update a budget
+      tags: [Budgets]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateBudgetRequest'
+      responses:
+        '200':
+          description: Updated budget
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Budget'
+    delete:
+      operationId: deleteBudget
+      summary: Delete a budget (cascades to transactions and bills)
+      tags: [Budgets]
+      responses:
+        '200':
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /budgets/{budgetId}/snapshot-history:
+    parameters:
+      - $ref: '#/components/parameters/budgetId'
+    get:
+      operationId: getBudgetSnapshotHistory
+      summary: Get historical snapshots for a budget
+      tags: [Budgets]
+      parameters:
+        - name: dateFrom
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: dateTo
+          in: query
+          schema:
+            type: string
+            format: date
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/offset'
+      responses:
+        '200':
+          description: Paginated list of budget snapshots
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/BudgetSnapshot'
+                  pagination:
+                    $ref: '#/components/schemas/PaginationMeta'
+
+  /budgets/{budgetId}/categories/{categoryId}:
+    parameters:
+      - $ref: '#/components/parameters/budgetId'
+      - $ref: '#/components/parameters/categoryId'
+    put:
+      operationId: linkCategoryToBudget
+      summary: Link a category to a budget
+      tags: [Budgets]
+      responses:
+        '201':
+          description: Category linked
+    delete:
+      operationId: unlinkCategoryFromBudget
+      summary: Unlink a category from a budget
+      tags: [Budgets]
+      responses:
+        '200':
+          description: Category unlinked
+
+  /budgets/{budgetId}/accounts/{accountId}:
+    parameters:
+      - $ref: '#/components/parameters/budgetId'
+      - $ref: '#/components/parameters/accountId'
+    put:
+      operationId: linkAccountToBudget
+      summary: Link an account to a budget
+      tags: [Budgets]
+      responses:
+        '201':
+          description: Account linked
+    delete:
+      operationId: unlinkAccountFromBudget
+      summary: Unlink an account from a budget
+      tags: [Budgets]
+      responses:
+        '200':
+          description: Account unlinked
+
+  # ─────────────────────────
+  # CATEGORIES
+  # ─────────────────────────
+  /households/{householdId}/categories:
+    parameters:
+      - $ref: '#/components/parameters/householdId'
+    get:
+      operationId: listCategories
+      summary: List categories for a household
+      tags: [Categories]
+      parameters:
+        - name: type
+          in: query
+          schema:
+            $ref: '#/components/schemas/CategoryType'
+          description: Filter by category type
+        - name: budgetId
+          in: query
+          schema:
+            type: string
+          description: Filter by budget linkage
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/offset'
+      responses:
+        '200':
+          description: List of categories
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Category'
+                  pagination:
+                    $ref: '#/components/schemas/PaginationMeta'
+    post:
+      operationId: createCategory
+      summary: Create a new category
+      tags: [Categories]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCategoryRequest'
+      responses:
+        '201':
+          description: Created category
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+
+  /categories/{categoryId}:
+    parameters:
+      - $ref: '#/components/parameters/categoryId'
+    get:
+      operationId: getCategory
+      summary: Get a category by ID
+      tags: [Categories]
+      responses:
+        '200':
+          description: Category details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+    patch:
+      operationId: updateCategory
+      summary: Update a category
+      tags: [Categories]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCategoryRequest'
+      responses:
+        '200':
+          description: Updated category
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+    delete:
+      operationId: deleteCategory
+      summary: Delete a category (must have no transactions)
+      tags: [Categories]
+      responses:
+        '200':
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '412':
+          description: Category has transactions
+
+  # ─────────────────────────
+  # ALLOCATIONS
+  # ─────────────────────────
+  /budgets/{budgetId}/allocations:
+    parameters:
+      - $ref: '#/components/parameters/budgetId'
+    get:
+      operationId: listAllocations
+      summary: List allocations for a budget
+      tags: [Allocations]
+      parameters:
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/offset'
+      responses:
+        '200':
+          description: Paginated list of allocations
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/BudgetAllocation'
+                  pagination:
+                    $ref: '#/components/schemas/PaginationMeta'
+    post:
+      operationId: createAllocation
+      summary: Add funds to a budget
+      tags: [Allocations]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAllocationRequest'
+      responses:
+        '201':
+          description: Created allocation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BudgetAllocation'
+
+  /allocations/transfer:
+    post:
+      operationId: transferAllocation
+      summary: Transfer funds between budgets
+      tags: [Allocations]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransferAllocationRequest'
+      responses:
+        '200':
+          description: Transfer completed (two allocation records created)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BudgetAllocation'
+
+  /households/{householdId}/allocations/unallocated:
+    parameters:
+      - $ref: '#/components/parameters/householdId'
+    get:
+      operationId: getUnallocatedFunds
+      summary: Get total unallocated funds for a household
+      tags: [Allocations]
+      responses:
+        '200':
+          description: Unallocated funds summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnallocatedFunds'
+
+  # ─────────────────────────
+  # TRANSACTIONS
+  # ─────────────────────────
+  /transactions:
+    get:
+      operationId: listTransactions
+      summary: List transactions (must provide budgetId or householdId)
+      tags: [Transactions]
+      parameters:
+        - name: budgetId
+          in: query
+          schema:
+            type: string
+        - name: householdId
+          in: query
+          schema:
+            type: string
+        - name: accountId
+          in: query
+          schema:
+            type: string
+        - name: categoryId
+          in: query
+          schema:
+            type: string
+        - name: dateFrom
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: dateTo
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: type
+          in: query
+          schema:
+            $ref: '#/components/schemas/CategoryType'
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/offset'
+      responses:
+        '200':
+          description: List of transactions (includes virtual transfer entries when no categoryId filter)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Transaction'
+                  pagination:
+                    $ref: '#/components/schemas/PaginationMeta'
+    post:
+      operationId: createTransaction
+      summary: Create a new transaction
+      tags: [Transactions]
+      description: |
+        Supports inline category creation via `newCategory`, inline recipient creation via `newRecipientName`,
+        and transaction splits. When paying a bill (`billId`), automatically generates next bill instance.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTransactionRequest'
+      responses:
+        '201':
+          description: Created transaction
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transaction'
+
+  /transactions/{transactionId}:
+    parameters:
+      - $ref: '#/components/parameters/transactionId'
+    get:
+      operationId: getTransaction
+      summary: Get a transaction by ID
+      tags: [Transactions]
+      responses:
+        '200':
+          description: Transaction details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transaction'
+    patch:
+      operationId: updateTransaction
+      summary: Update a transaction
+      tags: [Transactions]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTransactionRequest'
+      responses:
+        '200':
+          description: Updated transaction
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transaction'
+    delete:
+      operationId: deleteTransaction
+      summary: Delete a transaction
+      tags: [Transactions]
+      responses:
+        '200':
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /transactions/{transactionId}/clone:
+    parameters:
+      - $ref: '#/components/parameters/transactionId'
+    post:
+      operationId: cloneTransaction
+      summary: Clone a transaction (defaults to today's date)
+      tags: [Transactions]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CloneTransactionRequest'
+      responses:
+        '201':
+          description: Cloned transaction
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transaction'
+
+  /transactions/grouped-by-category:
+    get:
+      operationId: getTransactionsGroupedByCategory
+      summary: Get transactions grouped by category
+      tags: [Transactions]
+      parameters:
+        - name: budgetId
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: dateFrom
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: dateTo
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: type
+          in: query
+          schema:
+            $ref: '#/components/schemas/CategoryType'
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/offset'
+      responses:
+        '200':
+          description: Transactions grouped by category
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TransactionGroupedByCategory'
+                  pagination:
+                    $ref: '#/components/schemas/PaginationMeta'
+
+  # ─────────────────────────
+  # BILLS (Recurring Bills)
+  # ─────────────────────────
+  /budgets/{budgetId}/bill-instances:
+    parameters:
+      - $ref: '#/components/parameters/budgetId'
+    get:
+      operationId: listBills
+      summary: List bill instances for a budget
+      tags: [Bills]
+      parameters:
+        - name: includeArchived
+          in: query
+          schema:
+            type: boolean
+            default: false
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/offset'
+      responses:
+        '200':
+          description: List of bill instances with recurring bill details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/BillInstance'
+                  pagination:
+                    $ref: '#/components/schemas/PaginationMeta'
+  /budgets/{budgetId}/bills:
+    parameters:
+      - $ref: '#/components/parameters/budgetId'
+    post:
+      operationId: createBill
+      summary: Create a new recurring bill (generates instances up to 2 months ahead)
+      tags: [Bills]
+      description: |
+        Creates a recurring bill template and generates bill instances up to 2 months ahead.
+        A daily cron job generates additional instances as needed.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBillRequest'
+      responses:
+        '201':
+          description: Created recurring bill
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Bill'
+
+  /bills/{billId}:
+    parameters:
+      - $ref: '#/components/parameters/billId'
+    patch:
+      operationId: updateBill
+      summary: Update a recurring bill (regenerates future unpaid instances on schedule change)
+      tags: [Bills]
+      description: |
+        The `billId` here is the **Bill** ID (the template), not the instance ID.
+        Changing schedule parameters (startDate, recurrenceType, customIntervalDays, lastPaymentDate, estimatedAmount)
+        will delete all future unpaid bill instances and regenerate them.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateBillRequest'
+      responses:
+        '200':
+          description: Updated recurring bill
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Bill'
+    delete:
+      operationId: deleteBill
+      summary: Delete a recurring bill and all its instances
+      tags: [Bills]
+      responses:
+        '200':
+          description: Deleted
+
+  /bills/{billId}/archive:
+    parameters:
+      - $ref: '#/components/parameters/billId'
+    patch:
+      operationId: archiveBill
+      summary: Archive or unarchive a recurring bill
+      tags: [Bills]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ArchiveBillRequest'
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Bill'
+
+  /bill-instances/{instanceId}:
+    parameters:
+      - name: instanceId
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      operationId: getBillInstance
+      summary: Get a specific bill instance
+      tags: [Bills]
+      responses:
+        '200':
+          description: Bill instance details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillInstance'
+    patch:
+      operationId: updateBillInstance
+      summary: Update a specific bill instance, optionally applying to future instances
+      tags: [Bills]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateBillInstanceRequest'
+      responses:
+        '200':
+          description: Updated bill instance(s)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillInstance'
+
+  # ─────────────────────────
+  # TRANSFERS
+  # ─────────────────────────
+  /budgets/{budgetId}/transfers:
+    parameters:
+      - $ref: '#/components/parameters/budgetId'
+    get:
+      operationId: listTransfers
+      summary: List transfers for a budget
+      tags: [Transfers]
+      parameters:
+        - name: dateFrom
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: dateTo
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/offset'
+      responses:
+        '200':
+          description: List of transfers
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Transfer'
+                  pagination:
+                    $ref: '#/components/schemas/PaginationMeta'
+    post:
+      operationId: createTransfer
+      summary: Create a transfer between accounts
+      tags: [Transfers]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTransferRequest'
+      responses:
+        '201':
+          description: Created transfer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transfer'
+
+  /transfers/{transferId}:
+    parameters:
+      - $ref: '#/components/parameters/transferId'
+    patch:
+      operationId: updateTransfer
+      summary: Update a transfer
+      tags: [Transfers]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTransferRequest'
+      responses:
+        '200':
+          description: Updated transfer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transfer'
+    delete:
+      operationId: deleteTransfer
+      summary: Delete a transfer
+      tags: [Transfers]
+      responses:
+        '200':
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  # ─────────────────────────
+  # INCOME
+  # ─────────────────────────
+  /households/{householdId}/incomes:
+    parameters:
+      - $ref: '#/components/parameters/householdId'
+    get:
+      operationId: listIncomes
+      summary: List recurring income sources for a household
+      tags: [Income]
+      parameters:
+        - name: includeArchived
+          in: query
+          schema:
+            type: boolean
+            default: false
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/offset'
+      responses:
+        '200':
+          description: List of income sources
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Income'
+                  pagination:
+                    $ref: '#/components/schemas/PaginationMeta'
+    post:
+      operationId: createIncome
+      summary: Create a new income source
+      tags: [Income]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateIncomeRequest'
+      responses:
+        '201':
+          description: Created income
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Income'
+
+  /incomes/{incomeId}:
+    parameters:
+      - $ref: '#/components/parameters/incomeId'
+    get:
+      operationId: getIncome
+      summary: Get an income source by ID
+      tags: [Income]
+      responses:
+        '200':
+          description: Income details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Income'
+    patch:
+      operationId: updateIncome
+      summary: Update an income source
+      tags: [Income]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateIncomeRequest'
+      responses:
+        '200':
+          description: Updated income
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Income'
+    delete:
+      operationId: deleteIncome
+      summary: Delete an income source
+      tags: [Income]
+      responses:
+        '200':
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /incomes/{incomeId}/archive:
+    parameters:
+      - $ref: '#/components/parameters/incomeId'
+    patch:
+      operationId: archiveIncome
+      summary: Archive or unarchive an income source
+      tags: [Income]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ArchiveIncomeRequest'
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Income'
+
+  # ─────────────────────────
+  # RECIPIENTS
+  # ─────────────────────────
+  /households/{householdId}/recipients:
+    parameters:
+      - $ref: '#/components/parameters/householdId'
+    get:
+      operationId: listRecipients
+      summary: List recipients for a household
+      tags: [Recipients]
+      parameters:
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/offset'
+      responses:
+        '200':
+          description: List of recipients
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Recipient'
+                  pagination:
+                    $ref: '#/components/schemas/PaginationMeta'
+    post:
+      operationId: createRecipient
+      summary: Create a new recipient (fails if name already exists)
+      tags: [Recipients]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRecipientRequest'
+      responses:
+        '201':
+          description: Created recipient
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Recipient'
+        '409':
+          description: Recipient with this name already exists
+
+  /households/{householdId}/recipients/get-or-create:
+    parameters:
+      - $ref: '#/components/parameters/householdId'
+    post:
+      operationId: getOrCreateRecipient
+      summary: Get existing or create new recipient by name
+      tags: [Recipients]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GetOrCreateRecipientRequest'
+      responses:
+        '200':
+          description: Existing or newly created recipient
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Recipient'
+
+  /recipients/{recipientId}:
+    parameters:
+      - $ref: '#/components/parameters/recipientId'
+    get:
+      operationId: getRecipient
+      summary: Get a recipient by ID
+      tags: [Recipients]
+      responses:
+        '200':
+          description: Recipient details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Recipient'
+    patch:
+      operationId: updateRecipient
+      summary: Update a recipient
+      tags: [Recipients]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateRecipientRequest'
+      responses:
+        '200':
+          description: Updated recipient
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Recipient'
+        '409':
+          description: Recipient with this name already exists
+    delete:
+      operationId: deleteRecipient
+      summary: Delete a recipient
+      tags: [Recipients]
+      responses:
+        '200':
+          description: Deleted
+
+  # ─────────────────────────
+  # INVITATIONS
+  # ─────────────────────────
+  /invitations:
+    get:
+      operationId: listMyInvitations
+      summary: List pending invitations for the authenticated user (by email via Clerk)
+      tags: [Invitations]
+      parameters:
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/offset'
+      responses:
+        '200':
+          description: List of pending invitations
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Invitation'
+                  pagination:
+                    $ref: '#/components/schemas/PaginationMeta'
+
+  /households/{householdId}/invitations:
+    parameters:
+      - $ref: '#/components/parameters/householdId'
+    get:
+      operationId: listHouseholdInvitations
+      summary: List pending invitations for a household
+      tags: [Invitations]
+      parameters:
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/offset'
+      responses:
+        '200':
+          description: List of pending invitations
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Invitation'
+                  pagination:
+                    $ref: '#/components/schemas/PaginationMeta'
+    post:
+      operationId: createInvitation
+      summary: Invite a user to a household by email
+      tags: [Invitations]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateInvitationRequest'
+      responses:
+        '201':
+          description: Invitation created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Invitation'
+        '409':
+          description: Invitation already pending for this email
+
+  /invitations/{invitationId}/accept:
+    parameters:
+      - $ref: '#/components/parameters/invitationId'
+    post:
+      operationId: acceptInvitation
+      summary: Accept an invitation (adds user to household)
+      tags: [Invitations]
+      responses:
+        '200':
+          description: Invitation accepted
+
+  /invitations/{invitationId}/decline:
+    parameters:
+      - $ref: '#/components/parameters/invitationId'
+    post:
+      operationId: declineInvitation
+      summary: Decline an invitation
+      tags: [Invitations]
+      responses:
+        '200':
+          description: Invitation declined
+
+  /invitations/{invitationId}:
+    parameters:
+      - $ref: '#/components/parameters/invitationId'
+    delete:
+      operationId: revokeInvitation
+      summary: Revoke a pending invitation (by a household member)
+      tags: [Invitations]
+      responses:
+        '200':
+          description: Invitation revoked
+
+tags:
+  - name: Households
+    description: Manage households and membership
+  - name: Accounts
+    description: Financial accounts (bank, cash, etc.)
+  - name: Budgets
+    description: Spending plans with linked categories and accounts
+  - name: Categories
+    description: Income/Expense categories
+  - name: Allocations
+    description: Budget fund allocations and transfers
+  - name: Transactions
+    description: Income and expense entries
+  - name: Bills
+    description: Recurring bills and bill instances
+  - name: Transfers
+    description: Account-to-account fund transfers
+  - name: Income
+    description: Recurring income source definitions
+  - name: Recipients
+    description: Payees and payers
+  - name: Invitations
+    description: Household invitation management
