@@ -9,9 +9,9 @@ A household budget management application built with TanStack Start, React 19, a
 | Framework | TanStack Start (SSR, file-based routing) |
 | UI | React 19, shadcn/ui, Tailwind CSS v4 |
 | Forms | TanStack Form + Zod validation |
-| Data fetching | TanStack Query (migrating from tRPC to REST via OpenAPI) |
+| Data fetching | TanStack Query + generated REST client from OpenAPI |
 | Auth | Clerk (email/password + SSO) |
-| Database | PostgreSQL via Prisma |
+| Database | External backend API (OpenAPI-driven contract) |
 | i18n | i18next (Swedish locale) |
 | Tooling | Vite, Biome, Vitest |
 
@@ -90,14 +90,13 @@ erDiagram
   /budgets/$budgetId        Budget detail — quick actions
   /accounts                 Account management — link to budgets
 
-/api/trpc/$                 API — tRPC endpoint handler
 ```
 
 ## Component Hierarchy
 
 ```mermaid
 graph TD
-    Root["__root.tsx<br/><small>ClerkProvider · QueryClient · TRPCProvider</small>"]
+    Root["__root.tsx<br/><small>ClerkProvider · QueryClient</small>"]
 
     Root --> SignIn["/sign-in"]
     Root --> SignUp["/sign-up"]
@@ -215,15 +214,15 @@ flowchart TD
 
 ## API Layer
 
-The project is **migrating from tRPC to a standalone REST API**.
+The project uses a standalone REST API generated from OpenAPI.
 
 | Component | Status |
 |---|---|
 | OpenAPI spec (`src/api/luigi.yaml`) | Defined |
 | Generated REST SDK (`src/api/generated/`) | Generated via `@hey-api/openapi-ts` |
 | API client config (`src/api/client-config.ts`) | Configured with Clerk auth |
-| Hook factories (`src/hooks/api/`) | Still using tRPC — migration target |
-| tRPC router (`src/integrations/trpc/`) | Active, to be replaced |
+| Hook layer (`src/hooks/api/`) | Using generated TanStack Query options + app-specific wrappers |
+| Mocking (`src/__mocks__/`) | Active for local development when `VITE_MOCK_API=true` |
 
 The generated SDK provides typed functions, Zod schemas, and TanStack Query hooks for every endpoint in the OpenAPI spec.
 
