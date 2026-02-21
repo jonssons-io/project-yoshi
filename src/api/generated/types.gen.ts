@@ -27,6 +27,10 @@ export const InvitationStatus = {
 
 export type InvitationStatus = typeof InvitationStatus[keyof typeof InvitationStatus];
 
+export const RecipientScope = { BILL: 'BILL', TRANSACTION: 'TRANSACTION' } as const;
+
+export type RecipientScope = typeof RecipientScope[keyof typeof RecipientScope];
+
 export type Household = {
     id: string;
     name: string;
@@ -169,7 +173,7 @@ export type BillUpdateType = typeof BillUpdateType[keyof typeof BillUpdateType];
 export type Bill = {
     id: string;
     name: string;
-    recipient: string;
+    recipientId: string;
     accountId: string;
     startDate: string;
     recurrenceType: RecurrenceType;
@@ -180,6 +184,7 @@ export type Bill = {
     budgetId: string;
     isArchived: boolean;
     createdAt: string;
+    recipient?: Recipient;
 };
 
 /**
@@ -192,7 +197,7 @@ export type BillInstance = {
     id: string;
     billId: string;
     name: string;
-    recipient: string;
+    recipientId: string;
     amount: number;
     paidAmount?: number;
     dueDate: string;
@@ -205,6 +210,7 @@ export type BillInstance = {
     customIntervalDays?: number;
     startDate: string;
     isArchived: boolean;
+    recipient?: Recipient;
 };
 
 export type BillSplit = {
@@ -232,7 +238,7 @@ export type Transfer = {
 export type Income = {
     id: string;
     name: string;
-    source: string;
+    incomeSourceId: string;
     accountId: string;
     expectedDate: string;
     recurrenceType: RecurrenceType;
@@ -245,11 +251,20 @@ export type Income = {
     createdAt: string;
     category?: Category;
     account?: Account;
+    incomeSource?: IncomeSource;
+};
+
+export type IncomeSource = {
+    id: string;
+    name: string;
+    householdId: string;
+    createdAt: string;
 };
 
 export type Recipient = {
     id: string;
     name: string;
+    scopes: Array<RecipientScope>;
     householdId: string;
     createdAt: string;
 };
@@ -443,7 +458,8 @@ export type CloneTransactionRequest = {
 
 export type CreateBillRequest = {
     name: string;
-    recipient: string;
+    recipientId?: string;
+    newRecipientName?: string;
     accountId: string;
     startDate: string;
     recurrenceType: RecurrenceType;
@@ -462,8 +478,10 @@ export type CreateBillRequest = {
 
 export type UpdateBillRequest = {
     name?: string;
-    recipient?: string;
+    recipientId?: string;
+    newRecipientName?: string;
     accountId?: string;
+    budgetId?: string;
     startDate?: string;
     recurrenceType?: RecurrenceType;
     customIntervalDays?: number;
@@ -511,7 +529,8 @@ export type UpdateTransferRequest = {
 
 export type CreateIncomeRequest = {
     name: string;
-    source: string;
+    incomeSourceId?: string;
+    newIncomeSourceName?: string;
     amount: number;
     expectedDate: string;
     accountId: string;
@@ -524,7 +543,8 @@ export type CreateIncomeRequest = {
 
 export type UpdateIncomeRequest = {
     name?: string;
-    source?: string;
+    incomeSourceId?: string;
+    newIncomeSourceName?: string;
     amount?: number;
     expectedDate?: string;
     accountId?: string;
@@ -576,7 +596,7 @@ export type BillId = string;
 export type InvitationId = string;
 
 /**
- * Maximum number of items to return
+ * Maximum number of items to return. Omit to return all items. Set to 0 to return only the pagination count metadata (no data items).
  */
 export type Limit = number;
 
@@ -590,7 +610,7 @@ export type ListHouseholdsData = {
     path?: never;
     query?: {
         /**
-         * Maximum number of items to return
+         * Maximum number of items to return. Omit to return all items. Set to 0 to return only the pagination count metadata (no data items).
          */
         limit?: number;
         /**
@@ -702,7 +722,7 @@ export type GetHouseholdMembersData = {
     };
     query?: {
         /**
-         * Maximum number of items to return
+         * Maximum number of items to return. Omit to return all items. Set to 0 to return only the pagination count metadata (no data items).
          */
         limit?: number;
         /**
@@ -785,7 +805,7 @@ export type ListAccountsData = {
         budgetId?: string;
         excludeArchived?: boolean;
         /**
-         * Maximum number of items to return
+         * Maximum number of items to return. Omit to return all items. Set to 0 to return only the pagination count metadata (no data items).
          */
         limit?: number;
         /**
@@ -914,7 +934,7 @@ export type GetAccountBalanceHistoryData = {
         dateFrom?: string;
         dateTo?: string;
         /**
-         * Maximum number of items to return
+         * Maximum number of items to return. Omit to return all items. Set to 0 to return only the pagination count metadata (no data items).
          */
         limit?: number;
         /**
@@ -962,7 +982,7 @@ export type ListBudgetsData = {
     };
     query?: {
         /**
-         * Maximum number of items to return
+         * Maximum number of items to return. Omit to return all items. Set to 0 to return only the pagination count metadata (no data items).
          */
         limit?: number;
         /**
@@ -1066,7 +1086,7 @@ export type GetBudgetSnapshotHistoryData = {
         dateFrom?: string;
         dateTo?: string;
         /**
-         * Maximum number of items to return
+         * Maximum number of items to return. Omit to return all items. Set to 0 to return only the pagination count metadata (no data items).
          */
         limit?: number;
         /**
@@ -1172,7 +1192,7 @@ export type ListCategoriesData = {
          */
         budgetId?: string;
         /**
-         * Maximum number of items to return
+         * Maximum number of items to return. Omit to return all items. Set to 0 to return only the pagination count metadata (no data items).
          */
         limit?: number;
         /**
@@ -1281,7 +1301,7 @@ export type ListAllocationsData = {
     };
     query?: {
         /**
-         * Maximum number of items to return
+         * Maximum number of items to return. Omit to return all items. Set to 0 to return only the pagination count metadata (no data items).
          */
         limit?: number;
         /**
@@ -1368,7 +1388,7 @@ export type ListTransactionsData = {
         dateTo?: string;
         type?: CategoryType;
         /**
-         * Maximum number of items to return
+         * Maximum number of items to return. Omit to return all items. Set to 0 to return only the pagination count metadata (no data items).
          */
         limit?: number;
         /**
@@ -1488,7 +1508,7 @@ export type GetTransactionsGroupedByCategoryData = {
         dateTo?: string;
         type?: CategoryType;
         /**
-         * Maximum number of items to return
+         * Maximum number of items to return. Omit to return all items. Set to 0 to return only the pagination count metadata (no data items).
          */
         limit?: number;
         /**
@@ -1519,7 +1539,7 @@ export type ListBillsData = {
     query?: {
         includeArchived?: boolean;
         /**
-         * Maximum number of items to return
+         * Maximum number of items to return. Omit to return all items. Set to 0 to return only the pagination count metadata (no data items).
          */
         limit?: number;
         /**
@@ -1657,7 +1677,7 @@ export type ListTransfersData = {
         dateFrom?: string;
         dateTo?: string;
         /**
-         * Maximum number of items to return
+         * Maximum number of items to return. Omit to return all items. Set to 0 to return only the pagination count metadata (no data items).
          */
         limit?: number;
         /**
@@ -1742,7 +1762,7 @@ export type ListIncomesData = {
     query?: {
         includeArchived?: boolean;
         /**
-         * Maximum number of items to return
+         * Maximum number of items to return. Omit to return all items. Set to 0 to return only the pagination count metadata (no data items).
          */
         limit?: number;
         /**
@@ -1862,7 +1882,7 @@ export type ListRecipientsData = {
     };
     query?: {
         /**
-         * Maximum number of items to return
+         * Maximum number of items to return. Omit to return all items. Set to 0 to return only the pagination count metadata (no data items).
          */
         limit?: number;
         /**
@@ -1992,7 +2012,7 @@ export type ListMyInvitationsData = {
     path?: never;
     query?: {
         /**
-         * Maximum number of items to return
+         * Maximum number of items to return. Omit to return all items. Set to 0 to return only the pagination count metadata (no data items).
          */
         limit?: number;
         /**
@@ -2022,7 +2042,7 @@ export type ListHouseholdInvitationsData = {
     };
     query?: {
         /**
-         * Maximum number of items to return
+         * Maximum number of items to return. Omit to return all items. Set to 0 to return only the pagination count metadata (no data items).
          */
         limit?: number;
         /**

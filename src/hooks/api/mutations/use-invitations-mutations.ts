@@ -7,7 +7,7 @@ import {
 	revokeInvitationMutation
 } from '@/api/generated/@tanstack/react-query.gen'
 import type {
-	CreateInvitationResponse
+	CreateInvitationResponse,
 } from '@/api/generated/types.gen'
 import { invalidateByOperation } from '../invalidate-by-operation'
 import type { MutationCallbacks } from '../types'
@@ -34,11 +34,14 @@ export function useCreateInvitation(
 	const queryClient = useQueryClient()
 	const mutationOptions = createInvitationMutation()
 	return useMutation<CreateInvitationResponse, Error, CreateInvitationVariables>({
-		mutationFn: async (variables: CreateInvitationVariables) =>
-			(mutationOptions.mutationFn as NonNullable<typeof mutationOptions.mutationFn>)({
+		mutationFn: async (variables: CreateInvitationVariables) => {
+			const mutationFn = mutationOptions.mutationFn
+			if (!mutationFn) throw new Error('Missing createInvitation mutation function')
+			return mutationFn({
 				path: { householdId: variables.householdId },
 				body: { email: variables.email }
-			}, {} as never),
+			}, {} as never)
+		},
 		onSuccess: (data, variables) => {
 			queryClient.invalidateQueries({
 				queryKey: listHouseholdInvitationsQueryKey({
@@ -61,7 +64,9 @@ export function useAcceptInvitation(
 	const mutationOptions = acceptInvitationMutation()
 	return useMutation<{ householdId?: string }, Error, AcceptInvitationVariables>({
 		mutationFn: async (variables: AcceptInvitationVariables) => {
-			await (mutationOptions.mutationFn as NonNullable<typeof mutationOptions.mutationFn>)({
+			const mutationFn = mutationOptions.mutationFn
+			if (!mutationFn) throw new Error('Missing acceptInvitation mutation function')
+			await mutationFn({
 				path: { invitationId: variables.invitationId }
 			}, {} as never)
 			return { householdId: variables.householdId }
@@ -81,10 +86,13 @@ export function useDeclineInvitation(
 	const queryClient = useQueryClient()
 	const mutationOptions = declineInvitationMutation()
 	return useMutation<unknown, Error, InvitationVariables>({
-		mutationFn: async (variables: InvitationVariables) =>
-			(mutationOptions.mutationFn as NonNullable<typeof mutationOptions.mutationFn>)({
+		mutationFn: async (variables: InvitationVariables) => {
+			const mutationFn = mutationOptions.mutationFn
+			if (!mutationFn) throw new Error('Missing declineInvitation mutation function')
+			return mutationFn({
 				path: { invitationId: variables.invitationId }
-			}, {} as never),
+			}, {} as never)
+		},
 		onSuccess: (data, variables) => {
 			invalidateByOperation(queryClient, 'listMyInvitations')
 			callbacks?.onSuccess?.(data, variables)
@@ -102,10 +110,13 @@ export function useRevokeInvitation(
 	const queryClient = useQueryClient()
 	const mutationOptions = revokeInvitationMutation()
 	return useMutation<unknown, Error, RevokeInvitationVariables>({
-		mutationFn: async (variables: RevokeInvitationVariables) =>
-			(mutationOptions.mutationFn as NonNullable<typeof mutationOptions.mutationFn>)({
+		mutationFn: async (variables: RevokeInvitationVariables) => {
+			const mutationFn = mutationOptions.mutationFn
+			if (!mutationFn) throw new Error('Missing revokeInvitation mutation function')
+			return mutationFn({
 				path: { invitationId: variables.invitationId }
-			}, {} as never),
+			}, {} as never)
+		},
 		onSuccess: (data, variables) => {
 			invalidateByOperation(queryClient, 'listMyInvitations')
 			if (variables.householdId) {

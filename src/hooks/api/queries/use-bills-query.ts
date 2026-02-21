@@ -1,14 +1,17 @@
 import { useQuery } from '@tanstack/react-query'
 import { getBillInstanceOptions, listBillsOptions } from '@/api/generated/@tanstack/react-query.gen'
+import type { GetBillInstanceData, ListBillsData } from '@/api/generated/types.gen'
+
+type ListBillsQuery = NonNullable<ListBillsData['query']>
 
 /**
  * Hook to fetch list of bills for a budget
  * Query is auto-disabled when budgetId or userId is undefined/null
  */
 export function useBillsList(params: {
-	budgetId?: string | null
+	budgetId?: ListBillsData['path']['budgetId'] | null
 	userId?: string | null
-	includeArchived?: boolean
+	includeArchived?: ListBillsQuery['includeArchived']
 	thisMonthOnly?: boolean
 	enabled?: boolean
 }) {
@@ -29,7 +32,10 @@ export function useBillsList(params: {
  * Hook to fetch a single bill by ID
  * Query is auto-disabled when billId is undefined/null
  */
-export function useBillById(params: { billId?: string | null; enabled?: boolean }) {
+export function useBillById(params: {
+	billId?: GetBillInstanceData['path']['instanceId'] | null
+	enabled?: boolean
+}) {
 	const { billId, enabled = true } = params
 	return useQuery({
 		...getBillInstanceOptions({

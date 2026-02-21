@@ -3,13 +3,14 @@ import {
 	getBudgetOptions,
 	listBudgetsOptions
 } from '@/api/generated/@tanstack/react-query.gen'
+import type { GetBudgetData, ListBudgetsData } from '@/api/generated/types.gen'
 
 /**
  * Hook to fetch list of budgets for a household
  * Query is auto-disabled when householdId or userId is undefined/null
  */
 export function useBudgetsList(params: {
-	householdId?: string | null
+	householdId?: ListBudgetsData['path']['householdId'] | null
 	userId?: string | null
 	enabled?: boolean
 }) {
@@ -28,7 +29,7 @@ export function useBudgetsList(params: {
  * Query is auto-disabled when budgetId or userId is undefined/null
  */
 export function useBudgetById(params: {
-	budgetId?: string | null
+	budgetId?: GetBudgetData['path']['budgetId'] | null
 	userId?: string | null
 	enabled?: boolean
 }) {

@@ -3,6 +3,7 @@ import {
 	listHouseholdInvitationsOptions,
 	listMyInvitationsOptions
 } from '@/api/generated/@tanstack/react-query.gen'
+import type { ListHouseholdInvitationsData } from '@/api/generated/types.gen'
 
 export function useInvitations(params: { userId?: string; enabled?: boolean }) {
 	const { enabled = true } = params
@@ -14,7 +15,7 @@ export function useInvitations(params: { userId?: string; enabled?: boolean }) {
 }
 
 export function useHouseholdInvitations(params: {
-	householdId?: string
+	householdId?: ListHouseholdInvitationsData['path']['householdId']
 	userId?: string
 	enabled?: boolean
 }) {

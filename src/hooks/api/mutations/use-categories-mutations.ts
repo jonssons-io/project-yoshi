@@ -6,8 +6,10 @@ import {
 	updateCategoryMutation
 } from '@/api/generated/@tanstack/react-query.gen'
 import type {
+	CreateCategoryRequest,
 	CreateCategoryResponse,
 	DeleteCategoryResponse,
+	UpdateCategoryRequest,
 	UpdateCategoryResponse
 } from '@/api/generated/types.gen'
 import { invalidateByOperation } from '../invalidate-by-operation'
@@ -15,16 +17,12 @@ import type { MutationCallbacks } from '../types'
 
 type CreateCategoryVariables = {
 	householdId: string
-	name: string
-	types?: Array<'INCOME' | 'EXPENSE'>
 	userId?: string | null
-}
+} & CreateCategoryRequest
 type UpdateCategoryVariables = {
 	id: string
-	name?: string
-	types?: Array<'INCOME' | 'EXPENSE'>
 	userId?: string | null
-}
+} & UpdateCategoryRequest
 type DeleteCategoryVariables = { id: string; userId?: string | null }
 
 /**
@@ -39,14 +37,18 @@ export function useCreateCategory(
 	const queryClient = useQueryClient()
 	const mutationOptions = createCategoryMutation()
 	return useMutation<CreateCategoryResponse, Error, CreateCategoryVariables>({
-		mutationFn: async (variables: CreateCategoryVariables) =>
-			(mutationOptions.mutationFn as NonNullable<typeof mutationOptions.mutationFn>)({
-				path: { householdId: variables.householdId },
+		mutationFn: async (variables: CreateCategoryVariables) => {
+			const { householdId, userId: _userId, ...body } = variables
+			const mutationFn = mutationOptions.mutationFn
+			if (!mutationFn) throw new Error('Missing createCategory mutation function')
+			return mutationFn({
+				path: { householdId },
 				body: {
-					name: variables.name,
-					types: (variables.types ?? ['EXPENSE']) as never
+					...body,
+					types: body.types ?? ['EXPENSE']
 				}
-			}, {} as never),
+			}, {} as never)
+		},
 		onSuccess: (data, variables) => {
 			invalidateByOperation(queryClient, 'listCategories')
 			callbacks?.onSuccess?.(data, variables)
@@ -67,14 +69,15 @@ export function useUpdateCategory(
 	const queryClient = useQueryClient()
 	const mutationOptions = updateCategoryMutation()
 	return useMutation<UpdateCategoryResponse, Error, UpdateCategoryVariables>({
-		mutationFn: async (variables: UpdateCategoryVariables) =>
-			(mutationOptions.mutationFn as NonNullable<typeof mutationOptions.mutationFn>)({
-				path: { categoryId: variables.id },
-				body: {
-					name: variables.name,
-					types: variables.types as never
-				}
-			}, {} as never),
+		mutationFn: async (variables: UpdateCategoryVariables) => {
+			const { id, userId: _userId, ...body } = variables
+			const mutationFn = mutationOptions.mutationFn
+			if (!mutationFn) throw new Error('Missing updateCategory mutation function')
+			return mutationFn({
+				path: { categoryId: id },
+				body
+			}, {} as never)
+		},
 		onSuccess: (data, variables) => {
 			invalidateByOperation(queryClient, 'listCategories')
 			queryClient.invalidateQueries({
@@ -96,10 +99,13 @@ export function useDeleteCategory(
 	const queryClient = useQueryClient()
 	const mutationOptions = deleteCategoryMutation()
 	return useMutation<DeleteCategoryResponse, Error, DeleteCategoryVariables>({
-		mutationFn: async (variables: DeleteCategoryVariables) =>
-			(mutationOptions.mutationFn as NonNullable<typeof mutationOptions.mutationFn>)({
+		mutationFn: async (variables: DeleteCategoryVariables) => {
+			const mutationFn = mutationOptions.mutationFn
+			if (!mutationFn) throw new Error('Missing deleteCategory mutation function')
+			return mutationFn({
 				path: { categoryId: variables.id }
-			}, {} as never),
+			}, {} as never)
+		},
 		onSuccess: (data, variables) => {
 			invalidateByOperation(queryClient, 'listCategories')
 			callbacks?.onSuccess?.(data, variables)

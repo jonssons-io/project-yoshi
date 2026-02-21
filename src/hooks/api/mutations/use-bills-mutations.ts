@@ -7,25 +7,28 @@ import {
 	updateBillMutation
 } from '@/api/generated/@tanstack/react-query.gen'
 import type {
+	ArchiveBillRequest,
 	ArchiveBillResponse,
+	CreateBillRequest,
 	CreateBillResponse,
+	UpdateBillRequest,
 	UpdateBillResponse
 } from '@/api/generated/types.gen'
 import { invalidateByOperation } from '../invalidate-by-operation'
 import type { MutationCallbacks } from '../types'
 
-type BillCreateVariables = { budgetId: string; userId?: string | null } & Record<
-	string,
-	unknown
->
-type BillUpdateVariables = { id: string; userId?: string | null } & Record<
-	string,
-	unknown
->
+type BillCreateVariables = {
+	budgetId: string
+	userId?: string | null
+} & CreateBillRequest
+type BillUpdateVariables = {
+	id: string
+	userId?: string | null
+} & UpdateBillRequest
 type BillDeleteVariables = { id: string; userId?: string | null }
 type BillArchiveVariables = {
 	id: string
-	archived: boolean
+	archived: ArchiveBillRequest['archived']
 	userId?: string | null
 }
 
@@ -43,9 +46,11 @@ export function useCreateBill(
 	return useMutation<CreateBillResponse, Error, BillCreateVariables>({
 		mutationFn: async (variables: BillCreateVariables) => {
 			const { budgetId, userId: _userId, ...body } = variables
-			return (mutationOptions.mutationFn as NonNullable<typeof mutationOptions.mutationFn>)({
+			const mutationFn = mutationOptions.mutationFn
+			if (!mutationFn) throw new Error('Missing createBill mutation function')
+			return mutationFn({
 				path: { budgetId },
-				body: body as never
+				body
 			}, {} as never)
 		},
 		onSuccess: (data, variables) => {
@@ -70,9 +75,11 @@ export function useUpdateBill(
 	return useMutation<UpdateBillResponse, Error, BillUpdateVariables>({
 		mutationFn: async (variables: BillUpdateVariables) => {
 			const { id, userId: _userId, ...body } = variables
-			return (mutationOptions.mutationFn as NonNullable<typeof mutationOptions.mutationFn>)({
+			const mutationFn = mutationOptions.mutationFn
+			if (!mutationFn) throw new Error('Missing updateBill mutation function')
+			return mutationFn({
 				path: { billId: id },
-				body: body as never
+				body
 			}, {} as never)
 		},
 		onSuccess: (data, variables) => {
@@ -98,9 +105,13 @@ export function useDeleteBill(
 	const mutationOptions = deleteBillMutation()
 	return useMutation<unknown, Error, BillDeleteVariables>({
 		mutationFn: async (variables: BillDeleteVariables) =>
-			(mutationOptions.mutationFn as NonNullable<typeof mutationOptions.mutationFn>)({
-				path: { billId: variables.id }
-			}, {} as never),
+			(() => {
+				const mutationFn = mutationOptions.mutationFn
+				if (!mutationFn) throw new Error('Missing deleteBill mutation function')
+				return mutationFn({
+					path: { billId: variables.id }
+				}, {} as never)
+			})(),
 		onSuccess: (data, variables) => {
 			invalidateByOperation(queryClient, 'listBills')
 			callbacks?.onSuccess?.(data, variables)
@@ -122,10 +133,14 @@ export function useArchiveBill(
 	const mutationOptions = archiveBillMutation()
 	return useMutation<ArchiveBillResponse, Error, BillArchiveVariables>({
 		mutationFn: async (variables: BillArchiveVariables) =>
-			(mutationOptions.mutationFn as NonNullable<typeof mutationOptions.mutationFn>)({
-				path: { billId: variables.id },
-				body: { archived: variables.archived }
-			}, {} as never),
+			(() => {
+				const mutationFn = mutationOptions.mutationFn
+				if (!mutationFn) throw new Error('Missing archiveBill mutation function')
+				return mutationFn({
+					path: { billId: variables.id },
+					body: { archived: variables.archived }
+				}, {} as never)
+			})(),
 		onSuccess: (data, variables) => {
 			invalidateByOperation(queryClient, 'listBills')
 			queryClient.invalidateQueries({

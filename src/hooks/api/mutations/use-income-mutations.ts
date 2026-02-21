@@ -7,25 +7,28 @@ import {
 } from '@/api/generated/@tanstack/react-query.gen'
 import type {
 	ArchiveIncomeResponse,
+	ArchiveIncomeRequest,
+	CreateIncomeRequest,
 	CreateIncomeResponse,
 	DeleteIncomeResponse,
+	UpdateIncomeRequest,
 	UpdateIncomeResponse
 } from '@/api/generated/types.gen'
 import { invalidateByOperation } from '../invalidate-by-operation'
 import type { MutationCallbacks } from '../types'
 
-type IncomeCreateVariables = { householdId: string; userId?: string | null } & Record<
-	string,
-	unknown
->
-type IncomeUpdateVariables = { id: string; userId?: string | null } & Record<
-	string,
-	unknown
->
+type IncomeCreateVariables = {
+	householdId: string
+	userId?: string | null
+} & CreateIncomeRequest
+type IncomeUpdateVariables = {
+	id: string
+	userId?: string | null
+} & UpdateIncomeRequest
 type IncomeDeleteVariables = { id: string; userId?: string | null }
 type IncomeArchiveVariables = {
 	id: string
-	isArchived: boolean
+	isArchived: ArchiveIncomeRequest['isArchived']
 	userId?: string | null
 }
 
@@ -43,9 +46,11 @@ export function useCreateIncome(
 	return useMutation<CreateIncomeResponse, Error, IncomeCreateVariables>({
 		mutationFn: async (variables: IncomeCreateVariables) => {
 			const { householdId, userId: _userId, ...body } = variables
-			return (mutationOptions.mutationFn as NonNullable<typeof mutationOptions.mutationFn>)({
+			const mutationFn = mutationOptions.mutationFn
+			if (!mutationFn) throw new Error('Missing createIncome mutation function')
+			return mutationFn({
 				path: { householdId },
-				body: body as never
+				body
 			}, {} as never)
 		},
 		onSuccess: (data, variables) => {
@@ -71,9 +76,11 @@ export function useUpdateIncome(
 	return useMutation<UpdateIncomeResponse, Error, IncomeUpdateVariables>({
 		mutationFn: async (variables: IncomeUpdateVariables) => {
 			const { id, userId: _userId, ...body } = variables
-			return (mutationOptions.mutationFn as NonNullable<typeof mutationOptions.mutationFn>)({
+			const mutationFn = mutationOptions.mutationFn
+			if (!mutationFn) throw new Error('Missing updateIncome mutation function')
+			return mutationFn({
 				path: { incomeId: id },
-				body: body as never
+				body
 			}, {} as never)
 		},
 		onSuccess: (data, variables) => {
@@ -95,9 +102,13 @@ export function useDeleteIncome(
 	const mutationOptions = deleteIncomeMutation()
 	return useMutation<DeleteIncomeResponse, Error, IncomeDeleteVariables>({
 		mutationFn: async (variables: IncomeDeleteVariables) =>
-			(mutationOptions.mutationFn as NonNullable<typeof mutationOptions.mutationFn>)({
-				path: { incomeId: variables.id }
-			}, {} as never),
+			(() => {
+				const mutationFn = mutationOptions.mutationFn
+				if (!mutationFn) throw new Error('Missing deleteIncome mutation function')
+				return mutationFn({
+					path: { incomeId: variables.id }
+				}, {} as never)
+			})(),
 		onSuccess: (data, variables) => {
 			invalidateByOperation(queryClient, 'listIncomes')
 			callbacks?.onSuccess?.(data, variables)
@@ -119,10 +130,14 @@ export function useArchiveIncome(
 	const mutationOptions = archiveIncomeMutation()
 	return useMutation<ArchiveIncomeResponse, Error, IncomeArchiveVariables>({
 		mutationFn: async (variables: IncomeArchiveVariables) =>
-			(mutationOptions.mutationFn as NonNullable<typeof mutationOptions.mutationFn>)({
-				path: { incomeId: variables.id },
-				body: { isArchived: variables.isArchived }
-			}, {} as never),
+			(() => {
+				const mutationFn = mutationOptions.mutationFn
+				if (!mutationFn) throw new Error('Missing archiveIncome mutation function')
+				return mutationFn({
+					path: { incomeId: variables.id },
+					body: { isArchived: variables.isArchived }
+				}, {} as never)
+			})(),
 		onSuccess: (data, variables) => {
 			invalidateByOperation(queryClient, 'listIncomes')
 			callbacks?.onSuccess?.(data, variables)

@@ -15,7 +15,16 @@ import { RecurrenceType } from '@/api/generated/types.gen'
 // Schema for the form
 const incomeSchema = z.object({
 	name: z.string().min(1, 'validation.nameRequired'),
-	source: z.string().min(1, 'validation.sourceRequired'),
+	incomeSource: z
+		.union([
+			z.string().min(1),
+			z.object({
+				isNew: z.literal(true),
+				name: z.string().min(1, 'validation.sourceRequired')
+			})
+		])
+		.optional()
+		.nullable(),
 	amount: z.number().positive('validation.positive'),
 	expectedDate: z.date({ message: 'validation.dateRequired' }),
 	accountId: z.string().min(1, 'validation.accountRequired'),
@@ -38,6 +47,7 @@ export interface IncomeFormProps {
 	defaultValues?: Partial<IncomeFormData>
 	categories: Array<{ id: string; name: string; type: string }>
 	accounts: Array<{ id: string; name: string }>
+	incomeSources?: Array<{ id: string; name: string }>
 	onSubmit: (data: IncomeFormData) => Promise<void> | void
 	onCancel?: () => void
 	submitLabel?: string
@@ -47,6 +57,7 @@ export function IncomeForm({
 	defaultValues,
 	categories,
 	accounts,
+	incomeSources = [],
 	onSubmit,
 	onCancel,
 	submitLabel
@@ -59,7 +70,7 @@ export function IncomeForm({
 	const form = useAppForm({
 		defaultValues: {
 			name: defaultValues?.name ?? '',
-			source: defaultValues?.source ?? '',
+			incomeSource: (defaultValues?.incomeSource ?? null) as ComboboxValue | null,
 			amount: defaultValues?.amount ?? 0,
 			expectedDate: defaultValues?.expectedDate ?? new Date(),
 			accountId: defaultValues?.accountId ?? '',
@@ -116,16 +127,19 @@ export function IncomeForm({
 				)}
 			</form.AppField>
 
-			<form.AppField
-				name="source"
-				validators={{
-					onChange: createZodValidator(incomeSchema.shape.source)
-				}}
-			>
+			<form.AppField name="incomeSource">
 				{(field) => (
-					<field.TextField
+					<field.ComboboxField
 						label={t('forms.source')}
 						placeholder={t('forms.sourcePlaceholder')}
+						searchPlaceholder={t('forms.searchPlaceholder')}
+						emptyText={t('forms.noMatches')}
+						options={incomeSources.map((incomeSource) => ({
+							value: incomeSource.id,
+							label: incomeSource.name
+						}))}
+						allowCreate
+						createLabel={t('forms.source')}
 					/>
 				)}
 			</form.AppField>

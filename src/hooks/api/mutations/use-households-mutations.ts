@@ -10,7 +10,6 @@ import {
 } from '@/api/generated/@tanstack/react-query.gen'
 import type {
 	CreateHouseholdResponse,
-	DeleteHouseholdData,
 	UpdateHouseholdResponse
 } from '@/api/generated/types.gen'
 import { invalidateByOperation } from '../invalidate-by-operation'
@@ -38,10 +37,13 @@ export function useCreateHousehold(
 	const queryClient = useQueryClient()
 	const mutationOptions = createHouseholdMutation()
 	return useMutation<CreateHouseholdResponse, Error, CreateHouseholdVariables>({
-		mutationFn: async (variables: CreateHouseholdVariables) =>
-			(mutationOptions.mutationFn as NonNullable<typeof mutationOptions.mutationFn>)({
+		mutationFn: async (variables: CreateHouseholdVariables) => {
+			const mutationFn = mutationOptions.mutationFn
+			if (!mutationFn) throw new Error('Missing createHousehold mutation function')
+			return mutationFn({
 				body: { name: variables.name }
-			}, {} as never),
+			}, {} as never)
+		},
 		onSuccess: (data, variables) => {
 			invalidateByOperation(queryClient, 'listHouseholds')
 			callbacks?.onSuccess?.(data, variables)
@@ -62,11 +64,14 @@ export function useUpdateHousehold(
 	const queryClient = useQueryClient()
 	const mutationOptions = updateHouseholdMutation()
 	return useMutation<UpdateHouseholdResponse, Error, UpdateHouseholdVariables>({
-		mutationFn: async (variables: UpdateHouseholdVariables) =>
-			(mutationOptions.mutationFn as NonNullable<typeof mutationOptions.mutationFn>)({
+		mutationFn: async (variables: UpdateHouseholdVariables) => {
+			const mutationFn = mutationOptions.mutationFn
+			if (!mutationFn) throw new Error('Missing updateHousehold mutation function')
+			return mutationFn({
 				path: { householdId: variables.id },
 				body: { name: variables.name }
-			}, {} as never),
+			}, {} as never)
+		},
 		onSuccess: (data, variables) => {
 			invalidateByOperation(queryClient, 'listHouseholds')
 			queryClient.invalidateQueries({
@@ -91,10 +96,13 @@ export function useDeleteHousehold(
 	const queryClient = useQueryClient()
 	const mutationOptions = deleteHouseholdMutation()
 	return useMutation<unknown, Error, DeleteHouseholdVariables>({
-		mutationFn: async (variables: DeleteHouseholdVariables) =>
-			(mutationOptions.mutationFn as NonNullable<typeof mutationOptions.mutationFn>)({
+		mutationFn: async (variables: DeleteHouseholdVariables) => {
+			const mutationFn = mutationOptions.mutationFn
+			if (!mutationFn) throw new Error('Missing deleteHousehold mutation function')
+			return mutationFn({
 				path: { householdId: variables.id }
-			} as DeleteHouseholdData, {} as never),
+			}, {} as never)
+		},
 		onSuccess: (data, variables) => {
 			invalidateByOperation(queryClient, 'listHouseholds')
 			invalidateByOperation(queryClient, 'listBudgets')
@@ -120,13 +128,16 @@ export function useAddHouseholdUser(
 	const queryClient = useQueryClient()
 	const mutationOptions = addHouseholdMemberMutation()
 	return useMutation<unknown, Error, HouseholdMemberVariables>({
-		mutationFn: async (variables: HouseholdMemberVariables) =>
-			(mutationOptions.mutationFn as NonNullable<typeof mutationOptions.mutationFn>)({
+		mutationFn: async (variables: HouseholdMemberVariables) => {
+			const mutationFn = mutationOptions.mutationFn
+			if (!mutationFn) throw new Error('Missing addHouseholdMember mutation function')
+			return mutationFn({
 				path: {
 					householdId: variables.householdId,
 					userId: variables.userId
 				}
-			}, {} as never),
+			}, {} as never)
+		},
 		onSuccess: (data, variables) => {
 			invalidateByOperation(queryClient, 'listHouseholds')
 			queryClient.invalidateQueries({
@@ -157,13 +168,17 @@ export function useRemoveHouseholdUser(
 	const queryClient = useQueryClient()
 	const mutationOptions = removeHouseholdMemberMutation()
 	return useMutation<unknown, Error, RemoveHouseholdUserVariables>({
-		mutationFn: async (variables: RemoveHouseholdUserVariables) =>
-			(mutationOptions.mutationFn as NonNullable<typeof mutationOptions.mutationFn>)({
+		mutationFn: async (variables: RemoveHouseholdUserVariables) => {
+			const mutationFn = mutationOptions.mutationFn
+			if (!mutationFn)
+				throw new Error('Missing removeHouseholdMember mutation function')
+			return mutationFn({
 				path: {
 					householdId: variables.householdId,
 					userId: variables.removeUserId
 				}
-			}, {} as never),
+			}, {} as never)
+		},
 		onSuccess: (data, variables) => {
 			invalidateByOperation(queryClient, 'listHouseholds')
 			queryClient.invalidateQueries({

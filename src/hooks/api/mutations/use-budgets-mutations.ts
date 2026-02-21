@@ -10,8 +10,10 @@ import {
 	updateBudgetMutation
 } from '@/api/generated/@tanstack/react-query.gen'
 import type {
+	CreateBudgetRequest,
 	CreateBudgetResponse,
 	DeleteBudgetResponse,
+	UpdateBudgetRequest,
 	UpdateBudgetResponse
 } from '@/api/generated/types.gen'
 import { invalidateByOperation } from '../invalidate-by-operation'
@@ -19,19 +21,13 @@ import type { MutationCallbacks } from '../types'
 
 type CreateBudgetVariables = {
 	householdId: string
-	name: string
-	startDate: string | Date
-	endDate?: string | null
 	userId?: string | null
-}
+} & Omit<CreateBudgetRequest, 'startDate'> & { startDate: string | Date }
 
 type UpdateBudgetVariables = {
 	id: string
-	name?: string
-	startDate?: string | Date
-	endDate?: string | null
 	userId?: string | null
-}
+} & Omit<UpdateBudgetRequest, 'startDate'> & { startDate?: string | Date }
 
 type DeleteBudgetVariables = { id: string; userId?: string | null }
 type BudgetCategoryVariables = {
@@ -57,17 +53,19 @@ export function useCreateBudget(
 	const queryClient = useQueryClient()
 	const mutationOptions = createBudgetMutation()
 	return useMutation<CreateBudgetResponse, Error, CreateBudgetVariables>({
-		mutationFn: async (variables: CreateBudgetVariables) =>
-			(mutationOptions.mutationFn as NonNullable<typeof mutationOptions.mutationFn>)({
-				path: { householdId: variables.householdId },
+		mutationFn: async (variables: CreateBudgetVariables) => {
+			const { householdId, userId: _userId, startDate, ...rest } = variables
+			const mutationFn = mutationOptions.mutationFn
+			if (!mutationFn) throw new Error('Missing createBudget mutation function')
+			return mutationFn({
+				path: { householdId },
 				body: {
-					name: variables.name,
+					...rest,
 					startDate:
-						variables.startDate instanceof Date
-							? variables.startDate.toISOString()
-							: variables.startDate
+						startDate instanceof Date ? startDate.toISOString() : startDate
 				}
-			}, {} as never),
+			}, {} as never)
+		},
 		onSuccess: (data, variables) => {
 			invalidateByOperation(queryClient, 'listBudgets')
 			callbacks?.onSuccess?.(data, variables)
@@ -88,17 +86,19 @@ export function useUpdateBudget(
 	const queryClient = useQueryClient()
 	const mutationOptions = updateBudgetMutation()
 	return useMutation<UpdateBudgetResponse, Error, UpdateBudgetVariables>({
-		mutationFn: async (variables: UpdateBudgetVariables) =>
-			(mutationOptions.mutationFn as NonNullable<typeof mutationOptions.mutationFn>)({
-				path: { budgetId: variables.id },
+		mutationFn: async (variables: UpdateBudgetVariables) => {
+			const { id, userId: _userId, startDate, ...rest } = variables
+			const mutationFn = mutationOptions.mutationFn
+			if (!mutationFn) throw new Error('Missing updateBudget mutation function')
+			return mutationFn({
+				path: { budgetId: id },
 				body: {
-					name: variables.name,
+					...rest,
 					startDate:
-						variables.startDate instanceof Date
-							? variables.startDate.toISOString()
-							: variables.startDate
+						startDate instanceof Date ? startDate.toISOString() : startDate
 				}
-			}, {} as never),
+			}, {} as never)
+		},
 		onSuccess: (data, variables) => {
 			invalidateByOperation(queryClient, 'listBudgets')
 			queryClient.invalidateQueries({
@@ -120,10 +120,13 @@ export function useDeleteBudget(
 	const queryClient = useQueryClient()
 	const mutationOptions = deleteBudgetMutation()
 	return useMutation<DeleteBudgetResponse, Error, DeleteBudgetVariables>({
-		mutationFn: async (variables: DeleteBudgetVariables) =>
-			(mutationOptions.mutationFn as NonNullable<typeof mutationOptions.mutationFn>)({
+		mutationFn: async (variables: DeleteBudgetVariables) => {
+			const mutationFn = mutationOptions.mutationFn
+			if (!mutationFn) throw new Error('Missing deleteBudget mutation function')
+			return mutationFn({
 				path: { budgetId: variables.id }
-			}, {} as never),
+			}, {} as never)
+		},
 		onSuccess: (data, variables) => {
 			invalidateByOperation(queryClient, 'listBudgets')
 			invalidateByOperation(queryClient, 'listTransactions')
@@ -146,10 +149,13 @@ export function useLinkBudgetCategory(
 	const queryClient = useQueryClient()
 	const mutationOptions = linkCategoryToBudgetMutation()
 	return useMutation<unknown, Error, BudgetCategoryVariables>({
-		mutationFn: async (variables: BudgetCategoryVariables) =>
-			(mutationOptions.mutationFn as NonNullable<typeof mutationOptions.mutationFn>)({
+		mutationFn: async (variables: BudgetCategoryVariables) => {
+			const mutationFn = mutationOptions.mutationFn
+			if (!mutationFn) throw new Error('Missing linkCategoryToBudget mutation function')
+			return mutationFn({
 				path: { budgetId: variables.budgetId, categoryId: variables.categoryId }
-			}, {} as never),
+			}, {} as never)
+		},
 		onSuccess: (data, variables) => {
 			queryClient.invalidateQueries({
 				queryKey: getBudgetQueryKey({ path: { budgetId: variables.budgetId } })
@@ -173,10 +179,14 @@ export function useUnlinkBudgetCategory(
 	const queryClient = useQueryClient()
 	const mutationOptions = unlinkCategoryFromBudgetMutation()
 	return useMutation<unknown, Error, BudgetCategoryVariables>({
-		mutationFn: async (variables: BudgetCategoryVariables) =>
-			(mutationOptions.mutationFn as NonNullable<typeof mutationOptions.mutationFn>)({
+		mutationFn: async (variables: BudgetCategoryVariables) => {
+			const mutationFn = mutationOptions.mutationFn
+			if (!mutationFn)
+				throw new Error('Missing unlinkCategoryFromBudget mutation function')
+			return mutationFn({
 				path: { budgetId: variables.budgetId, categoryId: variables.categoryId }
-			}, {} as never),
+			}, {} as never)
+		},
 		onSuccess: (data, variables) => {
 			queryClient.invalidateQueries({
 				queryKey: getBudgetQueryKey({ path: { budgetId: variables.budgetId } })
@@ -200,10 +210,13 @@ export function useLinkBudgetAccount(
 	const queryClient = useQueryClient()
 	const mutationOptions = linkAccountToBudgetMutation()
 	return useMutation<unknown, Error, BudgetAccountVariables>({
-		mutationFn: async (variables: BudgetAccountVariables) =>
-			(mutationOptions.mutationFn as NonNullable<typeof mutationOptions.mutationFn>)({
+		mutationFn: async (variables: BudgetAccountVariables) => {
+			const mutationFn = mutationOptions.mutationFn
+			if (!mutationFn) throw new Error('Missing linkAccountToBudget mutation function')
+			return mutationFn({
 				path: { budgetId: variables.budgetId, accountId: variables.accountId }
-			}, {} as never),
+			}, {} as never)
+		},
 		onSuccess: (data, variables) => {
 			queryClient.invalidateQueries({
 				queryKey: getBudgetQueryKey({ path: { budgetId: variables.budgetId } })
@@ -227,10 +240,14 @@ export function useUnlinkBudgetAccount(
 	const queryClient = useQueryClient()
 	const mutationOptions = unlinkAccountFromBudgetMutation()
 	return useMutation<unknown, Error, BudgetAccountVariables>({
-		mutationFn: async (variables: BudgetAccountVariables) =>
-			(mutationOptions.mutationFn as NonNullable<typeof mutationOptions.mutationFn>)({
+		mutationFn: async (variables: BudgetAccountVariables) => {
+			const mutationFn = mutationOptions.mutationFn
+			if (!mutationFn)
+				throw new Error('Missing unlinkAccountFromBudget mutation function')
+			return mutationFn({
 				path: { budgetId: variables.budgetId, accountId: variables.accountId }
-			}, {} as never),
+			}, {} as never)
+		},
 		onSuccess: (data, variables) => {
 			queryClient.invalidateQueries({
 				queryKey: getBudgetQueryKey({ path: { budgetId: variables.budgetId } })

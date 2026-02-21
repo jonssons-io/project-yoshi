@@ -4,17 +4,24 @@ import {
 	getAccountOptions,
 	listAccountsOptions
 } from '@/api/generated/@tanstack/react-query.gen'
+import type {
+	GetAccountBalanceData,
+	GetAccountData,
+	ListAccountsData
+} from '@/api/generated/types.gen'
+
+type ListAccountsQuery = NonNullable<ListAccountsData['query']>
 
 /**
  * Hook to fetch list of accounts for a household
  * Query is auto-disabled when householdId or userId is undefined/null
  */
 export function useAccountsList(params: {
-	householdId?: string | null
+	householdId?: ListAccountsData['path']['householdId'] | null
 	userId?: string | null
-	budgetId?: string | null
+	budgetId?: ListAccountsQuery['budgetId'] | null
 	enabled?: boolean
-	excludeArchived?: boolean
+	excludeArchived?: ListAccountsQuery['excludeArchived']
 }) {
 	const { householdId, budgetId, excludeArchived, enabled = true } = params
 	return useQuery({
@@ -35,7 +42,7 @@ export function useAccountsList(params: {
  * Query is auto-disabled when accountId or userId is undefined/null
  */
 export function useAccountById(params: {
-	accountId?: string | null
+	accountId?: GetAccountData['path']['accountId'] | null
 	userId?: string | null
 	enabled?: boolean
 }) {
@@ -53,7 +60,7 @@ export function useAccountById(params: {
  * Query is auto-disabled when accountId or userId is undefined/null
  */
 export function useAccountBalance(params: {
-	accountId?: string | null
+	accountId?: GetAccountBalanceData['path']['accountId'] | null
 	userId?: string | null
 	enabled?: boolean
 }) {

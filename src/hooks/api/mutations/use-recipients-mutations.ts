@@ -7,8 +7,10 @@ import {
 	updateRecipientMutation
 } from '@/api/generated/@tanstack/react-query.gen'
 import type {
+	CreateRecipientRequest,
 	CreateRecipientResponse,
 	GetOrCreateRecipientResponse,
+	UpdateRecipientRequest,
 	UpdateRecipientResponse
 } from '@/api/generated/types.gen'
 import { invalidateByOperation } from '../invalidate-by-operation'
@@ -16,14 +18,12 @@ import type { MutationCallbacks } from '../types'
 
 type CreateRecipientVariables = {
 	householdId: string
-	name: string
 	userId?: string | null
-}
+} & CreateRecipientRequest
 type UpdateRecipientVariables = {
 	id: string
-	name?: string
 	userId?: string | null
-}
+} & UpdateRecipientRequest
 type DeleteRecipientVariables = { id: string; userId?: string | null }
 
 /**
@@ -38,11 +38,15 @@ export function useCreateRecipient(
 	const queryClient = useQueryClient()
 	const mutationOptions = createRecipientMutation()
 	return useMutation<CreateRecipientResponse, Error, CreateRecipientVariables>({
-		mutationFn: async (variables: CreateRecipientVariables) =>
-			(mutationOptions.mutationFn as NonNullable<typeof mutationOptions.mutationFn>)({
-				path: { householdId: variables.householdId },
-				body: { name: variables.name }
-			}, {} as never),
+		mutationFn: async (variables: CreateRecipientVariables) => {
+			const { householdId, userId: _userId, ...body } = variables
+			const mutationFn = mutationOptions.mutationFn
+			if (!mutationFn) throw new Error('Missing createRecipient mutation function')
+			return mutationFn({
+				path: { householdId },
+				body
+			}, {} as never)
+		},
 		onSuccess: (data, variables) => {
 			invalidateByOperation(queryClient, 'listRecipients')
 			callbacks?.onSuccess?.(data, variables)
@@ -64,11 +68,16 @@ export function useGetOrCreateRecipient(
 	const queryClient = useQueryClient()
 	const mutationOptions = getOrCreateRecipientMutation()
 	return useMutation<GetOrCreateRecipientResponse, Error, CreateRecipientVariables>({
-		mutationFn: async (variables: CreateRecipientVariables) =>
-			(mutationOptions.mutationFn as NonNullable<typeof mutationOptions.mutationFn>)({
-				path: { householdId: variables.householdId },
-				body: { name: variables.name }
-			}, {} as never),
+		mutationFn: async (variables: CreateRecipientVariables) => {
+			const { householdId, userId: _userId, ...body } = variables
+			const mutationFn = mutationOptions.mutationFn
+			if (!mutationFn)
+				throw new Error('Missing getOrCreateRecipient mutation function')
+			return mutationFn({
+				path: { householdId },
+				body
+			}, {} as never)
+		},
 		onSuccess: (data, variables) => {
 			invalidateByOperation(queryClient, 'listRecipients')
 			callbacks?.onSuccess?.(data, variables)
@@ -89,11 +98,15 @@ export function useUpdateRecipient(
 	const queryClient = useQueryClient()
 	const mutationOptions = updateRecipientMutation()
 	return useMutation<UpdateRecipientResponse, Error, UpdateRecipientVariables>({
-		mutationFn: async (variables: UpdateRecipientVariables) =>
-			(mutationOptions.mutationFn as NonNullable<typeof mutationOptions.mutationFn>)({
-				path: { recipientId: variables.id },
-				body: { name: variables.name }
-			}, {} as never),
+		mutationFn: async (variables: UpdateRecipientVariables) => {
+			const { id, userId: _userId, ...body } = variables
+			const mutationFn = mutationOptions.mutationFn
+			if (!mutationFn) throw new Error('Missing updateRecipient mutation function')
+			return mutationFn({
+				path: { recipientId: id },
+				body
+			}, {} as never)
+		},
 		onSuccess: (data, variables) => {
 			invalidateByOperation(queryClient, 'listRecipients')
 			queryClient.invalidateQueries({
@@ -117,10 +130,13 @@ export function useDeleteRecipient(
 	const queryClient = useQueryClient()
 	const mutationOptions = deleteRecipientMutation()
 	return useMutation<unknown, Error, DeleteRecipientVariables>({
-		mutationFn: async (variables: DeleteRecipientVariables) =>
-			(mutationOptions.mutationFn as NonNullable<typeof mutationOptions.mutationFn>)({
+		mutationFn: async (variables: DeleteRecipientVariables) => {
+			const mutationFn = mutationOptions.mutationFn
+			if (!mutationFn) throw new Error('Missing deleteRecipient mutation function')
+			return mutationFn({
 				path: { recipientId: variables.id }
-			}, {} as never),
+			}, {} as never)
+		},
 		onSuccess: (data, variables) => {
 			invalidateByOperation(queryClient, 'listRecipients')
 			callbacks?.onSuccess?.(data, variables)

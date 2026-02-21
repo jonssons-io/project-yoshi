@@ -8,9 +8,12 @@ import {
 	updateAccountMutation
 } from '@/api/generated/@tanstack/react-query.gen'
 import type {
+	CreateAccountRequest,
 	CreateAccountResponse,
 	DeleteAccountResponse,
+	ToggleAccountArchiveRequest,
 	ToggleAccountArchiveResponse,
+	UpdateAccountRequest,
 	UpdateAccountResponse
 } from '@/api/generated/types.gen'
 import { invalidateByOperation } from '../invalidate-by-operation'
@@ -18,25 +21,18 @@ import type { MutationCallbacks } from '../types'
 
 type CreateAccountVariables = {
 	householdId: string
-	name: string
-	externalIdentifier?: string
-	initialBalance?: number
 	userId?: string | null
-}
+} & CreateAccountRequest
 
 type UpdateAccountVariables = {
 	id: string
 	userId?: string | null
-	name?: string
-	externalIdentifier?: string
-	initialBalance?: number
-	isArchived?: boolean
-}
+} & UpdateAccountRequest
 
 type DeleteAccountVariables = { id: string; userId?: string | null }
 type ToggleAccountArchiveVariables = {
 	id: string
-	isArchived: boolean
+	isArchived: ToggleAccountArchiveRequest['isArchived']
 	userId?: string | null
 }
 
@@ -52,15 +48,15 @@ export function useCreateAccount(
 	const queryClient = useQueryClient()
 	const mutationOptions = createAccountMutation()
 	return useMutation<CreateAccountResponse, Error, CreateAccountVariables>({
-		mutationFn: async (variables: CreateAccountVariables) =>
-			(mutationOptions.mutationFn as NonNullable<typeof mutationOptions.mutationFn>)({
-				path: { householdId: variables.householdId },
-				body: {
-					name: variables.name,
-					externalIdentifier: variables.externalIdentifier ?? undefined,
-					initialBalance: variables.initialBalance
-				}
-			}, {} as never),
+		mutationFn: async (variables: CreateAccountVariables) => {
+			const { householdId, userId: _userId, ...body } = variables
+			const mutationFn = mutationOptions.mutationFn
+			if (!mutationFn) throw new Error('Missing createAccount mutation function')
+			return mutationFn({
+				path: { householdId },
+				body
+			}, {} as never)
+		},
 		onSuccess: (data, variables) => {
 			invalidateByOperation(queryClient, 'listAccounts')
 			callbacks?.onSuccess?.(data, variables)
@@ -81,15 +77,15 @@ export function useUpdateAccount(
 	const queryClient = useQueryClient()
 	const mutationOptions = updateAccountMutation()
 	return useMutation<UpdateAccountResponse, Error, UpdateAccountVariables>({
-		mutationFn: async (variables: UpdateAccountVariables) =>
-			(mutationOptions.mutationFn as NonNullable<typeof mutationOptions.mutationFn>)({
-				path: { accountId: variables.id },
-				body: {
-					name: variables.name,
-					externalIdentifier: variables.externalIdentifier ?? undefined,
-					initialBalance: variables.initialBalance
-				}
-			}, {} as never),
+		mutationFn: async (variables: UpdateAccountVariables) => {
+			const { id, userId: _userId, ...body } = variables
+			const mutationFn = mutationOptions.mutationFn
+			if (!mutationFn) throw new Error('Missing updateAccount mutation function')
+			return mutationFn({
+				path: { accountId: id },
+				body
+			}, {} as never)
+		},
 		onSuccess: (data, variables) => {
 			invalidateByOperation(queryClient, 'listAccounts')
 			queryClient.invalidateQueries({
@@ -114,10 +110,13 @@ export function useDeleteAccount(
 	const queryClient = useQueryClient()
 	const mutationOptions = deleteAccountMutation()
 	return useMutation<DeleteAccountResponse, Error, DeleteAccountVariables>({
-		mutationFn: async (variables: DeleteAccountVariables) =>
-			(mutationOptions.mutationFn as NonNullable<typeof mutationOptions.mutationFn>)({
+		mutationFn: async (variables: DeleteAccountVariables) => {
+			const mutationFn = mutationOptions.mutationFn
+			if (!mutationFn) throw new Error('Missing deleteAccount mutation function')
+			return mutationFn({
 				path: { accountId: variables.id }
-			}, {} as never),
+			}, {} as never)
+		},
 		onSuccess: (data, variables) => {
 			invalidateByOperation(queryClient, 'listAccounts')
 			callbacks?.onSuccess?.(data, variables)
@@ -142,11 +141,14 @@ export function useToggleAccountArchive(
 		Error,
 		ToggleAccountArchiveVariables
 	>({
-		mutationFn: async (variables: ToggleAccountArchiveVariables) =>
-			(mutationOptions.mutationFn as NonNullable<typeof mutationOptions.mutationFn>)({
+		mutationFn: async (variables: ToggleAccountArchiveVariables) => {
+			const mutationFn = mutationOptions.mutationFn
+			if (!mutationFn) throw new Error('Missing toggleAccountArchive mutation function')
+			return mutationFn({
 				path: { accountId: variables.id },
 				body: { isArchived: variables.isArchived }
-			}, {} as never),
+			}, {} as never)
+		},
 		onSuccess: (data, variables) => {
 			invalidateByOperation(queryClient, 'listAccounts')
 			queryClient.invalidateQueries({

@@ -8,33 +8,41 @@ import {
 } from '@/api/generated/@tanstack/react-query.gen'
 import type {
 	CloneTransactionResponse,
+	CreateTransactionRequest,
 	CreateTransactionResponse,
 	DeleteTransactionResponse,
+	UpdateTransactionRequest,
 	UpdateTransactionResponse
 } from '@/api/generated/types.gen'
 import { invalidateByOperation } from '../invalidate-by-operation'
 import type { MutationCallbacks } from '../types'
 
-type CreateTransactionVariables = Record<string, unknown>
-type UpdateTransactionVariables = { id: string; userId?: string | null } & Record<
-	string,
-	unknown
->
+type CreateTransactionVariables = {
+	userId?: string | null
+} & CreateTransactionRequest
+type UpdateTransactionVariables = {
+	id: string
+	userId?: string | null
+} & UpdateTransactionRequest
 type TransactionIdVariables = { id: string; userId?: string | null }
 
 /**
  * Hook to create a new transaction
  */
 export function useCreateTransaction(
-	callbacks?: MutationCallbacks<CreateTransactionResponse, Record<string, unknown>>
+	callbacks?: MutationCallbacks<CreateTransactionResponse, CreateTransactionVariables>
 ) {
 	const queryClient = useQueryClient()
 	const mutationOptions = createTransactionMutation()
 	return useMutation<CreateTransactionResponse, Error, CreateTransactionVariables>({
-		mutationFn: async (variables: CreateTransactionVariables) =>
-			(mutationOptions.mutationFn as NonNullable<typeof mutationOptions.mutationFn>)({
-				body: variables as never
-			}, {} as never),
+		mutationFn: async (variables: CreateTransactionVariables) => {
+			const { userId: _userId, ...body } = variables
+			const mutationFn = mutationOptions.mutationFn
+			if (!mutationFn) throw new Error('Missing createTransaction mutation function')
+			return mutationFn({
+				body
+			}, {} as never)
+		},
 		onSuccess: (data, variables) => {
 			invalidateByOperation(queryClient, 'listTransactions')
 			callbacks?.onSuccess?.(data, variables)
@@ -57,9 +65,11 @@ export function useUpdateTransaction(
 	return useMutation<UpdateTransactionResponse, Error, UpdateTransactionVariables>({
 		mutationFn: async (variables: UpdateTransactionVariables) => {
 			const { id, userId: _userId, ...body } = variables
-			return (mutationOptions.mutationFn as NonNullable<typeof mutationOptions.mutationFn>)({
+			const mutationFn = mutationOptions.mutationFn
+			if (!mutationFn) throw new Error('Missing updateTransaction mutation function')
+			return mutationFn({
 				path: { transactionId: id },
-				body: body as never
+				body
 			}, {} as never)
 		},
 		onSuccess: (data, variables) => {
@@ -88,9 +98,13 @@ export function useDeleteTransaction(
 	const mutationOptions = deleteTransactionMutation()
 	return useMutation<DeleteTransactionResponse, Error, TransactionIdVariables>({
 		mutationFn: async (variables: TransactionIdVariables) =>
-			(mutationOptions.mutationFn as NonNullable<typeof mutationOptions.mutationFn>)({
-				path: { transactionId: variables.id }
-			}, {} as never),
+			(() => {
+				const mutationFn = mutationOptions.mutationFn
+				if (!mutationFn) throw new Error('Missing deleteTransaction mutation function')
+				return mutationFn({
+					path: { transactionId: variables.id }
+				}, {} as never)
+			})(),
 		onSuccess: (data, variables) => {
 			invalidateByOperation(queryClient, 'listTransactions')
 			callbacks?.onSuccess?.(data, variables)
@@ -112,10 +126,14 @@ export function useCloneTransaction(
 	const mutationOptions = cloneTransactionMutation()
 	return useMutation<CloneTransactionResponse, Error, TransactionIdVariables>({
 		mutationFn: async (variables: TransactionIdVariables) =>
-			(mutationOptions.mutationFn as NonNullable<typeof mutationOptions.mutationFn>)({
-				path: { transactionId: variables.id },
-				body: {}
-			}, {} as never),
+			(() => {
+				const mutationFn = mutationOptions.mutationFn
+				if (!mutationFn) throw new Error('Missing cloneTransaction mutation function')
+				return mutationFn({
+					path: { transactionId: variables.id },
+					body: {}
+				}, {} as never)
+			})(),
 		onSuccess: (data, variables) => {
 			invalidateByOperation(queryClient, 'listTransactions')
 			callbacks?.onSuccess?.(data, variables)

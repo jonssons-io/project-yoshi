@@ -5,21 +5,23 @@ import {
 	updateTransferMutation
 } from '@/api/generated/@tanstack/react-query.gen'
 import type {
+	CreateTransferRequest,
 	CreateTransferResponse,
 	DeleteTransferResponse,
+	UpdateTransferRequest,
 	UpdateTransferResponse
 } from '@/api/generated/types.gen'
 import { invalidateByOperation } from '../invalidate-by-operation'
 import type { MutationCallbacks } from '../types'
 
-type CreateTransferVariables = { budgetId: string; userId?: string | null } & Record<
-	string,
-	unknown
->
-type UpdateTransferVariables = { id: string; userId?: string | null } & Record<
-	string,
-	unknown
->
+type CreateTransferVariables = {
+	budgetId: string
+	userId?: string | null
+} & CreateTransferRequest
+type UpdateTransferVariables = {
+	id: string
+	userId?: string | null
+} & UpdateTransferRequest
 type DeleteTransferVariables = { id: string; userId?: string | null }
 
 /**
@@ -36,9 +38,11 @@ export function useCreateTransfer(
 	return useMutation<CreateTransferResponse, Error, CreateTransferVariables>({
 		mutationFn: async (variables: CreateTransferVariables) => {
 			const { budgetId, userId: _userId, ...body } = variables
-			return (mutationOptions.mutationFn as NonNullable<typeof mutationOptions.mutationFn>)({
+			const mutationFn = mutationOptions.mutationFn
+			if (!mutationFn) throw new Error('Missing createTransfer mutation function')
+			return mutationFn({
 				path: { budgetId },
-				body: body as never
+				body
 			}, {} as never)
 		},
 		onSuccess: (data, variables) => {
@@ -64,9 +68,11 @@ export function useUpdateTransfer(
 	return useMutation<UpdateTransferResponse, Error, UpdateTransferVariables>({
 		mutationFn: async (variables: UpdateTransferVariables) => {
 			const { id, userId: _userId, ...body } = variables
-			return (mutationOptions.mutationFn as NonNullable<typeof mutationOptions.mutationFn>)({
+			const mutationFn = mutationOptions.mutationFn
+			if (!mutationFn) throw new Error('Missing updateTransfer mutation function')
+			return mutationFn({
 				path: { transferId: id },
-				body: body as never
+				body
 			}, {} as never)
 		},
 		onSuccess: (data, variables) => {
@@ -91,9 +97,13 @@ export function useDeleteTransfer(
 	const mutationOptions = deleteTransferMutation()
 	return useMutation<DeleteTransferResponse, Error, DeleteTransferVariables>({
 		mutationFn: async (variables: DeleteTransferVariables) =>
-			(mutationOptions.mutationFn as NonNullable<typeof mutationOptions.mutationFn>)({
-				path: { transferId: variables.id }
-			}, {} as never),
+			(() => {
+				const mutationFn = mutationOptions.mutationFn
+				if (!mutationFn) throw new Error('Missing deleteTransfer mutation function')
+				return mutationFn({
+					path: { transferId: variables.id }
+				}, {} as never)
+			})(),
 		onSuccess: (data, variables) => {
 			invalidateByOperation(queryClient, 'listTransfers')
 			invalidateByOperation(queryClient, 'listAccounts')

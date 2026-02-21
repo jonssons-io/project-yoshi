@@ -3,13 +3,14 @@ import {
 	getRecipientOptions,
 	listRecipientsOptions
 } from '@/api/generated/@tanstack/react-query.gen'
+import type { GetRecipientData, ListRecipientsData } from '@/api/generated/types.gen'
 
 /**
  * Hook to fetch list of recipients for a household
  * Query is auto-disabled when householdId or userId is undefined/null
  */
 export function useRecipientsList(params: {
-	householdId?: string | null
+	householdId?: ListRecipientsData['path']['householdId'] | null
 	userId?: string | null
 	enabled?: boolean
 }) {
@@ -28,7 +29,7 @@ export function useRecipientsList(params: {
  * Query is auto-disabled when recipientId or userId is undefined/null
  */
 export function useRecipientById(params: {
-	recipientId?: string | null
+	recipientId?: GetRecipientData['path']['recipientId'] | null
 	userId?: string | null
 	enabled?: boolean
 }) {

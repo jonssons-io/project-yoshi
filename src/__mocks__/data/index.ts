@@ -63,16 +63,24 @@ export type Recipient = {
 
 export type Income = {
 	id: string
+	name: string
 	householdId: string
+	incomeSourceId: string
 	accountId: string
-	categoryId: string | null
-	recipientId: string | null
-	amount: number
+	categoryId: string
+	estimatedAmount: number
+	expectedDate: string
 	recurrenceType: string
-	recurrenceValue: number
-	startDate: string
+	customIntervalDays?: number
 	endDate: string | null
 	isArchived: boolean
+	createdAt: string
+}
+
+export type IncomeSource = {
+	id: string
+	householdId: string
+	name: string
 	createdAt: string
 }
 
@@ -252,17 +260,26 @@ export const recipients: Recipient[] = [
 	}
 ]
 
+export const incomeSources: IncomeSource[] = [
+	{
+		id: 'isrc_1',
+		householdId: 'hh_1',
+		name: 'Employer Payroll',
+		createdAt: nowIso()
+	}
+]
+
 export const incomes: Income[] = [
 	{
 		id: 'income_1',
+		name: 'Salary',
 		householdId: 'hh_1',
+		incomeSourceId: 'isrc_1',
 		accountId: 'acc_1',
 		categoryId: 'cat_2',
-		recipientId: null,
-		amount: 3200,
-		recurrenceType: 'monthly',
-		recurrenceValue: 1,
-		startDate: '2026-01-01',
+		estimatedAmount: 3200,
+		expectedDate: '2026-01-01',
+		recurrenceType: 'MONTHLY',
 		endDate: null,
 		isArchived: false,
 		createdAt: nowIso()

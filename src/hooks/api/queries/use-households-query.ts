@@ -4,6 +4,10 @@ import {
 	getHouseholdOptions,
 	listHouseholdsOptions
 } from '@/api/generated/@tanstack/react-query.gen'
+import type {
+	GetHouseholdData,
+	GetHouseholdMembersData
+} from '@/api/generated/types.gen'
 
 /**
  * Hook to fetch list of households for a user
@@ -26,7 +30,7 @@ export function useHouseholdsList(params: {
  * Query is auto-disabled when householdId or userId is undefined/null
  */
 export function useHouseholdById(params: {
-	householdId?: string | null
+	householdId?: GetHouseholdData['path']['householdId'] | null
 	userId?: string | null
 	enabled?: boolean
 }) {
@@ -43,7 +47,7 @@ export function useHouseholdById(params: {
  * Hook to fetch members of a household
  */
 export function useHouseholdMembers(params: {
-	householdId?: string | null
+	householdId?: GetHouseholdMembersData['path']['householdId'] | null
 	userId?: string | null
 	enabled?: boolean
 }) {

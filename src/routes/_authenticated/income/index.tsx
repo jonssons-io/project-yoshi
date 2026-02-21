@@ -52,7 +52,7 @@ import {
 } from '@/components/ui/tooltip'
 import { useAuth } from '@/contexts/auth-context'
 import { IncomeForm } from '@/forms/IncomeForm'
-import { RecurrenceType } from '@/api/generated/types.gen'
+import { RecurrenceType, type Income, type IncomeSource } from '@/api/generated/types.gen'
 import {
 	useAccountsList,
 	useArchiveIncome,
@@ -167,6 +167,25 @@ function IncomePage() {
 		}
 	})
 
+	const incomeSourcesById = (incomeQuery.data ?? []).reduce<Record<string, IncomeSource>>(
+		(accumulator, income) => {
+			if (income.incomeSource) {
+				accumulator[income.incomeSource.id] = income.incomeSource
+			}
+			return accumulator
+		},
+		{}
+	)
+	const incomeSources = Object.values(incomeSourcesById).map((incomeSource) => ({
+		id: incomeSource.id,
+		name: incomeSource.name
+	}))
+
+	const getIncomeSourceName = (income: Income): string => {
+		if (income.incomeSource?.name) return income.incomeSource.name
+		return incomeSourcesById[income.incomeSourceId]?.name ?? ''
+	}
+
 	if (!budgetId) {
 		return (
 			<Card>
@@ -191,6 +210,12 @@ function IncomePage() {
 				{accountsQuery.data && categoriesQuery.data ? (
 					<IncomeForm
 						onSubmit={(data) => {
+							const incomeSourceData = data.incomeSource
+								? typeof data.incomeSource === 'string'
+									? { incomeSourceId: data.incomeSource }
+									: { newIncomeSourceName: data.incomeSource.name }
+								: {}
+
 							const categoryData =
 								typeof data.category === 'string'
 									? { categoryId: data.category }
@@ -200,14 +225,14 @@ function IncomePage() {
 
 							createMutation.mutate({
 								name: data.name,
-								source: data.source,
 								amount: data.amount,
-								expectedDate: data.expectedDate,
+								expectedDate: data.expectedDate.toISOString(),
 								accountId: data.accountId,
+								...incomeSourceData,
 								...categoryData,
 								recurrenceType: data.recurrenceType,
-								customIntervalDays: data.customIntervalDays,
-								endDate: data.endDate,
+								customIntervalDays: data.customIntervalDays ?? undefined,
+								endDate: data.endDate ? data.endDate.toISOString() : undefined,
 								userId,
 								householdId: householdId!
 							})
@@ -215,6 +240,7 @@ function IncomePage() {
 						onCancel={closeDrawer}
 						accounts={accountsQuery.data}
 						categories={incomeCategories}
+						incomeSources={incomeSources}
 					/>
 				) : (
 					<div className="flex items-center justify-center p-8">
@@ -235,7 +261,7 @@ function IncomePage() {
 					<IncomeForm
 						defaultValues={{
 							name: income.name,
-							source: income.source,
+							incomeSource: income.incomeSourceId ?? null,
 							amount: income.estimatedAmount,
 							expectedDate: new Date(income.expectedDate),
 							accountId: income.accountId,
@@ -245,6 +271,12 @@ function IncomePage() {
 							endDate: income.endDate ? new Date(income.endDate) : null
 						}}
 						onSubmit={(data) => {
+							const incomeSourceData = data.incomeSource
+								? typeof data.incomeSource === 'string'
+									? { incomeSourceId: data.incomeSource }
+									: { newIncomeSourceName: data.incomeSource.name }
+								: { incomeSourceId: undefined, newIncomeSourceName: undefined }
+
 							const categoryData =
 								typeof data.category === 'string'
 									? { categoryId: data.category }
@@ -265,19 +297,20 @@ function IncomePage() {
 								id: income.id,
 								userId,
 								name: data.name,
-								source: data.source,
 								amount: data.amount,
-								expectedDate: data.expectedDate,
+								expectedDate: data.expectedDate.toISOString(),
 								accountId: data.accountId,
+								...incomeSourceData,
 								...categoryData,
 								recurrenceType: data.recurrenceType,
-								customIntervalDays: data.customIntervalDays,
-								endDate: data.endDate
+								customIntervalDays: data.customIntervalDays ?? undefined,
+								endDate: data.endDate ? data.endDate.toISOString() : undefined
 							})
 						}}
 						onCancel={closeDrawer}
 						accounts={accountsQuery.data}
 						categories={incomeCategories}
+						incomeSources={incomeSources}
 					/>
 				) : (
 					<div className="flex items-center justify-center p-8">
@@ -313,7 +346,11 @@ function IncomePage() {
 						categories={categoriesQuery.data}
 						accounts={accountsQuery.data}
 						recipients={recipients}
-						bills={bills}
+						bills={(bills ?? []).map((bill) => ({
+							id: bill.id,
+							name: bill.name,
+							recipient: bill.recipient?.name ?? ''
+						}))}
 						defaultValues={{
 							name: income.name,
 							amount: income.estimatedAmount,
@@ -321,19 +358,21 @@ function IncomePage() {
 							categoryId: income.categoryId,
 							accountId: income.accountId,
 							transactionType: 'INCOME',
-							notes: `Income from ${income.source}`
+							notes: `Income from ${getIncomeSourceName(income)}`
 						}}
 						onSubmit={(data) => {
 							// Transform category field
 							const categoryData =
 								typeof data.category === 'string'
 									? { categoryId: data.category }
-									: {
+									: data.category
+										? {
 											newCategory: {
 												name: data.category.name,
 												type: data.transactionType
 											}
 										}
+										: {}
 
 							// Transform recipient field
 							const recipientData = data.recipient
@@ -345,7 +384,7 @@ function IncomePage() {
 							createTransactionMutation.mutate({
 								name: data.name,
 								amount: data.amount,
-								date: data.date,
+								date: data.date.toISOString(),
 								accountId: data.accountId,
 								notes: data.notes,
 								...categoryData,
@@ -459,12 +498,12 @@ function IncomePage() {
 											)}
 											{income.name}
 										</TableCell>
-										<TableCell>{income.source}</TableCell>
+										<TableCell>{getIncomeSourceName(income)}</TableCell>
 										<TableCell>
 											<div className="flex items-center gap-2">
-												{income.account.name}
+												{income.account?.name ?? '-'}
 												{/* @ts-ignore - isArchived may not be in type definition yet but is in API response */}
-												{income.account.isArchived && (
+												{income.account?.isArchived && (
 													<TooltipProvider>
 														<Tooltip>
 															<TooltipTrigger>
@@ -493,7 +532,7 @@ function IncomePage() {
 										<TableCell>
 											{format(new Date(income.expectedDate), 'MMM d, yyyy')}
 										</TableCell>
-										<TableCell>{income.category.name}</TableCell>
+										<TableCell>{income.category?.name ?? '-'}</TableCell>
 										<TableCell className="text-right">
 											<DropdownMenu>
 												<DropdownMenuTrigger asChild>

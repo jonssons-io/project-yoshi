@@ -16,7 +16,7 @@ import {
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { z } from 'zod'
-import { BillForm, type BillFormData } from '@/components/bills/BillForm'
+import { BillForm } from '@/components/bills/BillForm'
 import { TransactionForm } from '@/components/transactions/TransactionForm'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -49,7 +49,7 @@ import {
 	TooltipTrigger
 } from '@/components/ui/tooltip'
 import { useAuth } from '@/contexts/auth-context'
-import { RecurrenceType } from '@/api/generated/types.gen'
+import { RecurrenceType, type BillInstance } from '@/api/generated/types.gen'
 import {
 	useAccountsList,
 	useArchiveBill,
@@ -165,6 +165,11 @@ function BillsPage() {
 		}
 	})
 
+	const getBillRecipientName = (bill: BillInstance): string => {
+		if (bill.recipient?.name) return bill.recipient.name
+		return recipients.find((recipient) => recipient.id === bill.recipientId)?.name ?? ''
+	}
+
 	if (!budgetId) {
 		return (
 			<Card>
@@ -209,28 +214,25 @@ function BillsPage() {
 								})
 								.filter((s) => s.categoryId || s.newCategoryName)
 
-							// Transform recipient field (union) to API format (string)
-							const recipientValue = data.recipient
-							let recipientName = ''
-							if (typeof recipientValue === 'string') {
-								const match = recipients.find((r) => r.id === recipientValue)
-								recipientName = match ? match.name : recipientValue
-							} else {
-								recipientName = recipientValue.name
-							}
+							const recipientData =
+								typeof data.recipient === 'string'
+									? { recipientId: data.recipient }
+									: { newRecipientName: data.recipient.name }
 
 							createMutation.mutate({
 								name: data.name,
-								recipient: recipientName,
+								...recipientData,
 								accountId: data.accountId,
-								startDate: data.startDate,
+								startDate: data.startDate.toISOString(),
 								recurrenceType: data.recurrenceType,
-								customIntervalDays: data.customIntervalDays,
+								customIntervalDays: data.customIntervalDays ?? undefined,
 								estimatedAmount: data.splits.reduce(
 									(sum, s) => sum + s.amount,
 									0
 								),
-								lastPaymentDate: data.lastPaymentDate || undefined,
+								lastPaymentDate: data.lastPaymentDate
+									? data.lastPaymentDate.toISOString()
+									: undefined,
 								budgetId: budgetId!,
 								userId,
 								splits: splitsData
@@ -261,8 +263,8 @@ function BillsPage() {
 					<BillForm
 						initialData={{
 							name: bill.name,
-							recipient: bill.recipient,
-							accountId: bill.account.id, // Account object is in bill
+							recipient: bill.recipientId || getBillRecipientName(bill),
+							accountId: bill.account?.id ?? '', // Account object is optional in type
 							startDate: new Date(bill.startDate),
 							recurrenceType: bill.recurrenceType,
 							customIntervalDays: bill.customIntervalDays,
@@ -275,15 +277,10 @@ function BillsPage() {
 							}))
 						}}
 						onSubmit={(data) => {
-							// Transform to API format
-							const recipientValue = data.recipient
-							let recipientName = ''
-							if (typeof recipientValue === 'string') {
-								const match = recipients.find((r) => r.id === recipientValue)
-								recipientName = match ? match.name : recipientValue
-							} else {
-								recipientName = recipientValue.name
-							}
+							const recipientData =
+								typeof data.recipient === 'string'
+									? { recipientId: data.recipient }
+									: { newRecipientName: data.recipient.name }
 
 							const splitsData = data.splits
 								?.map((s) => {
@@ -303,19 +300,21 @@ function BillsPage() {
 								.filter((s) => s.categoryId || s.newCategoryName)
 
 							updateMutation.mutate({
-								id: bill.recurringBillId, // Update the series
+								id: bill.billId, // Update the recurring bill
 								userId,
 								name: data.name,
-								recipient: recipientName,
+								...recipientData,
 								accountId: data.accountId,
-								startDate: data.startDate,
+								startDate: data.startDate.toISOString(),
 								recurrenceType: data.recurrenceType,
-								customIntervalDays: data.customIntervalDays,
+								customIntervalDays: data.customIntervalDays ?? undefined,
 								estimatedAmount: data.splits.reduce(
 									(sum, s) => sum + s.amount,
 									0
 								),
-								lastPaymentDate: data.lastPaymentDate,
+								lastPaymentDate: data.lastPaymentDate
+									? data.lastPaymentDate.toISOString()
+									: undefined,
 								// categoryId, // No longer used as top-level
 								splits: splitsData
 							})
@@ -356,19 +355,24 @@ function BillsPage() {
 					accounts={accountsQuery.data ?? []}
 					recipients={recipients ?? []}
 					budgets={budgets ?? []}
-					bills={[{ id: bill.id, name: bill.name, recipient: bill.recipient }]}
+					bills={[
+						{ id: bill.id, name: bill.name, recipient: getBillRecipientName(bill) }
+					]}
 					defaultValues={{
 						name: bill.name,
 						amount: bill.amount,
 						date: new Date(bill.dueDate),
 						categoryId: bill.category?.id, // Flattened
-						accountId: bill.account.id, // Flattened
+						accountId: bill.account?.id ?? '', // Flattened
 						transactionType: 'EXPENSE',
 						recipient: (() => {
 							if (!recipients) return undefined
-							const match = recipients.find((r) => r.name === bill.recipient)
+							const billRecipientName = getBillRecipientName(bill)
+							const match = recipients.find((r) => r.name === billRecipientName)
 							if (match) return match.id
-							return { isNew: true, name: bill.recipient }
+							return billRecipientName
+								? { isNew: true, name: billRecipientName }
+								: undefined
 						})(),
 						notes: `Payment for ${bill.name}`,
 						billId: bill.id, // Logic requires linking to the Instance
@@ -383,7 +387,7 @@ function BillsPage() {
 						const categoryData =
 							typeof data.category === 'string' && data.category
 								? { categoryId: data.category }
-								: data.category
+								: data.category && typeof data.category === 'object'
 									? {
 											newCategory: {
 												name: data.category.name,
@@ -410,7 +414,7 @@ function BillsPage() {
 						createTransactionMutation.mutate({
 							name: data.name,
 							amount: data.amount,
-							date: data.date,
+							date: data.date.toISOString(),
 							accountId: data.accountId,
 							notes: data.notes,
 							...categoryData,
@@ -430,8 +434,7 @@ function BillsPage() {
 	}
 
 	const getRecurrenceLabel = (
-		type: RecurrenceType,
-		customDays?: number | null
+		type: RecurrenceType
 	) => {
 		switch (type) {
 			case RecurrenceType.NONE:
@@ -522,12 +525,12 @@ function BillsPage() {
 													</Badge>
 												)}
 											</TableCell>
-											<TableCell>{bill.recipient}</TableCell>
+											<TableCell>{getBillRecipientName(bill)}</TableCell>
 											<TableCell>
 												<div className="flex items-center gap-2">
-													{bill.account.name}
+													{bill.account?.name ?? '-'}
 													{/* @ts-ignore - isArchived may not be in type definition yet but is in API response */}
-													{bill.account.isArchived && (
+													{bill.account?.isArchived && (
 														<TooltipProvider>
 															<Tooltip>
 																<TooltipTrigger>
@@ -563,8 +566,7 @@ function BillsPage() {
 											</TableCell>
 											<TableCell>
 												{getRecurrenceLabel(
-													bill.recurrenceType,
-													bill.customIntervalDays
+													bill.recurrenceType
 												)}
 											</TableCell>
 											<TableCell>
@@ -600,7 +602,7 @@ function BillsPage() {
 																	variant="outline"
 																	className="cursor-help"
 																>
-																	{bill.splits.length} {t('bills.sections')}
+																	{(bill.splits ?? []).length} {t('bills.sections')}
 																</Badge>
 															</TooltipTrigger>
 															<TooltipContent className="w-64 p-0">
@@ -608,7 +610,7 @@ function BillsPage() {
 																	<p className="font-semibold text-xs border-b pb-1">
 																		{t('bills.sections')}
 																	</p>
-																	{bill.splits.map((s: any, i: number) => (
+																	{(bill.splits ?? []).map((s: any, i: number) => (
 																		<div
 																			key={`${i}-${s.amount}`}
 																			className="flex justify-between text-xs"
@@ -655,7 +657,7 @@ function BillsPage() {
 														<DropdownMenuItem
 															onClick={() =>
 																handleArchive(
-																	bill.recurringBillId,
+																bill.billId,
 																	!bill.isArchived
 																)
 															}
@@ -667,7 +669,7 @@ function BillsPage() {
 														</DropdownMenuItem>
 														<DropdownMenuSeparator />
 														<DropdownMenuItem
-															onClick={() => handleDelete(bill.recurringBillId)}
+															onClick={() => handleDelete(bill.billId)}
 															className="text-destructive"
 														>
 															<TrashIcon className="h-4 w-4 mr-2" />

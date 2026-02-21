@@ -1,12 +1,13 @@
 import { useQuery } from '@tanstack/react-query'
 import { listTransfersOptions } from '@/api/generated/@tanstack/react-query.gen'
+import type { ListTransfersData } from '@/api/generated/types.gen'
 
 /**
  * Hook to fetch list of transfers for a budget
  * Query is auto-disabled when budgetId or userId is undefined/null
  */
 export function useTransfersList(params: {
-	budgetId?: string | null
+	budgetId?: ListTransfersData['path']['budgetId'] | null
 	userId?: string | null
 	dateFrom?: Date
 	dateTo?: Date

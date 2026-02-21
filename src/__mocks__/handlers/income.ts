@@ -1,7 +1,24 @@
 import { HttpResponse, http } from 'msw'
-import { incomes, nextId, nowIso, paginate, readJson } from '../data'
+import {
+	accounts,
+	categories,
+	incomes,
+	incomeSources,
+	nextId,
+	nowIso,
+	paginate,
+	readJson
+} from '../data'
 
 const BASE = '/api/v1'
+
+// Mock the generated response shape by including linked resources.
+const enrichIncome = (income: (typeof incomes)[number]) => ({
+	...income,
+	account: accounts.find((item) => item.id === income.accountId),
+	category: categories.find((item) => item.id === income.categoryId),
+	incomeSource: incomeSources.find((item) => item.id === income.incomeSourceId)
+})
 
 export const incomeHandlers = [
 	http.get(`${BASE}/households/:householdId/incomes`, ({ request, params }) => {
@@ -9,7 +26,7 @@ export const incomeHandlers = [
 		const filtered = incomes.filter((item) => item.householdId === params.householdId)
 		return HttpResponse.json(
 			paginate(
-				filtered,
+				filtered.map(enrichIncome),
 				url.searchParams.get('limit'),
 				url.searchParams.get('offset')
 			)
@@ -19,32 +36,52 @@ export const incomeHandlers = [
 	http.post(`${BASE}/households/:householdId/incomes`, async ({ request, params }) => {
 		const body = await readJson<
 			Partial<{
+				name: string
 				accountId: string
-				categoryId: string | null
-				recipientId: string | null
+				categoryId: string
+				incomeSourceId: string
+				newIncomeSourceName: string
 				amount: number
+				expectedDate: string
 				recurrenceType: string
-				recurrenceValue: number
-				startDate: string
-				endDate: string | null
+				customIntervalDays: number
+				endDate: string
 			}>
 		>(request)
+		const createdIncomeSource =
+			body.newIncomeSourceName && params.householdId
+				? {
+						id: nextId('isrc'),
+						householdId: String(params.householdId),
+						name: body.newIncomeSourceName,
+						createdAt: nowIso()
+					}
+				: null
+		if (createdIncomeSource) {
+			incomeSources.push(createdIncomeSource)
+		}
+
 		const income = {
 			id: nextId('income'),
+			name: body.name ?? 'Income',
 			householdId: String(params.householdId),
+			incomeSourceId:
+				body.incomeSourceId ??
+				createdIncomeSource?.id ??
+				incomeSources[0]?.id ??
+				'isrc_1',
 			accountId: body.accountId ?? 'acc_1',
-			categoryId: body.categoryId ?? null,
-			recipientId: body.recipientId ?? null,
-			amount: body.amount ?? 0,
-			recurrenceType: body.recurrenceType ?? 'monthly',
-			recurrenceValue: body.recurrenceValue ?? 1,
-			startDate: body.startDate ?? nowIso().slice(0, 10),
+			categoryId: body.categoryId ?? 'cat_2',
+			estimatedAmount: body.amount ?? 0,
+			expectedDate: body.expectedDate ?? nowIso().slice(0, 10),
+			recurrenceType: body.recurrenceType ?? 'MONTHLY',
+			customIntervalDays: body.customIntervalDays,
 			endDate: body.endDate ?? null,
 			isArchived: false,
 			createdAt: nowIso()
 		}
 		incomes.push(income)
-		return HttpResponse.json(income, { status: 201 })
+		return HttpResponse.json(enrichIncome(income), { status: 201 })
 	}),
 
 	http.get(`${BASE}/incomes/:incomeId`, ({ params }) => {
@@ -55,7 +92,7 @@ export const incomeHandlers = [
 				{ status: 404 }
 			)
 		}
-		return HttpResponse.json(income)
+		return HttpResponse.json(enrichIncome(income))
 	}),
 
 	http.patch(`${BASE}/incomes/:incomeId`, async ({ params, request }) => {
@@ -67,8 +104,32 @@ export const incomeHandlers = [
 			)
 		}
 		const body = await readJson<Record<string, unknown>>(request)
-		incomes[index] = { ...incomes[index], ...body }
-		return HttpResponse.json(incomes[index])
+		const createdIncomeSource =
+			typeof body.newIncomeSourceName === 'string' &&
+			body.newIncomeSourceName.length > 0
+				? {
+						id: nextId('isrc'),
+						householdId: incomes[index].householdId,
+						name: body.newIncomeSourceName,
+						createdAt: nowIso()
+					}
+				: null
+		if (createdIncomeSource) {
+			incomeSources.push(createdIncomeSource)
+		}
+
+		const amount =
+			typeof body.amount === 'number' ? body.amount : incomes[index].estimatedAmount
+		incomes[index] = {
+			...incomes[index],
+			...body,
+			estimatedAmount: amount,
+			incomeSourceId:
+				typeof body.incomeSourceId === 'string'
+					? body.incomeSourceId
+					: createdIncomeSource?.id ?? incomes[index].incomeSourceId
+		}
+		return HttpResponse.json(enrichIncome(incomes[index]))
 	}),
 
 	http.delete(`${BASE}/incomes/:incomeId`, ({ params }) => {
@@ -92,6 +153,6 @@ export const incomeHandlers = [
 			)
 		}
 		incomes[index] = { ...incomes[index], isArchived: !incomes[index].isArchived }
-		return HttpResponse.json(incomes[index])
+		return HttpResponse.json(enrichIncome(incomes[index]))
 	})
 ]

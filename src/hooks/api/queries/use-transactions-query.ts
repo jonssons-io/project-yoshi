@@ -3,15 +3,21 @@ import {
 	getTransactionOptions,
 	listTransactionsOptions
 } from '@/api/generated/@tanstack/react-query.gen'
+import type {
+	GetTransactionData,
+	ListTransactionsData
+} from '@/api/generated/types.gen'
+
+type ListTransactionsQuery = NonNullable<ListTransactionsData['query']>
 
 /**
  * Hook to fetch list of transactions for a budget
  * Query is auto-disabled when budgetId or userId is undefined/null
  */
 export function useTransactionsList(params: {
-	budgetId?: string | null
+	budgetId?: ListTransactionsQuery['budgetId'] | null
 	userId?: string | null
-	type?: 'INCOME' | 'EXPENSE'
+	type?: ListTransactionsQuery['type']
 	dateFrom?: Date
 	dateTo?: Date
 	enabled?: boolean
@@ -21,7 +27,7 @@ export function useTransactionsList(params: {
 		...listTransactionsOptions({
 			query: {
 				budgetId: budgetId ?? undefined,
-				type: type as never,
+				type,
 				dateFrom: dateFrom?.toISOString(),
 				dateTo: dateTo?.toISOString()
 			}
@@ -36,7 +42,7 @@ export function useTransactionsList(params: {
  * Query is auto-disabled when transactionId or userId is undefined/null
  */
 export function useTransactionById(params: {
-	transactionId?: string | null
+	transactionId?: GetTransactionData['path']['transactionId'] | null
 	userId?: string | null
 	enabled?: boolean
 }) {

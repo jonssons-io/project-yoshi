@@ -19,6 +19,8 @@ export const zInvitationStatus = z.enum([
     'DECLINED'
 ]);
 
+export const zRecipientScope = z.enum(['BILL', 'TRANSACTION']);
+
 export const zHousehold = z.object({
     id: z.string(),
     name: z.string(),
@@ -121,22 +123,6 @@ export const zBillUpdateType = z.enum([
     'ALL'
 ]);
 
-export const zBill = z.object({
-    id: z.string(),
-    name: z.string(),
-    recipient: z.string(),
-    accountId: z.string(),
-    startDate: z.iso.datetime(),
-    recurrenceType: zRecurrenceType,
-    customIntervalDays: z.optional(z.int()),
-    estimatedAmount: z.number(),
-    lastPaymentDate: z.optional(z.iso.datetime()),
-    categoryId: z.optional(z.string()),
-    budgetId: z.string(),
-    isArchived: z.boolean(),
-    createdAt: z.iso.datetime()
-});
-
 export const zBillSplit = z.object({
     id: z.string(),
     billId: z.string(),
@@ -144,28 +130,6 @@ export const zBillSplit = z.object({
     amount: z.number(),
     subtitle: z.string(),
     category: z.optional(zCategory)
-});
-
-/**
- * A flattened view of a bill instance with its recurring bill details.
- */
-export const zBillInstance = z.object({
-    id: z.string(),
-    billId: z.string(),
-    name: z.string(),
-    recipient: z.string(),
-    amount: z.number(),
-    paidAmount: z.optional(z.number()),
-    dueDate: z.iso.datetime(),
-    isPaid: z.boolean(),
-    transactionId: z.optional(z.string()),
-    account: z.optional(zAccount),
-    category: z.optional(zCategory),
-    splits: z.optional(z.array(zBillSplit)),
-    recurrenceType: zRecurrenceType,
-    customIntervalDays: z.optional(z.int()),
-    startDate: z.iso.datetime(),
-    isArchived: z.boolean()
 });
 
 export const zTransfer = z.object({
@@ -181,10 +145,17 @@ export const zTransfer = z.object({
     toAccount: z.optional(zAccount)
 });
 
+export const zIncomeSource = z.object({
+    id: z.string(),
+    name: z.string(),
+    householdId: z.string(),
+    createdAt: z.iso.datetime()
+});
+
 export const zIncome = z.object({
     id: z.string(),
     name: z.string(),
-    source: z.string(),
+    incomeSourceId: z.string(),
     accountId: z.string(),
     expectedDate: z.iso.datetime(),
     recurrenceType: zRecurrenceType,
@@ -196,12 +167,14 @@ export const zIncome = z.object({
     isArchived: z.boolean(),
     createdAt: z.iso.datetime(),
     category: z.optional(zCategory),
-    account: z.optional(zAccount)
+    account: z.optional(zAccount),
+    incomeSource: z.optional(zIncomeSource)
 });
 
 export const zRecipient = z.object({
     id: z.string(),
     name: z.string(),
+    scopes: z.array(zRecipientScope),
     householdId: z.string(),
     createdAt: z.iso.datetime()
 });
@@ -230,6 +203,46 @@ export const zTransactionGroupedByCategory = z.object({
     transactions: z.array(zTransaction),
     total: z.number(),
     count: z.int()
+});
+
+export const zBill = z.object({
+    id: z.string(),
+    name: z.string(),
+    recipientId: z.string(),
+    accountId: z.string(),
+    startDate: z.iso.datetime(),
+    recurrenceType: zRecurrenceType,
+    customIntervalDays: z.optional(z.int()),
+    estimatedAmount: z.number(),
+    lastPaymentDate: z.optional(z.iso.datetime()),
+    categoryId: z.optional(z.string()),
+    budgetId: z.string(),
+    isArchived: z.boolean(),
+    createdAt: z.iso.datetime(),
+    recipient: z.optional(zRecipient)
+});
+
+/**
+ * A flattened view of a bill instance with its recurring bill details.
+ */
+export const zBillInstance = z.object({
+    id: z.string(),
+    billId: z.string(),
+    name: z.string(),
+    recipientId: z.string(),
+    amount: z.number(),
+    paidAmount: z.optional(z.number()),
+    dueDate: z.iso.datetime(),
+    isPaid: z.boolean(),
+    transactionId: z.optional(z.string()),
+    account: z.optional(zAccount),
+    category: z.optional(zCategory),
+    splits: z.optional(z.array(zBillSplit)),
+    recurrenceType: zRecurrenceType,
+    customIntervalDays: z.optional(z.int()),
+    startDate: z.iso.datetime(),
+    isArchived: z.boolean(),
+    recipient: z.optional(zRecipient)
 });
 
 export const zInvitation = z.object({
@@ -412,7 +425,8 @@ export const zCloneTransactionRequest = z.object({
 
 export const zCreateBillRequest = z.object({
     name: z.string().min(1),
-    recipient: z.string().min(1),
+    recipientId: z.optional(z.string()),
+    newRecipientName: z.optional(z.string().min(1)),
     accountId: z.string(),
     startDate: z.iso.datetime(),
     recurrenceType: zRecurrenceType,
@@ -431,8 +445,10 @@ export const zCreateBillRequest = z.object({
 
 export const zUpdateBillRequest = z.object({
     name: z.optional(z.string()),
-    recipient: z.optional(z.string()),
+    recipientId: z.optional(z.string()),
+    newRecipientName: z.optional(z.string().min(1)),
     accountId: z.optional(z.string()),
+    budgetId: z.optional(z.string()),
     startDate: z.optional(z.iso.datetime()),
     recurrenceType: z.optional(zRecurrenceType),
     customIntervalDays: z.optional(z.int().gte(1)),
@@ -480,7 +496,8 @@ export const zUpdateTransferRequest = z.object({
 
 export const zCreateIncomeRequest = z.object({
     name: z.string().min(1),
-    source: z.string().min(1),
+    incomeSourceId: z.optional(z.string()),
+    newIncomeSourceName: z.optional(z.string().min(1)),
     amount: z.number().gt(0),
     expectedDate: z.iso.datetime(),
     accountId: z.string(),
@@ -493,7 +510,8 @@ export const zCreateIncomeRequest = z.object({
 
 export const zUpdateIncomeRequest = z.object({
     name: z.optional(z.string().min(1)),
-    source: z.optional(z.string().min(1)),
+    incomeSourceId: z.optional(z.string()),
+    newIncomeSourceName: z.optional(z.string().min(1)),
     amount: z.optional(z.number().gt(0)),
     expectedDate: z.optional(z.iso.datetime()),
     accountId: z.optional(z.string()),
@@ -545,21 +563,21 @@ export const zBillId = z.string();
 export const zInvitationId = z.string();
 
 /**
- * Maximum number of items to return
+ * Maximum number of items to return. Omit to return all items. Set to 0 to return only the pagination count metadata (no data items).
  */
-export const zLimit = z.int().gte(1).lte(100).default(50);
+export const zLimit = z.int().gte(0).lte(100);
 
 /**
  * Number of items to skip
  */
-export const zOffset = z.int().gte(0).default(0);
+export const zOffset = z.int().gte(0);
 
 export const zListHouseholdsData = z.object({
     body: z.optional(z.never()),
     path: z.optional(z.never()),
     query: z.optional(z.object({
-        limit: z.optional(z.int().gte(1).lte(100)).default(50),
-        offset: z.optional(z.int().gte(0)).default(0)
+        limit: z.optional(z.int().gte(0).lte(100)),
+        offset: z.optional(z.int().gte(0))
     }))
 });
 
@@ -622,8 +640,8 @@ export const zGetHouseholdMembersData = z.object({
         householdId: z.string()
     }),
     query: z.optional(z.object({
-        limit: z.optional(z.int().gte(1).lte(100)).default(50),
-        offset: z.optional(z.int().gte(0)).default(0)
+        limit: z.optional(z.int().gte(0).lte(100)),
+        offset: z.optional(z.int().gte(0))
     }))
 });
 
@@ -661,8 +679,8 @@ export const zListAccountsData = z.object({
     query: z.optional(z.object({
         budgetId: z.optional(z.string()),
         excludeArchived: z.optional(z.boolean()),
-        limit: z.optional(z.int().gte(1).lte(100)).default(50),
-        offset: z.optional(z.int().gte(0)).default(0)
+        limit: z.optional(z.int().gte(0).lte(100)),
+        offset: z.optional(z.int().gte(0))
     }))
 });
 
@@ -747,8 +765,8 @@ export const zGetAccountBalanceHistoryData = z.object({
     query: z.optional(z.object({
         dateFrom: z.optional(z.iso.date()),
         dateTo: z.optional(z.iso.date()),
-        limit: z.optional(z.int().gte(1).lte(100)).default(50),
-        offset: z.optional(z.int().gte(0)).default(0)
+        limit: z.optional(z.int().gte(0).lte(100)),
+        offset: z.optional(z.int().gte(0))
     }))
 });
 
@@ -779,8 +797,8 @@ export const zListBudgetsData = z.object({
         householdId: z.string()
     }),
     query: z.optional(z.object({
-        limit: z.optional(z.int().gte(1).lte(100)).default(50),
-        offset: z.optional(z.int().gte(0)).default(0)
+        limit: z.optional(z.int().gte(0).lte(100)),
+        offset: z.optional(z.int().gte(0))
     }))
 });
 
@@ -852,8 +870,8 @@ export const zGetBudgetSnapshotHistoryData = z.object({
     query: z.optional(z.object({
         dateFrom: z.optional(z.iso.date()),
         dateTo: z.optional(z.iso.date()),
-        limit: z.optional(z.int().gte(1).lte(100)).default(50),
-        offset: z.optional(z.int().gte(0)).default(0)
+        limit: z.optional(z.int().gte(0).lte(100)),
+        offset: z.optional(z.int().gte(0))
     }))
 });
 
@@ -909,8 +927,8 @@ export const zListCategoriesData = z.object({
     query: z.optional(z.object({
         type: z.optional(zCategoryType),
         budgetId: z.optional(z.string()),
-        limit: z.optional(z.int().gte(1).lte(100)).default(50),
-        offset: z.optional(z.int().gte(0)).default(0)
+        limit: z.optional(z.int().gte(0).lte(100)),
+        offset: z.optional(z.int().gte(0))
     }))
 });
 
@@ -980,8 +998,8 @@ export const zListAllocationsData = z.object({
         budgetId: z.string()
     }),
     query: z.optional(z.object({
-        limit: z.optional(z.int().gte(1).lte(100)).default(50),
-        offset: z.optional(z.int().gte(0)).default(0)
+        limit: z.optional(z.int().gte(0).lte(100)),
+        offset: z.optional(z.int().gte(0))
     }))
 });
 
@@ -1041,8 +1059,8 @@ export const zListTransactionsData = z.object({
         dateFrom: z.optional(z.iso.datetime()),
         dateTo: z.optional(z.iso.datetime()),
         type: z.optional(zCategoryType),
-        limit: z.optional(z.int().gte(1).lte(100)).default(50),
-        offset: z.optional(z.int().gte(0)).default(0)
+        limit: z.optional(z.int().gte(0).lte(100)),
+        offset: z.optional(z.int().gte(0))
     }))
 });
 
@@ -1125,8 +1143,8 @@ export const zGetTransactionsGroupedByCategoryData = z.object({
         dateFrom: z.optional(z.iso.datetime()),
         dateTo: z.optional(z.iso.datetime()),
         type: z.optional(zCategoryType),
-        limit: z.optional(z.int().gte(1).lte(100)).default(50),
-        offset: z.optional(z.int().gte(0)).default(0)
+        limit: z.optional(z.int().gte(0).lte(100)),
+        offset: z.optional(z.int().gte(0))
     })
 });
 
@@ -1145,8 +1163,8 @@ export const zListBillsData = z.object({
     }),
     query: z.optional(z.object({
         includeArchived: z.optional(z.boolean()).default(false),
-        limit: z.optional(z.int().gte(1).lte(100)).default(50),
-        offset: z.optional(z.int().gte(0)).default(0)
+        limit: z.optional(z.int().gte(0).lte(100)),
+        offset: z.optional(z.int().gte(0))
     }))
 });
 
@@ -1239,8 +1257,8 @@ export const zListTransfersData = z.object({
     query: z.optional(z.object({
         dateFrom: z.optional(z.iso.datetime()),
         dateTo: z.optional(z.iso.datetime()),
-        limit: z.optional(z.int().gte(1).lte(100)).default(50),
-        offset: z.optional(z.int().gte(0)).default(0)
+        limit: z.optional(z.int().gte(0).lte(100)),
+        offset: z.optional(z.int().gte(0))
     }))
 });
 
@@ -1298,8 +1316,8 @@ export const zListIncomesData = z.object({
     }),
     query: z.optional(z.object({
         includeArchived: z.optional(z.boolean()).default(false),
-        limit: z.optional(z.int().gte(1).lte(100)).default(50),
-        offset: z.optional(z.int().gte(0)).default(0)
+        limit: z.optional(z.int().gte(0).lte(100)),
+        offset: z.optional(z.int().gte(0))
     }))
 });
 
@@ -1382,8 +1400,8 @@ export const zListRecipientsData = z.object({
         householdId: z.string()
     }),
     query: z.optional(z.object({
-        limit: z.optional(z.int().gte(1).lte(100)).default(50),
-        offset: z.optional(z.int().gte(0)).default(0)
+        limit: z.optional(z.int().gte(0).lte(100)),
+        offset: z.optional(z.int().gte(0))
     }))
 });
 
@@ -1459,8 +1477,8 @@ export const zListMyInvitationsData = z.object({
     body: z.optional(z.never()),
     path: z.optional(z.never()),
     query: z.optional(z.object({
-        limit: z.optional(z.int().gte(1).lte(100)).default(50),
-        offset: z.optional(z.int().gte(0)).default(0)
+        limit: z.optional(z.int().gte(0).lte(100)),
+        offset: z.optional(z.int().gte(0))
     }))
 });
 
@@ -1478,8 +1496,8 @@ export const zListHouseholdInvitationsData = z.object({
         householdId: z.string()
     }),
     query: z.optional(z.object({
-        limit: z.optional(z.int().gte(1).lte(100)).default(50),
-        offset: z.optional(z.int().gte(0)).default(0)
+        limit: z.optional(z.int().gte(0).lte(100)),
+        offset: z.optional(z.int().gte(0))
     }))
 });
 

@@ -1,14 +1,17 @@
 import { useQuery } from '@tanstack/react-query'
 import { getIncomeOptions, listIncomesOptions } from '@/api/generated/@tanstack/react-query.gen'
+import type { GetIncomeData, ListIncomesData } from '@/api/generated/types.gen'
+
+type ListIncomesQuery = NonNullable<ListIncomesData['query']>
 
 /**
  * Hook to fetch list of incomes for a budget
  */
 export function useIncomeList(params: {
-	householdId?: string | null
+	householdId?: ListIncomesData['path']['householdId'] | null
 	budgetId?: string | null
 	userId?: string | null
-	includeArchived?: boolean
+	includeArchived?: ListIncomesQuery['includeArchived']
 	enabled?: boolean
 }) {
 	const { householdId, includeArchived, enabled = true } = params
@@ -28,7 +31,7 @@ export function useIncomeList(params: {
  * Hook to fetch a single income by ID
  */
 export function useIncomeById(params: {
-	id: string
+	id: GetIncomeData['path']['incomeId']
 	userId?: string | null
 	enabled?: boolean
 }) {
