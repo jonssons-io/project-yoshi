@@ -3,8 +3,8 @@
 import { type DefaultError, type InfiniteData, infiniteQueryOptions, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { acceptInvitation, addHouseholdMember, archiveBill, archiveIncome, cloneTransaction, createAccount, createAllocation, createBill, createBudget, createCategory, createHousehold, createIncome, createInvitation, createRecipient, createTransaction, createTransfer, declineInvitation, deleteAccount, deleteBill, deleteBudget, deleteCategory, deleteHousehold, deleteIncome, deleteRecipient, deleteTransaction, deleteTransfer, getAccount, getAccountBalance, getAccountBalanceHistory, getBillInstance, getBudget, getBudgetSnapshotHistory, getCategory, getHousehold, getHouseholdMembers, getIncome, getOrCreateRecipient, getRecipient, getTransaction, getTransactionsGroupedByCategory, getUnallocatedFunds, linkAccountToBudget, linkCategoryToBudget, listAccounts, listAllocations, listBills, listBudgets, listCategories, listHouseholdInvitations, listHouseholds, listIncomes, listMyInvitations, listRecipients, listTransactions, listTransfers, type Options, removeHouseholdMember, revokeInvitation, toggleAccountArchive, transferAllocation, unlinkAccountFromBudget, unlinkCategoryFromBudget, updateAccount, updateBill, updateBillInstance, updateBudget, updateCategory, updateHousehold, updateIncome, updateRecipient, updateTransaction, updateTransfer } from '../sdk.gen';
-import type { AcceptInvitationData, AddHouseholdMemberData, ArchiveBillData, ArchiveBillResponse, ArchiveIncomeData, ArchiveIncomeResponse, CloneTransactionData, CloneTransactionResponse, CreateAccountData, CreateAccountResponse, CreateAllocationData, CreateAllocationResponse, CreateBillData, CreateBillResponse, CreateBudgetData, CreateBudgetResponse, CreateCategoryData, CreateCategoryResponse, CreateHouseholdData, CreateHouseholdResponse, CreateIncomeData, CreateIncomeResponse, CreateInvitationData, CreateInvitationResponse, CreateRecipientData, CreateRecipientResponse, CreateTransactionData, CreateTransactionResponse, CreateTransferData, CreateTransferResponse, DeclineInvitationData, DeleteAccountData, DeleteAccountResponse, DeleteBillData, DeleteBudgetData, DeleteBudgetResponse, DeleteCategoryData, DeleteCategoryResponse, DeleteHouseholdData, DeleteIncomeData, DeleteIncomeResponse, DeleteRecipientData, DeleteTransactionData, DeleteTransactionResponse, DeleteTransferData, DeleteTransferResponse, GetAccountBalanceData, GetAccountBalanceHistoryData, GetAccountBalanceHistoryResponse, GetAccountBalanceResponse, GetAccountData, GetAccountResponse, GetBillInstanceData, GetBillInstanceResponse, GetBudgetData, GetBudgetResponse, GetBudgetSnapshotHistoryData, GetBudgetSnapshotHistoryResponse, GetCategoryData, GetCategoryResponse, GetHouseholdData, GetHouseholdMembersData, GetHouseholdMembersResponse, GetHouseholdResponse, GetIncomeData, GetIncomeResponse, GetOrCreateRecipientData, GetOrCreateRecipientResponse, GetRecipientData, GetRecipientResponse, GetTransactionData, GetTransactionResponse, GetTransactionsGroupedByCategoryData, GetTransactionsGroupedByCategoryResponse, GetUnallocatedFundsData, GetUnallocatedFundsResponse, LinkAccountToBudgetData, LinkCategoryToBudgetData, ListAccountsData, ListAccountsResponse, ListAllocationsData, ListAllocationsResponse, ListBillsData, ListBillsResponse, ListBudgetsData, ListBudgetsResponse, ListCategoriesData, ListCategoriesResponse, ListHouseholdInvitationsData, ListHouseholdInvitationsResponse, ListHouseholdsData, ListHouseholdsResponse, ListIncomesData, ListIncomesResponse, ListMyInvitationsData, ListMyInvitationsResponse, ListRecipientsData, ListRecipientsResponse, ListTransactionsData, ListTransactionsResponse, ListTransfersData, ListTransfersResponse, RemoveHouseholdMemberData, RevokeInvitationData, ToggleAccountArchiveData, ToggleAccountArchiveResponse, TransferAllocationData, TransferAllocationResponse, UnlinkAccountFromBudgetData, UnlinkCategoryFromBudgetData, UpdateAccountData, UpdateAccountResponse, UpdateBillData, UpdateBillInstanceData, UpdateBillInstanceResponse, UpdateBillResponse, UpdateBudgetData, UpdateBudgetResponse, UpdateCategoryData, UpdateCategoryResponse, UpdateHouseholdData, UpdateHouseholdResponse, UpdateIncomeData, UpdateIncomeResponse, UpdateRecipientData, UpdateRecipientResponse, UpdateTransactionData, UpdateTransactionResponse, UpdateTransferData, UpdateTransferResponse } from '../types.gen';
+import { acceptInvitation, addHouseholdMember, archiveBill, archiveIncome, cloneTransaction, createAccount, createAllocation, createBill, createBudget, createCategory, createHousehold, createIncome, createInvitation, createRecipient, createTransaction, createTransfer, declineInvitation, deleteAccount, deleteBill, deleteBudget, deleteCategory, deleteHousehold, deleteIncome, deleteRecipient, deleteTransaction, deleteTransfer, getAccount, getAccountBalance, getAccountBalanceHistory, getBillInstance, getBudget, getBudgetSnapshotHistory, getCategory, getHousehold, getHouseholdMembers, getIncome, getOrCreateRecipient, getRecipient, getTransaction, getTransactionsGroupedByCategory, getUnallocatedFunds, linkAccountToBudget, linkCategoryToBudget, listAccounts, listAllocations, listBills, listBudgets, listCategories, listHouseholdInvitations, listHouseholds, listIncomes, listMyInvitations, listRecipients, listTransactions, listTransfers, type Options, removeHouseholdMember, revokeInvitation, setDefaultBudget, setDefaultHousehold, toggleAccountArchive, transferAllocation, unlinkAccountFromBudget, unlinkCategoryFromBudget, updateAccount, updateBill, updateBillInstance, updateBudget, updateCategory, updateHousehold, updateIncome, updateRecipient, updateTransaction, updateTransfer } from '../sdk.gen';
+import type { AcceptInvitationData, AddHouseholdMemberData, ArchiveBillData, ArchiveBillResponse, ArchiveIncomeData, ArchiveIncomeResponse, CloneTransactionData, CloneTransactionResponse, CreateAccountData, CreateAccountResponse, CreateAllocationData, CreateAllocationResponse, CreateBillData, CreateBillResponse, CreateBudgetData, CreateBudgetResponse, CreateCategoryData, CreateCategoryResponse, CreateHouseholdData, CreateHouseholdResponse, CreateIncomeData, CreateIncomeResponse, CreateInvitationData, CreateInvitationResponse, CreateRecipientData, CreateRecipientResponse, CreateTransactionData, CreateTransactionResponse, CreateTransferData, CreateTransferResponse, DeclineInvitationData, DeleteAccountData, DeleteAccountResponse, DeleteBillData, DeleteBudgetData, DeleteBudgetResponse, DeleteCategoryData, DeleteCategoryResponse, DeleteHouseholdData, DeleteIncomeData, DeleteIncomeResponse, DeleteRecipientData, DeleteTransactionData, DeleteTransactionResponse, DeleteTransferData, DeleteTransferResponse, GetAccountBalanceData, GetAccountBalanceHistoryData, GetAccountBalanceHistoryResponse, GetAccountBalanceResponse, GetAccountData, GetAccountResponse, GetBillInstanceData, GetBillInstanceResponse, GetBudgetData, GetBudgetResponse, GetBudgetSnapshotHistoryData, GetBudgetSnapshotHistoryResponse, GetCategoryData, GetCategoryResponse, GetHouseholdData, GetHouseholdMembersData, GetHouseholdMembersResponse, GetHouseholdResponse, GetIncomeData, GetIncomeResponse, GetOrCreateRecipientData, GetOrCreateRecipientResponse, GetRecipientData, GetRecipientResponse, GetTransactionData, GetTransactionResponse, GetTransactionsGroupedByCategoryData, GetTransactionsGroupedByCategoryResponse, GetUnallocatedFundsData, GetUnallocatedFundsResponse, LinkAccountToBudgetData, LinkCategoryToBudgetData, ListAccountsData, ListAccountsResponse, ListAllocationsData, ListAllocationsResponse, ListBillsData, ListBillsResponse, ListBudgetsData, ListBudgetsResponse, ListCategoriesData, ListCategoriesResponse, ListHouseholdInvitationsData, ListHouseholdInvitationsResponse, ListHouseholdsData, ListHouseholdsResponse, ListIncomesData, ListIncomesResponse, ListMyInvitationsData, ListMyInvitationsResponse, ListRecipientsData, ListRecipientsResponse, ListTransactionsData, ListTransactionsResponse, ListTransfersData, ListTransfersResponse, RemoveHouseholdMemberData, RevokeInvitationData, SetDefaultBudgetData, SetDefaultBudgetResponse, SetDefaultHouseholdData, SetDefaultHouseholdResponse, ToggleAccountArchiveData, ToggleAccountArchiveResponse, TransferAllocationData, TransferAllocationResponse, UnlinkAccountFromBudgetData, UnlinkCategoryFromBudgetData, UpdateAccountData, UpdateAccountResponse, UpdateBillData, UpdateBillInstanceData, UpdateBillInstanceResponse, UpdateBillResponse, UpdateBudgetData, UpdateBudgetResponse, UpdateCategoryData, UpdateCategoryResponse, UpdateHouseholdData, UpdateHouseholdResponse, UpdateIncomeData, UpdateIncomeResponse, UpdateRecipientData, UpdateRecipientResponse, UpdateTransactionData, UpdateTransactionResponse, UpdateTransferData, UpdateTransferResponse } from '../types.gen';
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -42,7 +42,7 @@ const createQueryKey = <TOptions extends Options>(id: string, options?: TOptions
 export const listHouseholdsQueryKey = (options?: Options<ListHouseholdsData>) => createQueryKey('listHouseholds', options);
 
 /**
- * List all households for the authenticated user
+ * List all households for the authenticated user, along with the default household ID.
  */
 export const listHouseholdsOptions = (options?: Options<ListHouseholdsData>) => queryOptions<ListHouseholdsResponse, DefaultError, ListHouseholdsResponse, ReturnType<typeof listHouseholdsQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
@@ -89,7 +89,7 @@ const createInfiniteParams = <K extends Pick<QueryKey<Options>[0], 'body' | 'hea
 export const listHouseholdsInfiniteQueryKey = (options?: Options<ListHouseholdsData>): QueryKey<Options<ListHouseholdsData>> => createQueryKey('listHouseholds', options, true);
 
 /**
- * List all households for the authenticated user
+ * List all households for the authenticated user, along with the default household ID.
  */
 export const listHouseholdsInfiniteOptions = (options?: Options<ListHouseholdsData>) => infiniteQueryOptions<ListHouseholdsResponse, DefaultError, InfiniteData<ListHouseholdsResponse>, QueryKey<Options<ListHouseholdsData>>, number | Pick<QueryKey<Options<ListHouseholdsData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
 // @ts-ignore
@@ -251,6 +251,23 @@ export const addHouseholdMemberMutation = (options?: Partial<Options<AddHousehol
     const mutationOptions: UseMutationOptions<unknown, DefaultError, Options<AddHouseholdMemberData>> = {
         mutationFn: async (fnOptions) => {
             const { data } = await addHouseholdMember({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Set the default household for the authenticated user
+ */
+export const setDefaultHouseholdMutation = (options?: Partial<Options<SetDefaultHouseholdData>>): UseMutationOptions<SetDefaultHouseholdResponse, DefaultError, Options<SetDefaultHouseholdData>> => {
+    const mutationOptions: UseMutationOptions<SetDefaultHouseholdResponse, DefaultError, Options<SetDefaultHouseholdData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await setDefaultHousehold({
                 ...options,
                 ...fnOptions,
                 throwOnError: true
@@ -507,6 +524,23 @@ export const createBudgetMutation = (options?: Partial<Options<CreateBudgetData>
     const mutationOptions: UseMutationOptions<CreateBudgetResponse, DefaultError, Options<CreateBudgetData>> = {
         mutationFn: async (fnOptions) => {
             const { data } = await createBudget({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Set the default budget for the authenticated user in a household
+ */
+export const setDefaultBudgetMutation = (options?: Partial<Options<SetDefaultBudgetData>>): UseMutationOptions<SetDefaultBudgetResponse, DefaultError, Options<SetDefaultBudgetData>> => {
+    const mutationOptions: UseMutationOptions<SetDefaultBudgetResponse, DefaultError, Options<SetDefaultBudgetData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await setDefaultBudget({
                 ...options,
                 ...fnOptions,
                 throwOnError: true

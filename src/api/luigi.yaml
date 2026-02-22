@@ -27,6 +27,9 @@ info:
 
     ## Pagination
     List endpoints support optional `limit` and `offset` (default 0) query parameters. If `limit` is **omitted**, the full dataset is returned. If provided, `limit` must be between 0 and 100: use `limit=0` to fetch only the total count in the pagination metadata; use 1–100 to cap the number of items. Responses include pagination metadata.
+
+    ## Empty List Behavior
+    List endpoints always return `200` with an empty `data` array when no matches are found. `404` is reserved for missing parent resources (for example, an unknown `householdId` or `budgetId`).
   version: 1.0.0
   contact:
     name: Project Yoshi
@@ -104,9 +107,31 @@ components:
           format: date-time
       required: [id, userId, householdId, joinedAt]
 
+    UserSettings:
+      type: object
+      properties:
+        userId:
+          type: string
+        defaultHouseholdId:
+          type: string
+          nullable: true
+      required: [userId]
+
+    UserHouseholdSettings:
+      type: object
+      properties:
+        userId:
+          type: string
+        householdId:
+          type: string
+        defaultBudgetId:
+          type: string
+          nullable: true
+      required: [userId, householdId]
+
     HouseholdMember:
       allOf:
-        - $ref: "#/components/schemas/HouseholdUser"
+        - $ref: '#/components/schemas/HouseholdUser'
         - type: object
           properties:
             user:
@@ -173,15 +198,8 @@ components:
         transactionCount:
           type: integer
         latestSnapshot:
-          $ref: "#/components/schemas/AccountBalanceSnapshot"
-      required:
-        [
-          accountId,
-          accountName,
-          initialBalance,
-          currentBalance,
-          transactionCount,
-        ]
+          $ref: '#/components/schemas/AccountBalanceSnapshot'
+      required: [accountId, accountName, initialBalance, currentBalance, transactionCount]
 
     Budget:
       type: object
@@ -222,11 +240,11 @@ components:
 
     BudgetDetail:
       allOf:
-        - $ref: "#/components/schemas/Budget"
+        - $ref: '#/components/schemas/Budget'
         - type: object
           properties:
             household:
-              $ref: "#/components/schemas/Household"
+              $ref: '#/components/schemas/Household'
             categories:
               type: array
               items:
@@ -237,7 +255,7 @@ components:
                   categoryId:
                     type: string
                   category:
-                    $ref: "#/components/schemas/Category"
+                    $ref: '#/components/schemas/Category'
             accounts:
               type: array
               items:
@@ -248,7 +266,7 @@ components:
                   accountId:
                     type: string
                   account:
-                    $ref: "#/components/schemas/Account"
+                    $ref: '#/components/schemas/Account'
 
     Category:
       type: object
@@ -260,7 +278,7 @@ components:
         types:
           type: array
           items:
-            $ref: "#/components/schemas/CategoryType"
+            $ref: '#/components/schemas/CategoryType'
         householdId:
           type: string
         createdAt:
@@ -312,15 +330,15 @@ components:
           type: string
           format: date-time
         category:
-          $ref: "#/components/schemas/Category"
+          $ref: '#/components/schemas/Category'
         account:
-          $ref: "#/components/schemas/Account"
+          $ref: '#/components/schemas/Account'
         recipient:
-          $ref: "#/components/schemas/Recipient"
+          $ref: '#/components/schemas/Recipient'
         splits:
           type: array
           items:
-            $ref: "#/components/schemas/TransactionSplit"
+            $ref: '#/components/schemas/TransactionSplit'
       required: [id, name, amount, date, accountId, createdAt]
 
     TransactionSplit:
@@ -338,18 +356,18 @@ components:
         subtitle:
           type: string
         category:
-          $ref: "#/components/schemas/Category"
+          $ref: '#/components/schemas/Category'
       required: [id, transactionId, categoryId, amount, subtitle]
 
     TransactionGroupedByCategory:
       type: object
       properties:
         category:
-          $ref: "#/components/schemas/Category"
+          $ref: '#/components/schemas/Category'
         transactions:
           type: array
           items:
-            $ref: "#/components/schemas/Transaction"
+            $ref: '#/components/schemas/Transaction'
         total:
           type: number
           format: double
@@ -376,7 +394,7 @@ components:
           type: string
           format: date-time
         recurrenceType:
-          $ref: "#/components/schemas/RecurrenceType"
+          $ref: '#/components/schemas/RecurrenceType'
         customIntervalDays:
           type: integer
           nullable: true
@@ -398,20 +416,8 @@ components:
           type: string
           format: date-time
         recipient:
-          $ref: "#/components/schemas/Recipient"
-      required:
-        [
-          id,
-          name,
-          recipientId,
-          accountId,
-          startDate,
-          recurrenceType,
-          estimatedAmount,
-          budgetId,
-          isArchived,
-          createdAt,
-        ]
+          $ref: '#/components/schemas/Recipient'
+      required: [id, name, recipientId, accountId, startDate, recurrenceType, estimatedAmount, budgetId, isArchived, createdAt]
 
     BillInstance:
       type: object
@@ -442,15 +448,15 @@ components:
           type: string
           nullable: true
         account:
-          $ref: "#/components/schemas/Account"
+          $ref: '#/components/schemas/Account'
         category:
-          $ref: "#/components/schemas/Category"
+          $ref: '#/components/schemas/Category'
         splits:
           type: array
           items:
-            $ref: "#/components/schemas/BillSplit"
+            $ref: '#/components/schemas/BillSplit'
         recurrenceType:
-          $ref: "#/components/schemas/RecurrenceType"
+          $ref: '#/components/schemas/RecurrenceType'
         customIntervalDays:
           type: integer
           nullable: true
@@ -460,20 +466,8 @@ components:
         isArchived:
           type: boolean
         recipient:
-          $ref: "#/components/schemas/Recipient"
-      required:
-        [
-          id,
-          billId,
-          name,
-          recipientId,
-          amount,
-          dueDate,
-          isPaid,
-          recurrenceType,
-          startDate,
-          isArchived,
-        ]
+          $ref: '#/components/schemas/Recipient'
+      required: [id, billId, name, recipientId, amount, dueDate, isPaid, recurrenceType, startDate, isArchived]
 
     BillSplit:
       type: object
@@ -490,7 +484,7 @@ components:
         subtitle:
           type: string
         category:
-          $ref: "#/components/schemas/Category"
+          $ref: '#/components/schemas/Category'
       required: [id, billId, categoryId, amount, subtitle]
 
     Transfer:
@@ -517,11 +511,10 @@ components:
           type: string
           format: date-time
         fromAccount:
-          $ref: "#/components/schemas/Account"
+          $ref: '#/components/schemas/Account'
         toAccount:
-          $ref: "#/components/schemas/Account"
-      required:
-        [id, fromAccountId, toAccountId, amount, date, budgetId, createdAt]
+          $ref: '#/components/schemas/Account'
+      required: [id, fromAccountId, toAccountId, amount, date, budgetId, createdAt]
 
     Income:
       type: object
@@ -538,7 +531,7 @@ components:
           type: string
           format: date-time
         recurrenceType:
-          $ref: "#/components/schemas/RecurrenceType"
+          $ref: '#/components/schemas/RecurrenceType'
         customIntervalDays:
           type: integer
           nullable: true
@@ -559,25 +552,12 @@ components:
           type: string
           format: date-time
         category:
-          $ref: "#/components/schemas/Category"
+          $ref: '#/components/schemas/Category'
         account:
-          $ref: "#/components/schemas/Account"
+          $ref: '#/components/schemas/Account'
         incomeSource:
-          $ref: "#/components/schemas/IncomeSource"
-      required:
-        [
-          id,
-          name,
-          incomeSourceId,
-          accountId,
-          expectedDate,
-          recurrenceType,
-          estimatedAmount,
-          categoryId,
-          householdId,
-          isArchived,
-          createdAt,
-        ]
+          $ref: '#/components/schemas/IncomeSource'
+      required: [id, name, incomeSourceId, accountId, expectedDate, recurrenceType, estimatedAmount, categoryId, householdId, isArchived, createdAt]
 
     IncomeSource:
       type: object
@@ -603,7 +583,7 @@ components:
         scopes:
           type: array
           items:
-            $ref: "#/components/schemas/RecipientScope"
+            $ref: '#/components/schemas/RecipientScope'
         householdId:
           type: string
         createdAt:
@@ -622,7 +602,7 @@ components:
         householdId:
           type: string
         status:
-          $ref: "#/components/schemas/InvitationStatus"
+          $ref: '#/components/schemas/InvitationStatus'
         invitedBy:
           type: string
         createdAt:
@@ -638,8 +618,7 @@ components:
               type: string
         inviterName:
           type: string
-      required:
-        [id, email, householdId, status, invitedBy, createdAt, updatedAt]
+      required: [id, email, householdId, status, invitedBy, createdAt, updatedAt]
 
     BudgetAllocation:
       type: object
@@ -737,17 +716,7 @@ components:
         createdAt:
           type: string
           format: date-time
-      required:
-        [
-          id,
-          budgetId,
-          date,
-          allocatedAmount,
-          spentAmount,
-          remainingAmount,
-          transactionCount,
-          createdAt,
-        ]
+      required: [id, budgetId, date, allocatedAmount, spentAmount, remainingAmount, transactionCount, createdAt]
 
     # ───────── Pagination ─────────
     PaginationMeta:
@@ -775,6 +744,20 @@ components:
         name:
           type: string
           minLength: 1
+    SetDefaultHouseholdRequest:
+      type: object
+      properties:
+        householdId:
+          type: string
+      required: [householdId]
+    SetDefaultBudgetRequest:
+      type: object
+      properties:
+        householdId:
+          type: string
+        budgetId:
+          type: string
+      required: [householdId, budgetId]
     CreateAccountRequest:
       type: object
       properties:
@@ -854,7 +837,7 @@ components:
         types:
           type: array
           items:
-            $ref: "#/components/schemas/CategoryType"
+            $ref: '#/components/schemas/CategoryType'
           minItems: 1
         budgetIds:
           type: array
@@ -871,7 +854,7 @@ components:
         types:
           type: array
           items:
-            $ref: "#/components/schemas/CategoryType"
+            $ref: '#/components/schemas/CategoryType'
           minItems: 1
         budgetIds:
           type: array
@@ -914,7 +897,7 @@ components:
               type: string
               minLength: 1
             type:
-              $ref: "#/components/schemas/CategoryType"
+              $ref: '#/components/schemas/CategoryType'
           required: [name, type]
         name:
           type: string
@@ -1015,7 +998,7 @@ components:
           type: string
           format: date-time
         recurrenceType:
-          $ref: "#/components/schemas/RecurrenceType"
+          $ref: '#/components/schemas/RecurrenceType'
         customIntervalDays:
           type: integer
           minimum: 1
@@ -1066,7 +1049,7 @@ components:
           type: string
           format: date-time
         recurrenceType:
-          $ref: "#/components/schemas/RecurrenceType"
+          $ref: '#/components/schemas/RecurrenceType'
         customIntervalDays:
           type: integer
           minimum: 1
@@ -1108,7 +1091,7 @@ components:
       type: object
       properties:
         updateType:
-          $ref: "#/components/schemas/BillUpdateType"
+          $ref: '#/components/schemas/BillUpdateType'
         name:
           type: string
         recipient:
@@ -1184,7 +1167,7 @@ components:
         newCategoryName:
           type: string
         recurrenceType:
-          $ref: "#/components/schemas/RecurrenceType"
+          $ref: '#/components/schemas/RecurrenceType'
         customIntervalDays:
           type: integer
           nullable: true
@@ -1218,7 +1201,7 @@ components:
         newCategoryName:
           type: string
         recurrenceType:
-          $ref: "#/components/schemas/RecurrenceType"
+          $ref: '#/components/schemas/RecurrenceType'
         customIntervalDays:
           type: integer
           nullable: true
@@ -1349,14 +1332,14 @@ paths:
   /households:
     get:
       operationId: listHouseholds
-      summary: List all households for the authenticated user
+      summary: List all households for the authenticated user, along with the default household ID.
       tags: [Households]
       parameters:
-        - $ref: "#/components/parameters/limit"
-        - $ref: "#/components/parameters/offset"
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/offset'
       responses:
-        "200":
-          description: List of households
+        '200':
+          description: List of households (empty list when no matches)
           content:
             application/json:
               schema:
@@ -1365,9 +1348,12 @@ paths:
                   data:
                     type: array
                     items:
-                      $ref: "#/components/schemas/Household"
+                      $ref: '#/components/schemas/Household'
+                  defaultHouseholdId:
+                    type: string
+                    nullable: true
                   pagination:
-                    $ref: "#/components/schemas/PaginationMeta"
+                    $ref: '#/components/schemas/PaginationMeta'
     post:
       operationId: createHousehold
       summary: Create a new household
@@ -1377,30 +1363,30 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CreateHouseholdRequest"
+              $ref: '#/components/schemas/CreateHouseholdRequest'
       responses:
-        "201":
+        '201':
           description: Created household
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Household"
+                $ref: '#/components/schemas/Household'
 
   /households/{householdId}:
     parameters:
-      - $ref: "#/components/parameters/householdId"
+      - $ref: '#/components/parameters/householdId'
     get:
       operationId: getHousehold
       summary: Get a specific household
       tags: [Households]
       responses:
-        "200":
+        '200':
           description: Household details
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Household"
-        "404":
+                $ref: '#/components/schemas/Household'
+        '404':
           description: Household not found
     patch:
       operationId: updateHousehold
@@ -1411,36 +1397,36 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/UpdateHouseholdRequest"
+              $ref: '#/components/schemas/UpdateHouseholdRequest'
       responses:
-        "200":
+        '200':
           description: Updated household
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Household"
+                $ref: '#/components/schemas/Household'
     delete:
       operationId: deleteHousehold
       summary: Delete a household (must have no budgets)
       tags: [Households]
       responses:
-        "200":
+        '200':
           description: Deleted household
-        "412":
+        '412':
           description: Household has budgets, cannot delete
 
   /households/{householdId}/members:
     parameters:
-      - $ref: "#/components/parameters/householdId"
+      - $ref: '#/components/parameters/householdId'
     get:
       operationId: getHouseholdMembers
       summary: Get household members with user details (from Clerk)
       tags: [Households]
       parameters:
-        - $ref: "#/components/parameters/limit"
-        - $ref: "#/components/parameters/offset"
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/offset'
       responses:
-        "200":
+        '200':
           description: List of household members
           content:
             application/json:
@@ -1450,13 +1436,13 @@ paths:
                   data:
                     type: array
                     items:
-                      $ref: "#/components/schemas/HouseholdMember"
+                      $ref: '#/components/schemas/HouseholdMember'
                   pagination:
-                    $ref: "#/components/schemas/PaginationMeta"
+                    $ref: '#/components/schemas/PaginationMeta'
 
   /households/{householdId}/members/{userId}:
     parameters:
-      - $ref: "#/components/parameters/householdId"
+      - $ref: '#/components/parameters/householdId'
       - name: userId
         in: path
         required: true
@@ -1467,26 +1453,49 @@ paths:
       summary: Add a user to a household
       tags: [Households]
       responses:
-        "201":
+        '201':
           description: User added
-        "409":
+        '409':
           description: User already a member
     delete:
       operationId: removeHouseholdMember
       summary: Remove a user from a household
       tags: [Households]
       responses:
-        "200":
+        '200':
           description: User removed
-        "412":
+        '412':
           description: Cannot remove last user
+
+  /user-settings/default-household:
+    put:
+      operationId: setDefaultHousehold
+      summary: Set the default household for the authenticated user
+      tags: [UserSettings]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetDefaultHouseholdRequest'
+      responses:
+        '200':
+          description: Default household updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '403':
+          description: User is not a member of the household
+        '404':
+          description: Household not found
 
   # ─────────────────────────
   # ACCOUNTS
   # ─────────────────────────
   /households/{householdId}/accounts:
     parameters:
-      - $ref: "#/components/parameters/householdId"
+      - $ref: '#/components/parameters/householdId'
     get:
       operationId: listAccounts
       summary: List accounts for a household
@@ -1501,11 +1510,11 @@ paths:
           in: query
           schema:
             type: boolean
-        - $ref: "#/components/parameters/limit"
-        - $ref: "#/components/parameters/offset"
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/offset'
       responses:
-        "200":
-          description: List of accounts
+        '200':
+          description: List of accounts (empty list when no matches)
           content:
             application/json:
               schema:
@@ -1514,9 +1523,11 @@ paths:
                   data:
                     type: array
                     items:
-                      $ref: "#/components/schemas/Account"
+                      $ref: '#/components/schemas/Account'
                   pagination:
-                    $ref: "#/components/schemas/PaginationMeta"
+                    $ref: '#/components/schemas/PaginationMeta'
+        '404':
+          description: Household not found
     post:
       operationId: createAccount
       summary: Create a new account
@@ -1526,29 +1537,29 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CreateAccountRequest"
+              $ref: '#/components/schemas/CreateAccountRequest'
       responses:
-        "201":
+        '201':
           description: Created account
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Account"
+                $ref: '#/components/schemas/Account'
 
   /accounts/{accountId}:
     parameters:
-      - $ref: "#/components/parameters/accountId"
+      - $ref: '#/components/parameters/accountId'
     get:
       operationId: getAccount
       summary: Get account by ID
       tags: [Accounts]
       responses:
-        "200":
+        '200':
           description: Account details
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Account"
+                $ref: '#/components/schemas/Account'
     patch:
       operationId: updateAccount
       summary: Update an account
@@ -1558,46 +1569,46 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/UpdateAccountRequest"
+              $ref: '#/components/schemas/UpdateAccountRequest'
       responses:
-        "200":
+        '200':
           description: Updated account
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Account"
+                $ref: '#/components/schemas/Account'
     delete:
       operationId: deleteAccount
       summary: Delete an account (must have no transactions, bills, or transfers)
       tags: [Accounts]
       responses:
-        "200":
+        '200':
           description: Deleted
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/SuccessResponse"
-        "412":
+                $ref: '#/components/schemas/SuccessResponse'
+        '412':
           description: Account has linked records
 
   /accounts/{accountId}/balance:
     parameters:
-      - $ref: "#/components/parameters/accountId"
+      - $ref: '#/components/parameters/accountId'
     get:
       operationId: getAccountBalance
       summary: Get current balance for an account
       tags: [Accounts]
       responses:
-        "200":
+        '200':
           description: Account balance
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/AccountBalance"
+                $ref: '#/components/schemas/AccountBalance'
 
   /accounts/{accountId}/balance-history:
     parameters:
-      - $ref: "#/components/parameters/accountId"
+      - $ref: '#/components/parameters/accountId'
     get:
       operationId: getAccountBalanceHistory
       summary: Get historical balance snapshots for an account
@@ -1613,10 +1624,10 @@ paths:
           schema:
             type: string
             format: date
-        - $ref: "#/components/parameters/limit"
-        - $ref: "#/components/parameters/offset"
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/offset'
       responses:
-        "200":
+        '200':
           description: Paginated list of account balance snapshots
           content:
             application/json:
@@ -1626,13 +1637,13 @@ paths:
                   data:
                     type: array
                     items:
-                      $ref: "#/components/schemas/AccountBalanceSnapshot"
+                      $ref: '#/components/schemas/AccountBalanceSnapshot'
                   pagination:
-                    $ref: "#/components/schemas/PaginationMeta"
+                    $ref: '#/components/schemas/PaginationMeta'
 
   /accounts/{accountId}/archive:
     parameters:
-      - $ref: "#/components/parameters/accountId"
+      - $ref: '#/components/parameters/accountId'
     patch:
       operationId: toggleAccountArchive
       summary: Toggle archive status of an account
@@ -1642,31 +1653,31 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ToggleAccountArchiveRequest"
+              $ref: '#/components/schemas/ToggleAccountArchiveRequest'
       responses:
-        "200":
+        '200':
           description: Updated account
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Account"
+                $ref: '#/components/schemas/Account'
 
   # ─────────────────────────
   # BUDGETS
   # ─────────────────────────
   /households/{householdId}/budgets:
     parameters:
-      - $ref: "#/components/parameters/householdId"
+      - $ref: '#/components/parameters/householdId'
     get:
       operationId: listBudgets
       summary: List all budgets for a household (with computed totals)
       tags: [Budgets]
       parameters:
-        - $ref: "#/components/parameters/limit"
-        - $ref: "#/components/parameters/offset"
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/offset'
       responses:
-        "200":
-          description: List of budgets with allocated/spent/remaining amounts
+        '200':
+          description: List of budgets with allocated/spent/remaining amounts (empty list when no matches)
           content:
             application/json:
               schema:
@@ -1675,9 +1686,14 @@ paths:
                   data:
                     type: array
                     items:
-                      $ref: "#/components/schemas/Budget"
+                      $ref: '#/components/schemas/Budget'
+                  defaultBudgetId:
+                    type: string
+                    nullable: true
                   pagination:
-                    $ref: "#/components/schemas/PaginationMeta"
+                    $ref: '#/components/schemas/PaginationMeta'
+        '404':
+          description: Household not found
     post:
       operationId: createBudget
       summary: Create a new budget
@@ -1687,29 +1703,50 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CreateBudgetRequest"
+              $ref: '#/components/schemas/CreateBudgetRequest'
       responses:
-        "201":
+        '201':
           description: Created budget
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/BudgetDetail"
+                $ref: '#/components/schemas/BudgetDetail'
+
+  /user-settings/default-budget:
+    put:
+      operationId: setDefaultBudget
+      summary: Set the default budget for the authenticated user in a household
+      tags: [UserSettings]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetDefaultBudgetRequest'
+      responses:
+        '200':
+          description: Default budget updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '404':
+          description: Budget or household not found
 
   /budgets/{budgetId}:
     parameters:
-      - $ref: "#/components/parameters/budgetId"
+      - $ref: '#/components/parameters/budgetId'
     get:
       operationId: getBudget
       summary: Get a specific budget with related details
       tags: [Budgets]
       responses:
-        "200":
+        '200':
           description: Budget details
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/BudgetDetail"
+                $ref: '#/components/schemas/BudgetDetail'
     patch:
       operationId: updateBudget
       summary: Update a budget
@@ -1719,29 +1756,29 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/UpdateBudgetRequest"
+              $ref: '#/components/schemas/UpdateBudgetRequest'
       responses:
-        "200":
+        '200':
           description: Updated budget
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Budget"
+                $ref: '#/components/schemas/Budget'
     delete:
       operationId: deleteBudget
       summary: Delete a budget (cascades to transactions and bills)
       tags: [Budgets]
       responses:
-        "200":
+        '200':
           description: Deleted
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/SuccessResponse"
+                $ref: '#/components/schemas/SuccessResponse'
 
   /budgets/{budgetId}/snapshot-history:
     parameters:
-      - $ref: "#/components/parameters/budgetId"
+      - $ref: '#/components/parameters/budgetId'
     get:
       operationId: getBudgetSnapshotHistory
       summary: Get historical snapshots for a budget
@@ -1757,10 +1794,10 @@ paths:
           schema:
             type: string
             format: date
-        - $ref: "#/components/parameters/limit"
-        - $ref: "#/components/parameters/offset"
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/offset'
       responses:
-        "200":
+        '200':
           description: Paginated list of budget snapshots
           content:
             application/json:
@@ -1770,46 +1807,46 @@ paths:
                   data:
                     type: array
                     items:
-                      $ref: "#/components/schemas/BudgetSnapshot"
+                      $ref: '#/components/schemas/BudgetSnapshot'
                   pagination:
-                    $ref: "#/components/schemas/PaginationMeta"
+                    $ref: '#/components/schemas/PaginationMeta'
 
   /budgets/{budgetId}/categories/{categoryId}:
     parameters:
-      - $ref: "#/components/parameters/budgetId"
-      - $ref: "#/components/parameters/categoryId"
+      - $ref: '#/components/parameters/budgetId'
+      - $ref: '#/components/parameters/categoryId'
     put:
       operationId: linkCategoryToBudget
       summary: Link a category to a budget
       tags: [Budgets]
       responses:
-        "201":
+        '201':
           description: Category linked
     delete:
       operationId: unlinkCategoryFromBudget
       summary: Unlink a category from a budget
       tags: [Budgets]
       responses:
-        "200":
+        '200':
           description: Category unlinked
 
   /budgets/{budgetId}/accounts/{accountId}:
     parameters:
-      - $ref: "#/components/parameters/budgetId"
-      - $ref: "#/components/parameters/accountId"
+      - $ref: '#/components/parameters/budgetId'
+      - $ref: '#/components/parameters/accountId'
     put:
       operationId: linkAccountToBudget
       summary: Link an account to a budget
       tags: [Budgets]
       responses:
-        "201":
+        '201':
           description: Account linked
     delete:
       operationId: unlinkAccountFromBudget
       summary: Unlink an account from a budget
       tags: [Budgets]
       responses:
-        "200":
+        '200':
           description: Account unlinked
 
   # ─────────────────────────
@@ -1817,7 +1854,7 @@ paths:
   # ─────────────────────────
   /households/{householdId}/categories:
     parameters:
-      - $ref: "#/components/parameters/householdId"
+      - $ref: '#/components/parameters/householdId'
     get:
       operationId: listCategories
       summary: List categories for a household
@@ -1826,18 +1863,18 @@ paths:
         - name: type
           in: query
           schema:
-            $ref: "#/components/schemas/CategoryType"
+            $ref: '#/components/schemas/CategoryType'
           description: Filter by category type
         - name: budgetId
           in: query
           schema:
             type: string
           description: Filter by budget linkage
-        - $ref: "#/components/parameters/limit"
-        - $ref: "#/components/parameters/offset"
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/offset'
       responses:
-        "200":
-          description: List of categories
+        '200':
+          description: List of categories (empty list when no matches)
           content:
             application/json:
               schema:
@@ -1846,9 +1883,11 @@ paths:
                   data:
                     type: array
                     items:
-                      $ref: "#/components/schemas/Category"
+                      $ref: '#/components/schemas/Category'
                   pagination:
-                    $ref: "#/components/schemas/PaginationMeta"
+                    $ref: '#/components/schemas/PaginationMeta'
+        '404':
+          description: Household not found
     post:
       operationId: createCategory
       summary: Create a new category
@@ -1858,29 +1897,29 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CreateCategoryRequest"
+              $ref: '#/components/schemas/CreateCategoryRequest'
       responses:
-        "201":
+        '201':
           description: Created category
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Category"
+                $ref: '#/components/schemas/Category'
 
   /categories/{categoryId}:
     parameters:
-      - $ref: "#/components/parameters/categoryId"
+      - $ref: '#/components/parameters/categoryId'
     get:
       operationId: getCategory
       summary: Get a category by ID
       tags: [Categories]
       responses:
-        "200":
+        '200':
           description: Category details
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Category"
+                $ref: '#/components/schemas/Category'
     patch:
       operationId: updateCategory
       summary: Update a category
@@ -1890,26 +1929,26 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/UpdateCategoryRequest"
+              $ref: '#/components/schemas/UpdateCategoryRequest'
       responses:
-        "200":
+        '200':
           description: Updated category
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Category"
+                $ref: '#/components/schemas/Category'
     delete:
       operationId: deleteCategory
       summary: Delete a category (must have no transactions)
       tags: [Categories]
       responses:
-        "200":
+        '200':
           description: Deleted
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/SuccessResponse"
-        "412":
+                $ref: '#/components/schemas/SuccessResponse'
+        '412':
           description: Category has transactions
 
   # ─────────────────────────
@@ -1917,17 +1956,17 @@ paths:
   # ─────────────────────────
   /budgets/{budgetId}/allocations:
     parameters:
-      - $ref: "#/components/parameters/budgetId"
+      - $ref: '#/components/parameters/budgetId'
     get:
       operationId: listAllocations
       summary: List allocations for a budget
       tags: [Allocations]
       parameters:
-        - $ref: "#/components/parameters/limit"
-        - $ref: "#/components/parameters/offset"
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/offset'
       responses:
-        "200":
-          description: Paginated list of allocations
+        '200':
+          description: Paginated list of allocations (empty list when no matches)
           content:
             application/json:
               schema:
@@ -1936,9 +1975,11 @@ paths:
                   data:
                     type: array
                     items:
-                      $ref: "#/components/schemas/BudgetAllocation"
+                      $ref: '#/components/schemas/BudgetAllocation'
                   pagination:
-                    $ref: "#/components/schemas/PaginationMeta"
+                    $ref: '#/components/schemas/PaginationMeta'
+        '404':
+          description: Budget not found
     post:
       operationId: createAllocation
       summary: Add funds to a budget
@@ -1948,14 +1989,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CreateAllocationRequest"
+              $ref: '#/components/schemas/CreateAllocationRequest'
       responses:
-        "201":
+        '201':
           description: Created allocation
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/BudgetAllocation"
+                $ref: '#/components/schemas/BudgetAllocation'
 
   /allocations/transfer:
     post:
@@ -1967,31 +2008,31 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/TransferAllocationRequest"
+              $ref: '#/components/schemas/TransferAllocationRequest'
       responses:
-        "200":
+        '200':
           description: Transfer completed (two allocation records created)
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/BudgetAllocation"
+                  $ref: '#/components/schemas/BudgetAllocation'
 
   /households/{householdId}/allocations/unallocated:
     parameters:
-      - $ref: "#/components/parameters/householdId"
+      - $ref: '#/components/parameters/householdId'
     get:
       operationId: getUnallocatedFunds
       summary: Get total unallocated funds for a household
       tags: [Allocations]
       responses:
-        "200":
+        '200':
           description: Unallocated funds summary
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/UnallocatedFunds"
+                $ref: '#/components/schemas/UnallocatedFunds'
 
   # ─────────────────────────
   # TRANSACTIONS
@@ -2031,12 +2072,12 @@ paths:
         - name: type
           in: query
           schema:
-            $ref: "#/components/schemas/CategoryType"
-        - $ref: "#/components/parameters/limit"
-        - $ref: "#/components/parameters/offset"
+            $ref: '#/components/schemas/CategoryType'
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/offset'
       responses:
-        "200":
-          description: List of transactions (includes virtual transfer entries when no categoryId filter)
+        '200':
+          description: List of transactions (empty list when no matches; includes virtual transfer entries when no categoryId filter)
           content:
             application/json:
               schema:
@@ -2045,9 +2086,9 @@ paths:
                   data:
                     type: array
                     items:
-                      $ref: "#/components/schemas/Transaction"
+                      $ref: '#/components/schemas/Transaction'
                   pagination:
-                    $ref: "#/components/schemas/PaginationMeta"
+                    $ref: '#/components/schemas/PaginationMeta'
     post:
       operationId: createTransaction
       summary: Create a new transaction
@@ -2060,29 +2101,29 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CreateTransactionRequest"
+              $ref: '#/components/schemas/CreateTransactionRequest'
       responses:
-        "201":
+        '201':
           description: Created transaction
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Transaction"
+                $ref: '#/components/schemas/Transaction'
 
   /transactions/{transactionId}:
     parameters:
-      - $ref: "#/components/parameters/transactionId"
+      - $ref: '#/components/parameters/transactionId'
     get:
       operationId: getTransaction
       summary: Get a transaction by ID
       tags: [Transactions]
       responses:
-        "200":
+        '200':
           description: Transaction details
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Transaction"
+                $ref: '#/components/schemas/Transaction'
     patch:
       operationId: updateTransaction
       summary: Update a transaction
@@ -2092,29 +2133,29 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/UpdateTransactionRequest"
+              $ref: '#/components/schemas/UpdateTransactionRequest'
       responses:
-        "200":
+        '200':
           description: Updated transaction
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Transaction"
+                $ref: '#/components/schemas/Transaction'
     delete:
       operationId: deleteTransaction
       summary: Delete a transaction
       tags: [Transactions]
       responses:
-        "200":
+        '200':
           description: Deleted
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/SuccessResponse"
+                $ref: '#/components/schemas/SuccessResponse'
 
   /transactions/{transactionId}/clone:
     parameters:
-      - $ref: "#/components/parameters/transactionId"
+      - $ref: '#/components/parameters/transactionId'
     post:
       operationId: cloneTransaction
       summary: Clone a transaction (defaults to today's date)
@@ -2123,14 +2164,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CloneTransactionRequest"
+              $ref: '#/components/schemas/CloneTransactionRequest'
       responses:
-        "201":
+        '201':
           description: Cloned transaction
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Transaction"
+                $ref: '#/components/schemas/Transaction'
 
   /transactions/grouped-by-category:
     get:
@@ -2156,11 +2197,11 @@ paths:
         - name: type
           in: query
           schema:
-            $ref: "#/components/schemas/CategoryType"
-        - $ref: "#/components/parameters/limit"
-        - $ref: "#/components/parameters/offset"
+            $ref: '#/components/schemas/CategoryType'
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/offset'
       responses:
-        "200":
+        '200':
           description: Transactions grouped by category
           content:
             application/json:
@@ -2170,16 +2211,16 @@ paths:
                   data:
                     type: array
                     items:
-                      $ref: "#/components/schemas/TransactionGroupedByCategory"
+                      $ref: '#/components/schemas/TransactionGroupedByCategory'
                   pagination:
-                    $ref: "#/components/schemas/PaginationMeta"
+                    $ref: '#/components/schemas/PaginationMeta'
 
   # ─────────────────────────
   # BILLS (Recurring Bills)
   # ─────────────────────────
   /budgets/{budgetId}/bill-instances:
     parameters:
-      - $ref: "#/components/parameters/budgetId"
+      - $ref: '#/components/parameters/budgetId'
     get:
       operationId: listBills
       summary: List bill instances for a budget
@@ -2190,11 +2231,11 @@ paths:
           schema:
             type: boolean
             default: false
-        - $ref: "#/components/parameters/limit"
-        - $ref: "#/components/parameters/offset"
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/offset'
       responses:
-        "200":
-          description: List of bill instances with recurring bill details
+        '200':
+          description: List of bill instances with recurring bill details (empty list when no matches)
           content:
             application/json:
               schema:
@@ -2203,12 +2244,14 @@ paths:
                   data:
                     type: array
                     items:
-                      $ref: "#/components/schemas/BillInstance"
+                      $ref: '#/components/schemas/BillInstance'
                   pagination:
-                    $ref: "#/components/schemas/PaginationMeta"
+                    $ref: '#/components/schemas/PaginationMeta'
+        '404':
+          description: Budget not found
   /budgets/{budgetId}/bills:
     parameters:
-      - $ref: "#/components/parameters/budgetId"
+      - $ref: '#/components/parameters/budgetId'
     post:
       operationId: createBill
       summary: Create a new recurring bill (generates instances up to 2 months ahead)
@@ -2221,18 +2264,18 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CreateBillRequest"
+              $ref: '#/components/schemas/CreateBillRequest'
       responses:
-        "201":
+        '201':
           description: Created recurring bill
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Bill"
+                $ref: '#/components/schemas/Bill'
 
   /bills/{billId}:
     parameters:
-      - $ref: "#/components/parameters/billId"
+      - $ref: '#/components/parameters/billId'
     patch:
       operationId: updateBill
       summary: Update a recurring bill (regenerates future unpaid instances on schedule change)
@@ -2246,25 +2289,25 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/UpdateBillRequest"
+              $ref: '#/components/schemas/UpdateBillRequest'
       responses:
-        "200":
+        '200':
           description: Updated recurring bill
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Bill"
+                $ref: '#/components/schemas/Bill'
     delete:
       operationId: deleteBill
       summary: Delete a recurring bill and all its instances
       tags: [Bills]
       responses:
-        "200":
+        '200':
           description: Deleted
 
   /bills/{billId}/archive:
     parameters:
-      - $ref: "#/components/parameters/billId"
+      - $ref: '#/components/parameters/billId'
     patch:
       operationId: archiveBill
       summary: Archive or unarchive a recurring bill
@@ -2274,14 +2317,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ArchiveBillRequest"
+              $ref: '#/components/schemas/ArchiveBillRequest'
       responses:
-        "200":
+        '200':
           description: Updated
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Bill"
+                $ref: '#/components/schemas/Bill'
 
   /bill-instances/{instanceId}:
     parameters:
@@ -2295,12 +2338,12 @@ paths:
       summary: Get a specific bill instance
       tags: [Bills]
       responses:
-        "200":
+        '200':
           description: Bill instance details
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/BillInstance"
+                $ref: '#/components/schemas/BillInstance'
     patch:
       operationId: updateBillInstance
       summary: Update a specific bill instance, optionally applying to future instances
@@ -2310,21 +2353,21 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/UpdateBillInstanceRequest"
+              $ref: '#/components/schemas/UpdateBillInstanceRequest'
       responses:
-        "200":
+        '200':
           description: Updated bill instance(s)
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/BillInstance"
+                $ref: '#/components/schemas/BillInstance'
 
   # ─────────────────────────
   # TRANSFERS
   # ─────────────────────────
   /budgets/{budgetId}/transfers:
     parameters:
-      - $ref: "#/components/parameters/budgetId"
+      - $ref: '#/components/parameters/budgetId'
     get:
       operationId: listTransfers
       summary: List transfers for a budget
@@ -2340,11 +2383,11 @@ paths:
           schema:
             type: string
             format: date-time
-        - $ref: "#/components/parameters/limit"
-        - $ref: "#/components/parameters/offset"
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/offset'
       responses:
-        "200":
-          description: List of transfers
+        '200':
+          description: List of transfers (empty list when no matches)
           content:
             application/json:
               schema:
@@ -2353,9 +2396,11 @@ paths:
                   data:
                     type: array
                     items:
-                      $ref: "#/components/schemas/Transfer"
+                      $ref: '#/components/schemas/Transfer'
                   pagination:
-                    $ref: "#/components/schemas/PaginationMeta"
+                    $ref: '#/components/schemas/PaginationMeta'
+        '404':
+          description: Budget not found
     post:
       operationId: createTransfer
       summary: Create a transfer between accounts
@@ -2365,18 +2410,18 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CreateTransferRequest"
+              $ref: '#/components/schemas/CreateTransferRequest'
       responses:
-        "201":
+        '201':
           description: Created transfer
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Transfer"
+                $ref: '#/components/schemas/Transfer'
 
   /transfers/{transferId}:
     parameters:
-      - $ref: "#/components/parameters/transferId"
+      - $ref: '#/components/parameters/transferId'
     patch:
       operationId: updateTransfer
       summary: Update a transfer
@@ -2386,32 +2431,32 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/UpdateTransferRequest"
+              $ref: '#/components/schemas/UpdateTransferRequest'
       responses:
-        "200":
+        '200':
           description: Updated transfer
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Transfer"
+                $ref: '#/components/schemas/Transfer'
     delete:
       operationId: deleteTransfer
       summary: Delete a transfer
       tags: [Transfers]
       responses:
-        "200":
+        '200':
           description: Deleted
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/SuccessResponse"
+                $ref: '#/components/schemas/SuccessResponse'
 
   # ─────────────────────────
   # INCOME
   # ─────────────────────────
   /households/{householdId}/incomes:
     parameters:
-      - $ref: "#/components/parameters/householdId"
+      - $ref: '#/components/parameters/householdId'
     get:
       operationId: listIncomes
       summary: List recurring income sources for a household
@@ -2422,11 +2467,11 @@ paths:
           schema:
             type: boolean
             default: false
-        - $ref: "#/components/parameters/limit"
-        - $ref: "#/components/parameters/offset"
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/offset'
       responses:
-        "200":
-          description: List of income sources
+        '200':
+          description: List of income sources (empty list when no matches)
           content:
             application/json:
               schema:
@@ -2435,9 +2480,11 @@ paths:
                   data:
                     type: array
                     items:
-                      $ref: "#/components/schemas/Income"
+                      $ref: '#/components/schemas/Income'
                   pagination:
-                    $ref: "#/components/schemas/PaginationMeta"
+                    $ref: '#/components/schemas/PaginationMeta'
+        '404':
+          description: Household not found
     post:
       operationId: createIncome
       summary: Create a new income source
@@ -2447,29 +2494,29 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CreateIncomeRequest"
+              $ref: '#/components/schemas/CreateIncomeRequest'
       responses:
-        "201":
+        '201':
           description: Created income
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Income"
+                $ref: '#/components/schemas/Income'
 
   /incomes/{incomeId}:
     parameters:
-      - $ref: "#/components/parameters/incomeId"
+      - $ref: '#/components/parameters/incomeId'
     get:
       operationId: getIncome
       summary: Get an income source by ID
       tags: [Income]
       responses:
-        "200":
+        '200':
           description: Income details
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Income"
+                $ref: '#/components/schemas/Income'
     patch:
       operationId: updateIncome
       summary: Update an income source
@@ -2479,29 +2526,29 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/UpdateIncomeRequest"
+              $ref: '#/components/schemas/UpdateIncomeRequest'
       responses:
-        "200":
+        '200':
           description: Updated income
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Income"
+                $ref: '#/components/schemas/Income'
     delete:
       operationId: deleteIncome
       summary: Delete an income source
       tags: [Income]
       responses:
-        "200":
+        '200':
           description: Deleted
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/SuccessResponse"
+                $ref: '#/components/schemas/SuccessResponse'
 
   /incomes/{incomeId}/archive:
     parameters:
-      - $ref: "#/components/parameters/incomeId"
+      - $ref: '#/components/parameters/incomeId'
     patch:
       operationId: archiveIncome
       summary: Archive or unarchive an income source
@@ -2511,31 +2558,31 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ArchiveIncomeRequest"
+              $ref: '#/components/schemas/ArchiveIncomeRequest'
       responses:
-        "200":
+        '200':
           description: Updated
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Income"
+                $ref: '#/components/schemas/Income'
 
   # ─────────────────────────
   # RECIPIENTS
   # ─────────────────────────
   /households/{householdId}/recipients:
     parameters:
-      - $ref: "#/components/parameters/householdId"
+      - $ref: '#/components/parameters/householdId'
     get:
       operationId: listRecipients
       summary: List recipients for a household
       tags: [Recipients]
       parameters:
-        - $ref: "#/components/parameters/limit"
-        - $ref: "#/components/parameters/offset"
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/offset'
       responses:
-        "200":
-          description: List of recipients
+        '200':
+          description: List of recipients (empty list when no matches)
           content:
             application/json:
               schema:
@@ -2544,9 +2591,11 @@ paths:
                   data:
                     type: array
                     items:
-                      $ref: "#/components/schemas/Recipient"
+                      $ref: '#/components/schemas/Recipient'
                   pagination:
-                    $ref: "#/components/schemas/PaginationMeta"
+                    $ref: '#/components/schemas/PaginationMeta'
+        '404':
+          description: Household not found
     post:
       operationId: createRecipient
       summary: Create a new recipient (fails if name already exists)
@@ -2556,20 +2605,20 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CreateRecipientRequest"
+              $ref: '#/components/schemas/CreateRecipientRequest'
       responses:
-        "201":
+        '201':
           description: Created recipient
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Recipient"
-        "409":
+                $ref: '#/components/schemas/Recipient'
+        '409':
           description: Recipient with this name already exists
 
   /households/{householdId}/recipients/get-or-create:
     parameters:
-      - $ref: "#/components/parameters/householdId"
+      - $ref: '#/components/parameters/householdId'
     post:
       operationId: getOrCreateRecipient
       summary: Get existing or create new recipient by name
@@ -2579,29 +2628,29 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/GetOrCreateRecipientRequest"
+              $ref: '#/components/schemas/GetOrCreateRecipientRequest'
       responses:
-        "200":
+        '200':
           description: Existing or newly created recipient
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Recipient"
+                $ref: '#/components/schemas/Recipient'
 
   /recipients/{recipientId}:
     parameters:
-      - $ref: "#/components/parameters/recipientId"
+      - $ref: '#/components/parameters/recipientId'
     get:
       operationId: getRecipient
       summary: Get a recipient by ID
       tags: [Recipients]
       responses:
-        "200":
+        '200':
           description: Recipient details
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Recipient"
+                $ref: '#/components/schemas/Recipient'
     patch:
       operationId: updateRecipient
       summary: Update a recipient
@@ -2611,22 +2660,22 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/UpdateRecipientRequest"
+              $ref: '#/components/schemas/UpdateRecipientRequest'
       responses:
-        "200":
+        '200':
           description: Updated recipient
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Recipient"
-        "409":
+                $ref: '#/components/schemas/Recipient'
+        '409':
           description: Recipient with this name already exists
     delete:
       operationId: deleteRecipient
       summary: Delete a recipient
       tags: [Recipients]
       responses:
-        "200":
+        '200':
           description: Deleted
 
   # ─────────────────────────
@@ -2638,11 +2687,11 @@ paths:
       summary: List pending invitations for the authenticated user (by email via Clerk)
       tags: [Invitations]
       parameters:
-        - $ref: "#/components/parameters/limit"
-        - $ref: "#/components/parameters/offset"
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/offset'
       responses:
-        "200":
-          description: List of pending invitations
+        '200':
+          description: List of pending invitations (empty list when no matches)
           content:
             application/json:
               schema:
@@ -2651,23 +2700,23 @@ paths:
                   data:
                     type: array
                     items:
-                      $ref: "#/components/schemas/Invitation"
+                      $ref: '#/components/schemas/Invitation'
                   pagination:
-                    $ref: "#/components/schemas/PaginationMeta"
+                    $ref: '#/components/schemas/PaginationMeta'
 
   /households/{householdId}/invitations:
     parameters:
-      - $ref: "#/components/parameters/householdId"
+      - $ref: '#/components/parameters/householdId'
     get:
       operationId: listHouseholdInvitations
       summary: List pending invitations for a household
       tags: [Invitations]
       parameters:
-        - $ref: "#/components/parameters/limit"
-        - $ref: "#/components/parameters/offset"
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/offset'
       responses:
-        "200":
-          description: List of pending invitations
+        '200':
+          description: List of pending invitations (empty list when no matches)
           content:
             application/json:
               schema:
@@ -2676,9 +2725,11 @@ paths:
                   data:
                     type: array
                     items:
-                      $ref: "#/components/schemas/Invitation"
+                      $ref: '#/components/schemas/Invitation'
                   pagination:
-                    $ref: "#/components/schemas/PaginationMeta"
+                    $ref: '#/components/schemas/PaginationMeta'
+        '404':
+          description: Household not found
     post:
       operationId: createInvitation
       summary: Invite a user to a household by email
@@ -2688,48 +2739,48 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CreateInvitationRequest"
+              $ref: '#/components/schemas/CreateInvitationRequest'
       responses:
-        "201":
+        '201':
           description: Invitation created
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Invitation"
-        "409":
+                $ref: '#/components/schemas/Invitation'
+        '409':
           description: Invitation already pending for this email
 
   /invitations/{invitationId}/accept:
     parameters:
-      - $ref: "#/components/parameters/invitationId"
+      - $ref: '#/components/parameters/invitationId'
     post:
       operationId: acceptInvitation
       summary: Accept an invitation (adds user to household)
       tags: [Invitations]
       responses:
-        "200":
+        '200':
           description: Invitation accepted
 
   /invitations/{invitationId}/decline:
     parameters:
-      - $ref: "#/components/parameters/invitationId"
+      - $ref: '#/components/parameters/invitationId'
     post:
       operationId: declineInvitation
       summary: Decline an invitation
       tags: [Invitations]
       responses:
-        "200":
+        '200':
           description: Invitation declined
 
   /invitations/{invitationId}:
     parameters:
-      - $ref: "#/components/parameters/invitationId"
+      - $ref: '#/components/parameters/invitationId'
     delete:
       operationId: revokeInvitation
       summary: Revoke a pending invitation (by a household member)
       tags: [Invitations]
       responses:
-        "200":
+        '200':
           description: Invitation revoked
 
 tags:

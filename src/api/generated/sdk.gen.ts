@@ -2,8 +2,8 @@
 
 import type { Client, Options as Options2, TDataShape } from './client';
 import { client } from './client.gen';
-import type { AcceptInvitationData, AcceptInvitationResponses, AddHouseholdMemberData, AddHouseholdMemberErrors, AddHouseholdMemberResponses, ArchiveBillData, ArchiveBillResponses, ArchiveIncomeData, ArchiveIncomeResponses, CloneTransactionData, CloneTransactionResponses, CreateAccountData, CreateAccountResponses, CreateAllocationData, CreateAllocationResponses, CreateBillData, CreateBillResponses, CreateBudgetData, CreateBudgetResponses, CreateCategoryData, CreateCategoryResponses, CreateHouseholdData, CreateHouseholdResponses, CreateIncomeData, CreateIncomeResponses, CreateInvitationData, CreateInvitationErrors, CreateInvitationResponses, CreateRecipientData, CreateRecipientErrors, CreateRecipientResponses, CreateTransactionData, CreateTransactionResponses, CreateTransferData, CreateTransferResponses, DeclineInvitationData, DeclineInvitationResponses, DeleteAccountData, DeleteAccountErrors, DeleteAccountResponses, DeleteBillData, DeleteBillResponses, DeleteBudgetData, DeleteBudgetResponses, DeleteCategoryData, DeleteCategoryErrors, DeleteCategoryResponses, DeleteHouseholdData, DeleteHouseholdErrors, DeleteHouseholdResponses, DeleteIncomeData, DeleteIncomeResponses, DeleteRecipientData, DeleteRecipientResponses, DeleteTransactionData, DeleteTransactionResponses, DeleteTransferData, DeleteTransferResponses, GetAccountBalanceData, GetAccountBalanceHistoryData, GetAccountBalanceHistoryResponses, GetAccountBalanceResponses, GetAccountData, GetAccountResponses, GetBillInstanceData, GetBillInstanceResponses, GetBudgetData, GetBudgetResponses, GetBudgetSnapshotHistoryData, GetBudgetSnapshotHistoryResponses, GetCategoryData, GetCategoryResponses, GetHouseholdData, GetHouseholdErrors, GetHouseholdMembersData, GetHouseholdMembersResponses, GetHouseholdResponses, GetIncomeData, GetIncomeResponses, GetOrCreateRecipientData, GetOrCreateRecipientResponses, GetRecipientData, GetRecipientResponses, GetTransactionData, GetTransactionResponses, GetTransactionsGroupedByCategoryData, GetTransactionsGroupedByCategoryResponses, GetUnallocatedFundsData, GetUnallocatedFundsResponses, LinkAccountToBudgetData, LinkAccountToBudgetResponses, LinkCategoryToBudgetData, LinkCategoryToBudgetResponses, ListAccountsData, ListAccountsResponses, ListAllocationsData, ListAllocationsResponses, ListBillsData, ListBillsResponses, ListBudgetsData, ListBudgetsResponses, ListCategoriesData, ListCategoriesResponses, ListHouseholdInvitationsData, ListHouseholdInvitationsResponses, ListHouseholdsData, ListHouseholdsResponses, ListIncomesData, ListIncomesResponses, ListMyInvitationsData, ListMyInvitationsResponses, ListRecipientsData, ListRecipientsResponses, ListTransactionsData, ListTransactionsResponses, ListTransfersData, ListTransfersResponses, RemoveHouseholdMemberData, RemoveHouseholdMemberErrors, RemoveHouseholdMemberResponses, RevokeInvitationData, RevokeInvitationResponses, ToggleAccountArchiveData, ToggleAccountArchiveResponses, TransferAllocationData, TransferAllocationResponses, UnlinkAccountFromBudgetData, UnlinkAccountFromBudgetResponses, UnlinkCategoryFromBudgetData, UnlinkCategoryFromBudgetResponses, UpdateAccountData, UpdateAccountResponses, UpdateBillData, UpdateBillInstanceData, UpdateBillInstanceResponses, UpdateBillResponses, UpdateBudgetData, UpdateBudgetResponses, UpdateCategoryData, UpdateCategoryResponses, UpdateHouseholdData, UpdateHouseholdResponses, UpdateIncomeData, UpdateIncomeResponses, UpdateRecipientData, UpdateRecipientErrors, UpdateRecipientResponses, UpdateTransactionData, UpdateTransactionResponses, UpdateTransferData, UpdateTransferResponses } from './types.gen';
-import { zAcceptInvitationData, zAddHouseholdMemberData, zArchiveBillData, zArchiveBillResponse, zArchiveIncomeData, zArchiveIncomeResponse, zCloneTransactionData, zCloneTransactionResponse, zCreateAccountData, zCreateAccountResponse, zCreateAllocationData, zCreateAllocationResponse, zCreateBillData, zCreateBillResponse, zCreateBudgetData, zCreateBudgetResponse, zCreateCategoryData, zCreateCategoryResponse, zCreateHouseholdData, zCreateHouseholdResponse, zCreateIncomeData, zCreateIncomeResponse, zCreateInvitationData, zCreateInvitationResponse, zCreateRecipientData, zCreateRecipientResponse, zCreateTransactionData, zCreateTransactionResponse, zCreateTransferData, zCreateTransferResponse, zDeclineInvitationData, zDeleteAccountData, zDeleteAccountResponse, zDeleteBillData, zDeleteBudgetData, zDeleteBudgetResponse, zDeleteCategoryData, zDeleteCategoryResponse, zDeleteHouseholdData, zDeleteIncomeData, zDeleteIncomeResponse, zDeleteRecipientData, zDeleteTransactionData, zDeleteTransactionResponse, zDeleteTransferData, zDeleteTransferResponse, zGetAccountBalanceData, zGetAccountBalanceHistoryData, zGetAccountBalanceHistoryResponse, zGetAccountBalanceResponse, zGetAccountData, zGetAccountResponse, zGetBillInstanceData, zGetBillInstanceResponse, zGetBudgetData, zGetBudgetResponse, zGetBudgetSnapshotHistoryData, zGetBudgetSnapshotHistoryResponse, zGetCategoryData, zGetCategoryResponse, zGetHouseholdData, zGetHouseholdMembersData, zGetHouseholdMembersResponse, zGetHouseholdResponse, zGetIncomeData, zGetIncomeResponse, zGetOrCreateRecipientData, zGetOrCreateRecipientResponse, zGetRecipientData, zGetRecipientResponse, zGetTransactionData, zGetTransactionResponse, zGetTransactionsGroupedByCategoryData, zGetTransactionsGroupedByCategoryResponse, zGetUnallocatedFundsData, zGetUnallocatedFundsResponse, zLinkAccountToBudgetData, zLinkCategoryToBudgetData, zListAccountsData, zListAccountsResponse, zListAllocationsData, zListAllocationsResponse, zListBillsData, zListBillsResponse, zListBudgetsData, zListBudgetsResponse, zListCategoriesData, zListCategoriesResponse, zListHouseholdInvitationsData, zListHouseholdInvitationsResponse, zListHouseholdsData, zListHouseholdsResponse, zListIncomesData, zListIncomesResponse, zListMyInvitationsData, zListMyInvitationsResponse, zListRecipientsData, zListRecipientsResponse, zListTransactionsData, zListTransactionsResponse, zListTransfersData, zListTransfersResponse, zRemoveHouseholdMemberData, zRevokeInvitationData, zToggleAccountArchiveData, zToggleAccountArchiveResponse, zTransferAllocationData, zTransferAllocationResponse, zUnlinkAccountFromBudgetData, zUnlinkCategoryFromBudgetData, zUpdateAccountData, zUpdateAccountResponse, zUpdateBillData, zUpdateBillInstanceData, zUpdateBillInstanceResponse, zUpdateBillResponse, zUpdateBudgetData, zUpdateBudgetResponse, zUpdateCategoryData, zUpdateCategoryResponse, zUpdateHouseholdData, zUpdateHouseholdResponse, zUpdateIncomeData, zUpdateIncomeResponse, zUpdateRecipientData, zUpdateRecipientResponse, zUpdateTransactionData, zUpdateTransactionResponse, zUpdateTransferData, zUpdateTransferResponse } from './zod.gen';
+import type { AcceptInvitationData, AcceptInvitationResponses, AddHouseholdMemberData, AddHouseholdMemberErrors, AddHouseholdMemberResponses, ArchiveBillData, ArchiveBillResponses, ArchiveIncomeData, ArchiveIncomeResponses, CloneTransactionData, CloneTransactionResponses, CreateAccountData, CreateAccountResponses, CreateAllocationData, CreateAllocationResponses, CreateBillData, CreateBillResponses, CreateBudgetData, CreateBudgetResponses, CreateCategoryData, CreateCategoryResponses, CreateHouseholdData, CreateHouseholdResponses, CreateIncomeData, CreateIncomeResponses, CreateInvitationData, CreateInvitationErrors, CreateInvitationResponses, CreateRecipientData, CreateRecipientErrors, CreateRecipientResponses, CreateTransactionData, CreateTransactionResponses, CreateTransferData, CreateTransferResponses, DeclineInvitationData, DeclineInvitationResponses, DeleteAccountData, DeleteAccountErrors, DeleteAccountResponses, DeleteBillData, DeleteBillResponses, DeleteBudgetData, DeleteBudgetResponses, DeleteCategoryData, DeleteCategoryErrors, DeleteCategoryResponses, DeleteHouseholdData, DeleteHouseholdErrors, DeleteHouseholdResponses, DeleteIncomeData, DeleteIncomeResponses, DeleteRecipientData, DeleteRecipientResponses, DeleteTransactionData, DeleteTransactionResponses, DeleteTransferData, DeleteTransferResponses, GetAccountBalanceData, GetAccountBalanceHistoryData, GetAccountBalanceHistoryResponses, GetAccountBalanceResponses, GetAccountData, GetAccountResponses, GetBillInstanceData, GetBillInstanceResponses, GetBudgetData, GetBudgetResponses, GetBudgetSnapshotHistoryData, GetBudgetSnapshotHistoryResponses, GetCategoryData, GetCategoryResponses, GetHouseholdData, GetHouseholdErrors, GetHouseholdMembersData, GetHouseholdMembersResponses, GetHouseholdResponses, GetIncomeData, GetIncomeResponses, GetOrCreateRecipientData, GetOrCreateRecipientResponses, GetRecipientData, GetRecipientResponses, GetTransactionData, GetTransactionResponses, GetTransactionsGroupedByCategoryData, GetTransactionsGroupedByCategoryResponses, GetUnallocatedFundsData, GetUnallocatedFundsResponses, LinkAccountToBudgetData, LinkAccountToBudgetResponses, LinkCategoryToBudgetData, LinkCategoryToBudgetResponses, ListAccountsData, ListAccountsErrors, ListAccountsResponses, ListAllocationsData, ListAllocationsErrors, ListAllocationsResponses, ListBillsData, ListBillsErrors, ListBillsResponses, ListBudgetsData, ListBudgetsErrors, ListBudgetsResponses, ListCategoriesData, ListCategoriesErrors, ListCategoriesResponses, ListHouseholdInvitationsData, ListHouseholdInvitationsErrors, ListHouseholdInvitationsResponses, ListHouseholdsData, ListHouseholdsResponses, ListIncomesData, ListIncomesErrors, ListIncomesResponses, ListMyInvitationsData, ListMyInvitationsResponses, ListRecipientsData, ListRecipientsErrors, ListRecipientsResponses, ListTransactionsData, ListTransactionsResponses, ListTransfersData, ListTransfersErrors, ListTransfersResponses, RemoveHouseholdMemberData, RemoveHouseholdMemberErrors, RemoveHouseholdMemberResponses, RevokeInvitationData, RevokeInvitationResponses, SetDefaultBudgetData, SetDefaultBudgetErrors, SetDefaultBudgetResponses, SetDefaultHouseholdData, SetDefaultHouseholdErrors, SetDefaultHouseholdResponses, ToggleAccountArchiveData, ToggleAccountArchiveResponses, TransferAllocationData, TransferAllocationResponses, UnlinkAccountFromBudgetData, UnlinkAccountFromBudgetResponses, UnlinkCategoryFromBudgetData, UnlinkCategoryFromBudgetResponses, UpdateAccountData, UpdateAccountResponses, UpdateBillData, UpdateBillInstanceData, UpdateBillInstanceResponses, UpdateBillResponses, UpdateBudgetData, UpdateBudgetResponses, UpdateCategoryData, UpdateCategoryResponses, UpdateHouseholdData, UpdateHouseholdResponses, UpdateIncomeData, UpdateIncomeResponses, UpdateRecipientData, UpdateRecipientErrors, UpdateRecipientResponses, UpdateTransactionData, UpdateTransactionResponses, UpdateTransferData, UpdateTransferResponses } from './types.gen';
+import { zAcceptInvitationData, zAddHouseholdMemberData, zArchiveBillData, zArchiveBillResponse, zArchiveIncomeData, zArchiveIncomeResponse, zCloneTransactionData, zCloneTransactionResponse, zCreateAccountData, zCreateAccountResponse, zCreateAllocationData, zCreateAllocationResponse, zCreateBillData, zCreateBillResponse, zCreateBudgetData, zCreateBudgetResponse, zCreateCategoryData, zCreateCategoryResponse, zCreateHouseholdData, zCreateHouseholdResponse, zCreateIncomeData, zCreateIncomeResponse, zCreateInvitationData, zCreateInvitationResponse, zCreateRecipientData, zCreateRecipientResponse, zCreateTransactionData, zCreateTransactionResponse, zCreateTransferData, zCreateTransferResponse, zDeclineInvitationData, zDeleteAccountData, zDeleteAccountResponse, zDeleteBillData, zDeleteBudgetData, zDeleteBudgetResponse, zDeleteCategoryData, zDeleteCategoryResponse, zDeleteHouseholdData, zDeleteIncomeData, zDeleteIncomeResponse, zDeleteRecipientData, zDeleteTransactionData, zDeleteTransactionResponse, zDeleteTransferData, zDeleteTransferResponse, zGetAccountBalanceData, zGetAccountBalanceHistoryData, zGetAccountBalanceHistoryResponse, zGetAccountBalanceResponse, zGetAccountData, zGetAccountResponse, zGetBillInstanceData, zGetBillInstanceResponse, zGetBudgetData, zGetBudgetResponse, zGetBudgetSnapshotHistoryData, zGetBudgetSnapshotHistoryResponse, zGetCategoryData, zGetCategoryResponse, zGetHouseholdData, zGetHouseholdMembersData, zGetHouseholdMembersResponse, zGetHouseholdResponse, zGetIncomeData, zGetIncomeResponse, zGetOrCreateRecipientData, zGetOrCreateRecipientResponse, zGetRecipientData, zGetRecipientResponse, zGetTransactionData, zGetTransactionResponse, zGetTransactionsGroupedByCategoryData, zGetTransactionsGroupedByCategoryResponse, zGetUnallocatedFundsData, zGetUnallocatedFundsResponse, zLinkAccountToBudgetData, zLinkCategoryToBudgetData, zListAccountsData, zListAccountsResponse, zListAllocationsData, zListAllocationsResponse, zListBillsData, zListBillsResponse, zListBudgetsData, zListBudgetsResponse, zListCategoriesData, zListCategoriesResponse, zListHouseholdInvitationsData, zListHouseholdInvitationsResponse, zListHouseholdsData, zListHouseholdsResponse, zListIncomesData, zListIncomesResponse, zListMyInvitationsData, zListMyInvitationsResponse, zListRecipientsData, zListRecipientsResponse, zListTransactionsData, zListTransactionsResponse, zListTransfersData, zListTransfersResponse, zRemoveHouseholdMemberData, zRevokeInvitationData, zSetDefaultBudgetData, zSetDefaultBudgetResponse, zSetDefaultHouseholdData, zSetDefaultHouseholdResponse, zToggleAccountArchiveData, zToggleAccountArchiveResponse, zTransferAllocationData, zTransferAllocationResponse, zUnlinkAccountFromBudgetData, zUnlinkCategoryFromBudgetData, zUpdateAccountData, zUpdateAccountResponse, zUpdateBillData, zUpdateBillInstanceData, zUpdateBillInstanceResponse, zUpdateBillResponse, zUpdateBudgetData, zUpdateBudgetResponse, zUpdateCategoryData, zUpdateCategoryResponse, zUpdateHouseholdData, zUpdateHouseholdResponse, zUpdateIncomeData, zUpdateIncomeResponse, zUpdateRecipientData, zUpdateRecipientResponse, zUpdateTransactionData, zUpdateTransactionResponse, zUpdateTransferData, zUpdateTransferResponse } from './zod.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean> = Options2<TData, ThrowOnError> & {
     /**
@@ -20,7 +20,7 @@ export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends 
 };
 
 /**
- * List all households for the authenticated user
+ * List all households for the authenticated user, along with the default household ID.
  */
 export const listHouseholds = <ThrowOnError extends boolean = false>(options?: Options<ListHouseholdsData, ThrowOnError>) => (options?.client ?? client).get<ListHouseholdsResponses, unknown, ThrowOnError>({
     requestValidator: async (data) => await zListHouseholdsData.parseAsync(data),
@@ -113,9 +113,24 @@ export const addHouseholdMember = <ThrowOnError extends boolean = false>(options
 });
 
 /**
+ * Set the default household for the authenticated user
+ */
+export const setDefaultHousehold = <ThrowOnError extends boolean = false>(options: Options<SetDefaultHouseholdData, ThrowOnError>) => (options.client ?? client).put<SetDefaultHouseholdResponses, SetDefaultHouseholdErrors, ThrowOnError>({
+    requestValidator: async (data) => await zSetDefaultHouseholdData.parseAsync(data),
+    responseValidator: async (data) => await zSetDefaultHouseholdResponse.parseAsync(data),
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/user-settings/default-household',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
  * List accounts for a household
  */
-export const listAccounts = <ThrowOnError extends boolean = false>(options: Options<ListAccountsData, ThrowOnError>) => (options.client ?? client).get<ListAccountsResponses, unknown, ThrowOnError>({
+export const listAccounts = <ThrowOnError extends boolean = false>(options: Options<ListAccountsData, ThrowOnError>) => (options.client ?? client).get<ListAccountsResponses, ListAccountsErrors, ThrowOnError>({
     requestValidator: async (data) => await zListAccountsData.parseAsync(data),
     responseValidator: async (data) => await zListAccountsResponse.parseAsync(data),
     security: [{ scheme: 'bearer', type: 'http' }],
@@ -215,7 +230,7 @@ export const toggleAccountArchive = <ThrowOnError extends boolean = false>(optio
 /**
  * List all budgets for a household (with computed totals)
  */
-export const listBudgets = <ThrowOnError extends boolean = false>(options: Options<ListBudgetsData, ThrowOnError>) => (options.client ?? client).get<ListBudgetsResponses, unknown, ThrowOnError>({
+export const listBudgets = <ThrowOnError extends boolean = false>(options: Options<ListBudgetsData, ThrowOnError>) => (options.client ?? client).get<ListBudgetsResponses, ListBudgetsErrors, ThrowOnError>({
     requestValidator: async (data) => await zListBudgetsData.parseAsync(data),
     responseValidator: async (data) => await zListBudgetsResponse.parseAsync(data),
     security: [{ scheme: 'bearer', type: 'http' }],
@@ -231,6 +246,21 @@ export const createBudget = <ThrowOnError extends boolean = false>(options: Opti
     responseValidator: async (data) => await zCreateBudgetResponse.parseAsync(data),
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/households/{householdId}/budgets',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Set the default budget for the authenticated user in a household
+ */
+export const setDefaultBudget = <ThrowOnError extends boolean = false>(options: Options<SetDefaultBudgetData, ThrowOnError>) => (options.client ?? client).put<SetDefaultBudgetResponses, SetDefaultBudgetErrors, ThrowOnError>({
+    requestValidator: async (data) => await zSetDefaultBudgetData.parseAsync(data),
+    responseValidator: async (data) => await zSetDefaultBudgetResponse.parseAsync(data),
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/user-settings/default-budget',
     ...options,
     headers: {
         'Content-Type': 'application/json',
@@ -329,7 +359,7 @@ export const linkAccountToBudget = <ThrowOnError extends boolean = false>(option
 /**
  * List categories for a household
  */
-export const listCategories = <ThrowOnError extends boolean = false>(options: Options<ListCategoriesData, ThrowOnError>) => (options.client ?? client).get<ListCategoriesResponses, unknown, ThrowOnError>({
+export const listCategories = <ThrowOnError extends boolean = false>(options: Options<ListCategoriesData, ThrowOnError>) => (options.client ?? client).get<ListCategoriesResponses, ListCategoriesErrors, ThrowOnError>({
     requestValidator: async (data) => await zListCategoriesData.parseAsync(data),
     responseValidator: async (data) => await zListCategoriesResponse.parseAsync(data),
     security: [{ scheme: 'bearer', type: 'http' }],
@@ -392,7 +422,7 @@ export const updateCategory = <ThrowOnError extends boolean = false>(options: Op
 /**
  * List allocations for a budget
  */
-export const listAllocations = <ThrowOnError extends boolean = false>(options: Options<ListAllocationsData, ThrowOnError>) => (options.client ?? client).get<ListAllocationsResponses, unknown, ThrowOnError>({
+export const listAllocations = <ThrowOnError extends boolean = false>(options: Options<ListAllocationsData, ThrowOnError>) => (options.client ?? client).get<ListAllocationsResponses, ListAllocationsErrors, ThrowOnError>({
     requestValidator: async (data) => await zListAllocationsData.parseAsync(data),
     responseValidator: async (data) => await zListAllocationsResponse.parseAsync(data),
     security: [{ scheme: 'bearer', type: 'http' }],
@@ -537,7 +567,7 @@ export const getTransactionsGroupedByCategory = <ThrowOnError extends boolean = 
 /**
  * List bill instances for a budget
  */
-export const listBills = <ThrowOnError extends boolean = false>(options: Options<ListBillsData, ThrowOnError>) => (options.client ?? client).get<ListBillsResponses, unknown, ThrowOnError>({
+export const listBills = <ThrowOnError extends boolean = false>(options: Options<ListBillsData, ThrowOnError>) => (options.client ?? client).get<ListBillsResponses, ListBillsErrors, ThrowOnError>({
     requestValidator: async (data) => await zListBillsData.parseAsync(data),
     responseValidator: async (data) => await zListBillsResponse.parseAsync(data),
     security: [{ scheme: 'bearer', type: 'http' }],
@@ -638,7 +668,7 @@ export const updateBillInstance = <ThrowOnError extends boolean = false>(options
 /**
  * List transfers for a budget
  */
-export const listTransfers = <ThrowOnError extends boolean = false>(options: Options<ListTransfersData, ThrowOnError>) => (options.client ?? client).get<ListTransfersResponses, unknown, ThrowOnError>({
+export const listTransfers = <ThrowOnError extends boolean = false>(options: Options<ListTransfersData, ThrowOnError>) => (options.client ?? client).get<ListTransfersResponses, ListTransfersErrors, ThrowOnError>({
     requestValidator: async (data) => await zListTransfersData.parseAsync(data),
     responseValidator: async (data) => await zListTransfersResponse.parseAsync(data),
     security: [{ scheme: 'bearer', type: 'http' }],
@@ -690,7 +720,7 @@ export const updateTransfer = <ThrowOnError extends boolean = false>(options: Op
 /**
  * List recurring income sources for a household
  */
-export const listIncomes = <ThrowOnError extends boolean = false>(options: Options<ListIncomesData, ThrowOnError>) => (options.client ?? client).get<ListIncomesResponses, unknown, ThrowOnError>({
+export const listIncomes = <ThrowOnError extends boolean = false>(options: Options<ListIncomesData, ThrowOnError>) => (options.client ?? client).get<ListIncomesResponses, ListIncomesErrors, ThrowOnError>({
     requestValidator: async (data) => await zListIncomesData.parseAsync(data),
     responseValidator: async (data) => await zListIncomesResponse.parseAsync(data),
     security: [{ scheme: 'bearer', type: 'http' }],
@@ -768,7 +798,7 @@ export const archiveIncome = <ThrowOnError extends boolean = false>(options: Opt
 /**
  * List recipients for a household
  */
-export const listRecipients = <ThrowOnError extends boolean = false>(options: Options<ListRecipientsData, ThrowOnError>) => (options.client ?? client).get<ListRecipientsResponses, unknown, ThrowOnError>({
+export const listRecipients = <ThrowOnError extends boolean = false>(options: Options<ListRecipientsData, ThrowOnError>) => (options.client ?? client).get<ListRecipientsResponses, ListRecipientsErrors, ThrowOnError>({
     requestValidator: async (data) => await zListRecipientsData.parseAsync(data),
     responseValidator: async (data) => await zListRecipientsResponse.parseAsync(data),
     security: [{ scheme: 'bearer', type: 'http' }],
@@ -856,7 +886,7 @@ export const listMyInvitations = <ThrowOnError extends boolean = false>(options?
 /**
  * List pending invitations for a household
  */
-export const listHouseholdInvitations = <ThrowOnError extends boolean = false>(options: Options<ListHouseholdInvitationsData, ThrowOnError>) => (options.client ?? client).get<ListHouseholdInvitationsResponses, unknown, ThrowOnError>({
+export const listHouseholdInvitations = <ThrowOnError extends boolean = false>(options: Options<ListHouseholdInvitationsData, ThrowOnError>) => (options.client ?? client).get<ListHouseholdInvitationsResponses, ListHouseholdInvitationsErrors, ThrowOnError>({
     requestValidator: async (data) => await zListHouseholdInvitationsData.parseAsync(data),
     responseValidator: async (data) => await zListHouseholdInvitationsResponse.parseAsync(data),
     security: [{ scheme: 'bearer', type: 'http' }],

@@ -50,6 +50,17 @@ export type HouseholdUser = {
     joinedAt: string;
 };
 
+export type UserSettings = {
+    userId: string;
+    defaultHouseholdId?: string;
+};
+
+export type UserHouseholdSettings = {
+    userId: string;
+    householdId: string;
+    defaultBudgetId?: string;
+};
+
 export type HouseholdMember = HouseholdUser & {
     user?: {
         id?: string;
@@ -343,6 +354,15 @@ export type UpdateHouseholdRequest = {
     name?: string;
 };
 
+export type SetDefaultHouseholdRequest = {
+    householdId: string;
+};
+
+export type SetDefaultBudgetRequest = {
+    householdId: string;
+    budgetId: string;
+};
+
 export type CreateAccountRequest = {
     name: string;
     externalIdentifier?: string;
@@ -623,10 +643,11 @@ export type ListHouseholdsData = {
 
 export type ListHouseholdsResponses = {
     /**
-     * List of households
+     * List of households (empty list when no matches)
      */
     200: {
         data?: Array<Household>;
+        defaultHouseholdId?: string;
         pagination?: PaginationMeta;
     };
 };
@@ -793,6 +814,33 @@ export type AddHouseholdMemberResponses = {
     201: unknown;
 };
 
+export type SetDefaultHouseholdData = {
+    body: SetDefaultHouseholdRequest;
+    path?: never;
+    query?: never;
+    url: '/user-settings/default-household';
+};
+
+export type SetDefaultHouseholdErrors = {
+    /**
+     * User is not a member of the household
+     */
+    403: unknown;
+    /**
+     * Household not found
+     */
+    404: unknown;
+};
+
+export type SetDefaultHouseholdResponses = {
+    /**
+     * Default household updated
+     */
+    200: SuccessResponse;
+};
+
+export type SetDefaultHouseholdResponse = SetDefaultHouseholdResponses[keyof SetDefaultHouseholdResponses];
+
 export type ListAccountsData = {
     body?: never;
     path: {
@@ -816,9 +864,16 @@ export type ListAccountsData = {
     url: '/households/{householdId}/accounts';
 };
 
+export type ListAccountsErrors = {
+    /**
+     * Household not found
+     */
+    404: unknown;
+};
+
 export type ListAccountsResponses = {
     /**
-     * List of accounts
+     * List of accounts (empty list when no matches)
      */
     200: {
         data?: Array<Account>;
@@ -993,12 +1048,20 @@ export type ListBudgetsData = {
     url: '/households/{householdId}/budgets';
 };
 
+export type ListBudgetsErrors = {
+    /**
+     * Household not found
+     */
+    404: unknown;
+};
+
 export type ListBudgetsResponses = {
     /**
-     * List of budgets with allocated/spent/remaining amounts
+     * List of budgets with allocated/spent/remaining amounts (empty list when no matches)
      */
     200: {
         data?: Array<Budget>;
+        defaultBudgetId?: string;
         pagination?: PaginationMeta;
     };
 };
@@ -1022,6 +1085,29 @@ export type CreateBudgetResponses = {
 };
 
 export type CreateBudgetResponse = CreateBudgetResponses[keyof CreateBudgetResponses];
+
+export type SetDefaultBudgetData = {
+    body: SetDefaultBudgetRequest;
+    path?: never;
+    query?: never;
+    url: '/user-settings/default-budget';
+};
+
+export type SetDefaultBudgetErrors = {
+    /**
+     * Budget or household not found
+     */
+    404: unknown;
+};
+
+export type SetDefaultBudgetResponses = {
+    /**
+     * Default budget updated
+     */
+    200: SuccessResponse;
+};
+
+export type SetDefaultBudgetResponse = SetDefaultBudgetResponses[keyof SetDefaultBudgetResponses];
 
 export type DeleteBudgetData = {
     body?: never;
@@ -1203,9 +1289,16 @@ export type ListCategoriesData = {
     url: '/households/{householdId}/categories';
 };
 
+export type ListCategoriesErrors = {
+    /**
+     * Household not found
+     */
+    404: unknown;
+};
+
 export type ListCategoriesResponses = {
     /**
-     * List of categories
+     * List of categories (empty list when no matches)
      */
     200: {
         data?: Array<Category>;
@@ -1312,9 +1405,16 @@ export type ListAllocationsData = {
     url: '/budgets/{budgetId}/allocations';
 };
 
+export type ListAllocationsErrors = {
+    /**
+     * Budget not found
+     */
+    404: unknown;
+};
+
 export type ListAllocationsResponses = {
     /**
-     * Paginated list of allocations
+     * Paginated list of allocations (empty list when no matches)
      */
     200: {
         data?: Array<BudgetAllocation>;
@@ -1401,7 +1501,7 @@ export type ListTransactionsData = {
 
 export type ListTransactionsResponses = {
     /**
-     * List of transactions (includes virtual transfer entries when no categoryId filter)
+     * List of transactions (empty list when no matches; includes virtual transfer entries when no categoryId filter)
      */
     200: {
         data?: Array<Transaction>;
@@ -1550,9 +1650,16 @@ export type ListBillsData = {
     url: '/budgets/{budgetId}/bill-instances';
 };
 
+export type ListBillsErrors = {
+    /**
+     * Budget not found
+     */
+    404: unknown;
+};
+
 export type ListBillsResponses = {
     /**
-     * List of bill instances with recurring bill details
+     * List of bill instances with recurring bill details (empty list when no matches)
      */
     200: {
         data?: Array<BillInstance>;
@@ -1688,9 +1795,16 @@ export type ListTransfersData = {
     url: '/budgets/{budgetId}/transfers';
 };
 
+export type ListTransfersErrors = {
+    /**
+     * Budget not found
+     */
+    404: unknown;
+};
+
 export type ListTransfersResponses = {
     /**
-     * List of transfers
+     * List of transfers (empty list when no matches)
      */
     200: {
         data?: Array<Transfer>;
@@ -1773,9 +1887,16 @@ export type ListIncomesData = {
     url: '/households/{householdId}/incomes';
 };
 
+export type ListIncomesErrors = {
+    /**
+     * Household not found
+     */
+    404: unknown;
+};
+
 export type ListIncomesResponses = {
     /**
-     * List of income sources
+     * List of income sources (empty list when no matches)
      */
     200: {
         data?: Array<Income>;
@@ -1893,9 +2014,16 @@ export type ListRecipientsData = {
     url: '/households/{householdId}/recipients';
 };
 
+export type ListRecipientsErrors = {
+    /**
+     * Household not found
+     */
+    404: unknown;
+};
+
 export type ListRecipientsResponses = {
     /**
-     * List of recipients
+     * List of recipients (empty list when no matches)
      */
     200: {
         data?: Array<Recipient>;
@@ -2025,7 +2153,7 @@ export type ListMyInvitationsData = {
 
 export type ListMyInvitationsResponses = {
     /**
-     * List of pending invitations
+     * List of pending invitations (empty list when no matches)
      */
     200: {
         data?: Array<Invitation>;
@@ -2053,9 +2181,16 @@ export type ListHouseholdInvitationsData = {
     url: '/households/{householdId}/invitations';
 };
 
+export type ListHouseholdInvitationsErrors = {
+    /**
+     * Household not found
+     */
+    404: unknown;
+};
+
 export type ListHouseholdInvitationsResponses = {
     /**
-     * List of pending invitations
+     * List of pending invitations (empty list when no matches)
      */
     200: {
         data?: Array<Invitation>;

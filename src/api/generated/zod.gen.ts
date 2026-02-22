@@ -40,6 +40,17 @@ export const zHouseholdUser = z.object({
     joinedAt: z.iso.datetime()
 });
 
+export const zUserSettings = z.object({
+    userId: z.string(),
+    defaultHouseholdId: z.optional(z.string())
+});
+
+export const zUserHouseholdSettings = z.object({
+    userId: z.string(),
+    householdId: z.string(),
+    defaultBudgetId: z.optional(z.string())
+});
+
 export const zHouseholdMember = zHouseholdUser.and(z.object({
     user: z.optional(z.object({
         id: z.optional(z.string()),
@@ -328,6 +339,15 @@ export const zUpdateHouseholdRequest = z.object({
     name: z.optional(z.string().min(1))
 });
 
+export const zSetDefaultHouseholdRequest = z.object({
+    householdId: z.string()
+});
+
+export const zSetDefaultBudgetRequest = z.object({
+    householdId: z.string(),
+    budgetId: z.string()
+});
+
 export const zCreateAccountRequest = z.object({
     name: z.string().min(1),
     externalIdentifier: z.optional(z.string()),
@@ -582,10 +602,11 @@ export const zListHouseholdsData = z.object({
 });
 
 /**
- * List of households
+ * List of households (empty list when no matches)
  */
 export const zListHouseholdsResponse = z.object({
     data: z.optional(z.array(zHousehold)),
+    defaultHouseholdId: z.optional(z.string()),
     pagination: z.optional(zPaginationMeta)
 });
 
@@ -671,6 +692,17 @@ export const zAddHouseholdMemberData = z.object({
     query: z.optional(z.never())
 });
 
+export const zSetDefaultHouseholdData = z.object({
+    body: zSetDefaultHouseholdRequest,
+    path: z.optional(z.never()),
+    query: z.optional(z.never())
+});
+
+/**
+ * Default household updated
+ */
+export const zSetDefaultHouseholdResponse = zSuccessResponse;
+
 export const zListAccountsData = z.object({
     body: z.optional(z.never()),
     path: z.object({
@@ -685,7 +717,7 @@ export const zListAccountsData = z.object({
 });
 
 /**
- * List of accounts
+ * List of accounts (empty list when no matches)
  */
 export const zListAccountsResponse = z.object({
     data: z.optional(z.array(zAccount)),
@@ -803,10 +835,11 @@ export const zListBudgetsData = z.object({
 });
 
 /**
- * List of budgets with allocated/spent/remaining amounts
+ * List of budgets with allocated/spent/remaining amounts (empty list when no matches)
  */
 export const zListBudgetsResponse = z.object({
     data: z.optional(z.array(zBudget)),
+    defaultBudgetId: z.optional(z.string()),
     pagination: z.optional(zPaginationMeta)
 });
 
@@ -822,6 +855,17 @@ export const zCreateBudgetData = z.object({
  * Created budget
  */
 export const zCreateBudgetResponse = zBudgetDetail;
+
+export const zSetDefaultBudgetData = z.object({
+    body: zSetDefaultBudgetRequest,
+    path: z.optional(z.never()),
+    query: z.optional(z.never())
+});
+
+/**
+ * Default budget updated
+ */
+export const zSetDefaultBudgetResponse = zSuccessResponse;
 
 export const zDeleteBudgetData = z.object({
     body: z.optional(z.never()),
@@ -933,7 +977,7 @@ export const zListCategoriesData = z.object({
 });
 
 /**
- * List of categories
+ * List of categories (empty list when no matches)
  */
 export const zListCategoriesResponse = z.object({
     data: z.optional(z.array(zCategory)),
@@ -1004,7 +1048,7 @@ export const zListAllocationsData = z.object({
 });
 
 /**
- * Paginated list of allocations
+ * Paginated list of allocations (empty list when no matches)
  */
 export const zListAllocationsResponse = z.object({
     data: z.optional(z.array(zBudgetAllocation)),
@@ -1065,7 +1109,7 @@ export const zListTransactionsData = z.object({
 });
 
 /**
- * List of transactions (includes virtual transfer entries when no categoryId filter)
+ * List of transactions (empty list when no matches; includes virtual transfer entries when no categoryId filter)
  */
 export const zListTransactionsResponse = z.object({
     data: z.optional(z.array(zTransaction)),
@@ -1169,7 +1213,7 @@ export const zListBillsData = z.object({
 });
 
 /**
- * List of bill instances with recurring bill details
+ * List of bill instances with recurring bill details (empty list when no matches)
  */
 export const zListBillsResponse = z.object({
     data: z.optional(z.array(zBillInstance)),
@@ -1263,7 +1307,7 @@ export const zListTransfersData = z.object({
 });
 
 /**
- * List of transfers
+ * List of transfers (empty list when no matches)
  */
 export const zListTransfersResponse = z.object({
     data: z.optional(z.array(zTransfer)),
@@ -1322,7 +1366,7 @@ export const zListIncomesData = z.object({
 });
 
 /**
- * List of income sources
+ * List of income sources (empty list when no matches)
  */
 export const zListIncomesResponse = z.object({
     data: z.optional(z.array(zIncome)),
@@ -1406,7 +1450,7 @@ export const zListRecipientsData = z.object({
 });
 
 /**
- * List of recipients
+ * List of recipients (empty list when no matches)
  */
 export const zListRecipientsResponse = z.object({
     data: z.optional(z.array(zRecipient)),
@@ -1483,7 +1527,7 @@ export const zListMyInvitationsData = z.object({
 });
 
 /**
- * List of pending invitations
+ * List of pending invitations (empty list when no matches)
  */
 export const zListMyInvitationsResponse = z.object({
     data: z.optional(z.array(zInvitation)),
@@ -1502,7 +1546,7 @@ export const zListHouseholdInvitationsData = z.object({
 });
 
 /**
- * List of pending invitations
+ * List of pending invitations (empty list when no matches)
  */
 export const zListHouseholdInvitationsResponse = z.object({
     data: z.optional(z.array(zInvitation)),
