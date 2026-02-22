@@ -8,7 +8,6 @@
  * - Split transaction support for expenses
  */
 
-import type { inferRouterOutputs } from '@trpc/server'
 import { AlertTriangleIcon, Plus, Trash2 } from 'lucide-react'
 import { useEffect, useId, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -25,11 +24,13 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
-import { RecurrenceType } from '@/generated/prisma/enums'
-import type { TRPCRouter } from '@/integrations/trpc/router'
+import type { Budget } from '@/api/generated/types.gen'
+import {
+	RecurrenceType,
+	type RecurrenceType as RecurrenceTypeType
+} from '@/api/generated/types.gen'
 
-type RouterOutputs = inferRouterOutputs<TRPCRouter>
-type BudgetWithDetails = RouterOutputs['budgets']['list'][number]
+type BudgetWithDetails = Budget
 
 // Schema with discriminated category field
 const transactionSchema = z
@@ -114,7 +115,7 @@ type TransactionFormData = z.infer<typeof transactionSchema>
 export interface BillCreationData {
 	recipient: string
 	startDate: Date
-	recurrenceType: RecurrenceType
+	recurrenceType: RecurrenceTypeType
 	customIntervalDays?: number
 	lastPaymentDate?: Date | null
 }
@@ -239,7 +240,7 @@ export function TransactionForm({
 	const [createBill, setCreateBill] = useState(false)
 	const [billRecipient, setBillRecipient] = useState('')
 	const [billStartDate, setBillStartDate] = useState<Date>(new Date())
-	const [billRecurrence, setBillRecurrence] = useState<RecurrenceType>(
+	const [billRecurrence, setBillRecurrence] = useState<RecurrenceTypeType>(
 		RecurrenceType.MONTHLY
 	)
 	const [billCustomDays, setBillCustomDays] = useState<number | undefined>(
@@ -886,7 +887,7 @@ export function TransactionForm({
 									className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
 									value={billRecurrence}
 									onChange={(e) =>
-										setBillRecurrence(e.target.value as RecurrenceType)
+										setBillRecurrence(e.target.value as RecurrenceTypeType)
 									}
 								>
 									{recurrenceOptions.map((opt) => (

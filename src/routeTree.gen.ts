@@ -22,7 +22,6 @@ import { Route as AuthenticatedCategoriesIndexRouteImport } from './routes/_auth
 import { Route as AuthenticatedBudgetsIndexRouteImport } from './routes/_authenticated/budgets/index'
 import { Route as AuthenticatedBillsIndexRouteImport } from './routes/_authenticated/bills/index'
 import { Route as AuthenticatedAccountsIndexRouteImport } from './routes/_authenticated/accounts/index'
-import { Route as ApiTrpcSplatRouteImport } from './routes/api.trpc.$'
 import { Route as AuthenticatedBudgetsBudgetIdRouteImport } from './routes/_authenticated/budgets/$budgetId'
 
 const SignUpRoute = SignUpRouteImport.update({
@@ -94,11 +93,6 @@ const AuthenticatedAccountsIndexRoute =
     path: '/accounts/',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
-const ApiTrpcSplatRoute = ApiTrpcSplatRouteImport.update({
-  id: '/api/trpc/$',
-  path: '/api/trpc/$',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AuthenticatedBudgetsBudgetIdRoute =
   AuthenticatedBudgetsBudgetIdRouteImport.update({
     id: '/budgets/$budgetId',
@@ -113,7 +107,6 @@ export interface FileRoutesByFullPath {
   '/sign-in/sso-callback': typeof SignInSsoCallbackRoute
   '/sign-up/sso-callback': typeof SignUpSsoCallbackRoute
   '/budgets/$budgetId': typeof AuthenticatedBudgetsBudgetIdRoute
-  '/api/trpc/$': typeof ApiTrpcSplatRoute
   '/accounts/': typeof AuthenticatedAccountsIndexRoute
   '/bills/': typeof AuthenticatedBillsIndexRoute
   '/budgets/': typeof AuthenticatedBudgetsIndexRoute
@@ -129,7 +122,6 @@ export interface FileRoutesByTo {
   '/sign-up/sso-callback': typeof SignUpSsoCallbackRoute
   '/': typeof AuthenticatedIndexRoute
   '/budgets/$budgetId': typeof AuthenticatedBudgetsBudgetIdRoute
-  '/api/trpc/$': typeof ApiTrpcSplatRoute
   '/accounts': typeof AuthenticatedAccountsIndexRoute
   '/bills': typeof AuthenticatedBillsIndexRoute
   '/budgets': typeof AuthenticatedBudgetsIndexRoute
@@ -147,7 +139,6 @@ export interface FileRoutesById {
   '/sign-up/sso-callback': typeof SignUpSsoCallbackRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/budgets/$budgetId': typeof AuthenticatedBudgetsBudgetIdRoute
-  '/api/trpc/$': typeof ApiTrpcSplatRoute
   '/_authenticated/accounts/': typeof AuthenticatedAccountsIndexRoute
   '/_authenticated/bills/': typeof AuthenticatedBillsIndexRoute
   '/_authenticated/budgets/': typeof AuthenticatedBudgetsIndexRoute
@@ -165,7 +156,6 @@ export interface FileRouteTypes {
     | '/sign-in/sso-callback'
     | '/sign-up/sso-callback'
     | '/budgets/$budgetId'
-    | '/api/trpc/$'
     | '/accounts/'
     | '/bills/'
     | '/budgets/'
@@ -181,7 +171,6 @@ export interface FileRouteTypes {
     | '/sign-up/sso-callback'
     | '/'
     | '/budgets/$budgetId'
-    | '/api/trpc/$'
     | '/accounts'
     | '/bills'
     | '/budgets'
@@ -198,7 +187,6 @@ export interface FileRouteTypes {
     | '/sign-up/sso-callback'
     | '/_authenticated/'
     | '/_authenticated/budgets/$budgetId'
-    | '/api/trpc/$'
     | '/_authenticated/accounts/'
     | '/_authenticated/bills/'
     | '/_authenticated/budgets/'
@@ -212,7 +200,6 @@ export interface RootRouteChildren {
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   SignInRoute: typeof SignInRouteWithChildren
   SignUpRoute: typeof SignUpRouteWithChildren
-  ApiTrpcSplatRoute: typeof ApiTrpcSplatRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -308,13 +295,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAccountsIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/api/trpc/$': {
-      id: '/api/trpc/$'
-      path: '/api/trpc/$'
-      fullPath: '/api/trpc/$'
-      preLoaderRoute: typeof ApiTrpcSplatRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/_authenticated/budgets/$budgetId': {
       id: '/_authenticated/budgets/$budgetId'
       path: '/budgets/$budgetId'
@@ -379,7 +359,6 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   SignInRoute: SignInRouteWithChildren,
   SignUpRoute: SignUpRouteWithChildren,
-  ApiTrpcSplatRoute: ApiTrpcSplatRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -125,11 +125,11 @@ function PlanPage() {
 			<div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
 				{budgets.data?.map((budget) => {
 					// Calculated fields from backend
-					// biome-ignore lint/suspicious/noExplicitAny: Check if trpc types are updated
+					// biome-ignore lint/suspicious/noExplicitAny: Pending typed model alignment
 					const allocated = (budget as any).allocatedAmount ?? 0
-					// biome-ignore lint/suspicious/noExplicitAny: Check if trpc types are updated
+					// biome-ignore lint/suspicious/noExplicitAny: Pending typed model alignment
 					const spent = (budget as any).spentAmount ?? 0
-					// biome-ignore lint/suspicious/noExplicitAny: Check if trpc types are updated
+					// biome-ignore lint/suspicious/noExplicitAny: Pending typed model alignment
 					const remaining = (budget as any).remainingAmount ?? 0
 					const progress = allocated > 0 ? (spent / allocated) * 100 : 0
 

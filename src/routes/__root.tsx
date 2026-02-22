@@ -8,10 +8,7 @@ import {
 	Scripts
 } from '@tanstack/react-router'
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
-import type { TRPCOptionsProxy } from '@trpc/tanstack-react-query'
-import { trpcClient } from '@/integrations/tanstack-query/root-provider'
-import { TRPCProvider } from '@/integrations/trpc/react'
-import type { TRPCRouter } from '@/integrations/trpc/router'
+import { MockProvider } from '@/__mocks__/MockProvider'
 import TanStackQueryDevtools from '../integrations/tanstack-query/devtools'
 
 import '../lib/i18n'
@@ -19,8 +16,6 @@ import appCss from '../styles.css?url'
 
 interface MyRouterContext {
 	queryClient: QueryClient
-
-	trpc: TRPCOptionsProxy<TRPCRouter>
 }
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({
@@ -57,11 +52,8 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 				<HeadContent />
 			</head>
 			<body>
-				<QueryClientProvider client={context.queryClient}>
-					<TRPCProvider
-						trpcClient={trpcClient}
-						queryClient={context.queryClient}
-					>
+				<MockProvider>
+					<QueryClientProvider client={context.queryClient}>
 						<ClerkProvider
 							publishableKey={import.meta.env.VITE_CLERK_PUBLISHABLE_KEY}
 						>
@@ -79,8 +71,8 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 								]}
 							/>
 						</ClerkProvider>
-					</TRPCProvider>
-				</QueryClientProvider>
+					</QueryClientProvider>
+				</MockProvider>
 				<Scripts />
 			</body>
 		</html>

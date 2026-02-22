@@ -13,7 +13,7 @@ import {
 	useAppForm,
 	validateForm
 } from '@/components/form'
-import { RecurrenceType } from '@/generated/prisma/enums'
+import { RecurrenceType } from '@/api/generated/types.gen'
 
 // Schema for bill form - categoryId is handled via ComboboxValue
 // Schema for bill form - categoryId is handled via ComboboxValue
@@ -157,11 +157,15 @@ export function BillForm({
 		defaultValues: {
 			name: initialData?.name ?? '',
 			recipient: (() => {
-				const initialName = initialData?.recipient
-				if (!initialName) return ''
-				const match = recipients.find((r) => r.name === initialName)
+				const initialRecipient = initialData?.recipient
+				if (!initialRecipient) return ''
+				const matchById = recipients.find((r) => r.id === initialRecipient)
+				if (matchById) return matchById.id as ComboboxValue
+				const matchByName = recipients.find((r) => r.name === initialRecipient)
 				return (
-					match ? match.id : { isNew: true, name: initialName }
+					matchByName
+						? matchByName.id
+						: { isNew: true, name: initialRecipient }
 				) as ComboboxValue
 			})(),
 			accountId: initialData?.accountId ?? '',
