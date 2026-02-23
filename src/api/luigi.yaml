@@ -22,8 +22,12 @@ info:
     - **Invitation** — Email-based invite to join a household.
     - **Allocation** — Funds allocated (or transferred) between budgets.
 
-    ## Snapshot Recalculation
-    Creating, updating, or deleting a transaction triggers asynchronous recalculation of account balance snapshots from the affected date forward. Similarly, changes affecting budget totals trigger budget snapshot recalculation.
+    ## Snapshot Architecture
+    - **Current balances** are updated synchronously on every transaction create/update/delete.
+    - **Daily snapshots** are written once per day for all accounts and budgets.
+    - **Backdated changes** mark account history as stale and trigger targeted async snapshot rebuilds.
+
+    Clients should treat any snapshot dates **on or after** `historyRecalcFrom` as provisional while `staleHistory` is true.
 
     ## Pagination
     List endpoints support optional `limit` and `offset` (default 0) query parameters. If `limit` is **omitted**, the full dataset is returned. If provided, `limit` must be between 0 and 100: use `limit=0` to fetch only the total count in the pagination metadata; use 1–100 to cap the number of items. Responses include pagination metadata.
@@ -199,7 +203,13 @@ components:
           type: integer
         latestSnapshot:
           $ref: '#/components/schemas/AccountBalanceSnapshot'
-      required: [accountId, accountName, initialBalance, currentBalance, transactionCount]
+        staleHistory:
+          type: boolean
+        historyRecalcFrom:
+          type: string
+          format: date
+          nullable: true
+      required: [accountId, accountName, initialBalance, currentBalance, transactionCount, staleHistory]
 
     Budget:
       type: object
@@ -691,6 +701,60 @@ components:
           type: string
           format: date-time
       required: [id, accountId, date, balance, transactionCount, createdAt]
+
+    AccountBalanceHistory:
+      type: object
+      properties:
+        accountId:
+          type: string
+        staleHistory:
+          type: boolean
+        historyRecalcFrom:
+          type: string
+          format: date
+          nullable: true
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/AccountBalanceSnapshot'
+        pagination:
+          $ref: '#/components/schemas/PaginationMeta'
+      required: [accountId, staleHistory, data, pagination]
+
+    AccountBalanceHistoryItem:
+      type: object
+      properties:
+        accountId:
+          type: string
+        staleHistory:
+          type: boolean
+        historyRecalcFrom:
+          type: string
+          format: date
+          nullable: true
+        snapshots:
+          type: array
+          items:
+            $ref: '#/components/schemas/AccountBalanceSnapshot'
+      required: [accountId, staleHistory, snapshots]
+
+    AccountBalanceHistoryResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/AccountBalanceHistoryItem'
+      required: [data]
+
+    AccountBalanceListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/AccountBalance'
+      required: [data]
 
     BudgetSnapshot:
       type: object
@@ -1597,6 +1661,9 @@ paths:
     get:
       operationId: getAccountBalance
       summary: Get current balance for an account
+      description: |
+        Returns the live current balance updated synchronously on transaction mutations.
+        Includes `staleHistory` and `historyRecalcFrom` when snapshot history is being rebuilt.
       tags: [Accounts]
       responses:
         '200':
@@ -1612,6 +1679,9 @@ paths:
     get:
       operationId: getAccountBalanceHistory
       summary: Get historical balance snapshots for an account
+      description: |
+        Daily snapshot history for an account. If `staleHistory` is true, any dates on or after
+        `historyRecalcFrom` should be treated as provisional until the async rebuild completes.
       tags: [Accounts]
       parameters:
         - name: dateFrom
@@ -1632,14 +1702,70 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  data:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/AccountBalanceSnapshot'
-                  pagination:
-                    $ref: '#/components/schemas/PaginationMeta'
+                $ref: '#/components/schemas/AccountBalanceHistory'
+
+  /accounts/balance-history:
+    get:
+      operationId: getMultiAccountBalanceHistory
+      summary: Get balance snapshots for multiple accounts
+      description: |
+        Batch snapshot history for multiple accounts, including staleness flags per account.
+      tags: [Accounts]
+      parameters:
+        - name: accountIds
+          in: query
+          required: true
+          schema:
+            type: array
+            items:
+              type: string
+        - name: dateFrom
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: dateTo
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Balance history for multiple accounts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountBalanceHistoryResponse'
+
+  /households/{householdId}/account-balances:
+    parameters:
+      - $ref: '#/components/parameters/householdId'
+    get:
+      operationId: listAccountBalances
+      summary: List current balances for accounts in a household
+      description: |
+        Returns live balances for accounts in a household in a single request.
+      tags: [Accounts]
+      parameters:
+        - name: accountIds
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+        - name: includeArchived
+          in: query
+          required: false
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: List of account balances
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountBalanceListResponse'
 
   /accounts/{accountId}/archive:
     parameters:

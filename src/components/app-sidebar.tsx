@@ -3,7 +3,6 @@
  * Main navigation sidebar with icons and labels
  */
 
-import { useUser } from '@clerk/clerk-react'
 import { Link } from '@tanstack/react-router'
 import {
 	Calendar,
@@ -35,16 +34,14 @@ import {
 	SidebarMenuButton,
 	SidebarMenuItem
 } from '@/components/ui/sidebar'
+import { useHouseholdContext } from '@/contexts/household-context'
 import { useBudgetsList } from '@/hooks/api'
 import { useSelectedBudget } from '@/hooks/use-selected-budget'
-import { useSelectedHousehold } from '@/hooks/use-selected-household'
 import { cn } from '@/lib/utils'
 
 export function AppSidebar() {
 	const { t } = useTranslation()
-	const { user } = useUser()
-	const userId = user?.id!
-	const { selectedHouseholdId } = useSelectedHousehold(userId)
+	const { userId, selectedHouseholdId } = useHouseholdContext()
 	const { selectedBudgetId, setSelectedBudget } = useSelectedBudget(
 		userId,
 		selectedHouseholdId ?? undefined
@@ -107,9 +104,8 @@ export function AppSidebar() {
 		]
 	}
 
-	// Fetch budgets for selected household
 	const { data: budgets } = useBudgetsList({
-		householdId: selectedHouseholdId!,
+		householdId: selectedHouseholdId ?? '',
 		userId,
 		enabled: !!selectedHouseholdId
 	})

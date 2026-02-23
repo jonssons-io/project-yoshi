@@ -3,8 +3,8 @@
 import { type DefaultError, type InfiniteData, infiniteQueryOptions, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { acceptInvitation, addHouseholdMember, archiveBill, archiveIncome, cloneTransaction, createAccount, createAllocation, createBill, createBudget, createCategory, createHousehold, createIncome, createInvitation, createRecipient, createTransaction, createTransfer, declineInvitation, deleteAccount, deleteBill, deleteBudget, deleteCategory, deleteHousehold, deleteIncome, deleteRecipient, deleteTransaction, deleteTransfer, getAccount, getAccountBalance, getAccountBalanceHistory, getBillInstance, getBudget, getBudgetSnapshotHistory, getCategory, getHousehold, getHouseholdMembers, getIncome, getOrCreateRecipient, getRecipient, getTransaction, getTransactionsGroupedByCategory, getUnallocatedFunds, linkAccountToBudget, linkCategoryToBudget, listAccounts, listAllocations, listBills, listBudgets, listCategories, listHouseholdInvitations, listHouseholds, listIncomes, listMyInvitations, listRecipients, listTransactions, listTransfers, type Options, removeHouseholdMember, revokeInvitation, setDefaultBudget, setDefaultHousehold, toggleAccountArchive, transferAllocation, unlinkAccountFromBudget, unlinkCategoryFromBudget, updateAccount, updateBill, updateBillInstance, updateBudget, updateCategory, updateHousehold, updateIncome, updateRecipient, updateTransaction, updateTransfer } from '../sdk.gen';
-import type { AcceptInvitationData, AddHouseholdMemberData, ArchiveBillData, ArchiveBillResponse, ArchiveIncomeData, ArchiveIncomeResponse, CloneTransactionData, CloneTransactionResponse, CreateAccountData, CreateAccountResponse, CreateAllocationData, CreateAllocationResponse, CreateBillData, CreateBillResponse, CreateBudgetData, CreateBudgetResponse, CreateCategoryData, CreateCategoryResponse, CreateHouseholdData, CreateHouseholdResponse, CreateIncomeData, CreateIncomeResponse, CreateInvitationData, CreateInvitationResponse, CreateRecipientData, CreateRecipientResponse, CreateTransactionData, CreateTransactionResponse, CreateTransferData, CreateTransferResponse, DeclineInvitationData, DeleteAccountData, DeleteAccountResponse, DeleteBillData, DeleteBudgetData, DeleteBudgetResponse, DeleteCategoryData, DeleteCategoryResponse, DeleteHouseholdData, DeleteIncomeData, DeleteIncomeResponse, DeleteRecipientData, DeleteTransactionData, DeleteTransactionResponse, DeleteTransferData, DeleteTransferResponse, GetAccountBalanceData, GetAccountBalanceHistoryData, GetAccountBalanceHistoryResponse, GetAccountBalanceResponse, GetAccountData, GetAccountResponse, GetBillInstanceData, GetBillInstanceResponse, GetBudgetData, GetBudgetResponse, GetBudgetSnapshotHistoryData, GetBudgetSnapshotHistoryResponse, GetCategoryData, GetCategoryResponse, GetHouseholdData, GetHouseholdMembersData, GetHouseholdMembersResponse, GetHouseholdResponse, GetIncomeData, GetIncomeResponse, GetOrCreateRecipientData, GetOrCreateRecipientResponse, GetRecipientData, GetRecipientResponse, GetTransactionData, GetTransactionResponse, GetTransactionsGroupedByCategoryData, GetTransactionsGroupedByCategoryResponse, GetUnallocatedFundsData, GetUnallocatedFundsResponse, LinkAccountToBudgetData, LinkCategoryToBudgetData, ListAccountsData, ListAccountsResponse, ListAllocationsData, ListAllocationsResponse, ListBillsData, ListBillsResponse, ListBudgetsData, ListBudgetsResponse, ListCategoriesData, ListCategoriesResponse, ListHouseholdInvitationsData, ListHouseholdInvitationsResponse, ListHouseholdsData, ListHouseholdsResponse, ListIncomesData, ListIncomesResponse, ListMyInvitationsData, ListMyInvitationsResponse, ListRecipientsData, ListRecipientsResponse, ListTransactionsData, ListTransactionsResponse, ListTransfersData, ListTransfersResponse, RemoveHouseholdMemberData, RevokeInvitationData, SetDefaultBudgetData, SetDefaultBudgetResponse, SetDefaultHouseholdData, SetDefaultHouseholdResponse, ToggleAccountArchiveData, ToggleAccountArchiveResponse, TransferAllocationData, TransferAllocationResponse, UnlinkAccountFromBudgetData, UnlinkCategoryFromBudgetData, UpdateAccountData, UpdateAccountResponse, UpdateBillData, UpdateBillInstanceData, UpdateBillInstanceResponse, UpdateBillResponse, UpdateBudgetData, UpdateBudgetResponse, UpdateCategoryData, UpdateCategoryResponse, UpdateHouseholdData, UpdateHouseholdResponse, UpdateIncomeData, UpdateIncomeResponse, UpdateRecipientData, UpdateRecipientResponse, UpdateTransactionData, UpdateTransactionResponse, UpdateTransferData, UpdateTransferResponse } from '../types.gen';
+import { acceptInvitation, addHouseholdMember, archiveBill, archiveIncome, cloneTransaction, createAccount, createAllocation, createBill, createBudget, createCategory, createHousehold, createIncome, createInvitation, createRecipient, createTransaction, createTransfer, declineInvitation, deleteAccount, deleteBill, deleteBudget, deleteCategory, deleteHousehold, deleteIncome, deleteRecipient, deleteTransaction, deleteTransfer, getAccount, getAccountBalance, getAccountBalanceHistory, getBillInstance, getBudget, getBudgetSnapshotHistory, getCategory, getHousehold, getHouseholdMembers, getIncome, getMultiAccountBalanceHistory, getOrCreateRecipient, getRecipient, getTransaction, getTransactionsGroupedByCategory, getUnallocatedFunds, linkAccountToBudget, linkCategoryToBudget, listAccountBalances, listAccounts, listAllocations, listBills, listBudgets, listCategories, listHouseholdInvitations, listHouseholds, listIncomes, listMyInvitations, listRecipients, listTransactions, listTransfers, type Options, removeHouseholdMember, revokeInvitation, setDefaultBudget, setDefaultHousehold, toggleAccountArchive, transferAllocation, unlinkAccountFromBudget, unlinkCategoryFromBudget, updateAccount, updateBill, updateBillInstance, updateBudget, updateCategory, updateHousehold, updateIncome, updateRecipient, updateTransaction, updateTransfer } from '../sdk.gen';
+import type { AcceptInvitationData, AddHouseholdMemberData, ArchiveBillData, ArchiveBillResponse, ArchiveIncomeData, ArchiveIncomeResponse, CloneTransactionData, CloneTransactionResponse, CreateAccountData, CreateAccountResponse, CreateAllocationData, CreateAllocationResponse, CreateBillData, CreateBillResponse, CreateBudgetData, CreateBudgetResponse, CreateCategoryData, CreateCategoryResponse, CreateHouseholdData, CreateHouseholdResponse, CreateIncomeData, CreateIncomeResponse, CreateInvitationData, CreateInvitationResponse, CreateRecipientData, CreateRecipientResponse, CreateTransactionData, CreateTransactionResponse, CreateTransferData, CreateTransferResponse, DeclineInvitationData, DeleteAccountData, DeleteAccountResponse, DeleteBillData, DeleteBudgetData, DeleteBudgetResponse, DeleteCategoryData, DeleteCategoryResponse, DeleteHouseholdData, DeleteIncomeData, DeleteIncomeResponse, DeleteRecipientData, DeleteTransactionData, DeleteTransactionResponse, DeleteTransferData, DeleteTransferResponse, GetAccountBalanceData, GetAccountBalanceHistoryData, GetAccountBalanceHistoryResponse, GetAccountBalanceResponse, GetAccountData, GetAccountResponse, GetBillInstanceData, GetBillInstanceResponse, GetBudgetData, GetBudgetResponse, GetBudgetSnapshotHistoryData, GetBudgetSnapshotHistoryResponse, GetCategoryData, GetCategoryResponse, GetHouseholdData, GetHouseholdMembersData, GetHouseholdMembersResponse, GetHouseholdResponse, GetIncomeData, GetIncomeResponse, GetMultiAccountBalanceHistoryData, GetMultiAccountBalanceHistoryResponse, GetOrCreateRecipientData, GetOrCreateRecipientResponse, GetRecipientData, GetRecipientResponse, GetTransactionData, GetTransactionResponse, GetTransactionsGroupedByCategoryData, GetTransactionsGroupedByCategoryResponse, GetUnallocatedFundsData, GetUnallocatedFundsResponse, LinkAccountToBudgetData, LinkCategoryToBudgetData, ListAccountBalancesData, ListAccountBalancesResponse, ListAccountsData, ListAccountsResponse, ListAllocationsData, ListAllocationsResponse, ListBillsData, ListBillsResponse, ListBudgetsData, ListBudgetsResponse, ListCategoriesData, ListCategoriesResponse, ListHouseholdInvitationsData, ListHouseholdInvitationsResponse, ListHouseholdsData, ListHouseholdsResponse, ListIncomesData, ListIncomesResponse, ListMyInvitationsData, ListMyInvitationsResponse, ListRecipientsData, ListRecipientsResponse, ListTransactionsData, ListTransactionsResponse, ListTransfersData, ListTransfersResponse, RemoveHouseholdMemberData, RevokeInvitationData, SetDefaultBudgetData, SetDefaultBudgetResponse, SetDefaultHouseholdData, SetDefaultHouseholdResponse, ToggleAccountArchiveData, ToggleAccountArchiveResponse, TransferAllocationData, TransferAllocationResponse, UnlinkAccountFromBudgetData, UnlinkCategoryFromBudgetData, UpdateAccountData, UpdateAccountResponse, UpdateBillData, UpdateBillInstanceData, UpdateBillInstanceResponse, UpdateBillResponse, UpdateBudgetData, UpdateBudgetResponse, UpdateCategoryData, UpdateCategoryResponse, UpdateHouseholdData, UpdateHouseholdResponse, UpdateIncomeData, UpdateIncomeResponse, UpdateRecipientData, UpdateRecipientResponse, UpdateTransactionData, UpdateTransactionResponse, UpdateTransferData, UpdateTransferResponse } from '../types.gen';
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -396,6 +396,10 @@ export const getAccountBalanceQueryKey = (options: Options<GetAccountBalanceData
 
 /**
  * Get current balance for an account
+ *
+ * Returns the live current balance updated synchronously on transaction mutations.
+ * Includes `staleHistory` and `historyRecalcFrom` when snapshot history is being rebuilt.
+ *
  */
 export const getAccountBalanceOptions = (options: Options<GetAccountBalanceData>) => queryOptions<GetAccountBalanceResponse, DefaultError, GetAccountBalanceResponse, ReturnType<typeof getAccountBalanceQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
@@ -414,6 +418,10 @@ export const getAccountBalanceHistoryQueryKey = (options: Options<GetAccountBala
 
 /**
  * Get historical balance snapshots for an account
+ *
+ * Daily snapshot history for an account. If `staleHistory` is true, any dates on or after
+ * `historyRecalcFrom` should be treated as provisional until the async rebuild completes.
+ *
  */
 export const getAccountBalanceHistoryOptions = (options: Options<GetAccountBalanceHistoryData>) => queryOptions<GetAccountBalanceHistoryResponse, DefaultError, GetAccountBalanceHistoryResponse, ReturnType<typeof getAccountBalanceHistoryQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
@@ -432,6 +440,10 @@ export const getAccountBalanceHistoryInfiniteQueryKey = (options: Options<GetAcc
 
 /**
  * Get historical balance snapshots for an account
+ *
+ * Daily snapshot history for an account. If `staleHistory` is true, any dates on or after
+ * `historyRecalcFrom` should be treated as provisional until the async rebuild completes.
+ *
  */
 export const getAccountBalanceHistoryInfiniteOptions = (options: Options<GetAccountBalanceHistoryData>) => infiniteQueryOptions<GetAccountBalanceHistoryResponse, DefaultError, InfiniteData<GetAccountBalanceHistoryResponse>, QueryKey<Options<GetAccountBalanceHistoryData>>, number | Pick<QueryKey<Options<GetAccountBalanceHistoryData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
 // @ts-ignore
@@ -453,6 +465,48 @@ export const getAccountBalanceHistoryInfiniteOptions = (options: Options<GetAcco
         return data;
     },
     queryKey: getAccountBalanceHistoryInfiniteQueryKey(options)
+});
+
+export const getMultiAccountBalanceHistoryQueryKey = (options: Options<GetMultiAccountBalanceHistoryData>) => createQueryKey('getMultiAccountBalanceHistory', options);
+
+/**
+ * Get balance snapshots for multiple accounts
+ *
+ * Batch snapshot history for multiple accounts, including staleness flags per account.
+ *
+ */
+export const getMultiAccountBalanceHistoryOptions = (options: Options<GetMultiAccountBalanceHistoryData>) => queryOptions<GetMultiAccountBalanceHistoryResponse, DefaultError, GetMultiAccountBalanceHistoryResponse, ReturnType<typeof getMultiAccountBalanceHistoryQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getMultiAccountBalanceHistory({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getMultiAccountBalanceHistoryQueryKey(options)
+});
+
+export const listAccountBalancesQueryKey = (options: Options<ListAccountBalancesData>) => createQueryKey('listAccountBalances', options);
+
+/**
+ * List current balances for accounts in a household
+ *
+ * Returns live balances for accounts in a household in a single request.
+ *
+ */
+export const listAccountBalancesOptions = (options: Options<ListAccountBalancesData>) => queryOptions<ListAccountBalancesResponse, DefaultError, ListAccountBalancesResponse, ReturnType<typeof listAccountBalancesQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await listAccountBalances({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: listAccountBalancesQueryKey(options)
 });
 
 /**

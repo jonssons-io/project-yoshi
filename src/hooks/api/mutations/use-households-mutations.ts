@@ -4,12 +4,14 @@ import {
 	deleteHouseholdMutation,
 	getHouseholdMembersQueryKey,
 	getHouseholdQueryKey,
+	setDefaultHouseholdMutation,
 	updateHouseholdMutation,
 	createHouseholdMutation,
 	removeHouseholdMemberMutation,
 } from '@/api/generated/@tanstack/react-query.gen'
 import type {
 	CreateHouseholdResponse,
+	SetDefaultHouseholdResponse,
 	UpdateHouseholdResponse
 } from '@/api/generated/types.gen'
 import { invalidateByOperation } from '../invalidate-by-operation'
@@ -23,6 +25,10 @@ type RemoveHouseholdUserVariables = {
 	householdId: string
 	userId: string
 	removeUserId: string
+}
+type SetDefaultHouseholdVariables = {
+	householdId: string
+	userId?: string | null
 }
 
 /**
@@ -191,6 +197,43 @@ export function useRemoveHouseholdUser(
 					path: { householdId: variables.householdId }
 				})
 			})
+			callbacks?.onSuccess?.(data, variables)
+		},
+		onError: (error, variables) => callbacks?.onError?.(error, variables)
+	})
+}
+
+/**
+ * Hook to set the authenticated user's default household.
+ */
+export function useSetDefaultHousehold(
+	callbacks?: MutationCallbacks<
+		SetDefaultHouseholdResponse,
+		SetDefaultHouseholdVariables
+	>
+) {
+	const queryClient = useQueryClient()
+	const mutationOptions = setDefaultHouseholdMutation()
+
+	return useMutation<
+		SetDefaultHouseholdResponse,
+		Error,
+		SetDefaultHouseholdVariables
+	>({
+		mutationFn: async (variables: SetDefaultHouseholdVariables) => {
+			const mutationFn = mutationOptions.mutationFn
+			if (!mutationFn) throw new Error('Missing setDefaultHousehold mutation function')
+			return mutationFn(
+				{
+					body: { householdId: variables.householdId }
+				},
+				{} as never
+			)
+		},
+		onSuccess: (data, variables) => {
+			invalidateByOperation(queryClient, 'listHouseholds')
+			invalidateByOperation(queryClient, 'listBudgets')
+			invalidateByOperation(queryClient, 'listAccounts')
 			callbacks?.onSuccess?.(data, variables)
 		},
 		onError: (error, variables) => callbacks?.onError?.(error, variables)

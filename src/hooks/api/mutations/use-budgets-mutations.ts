@@ -5,6 +5,7 @@ import {
 	getBudgetQueryKey,
 	linkAccountToBudgetMutation,
 	linkCategoryToBudgetMutation,
+	setDefaultBudgetMutation,
 	unlinkAccountFromBudgetMutation,
 	unlinkCategoryFromBudgetMutation,
 	updateBudgetMutation
@@ -13,6 +14,7 @@ import type {
 	CreateBudgetRequest,
 	CreateBudgetResponse,
 	DeleteBudgetResponse,
+	SetDefaultBudgetResponse,
 	UpdateBudgetRequest,
 	UpdateBudgetResponse
 } from '@/api/generated/types.gen'
@@ -38,6 +40,11 @@ type BudgetCategoryVariables = {
 type BudgetAccountVariables = {
 	budgetId: string
 	accountId: string
+	userId?: string | null
+}
+type SetDefaultBudgetVariables = {
+	householdId: string
+	budgetId: string
 	userId?: string | null
 }
 
@@ -253,6 +260,40 @@ export function useUnlinkBudgetAccount(
 				queryKey: getBudgetQueryKey({ path: { budgetId: variables.budgetId } })
 			})
 			invalidateByOperation(queryClient, 'listAccounts')
+			callbacks?.onSuccess?.(data, variables)
+		},
+		onError: (error, variables) => callbacks?.onError?.(error, variables)
+	})
+}
+
+/**
+ * Hook to set the authenticated user's default budget for a household.
+ */
+export function useSetDefaultBudget(
+	callbacks?: MutationCallbacks<SetDefaultBudgetResponse, SetDefaultBudgetVariables>
+) {
+	const queryClient = useQueryClient()
+	const mutationOptions = setDefaultBudgetMutation()
+
+	return useMutation<SetDefaultBudgetResponse, Error, SetDefaultBudgetVariables>({
+		mutationFn: async (variables: SetDefaultBudgetVariables) => {
+			const mutationFn = mutationOptions.mutationFn
+			if (!mutationFn) throw new Error('Missing setDefaultBudget mutation function')
+			return mutationFn(
+				{
+					body: {
+						householdId: variables.householdId,
+						budgetId: variables.budgetId
+					}
+				},
+				{} as never
+			)
+		},
+		onSuccess: (data, variables) => {
+			invalidateByOperation(queryClient, 'listBudgets')
+			invalidateByOperation(queryClient, 'listTransactions')
+			invalidateByOperation(queryClient, 'listTransfers')
+			invalidateByOperation(queryClient, 'listBills')
 			callbacks?.onSuccess?.(data, variables)
 		},
 		onError: (error, variables) => callbacks?.onError?.(error, variables)

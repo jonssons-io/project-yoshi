@@ -46,14 +46,14 @@ export function DashboardChart({ data, accounts }: DashboardChartProps) {
 
 	if (!data || data.length === 0) {
 		return (
-			<div className="flex h-[300px] w-full items-center justify-center text-muted-foreground border rounded-lg bg-card/50">
+			<div className="flex h-75 w-full items-center justify-center text-muted-foreground border rounded-lg bg-card/50">
 				{t('common.noDataForSelectedPeriod')}
 			</div>
 		)
 	}
 
 	return (
-		<ChartContainer config={chartConfig} className="min-h-[300px] w-full">
+		<ChartContainer config={chartConfig} className="min-h-75 w-full">
 			<LineChart
 				data={data}
 				margin={{
@@ -98,7 +98,7 @@ export function DashboardChart({ data, accounts }: DashboardChartProps) {
 						name={acc.name}
 						stroke={`var(--color-${acc.id})`}
 						strokeWidth={2}
-						dot={false}
+						dot={{ r: 2 }}
 					/>
 				))}
 			</LineChart>
@@ -119,7 +119,7 @@ function CustomTooltip({ active, payload, label }: any) {
 	)
 
 	return (
-		<div className="border-border/50 bg-background grid min-w-[200px] items-start gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs shadow-xl">
+		<div className="border-border/50 bg-background grid min-w-50 items-start gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs shadow-xl">
 			<div className="font-medium text-foreground mb-1">{formattedLabel}</div>
 			<div className="grid gap-1.5">
 				{payload.map((item: any) => (

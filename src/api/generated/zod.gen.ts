@@ -310,7 +310,24 @@ export const zAccountBalance = z.object({
     initialBalance: z.number(),
     currentBalance: z.number(),
     transactionCount: z.int(),
-    latestSnapshot: z.optional(zAccountBalanceSnapshot)
+    latestSnapshot: z.optional(zAccountBalanceSnapshot),
+    staleHistory: z.boolean(),
+    historyRecalcFrom: z.optional(z.iso.date())
+});
+
+export const zAccountBalanceHistoryItem = z.object({
+    accountId: z.string(),
+    staleHistory: z.boolean(),
+    historyRecalcFrom: z.optional(z.iso.date()),
+    snapshots: z.array(zAccountBalanceSnapshot)
+});
+
+export const zAccountBalanceHistoryResponse = z.object({
+    data: z.array(zAccountBalanceHistoryItem)
+});
+
+export const zAccountBalanceListResponse = z.object({
+    data: z.array(zAccountBalance)
 });
 
 export const zBudgetSnapshot = z.object({
@@ -329,6 +346,14 @@ export const zPaginationMeta = z.object({
     limit: z.int(),
     offset: z.int(),
     hasMore: z.boolean()
+});
+
+export const zAccountBalanceHistory = z.object({
+    accountId: z.string(),
+    staleHistory: z.boolean(),
+    historyRecalcFrom: z.optional(z.iso.date()),
+    data: z.array(zAccountBalanceSnapshot),
+    pagination: zPaginationMeta
 });
 
 export const zCreateHouseholdRequest = z.object({
@@ -805,10 +830,38 @@ export const zGetAccountBalanceHistoryData = z.object({
 /**
  * Paginated list of account balance snapshots
  */
-export const zGetAccountBalanceHistoryResponse = z.object({
-    data: z.optional(z.array(zAccountBalanceSnapshot)),
-    pagination: z.optional(zPaginationMeta)
+export const zGetAccountBalanceHistoryResponse = zAccountBalanceHistory;
+
+export const zGetMultiAccountBalanceHistoryData = z.object({
+    body: z.optional(z.never()),
+    path: z.optional(z.never()),
+    query: z.object({
+        accountIds: z.array(z.string()),
+        dateFrom: z.optional(z.iso.date()),
+        dateTo: z.optional(z.iso.date())
+    })
 });
+
+/**
+ * Balance history for multiple accounts
+ */
+export const zGetMultiAccountBalanceHistoryResponse = zAccountBalanceHistoryResponse;
+
+export const zListAccountBalancesData = z.object({
+    body: z.optional(z.never()),
+    path: z.object({
+        householdId: z.string()
+    }),
+    query: z.optional(z.object({
+        accountIds: z.optional(z.array(z.string())),
+        includeArchived: z.optional(z.boolean())
+    }))
+});
+
+/**
+ * List of account balances
+ */
+export const zListAccountBalancesResponse = zAccountBalanceListResponse;
 
 export const zToggleAccountArchiveData = z.object({
     body: zToggleAccountArchiveRequest,

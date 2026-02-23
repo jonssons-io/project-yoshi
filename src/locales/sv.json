@@ -353,7 +353,19 @@
 		"sidebarDescription": "Visar mobilsidopanelen",
 		"createPayment": "Registrera betalning",
 		"loadingArgs": "Laddar formulärdata...",
-		"noDataForSelectedPeriod": "Ingen data för vald period"
+		"noDataForSelectedPeriod": "Ingen data för vald period",
+		"staleHistory": "Historiken uppdateras med nya förändringar."
+	},
+	"setup": {
+		"noHouseholdTitle": "Välkommen till Yoshi!",
+		"noHouseholdDescription": "Skapa ett hushåll för att komma igång.",
+		"noHouseholdButton": "Skapa hushåll",
+		"noBudgetTitle": "Dags att skapa en budget",
+		"noBudgetDescription": "En budget hjälper dig att planera inkomster och utgifter.",
+		"noBudgetButton": "Skapa budget",
+		"noAccountTitle": "Lägg till ditt första konto",
+		"noAccountDescription": "Koppla dina konton för att börja spåra din ekonomi.",
+		"noAccountButton": "Skapa konto"
 	},
 	"bills": {
 		"title": "Räkningar",

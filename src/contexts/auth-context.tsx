@@ -1,8 +1,7 @@
-import { useUser } from '@clerk/clerk-react'
-import { createContext, type ReactNode, useContext } from 'react'
+import { createContext, useContext, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { NoHousehold } from '@/components/dashboard/NoHousehold'
-import { useSelectedHousehold } from '@/hooks/use-selected-household'
+import { SetupPrompt } from '@/components/dashboard/SetupPrompt'
+import { useHouseholdContext } from '@/contexts/household-context'
 
 /**
  * Context value providing guaranteed non-null userId and householdId
@@ -21,22 +20,22 @@ interface AuthProviderProps {
 }
 
 /**
- * Provides userId and householdId to all child components.
- * Handles loading states and shows NoHousehold when no household is selected.
+ * Gates child routes behind household selection.
+ * Shows loading state while households are being fetched,
+ * and SetupPrompt when no household is selected.
+ * Provides guaranteed userId + householdId to children via AuthContext.
  */
 export function AuthProvider({ children }: AuthProviderProps) {
 	const { t } = useTranslation()
-	const { user, isLoaded } = useUser()
-	const userId = user?.id
-
 	const {
+		userId,
+		households,
 		selectedHouseholdId,
 		setSelectedHousehold,
-		isLoading: isHouseholdLoading
-	} = useSelectedHousehold(userId)
+		isHouseholdsLoading
+	} = useHouseholdContext()
 
-	// Show loading while Clerk or household selection is loading
-	if (!isLoaded || isHouseholdLoading) {
+	if (isHouseholdsLoading) {
 		return (
 			<div className="flex items-center justify-center">
 				<p className="text-muted-foreground">{t('common.loading')}</p>
@@ -44,14 +43,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
 		)
 	}
 
-	// User should always be present in authenticated routes due to route guard
-	if (!userId) {
-		return null
+	if (!households || households.length === 0) {
+		return <SetupPrompt variant="no-household" />
 	}
 
-	// Show household selection UI when no household is selected
+	// Households exist but API-backed default selection has not resolved yet.
 	if (!selectedHouseholdId) {
-		return <NoHousehold userId={userId} />
+		return (
+			<div className="flex items-center justify-center">
+				<p className="text-muted-foreground">{t('common.loading')}</p>
+			</div>
+		)
 	}
 
 	return (

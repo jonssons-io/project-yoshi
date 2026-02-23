@@ -17,10 +17,15 @@ export function useHouseholdsList(params: {
 	userId?: string | null
 	enabled?: boolean
 }) {
-	const { enabled = true } = params
+	const { userId, enabled = true } = params
 	return useQuery({
 		...listHouseholdsOptions(),
-		enabled,
+		enabled: enabled && !!userId,
+		retry: false,
+		staleTime: 60_000,
+		refetchOnMount: false,
+		refetchOnWindowFocus: false,
+		refetchOnReconnect: false,
 		select: (response) => response.data ?? []
 	})
 }

@@ -13,7 +13,7 @@ import {
 export type ChartDataPoint = {
 	date: string
 	originalDate: Date
-	[key: string]: string | number | Date // accountId: balance
+	[key: string]: string | number | Date | undefined // accountId: balance
 }
 
 export type DateRangeOption = 'current-month' | '3-months' | 'custom'
@@ -63,7 +63,7 @@ export function generateChartData(
 		accountId: string
 		amount: number
 		date: Date | string
-		category: { types: string[] }
+		category?: { types: string[] }
 	}>,
 	startDate: Date,
 	endDate: Date
@@ -186,4 +186,90 @@ export function generateChartData(
 	}
 
 	return dataPoints
+}
+
+type AccountSnapshotHistory = {
+	accountId: string
+	snapshots: Array<{ date: string; balance: number }>
+}
+
+function getChartIntervals(startDate: Date, endDate: Date) {
+	const diffMonths = differenceInMonths(endDate, startDate)
+	const diffDays = differenceInDays(endDate, startDate)
+
+	if (diffMonths >= 3) {
+		return {
+			intervals: eachMonthOfInterval({ start: startDate, end: endDate }),
+			formatStr: 'MMM yyyy'
+		}
+	}
+
+	if (diffDays > 31) {
+		return {
+			intervals: eachWeekOfInterval({ start: startDate, end: endDate }),
+			formatStr: 'MMM d'
+		}
+	}
+
+	return {
+		intervals: eachDayOfInterval({ start: startDate, end: endDate }),
+		formatStr: 'MMM d'
+	}
+}
+
+/**
+ * Builds chart points from account snapshot history.
+ * For each chart interval, uses the latest snapshot on or before that date.
+ */
+export function generateChartDataFromSnapshots(
+	accounts: Array<{ id: string; initialBalance: number }>,
+	history: AccountSnapshotHistory[],
+	currentBalances: Map<string, number>,
+	startDate: Date,
+	endDate: Date
+): ChartDataPoint[] {
+	const { formatStr } = getChartIntervals(startDate, endDate)
+	const rangeStart = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate())
+	const rangeEnd = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate(), 23, 59, 59, 999)
+	const today = new Date()
+	const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+	const todayKey = format(todayDate, 'yyyy-MM-dd')
+
+	const pointsByDate = new Map<string, ChartDataPoint>()
+
+	const getOrCreatePoint = (dateKey: string) => {
+		const existing = pointsByDate.get(dateKey)
+		if (existing) return existing
+
+		const pointDate = new Date(`${dateKey}T00:00:00`)
+		const created: ChartDataPoint = {
+			date: format(pointDate, formatStr),
+			originalDate: pointDate
+		}
+		pointsByDate.set(dateKey, created)
+		return created
+	}
+
+	for (const item of history) {
+		for (const snapshot of item.snapshots) {
+			const snapshotDate = new Date(`${snapshot.date}T00:00:00`)
+			if (snapshotDate < rangeStart || snapshotDate > rangeEnd) continue
+			const point = getOrCreatePoint(snapshot.date)
+			point[item.accountId] = Number(snapshot.balance)
+		}
+	}
+
+	// Current balance is the authoritative value for "today".
+	if (todayDate >= rangeStart && todayDate <= rangeEnd) {
+		const todayPoint = getOrCreatePoint(todayKey)
+		for (const account of accounts) {
+			todayPoint[account.id] = Number(
+				currentBalances.get(account.id) ?? account.initialBalance
+			)
+		}
+	}
+
+	return [...pointsByDate.values()].sort(
+		(a, b) => a.originalDate.getTime() - b.originalDate.getTime()
+	)
 }

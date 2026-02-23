@@ -20,6 +20,11 @@ export function useBudgetsList(params: {
 			path: { householdId: householdId ?? '' }
 		}),
 		enabled: enabled && !!householdId,
+		retry: false,
+		staleTime: 60_000,
+		refetchOnMount: false,
+		refetchOnWindowFocus: false,
+		refetchOnReconnect: false,
 		select: (response) => response.data ?? []
 	})
 }

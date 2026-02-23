@@ -4,6 +4,7 @@ import { auth } from '@clerk/tanstack-react-start/server'
 import { createFileRoute, Outlet, redirect } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { configureApiClient } from '@/api/client-config'
 import { AppSidebar } from '@/components/app-sidebar'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
@@ -17,11 +18,11 @@ import {
 	SidebarTrigger
 } from '@/components/ui/sidebar'
 import { AuthProvider } from '@/contexts/auth-context'
+import { HouseholdProvider } from '@/contexts/household-context'
 import { HouseholdForm } from '@/forms/HouseholdForm'
 import {
 	useCreateHousehold,
 	useDeleteHousehold,
-	useHouseholdsList,
 	useUpdateHousehold
 } from '@/hooks/api'
 import { useDrawer } from '@/hooks/use-drawer'
@@ -44,8 +45,6 @@ export const Route = createFileRoute('/_authenticated')({
 	component: AuthenticatedLayout
 })
 
-import { useTranslation } from 'react-i18next'
-
 function AuthenticatedLayout() {
 	return (
 		<DrawerProvider>
@@ -56,24 +55,26 @@ function AuthenticatedLayout() {
 
 function AuthenticatedLayoutContent() {
 	const { t } = useTranslation()
-	const { user } = useUser()
+	const { user, isLoaded } = useUser()
 	const { getToken } = useAuth()
 	const { signOut } = useClerk()
 	const userId = user?.id
 	const { openDrawer, closeDrawer } = useDrawer()
 
 	useEffect(() => {
+		if (!isLoaded) return
 		configureApiClient(getToken)
-	}, [getToken])
+	}, [isLoaded, getToken])
 
-	const { selectedHouseholdId, setSelectedHousehold } =
-		useSelectedHousehold(userId)
-
-	const { data: households } = useHouseholdsList({ userId })
+	const {
+		households,
+		selectedHouseholdId,
+		setSelectedHousehold,
+		isLoading: isHouseholdsLoading
+	} = useSelectedHousehold(userId, isLoaded)
 
 	const { mutate: createHousehold } = useCreateHousehold({
-		onSuccess: (household: { id: string }) => {
-			setSelectedHousehold(household.id)
+		onSuccess: () => {
 			closeDrawer()
 		}
 	})
@@ -90,6 +91,18 @@ function AuthenticatedLayoutContent() {
 		}
 	})
 
+	if (!isLoaded) {
+		return (
+			<div className="flex min-h-[60vh] items-center justify-center">
+				<p className="text-muted-foreground">{t('common.loading')}</p>
+			</div>
+		)
+	}
+
+	if (!userId) {
+		return null
+	}
+
 	const handleCreateHousehold = () => {
 		openDrawer(
 			<div className="p-4">
@@ -101,7 +114,6 @@ function AuthenticatedLayoutContent() {
 				</p>
 				<HouseholdForm
 					onSubmit={(data) => {
-						if (!userId) return
 						createHousehold({
 							name: data.name,
 							userId
@@ -128,7 +140,6 @@ function AuthenticatedLayoutContent() {
 					defaultValues={{ name: currentHousehold.name }}
 					householdId={currentHousehold.id}
 					onSubmit={(data) => {
-						if (!userId) return
 						updateHousehold({
 							id: currentHousehold.id,
 							name: data.name,
@@ -137,7 +148,6 @@ function AuthenticatedLayoutContent() {
 					}}
 					onCancel={closeDrawer}
 					onDelete={() => {
-						if (!userId) return
 						if (confirm(t('forms.deleteHouseholdConfirm'))) {
 							deleteHousehold({ id: currentHousehold.id, userId })
 						}
@@ -171,42 +181,52 @@ function AuthenticatedLayoutContent() {
 	}
 
 	return (
-		<SidebarProvider>
-			<AppSidebar />
-			<SidebarInset>
-				<header className="flex h-16 shrink-0 items-center justify-between border-b px-4">
-					<div className="flex items-center gap-2">
-						<SidebarTrigger className="-ml-1" />
-						<Separator
-							orientation="vertical"
-							className="mr-2 data-[orientation=vertical]:h-4"
-						/>
-						<Breadcrumbs />
-					</div>
-					{user && (
-						<HeaderUserMenu
-							user={{
-								imageUrl: user.imageUrl,
-								fullName: user.fullName,
-								firstName: user.firstName,
-								email: user.primaryEmailAddress?.emailAddress
-							}}
-							households={households}
-							selectedHouseholdId={selectedHouseholdId}
-							onSelectHousehold={setSelectedHousehold}
-							onCreateHousehold={handleCreateHousehold}
-							onEditHousehold={handleEditHousehold}
-							onShowInvitations={handleShowInvitations}
-							onSignOut={handleSignOut}
-						/>
-					)}
-				</header>
-				<main className="p-6">
-					<AuthProvider>
-						<Outlet />
-					</AuthProvider>
-				</main>
-			</SidebarInset>
-		</SidebarProvider>
+		<HouseholdProvider
+			value={{
+				userId,
+				households,
+				selectedHouseholdId,
+				setSelectedHousehold,
+				isHouseholdsLoading
+			}}
+		>
+			<SidebarProvider>
+				<AppSidebar />
+				<SidebarInset>
+					<header className="flex h-16 shrink-0 items-center justify-between border-b px-4">
+						<div className="flex items-center gap-2">
+							<SidebarTrigger className="-ml-1" />
+							<Separator
+								orientation="vertical"
+								className="mr-2 data-[orientation=vertical]:h-4"
+							/>
+							<Breadcrumbs />
+						</div>
+						{user && (
+							<HeaderUserMenu
+								user={{
+									imageUrl: user.imageUrl,
+									fullName: user.fullName,
+									firstName: user.firstName,
+									email: user.primaryEmailAddress?.emailAddress
+								}}
+								households={households}
+								selectedHouseholdId={selectedHouseholdId}
+								onSelectHousehold={setSelectedHousehold}
+								onCreateHousehold={handleCreateHousehold}
+								onEditHousehold={handleEditHousehold}
+								onShowInvitations={handleShowInvitations}
+								onSignOut={handleSignOut}
+							/>
+						)}
+					</header>
+					<main className="p-6">
+						<AuthProvider>
+							<Outlet />
+						</AuthProvider>
+					</main>
+				</SidebarInset>
+			</SidebarProvider>
+		</HouseholdProvider>
 	)
 }

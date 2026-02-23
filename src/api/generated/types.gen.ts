@@ -93,6 +93,8 @@ export type AccountBalance = {
     currentBalance: number;
     transactionCount: number;
     latestSnapshot?: AccountBalanceSnapshot;
+    staleHistory: boolean;
+    historyRecalcFrom?: string;
 };
 
 export type Budget = {
@@ -326,6 +328,29 @@ export type AccountBalanceSnapshot = {
     balance: number;
     transactionCount: number;
     createdAt: string;
+};
+
+export type AccountBalanceHistory = {
+    accountId: string;
+    staleHistory: boolean;
+    historyRecalcFrom?: string;
+    data: Array<AccountBalanceSnapshot>;
+    pagination: PaginationMeta;
+};
+
+export type AccountBalanceHistoryItem = {
+    accountId: string;
+    staleHistory: boolean;
+    historyRecalcFrom?: string;
+    snapshots: Array<AccountBalanceSnapshot>;
+};
+
+export type AccountBalanceHistoryResponse = {
+    data: Array<AccountBalanceHistoryItem>;
+};
+
+export type AccountBalanceListResponse = {
+    data: Array<AccountBalance>;
 };
 
 export type BudgetSnapshot = {
@@ -1004,13 +1029,51 @@ export type GetAccountBalanceHistoryResponses = {
     /**
      * Paginated list of account balance snapshots
      */
-    200: {
-        data?: Array<AccountBalanceSnapshot>;
-        pagination?: PaginationMeta;
-    };
+    200: AccountBalanceHistory;
 };
 
 export type GetAccountBalanceHistoryResponse = GetAccountBalanceHistoryResponses[keyof GetAccountBalanceHistoryResponses];
+
+export type GetMultiAccountBalanceHistoryData = {
+    body?: never;
+    path?: never;
+    query: {
+        accountIds: Array<string>;
+        dateFrom?: string;
+        dateTo?: string;
+    };
+    url: '/accounts/balance-history';
+};
+
+export type GetMultiAccountBalanceHistoryResponses = {
+    /**
+     * Balance history for multiple accounts
+     */
+    200: AccountBalanceHistoryResponse;
+};
+
+export type GetMultiAccountBalanceHistoryResponse = GetMultiAccountBalanceHistoryResponses[keyof GetMultiAccountBalanceHistoryResponses];
+
+export type ListAccountBalancesData = {
+    body?: never;
+    path: {
+        householdId: string;
+    };
+    query?: {
+        accountIds?: Array<string>;
+        includeArchived?: boolean;
+    };
+    url: '/households/{householdId}/account-balances';
+};
+
+export type ListAccountBalancesResponses = {
+    /**
+     * List of account balances
+     */
+    200: AccountBalanceListResponse;
+};
+
+export type ListAccountBalancesResponse = ListAccountBalancesResponses[keyof ListAccountBalancesResponses];
 
 export type ToggleAccountArchiveData = {
     body: ToggleAccountArchiveRequest;

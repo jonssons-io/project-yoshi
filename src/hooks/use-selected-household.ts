@@ -1,35 +1,53 @@
-import { useHouseholdsList } from '@/hooks/api'
-import { useLocalStorageSelection } from './use-local-storage-selection'
-
-const STORAGE_KEY_PREFIX = 'yoshi-selected-household-id'
+import { useQuery } from '@tanstack/react-query'
+import { listHouseholdsOptions } from '@/api/generated/@tanstack/react-query.gen'
+import { useSetDefaultHousehold } from '@/hooks/api'
 
 /**
- * Custom hook to manage and persist the selected household ID
- * Scopes the storage to the current user to prevent conflicts when multiple users share a browser
+ * Custom hook to manage household selection through API-backed user settings.
  */
-export function useSelectedHousehold(userId?: string) {
-	// Generate user-specific storage key
-	const storageKey = userId ? `${STORAGE_KEY_PREFIX}-${userId}` : null
-
-	// Fetch households to validate selection
-	const { data: households, isLoading: isHouseholdsLoading } =
-		useHouseholdsList({
-			userId
-		})
-
-	// Use generic selection hook
+export function useSelectedHousehold(userId?: string, enabled = true) {
 	const {
-		selectedId: selectedHouseholdId,
-		setSelectedId: setSelectedHousehold,
-		isLoading
-	} = useLocalStorageSelection({
-		storageKey,
-		items: households,
+		data,
 		isLoading: isHouseholdsLoading,
-		getId: (household) => household.id
+		isFetching: isHouseholdsFetching
+	} = useQuery({
+		...listHouseholdsOptions(),
+		enabled: enabled && !!userId,
+		retry: false,
+		staleTime: 60_000,
+		refetchOnMount: false,
+		refetchOnWindowFocus: false,
+		refetchOnReconnect: false,
+		select: (response) => ({
+			households: response.data ?? [],
+			defaultHouseholdId: response.defaultHouseholdId ?? null
+		})
 	})
 
+	const households = data?.households
+	const apiDefaultHouseholdId = data?.defaultHouseholdId ?? null
+
+	const fallbackHouseholdId =
+		!apiDefaultHouseholdId && households && households.length > 0
+			? households[0]?.id ?? null
+			: null
+
+	const selectedHouseholdId = apiDefaultHouseholdId ?? fallbackHouseholdId
+
+	const { mutate: setDefaultHousehold } = useSetDefaultHousehold()
+
+	const setSelectedHousehold = (id: string | null) => {
+		if (!id || !userId) return
+		setDefaultHousehold({
+			householdId: id,
+			userId
+		})
+	}
+
+	const isLoading = isHouseholdsLoading || isHouseholdsFetching
+
 	return {
+		households,
 		selectedHouseholdId,
 		setSelectedHousehold,
 		isLoading
