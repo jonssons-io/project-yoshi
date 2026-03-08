@@ -1,58 +1,109 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { DashboardContent } from '@/components/dashboard/DashboardContent'
 import { SetupPrompt } from '@/components/dashboard/SetupPrompt'
 import { useAuth } from '@/contexts/auth-context'
-import { useAccountsList, useBudgetsList } from '@/hooks/api'
-import { useSelectedBudget } from '@/hooks/use-selected-budget'
+import {
+  useAccountBalancesList,
+  useAccountsList,
+  useAllocationsQuery,
+  useBudgetsList
+} from '@/hooks/api'
 
 export const Route = createFileRoute('/_authenticated/')({
-	component: Dashboard
+  component: Dashboard
 })
 
 function Dashboard() {
-	const { t } = useTranslation()
-	const { userId, householdId } = useAuth()
+  const { t } = useTranslation()
+  const { userId, householdId } = useAuth()
 
-	const { data: budgets, isLoading: budgetsLoading } = useBudgetsList({
-		householdId,
-		userId
-	})
+  const { data: budgets, isLoading: budgetsLoading } = useBudgetsList({
+    householdId,
+    userId
+  })
 
-	const { selectedBudgetId, isLoading: selectedBudgetLoading } = useSelectedBudget(
-		userId,
-		householdId
-	)
-	const activeBudget =
-		budgets?.find((b) => b.id === selectedBudgetId) ?? budgets?.[0]
-	const shouldFetchAccounts = !!activeBudget?.id
+  const { data: accounts, isLoading: accountsLoading } = useAccountsList({
+    householdId,
+    userId,
+    enabled: !!householdId,
+    excludeArchived: true
+  })
 
-	const { data: accounts, isLoading: accountsLoading } = useAccountsList({
-		householdId,
-		userId,
-		budgetId: activeBudget?.id,
-		enabled: shouldFetchAccounts
-	})
+  const accountIds = useMemo(
+    () => (accounts ?? []).map((account) => account.id),
+    [
+      accounts
+    ]
+  )
 
-	if (
-		budgetsLoading ||
-		selectedBudgetLoading ||
-		(shouldFetchAccounts && accountsLoading)
-	) {
-		return (
-			<div className="flex items-center justify-center">
-				<p className="text-muted-foreground">{t('common.loading')}</p>
-			</div>
-		)
-	}
+  const { data: accountBalances, isLoading: accountBalancesLoading } =
+    useAccountBalancesList({
+      householdId,
+      userId,
+      accountIds,
+      includeArchived: false,
+      enabled: !!householdId && accountIds.length > 0
+    })
 
-	if (!activeBudget) {
-		return <SetupPrompt variant="no-budget" />
-	}
+  const { data: allocationSummary, isLoading: allocationSummaryLoading } =
+    useAllocationsQuery({
+      householdId: householdId ?? '',
+      userId: userId ?? '',
+      enabled: !!householdId && !!userId
+    })
 
-	if (!accounts || accounts.length === 0) {
-		return <SetupPrompt variant="no-account" />
-	}
+  const balancesByAccountId = useMemo(() => {
+    const balances = new Map<string, number>()
+    for (const balance of accountBalances ?? []) {
+      balances.set(balance.account.id, Number(balance.currentBalance))
+    }
+    return balances
+  }, [
+    accountBalances
+  ])
 
-	return <DashboardContent budgetId={activeBudget.id} accounts={accounts} />
+  const dashboardAccounts = (accounts ?? []).map((account) => ({
+    id: account.id,
+    name: account.name,
+    initialBalance: account.initialBalance,
+    currentBalance:
+      balancesByAccountId.get(account.id) ?? Number(account.initialBalance),
+    externalIdentifier: account.externalIdentifier ?? null
+  }))
+
+  if (
+    householdId &&
+    (budgetsLoading ||
+      accountsLoading ||
+      accountBalancesLoading ||
+      allocationSummaryLoading)
+  ) {
+    return (
+      <div className="flex items-center justify-center">
+        <p className="text-muted-foreground">{t('common.loading')}</p>
+      </div>
+    )
+  }
+
+  if (!householdId) {
+    return <SetupPrompt variant="no-household" />
+  }
+
+  if (dashboardAccounts.length === 0) {
+    return <SetupPrompt variant="no-account" />
+  }
+
+  if (!(budgets?.length ?? 0)) {
+    return <SetupPrompt variant="no-budget" />
+  }
+
+  return (
+    <DashboardContent
+      accounts={dashboardAccounts}
+      budgets={budgets ?? []}
+      unallocatedAmount={allocationSummary?.unallocated ?? 0}
+    />
+  )
 }

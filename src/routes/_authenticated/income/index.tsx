@@ -2,593 +2,1140 @@
  * Income Page - List and manage recurring income
  */
 
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { useQueryClient } from '@tanstack/react-query'
+import { createFileRoute } from '@tanstack/react-router'
 import { format } from 'date-fns'
 import {
-	AlertCircle,
-	Archive,
-	ArchiveRestore,
-	MoreVerticalIcon,
-	Pencil,
-	Plus,
-	PlusCircle,
-	Trash2,
-	Wallet
+  AlertCircle,
+  Archive,
+  ArchiveRestore,
+  ChevronDown,
+  ChevronRight,
+  MoreVerticalIcon,
+  Pencil,
+  Plus,
+  ReceiptText,
+  Trash2,
+  Wallet
 } from 'lucide-react'
-import { useState } from 'react'
+import {
+  Fragment,
+  type FormEvent,
+  useEffect,
+  useId,
+  useMemo,
+  useState
+} from 'react'
 import { useTranslation } from 'react-i18next'
-import { z } from 'zod'
+import { toast } from 'sonner'
+import {
+  TransactionType,
+  type Income,
+  type IncomeInstance,
+  type IncomeSource,
+  InstanceStatus,
+  RecurrenceType
+} from '@/api/generated/types.gen'
 import { TransactionForm } from '@/components/transactions/TransactionForm'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
 import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle
-} from '@/components/ui/card'
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuSeparator,
-	DropdownMenuTrigger
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
-
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import {
-	Table,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from '@/components/ui/table'
 import {
-	Tooltip,
-	TooltipContent,
-	TooltipProvider,
-	TooltipTrigger
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger
 } from '@/components/ui/tooltip'
 import { useAuth } from '@/contexts/auth-context'
 import { IncomeForm } from '@/forms/IncomeForm'
-import { RecurrenceType, type Income, type IncomeSource } from '@/api/generated/types.gen'
 import {
-	useAccountsList,
-	useArchiveIncome,
-	useBillsList,
-	useCategoriesList,
-	useCreateIncome,
-	useCreateTransaction,
-	useDeleteIncome,
-	useIncomeList,
-	useRecipientsList,
-	useUpdateIncome
+  useAccountsList,
+  useArchiveIncome,
+  useBudgetsList,
+  useCategoriesList,
+  useCreateIncome,
+  useCreateTransaction,
+  useDeleteIncome,
+  useIncomeList,
+  useRecipientsList,
+  useUpdateIncome
 } from '@/hooks/api'
+import { invalidateByOperation } from '@/hooks/api/invalidate-by-operation'
+import { useUpdateIncomeInstance } from '@/hooks/api/mutations/use-income-mutations'
+import {
+  useIncomeInstanceById,
+  useIncomeInstancesList
+} from '@/hooks/api/queries/use-income-query'
+import { useConfirmDialog } from '@/hooks/use-confirm-dialog'
 import { useDrawer } from '@/hooks/use-drawer'
-import { useSelectedBudget } from '@/hooks/use-selected-budget'
+import { getErrorMessage } from '@/lib/api-error'
+import { formatCurrency } from '@/lib/utils'
 
-// Search params schema
-const incomeSearchSchema = z.object({
-	budgetId: z.string().optional()
-})
+type NormalizedIncome = Omit<Income, 'expectedDate' | 'endDate'> & {
+  expectedDate: Date
+  endDate?: Date | undefined
+}
+
+type NormalizedIncomeInstance = Omit<IncomeInstance, 'expectedDate'> & {
+  expectedDate: Date
+}
+
+type SelectableCategory = {
+  id: string
+  name: string
+  types: string[]
+  archived?: boolean
+}
+
+type SelectableAccount = {
+  id: string
+  name: string
+  archived?: boolean
+}
+
+type IncomeInstancesSectionProps = {
+  income: NormalizedIncome
+  expanded: boolean
+  userId?: string | null
+  accountsById: Map<string, SelectableAccount>
+  categoriesById: Map<string, SelectableCategory>
+  onEditInstance: (instanceId: string) => void
+  onRecordInstance: (
+    income: NormalizedIncome,
+    instance: NormalizedIncomeInstance
+  ) => void
+}
+
+type EditIncomeInstanceDrawerContentProps = {
+  instanceId: string
+  userId?: string | null
+  accounts: SelectableAccount[]
+  categories: SelectableCategory[]
+  onClose: () => void
+  onSuccess: () => void
+}
+
+const NO_CATEGORY_VALUE = '__none__'
 
 export const Route = createFileRoute('/_authenticated/income/')({
-	component: IncomePage,
-	validateSearch: (search) => incomeSearchSchema.parse(search)
+  component: IncomePage
 })
 
+function getIncomeInstanceStatusClass(status: InstanceStatus): string {
+  switch (status) {
+    case InstanceStatus.HANDLED:
+      return 'border-green-200 bg-green-50 text-green-700'
+    case InstanceStatus.DUE:
+      return 'border-amber-200 bg-amber-50 text-amber-700'
+    default:
+      return 'border-muted-foreground/20 bg-muted text-muted-foreground'
+  }
+}
+
+function IncomeInstancesSection({
+  income,
+  expanded,
+  userId,
+  accountsById,
+  categoriesById,
+  onEditInstance,
+  onRecordInstance
+}: IncomeInstancesSectionProps) {
+  const { t } = useTranslation()
+  const instancesQuery = useIncomeInstancesList({
+    incomeId: income.id,
+    userId,
+    enabled: expanded
+  })
+
+  if (!expanded) return null
+
+  if (instancesQuery.isLoading) {
+    return (
+      <div className="rounded-md border bg-muted/30 p-4 text-sm text-muted-foreground">
+        {t('income.instancesLoading')}
+      </div>
+    )
+  }
+
+  const instances = [
+    ...(instancesQuery.data ?? [])
+  ].sort(
+    (a: NormalizedIncomeInstance, b: NormalizedIncomeInstance) =>
+      a.expectedDate.getTime() - b.expectedDate.getTime()
+  )
+
+  if (instances.length === 0) {
+    return (
+      <div className="rounded-md border bg-muted/30 p-4 text-sm text-muted-foreground">
+        {t('income.noInstances')}
+      </div>
+    )
+  }
+
+  return (
+    <div className="rounded-md border bg-muted/20">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>{t('income.instanceName')}</TableHead>
+            <TableHead>{t('income.instanceExpectedDate')}</TableHead>
+            <TableHead>{t('common.amount')}</TableHead>
+            <TableHead>{t('common.account')}</TableHead>
+            <TableHead>{t('common.category')}</TableHead>
+            <TableHead>{t('income.instanceStatusLabel')}</TableHead>
+            <TableHead className="text-right">{t('common.actions')}</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {instances.map((instance) => (
+            <TableRow key={instance.id}>
+              <TableCell className="font-medium">{instance.name}</TableCell>
+              <TableCell>
+                {format(instance.expectedDate, 'MMM d, yyyy')}
+              </TableCell>
+              <TableCell>{formatCurrency(instance.amount)}</TableCell>
+              <TableCell>
+                {accountsById.get(instance.accountId)?.name ?? '-'}
+              </TableCell>
+              <TableCell>
+                {instance.categoryId
+                  ? (categoriesById.get(instance.categoryId)?.name ?? '-')
+                  : '-'}
+              </TableCell>
+              <TableCell>
+                <Badge
+                  variant="outline"
+                  className={getIncomeInstanceStatusClass(instance.status)}
+                >
+                  {t(`income.instanceStatus.${instance.status.toLowerCase()}`)}
+                </Badge>
+              </TableCell>
+              <TableCell className="text-right">
+                <div className="flex justify-end gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onEditInstance(instance.id)}
+                  >
+                    <Pencil className="mr-2 h-4 w-4" />
+                    {t('income.editInstance')}
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => onRecordInstance(income, instance)}
+                    disabled={instance.status === InstanceStatus.HANDLED}
+                  >
+                    <ReceiptText className="mr-2 h-4 w-4" />
+                    {instance.status === InstanceStatus.HANDLED
+                      ? t('income.handled')
+                      : t('income.recordIncome')}
+                  </Button>
+                </div>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  )
+}
+
+function EditIncomeInstanceDrawerContent({
+  instanceId,
+  userId,
+  accounts,
+  categories,
+  onClose,
+  onSuccess
+}: EditIncomeInstanceDrawerContentProps) {
+  const { t } = useTranslation()
+  const instanceQuery = useIncomeInstanceById({
+    instanceId,
+    userId,
+    enabled: !!instanceId
+  })
+  const updateMutation = useUpdateIncomeInstance({
+    onSuccess: () => {
+      onSuccess()
+      onClose()
+      toast.success(t('income.instanceUpdateSuccess'))
+    },
+    onError: (error) => {
+      toast.error(getErrorMessage(error))
+    }
+  })
+
+  const [name, setName] = useState('')
+  const [amount, setAmount] = useState('')
+  const [expectedDate, setExpectedDate] = useState('')
+  const [accountId, setAccountId] = useState('')
+  const [categoryId, setCategoryId] = useState(NO_CATEGORY_VALUE)
+  const nameInputId = useId()
+  const amountInputId = useId()
+  const expectedDateInputId = useId()
+
+  useEffect(() => {
+    if (!instanceQuery.data) return
+    setName(instanceQuery.data.name)
+    setAmount(String(instanceQuery.data.amount))
+    setExpectedDate(format(instanceQuery.data.expectedDate, 'yyyy-MM-dd'))
+    setAccountId(instanceQuery.data.accountId)
+    setCategoryId(instanceQuery.data.categoryId ?? NO_CATEGORY_VALUE)
+  }, [
+    instanceQuery.data
+  ])
+
+  if (instanceQuery.isLoading || !instanceQuery.data) {
+    return (
+      <div className="p-4">
+        <p className="text-muted-foreground">{t('income.instancesLoading')}</p>
+      </div>
+    )
+  }
+
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    const parsedAmount = Number.parseFloat(amount)
+    if (!name || !accountId || !expectedDate || Number.isNaN(parsedAmount))
+      return
+
+    updateMutation.mutate({
+      id: instanceId,
+      userId,
+      name,
+      amount: parsedAmount,
+      expectedDate: new Date(expectedDate),
+      accountId,
+      categoryId: categoryId === NO_CATEGORY_VALUE ? undefined : categoryId
+    })
+  }
+
+  return (
+    <form
+      onSubmit={handleSubmit}
+      className="space-y-4 p-4"
+    >
+      <div className="space-y-2">
+        <Label htmlFor={nameInputId}>{t('common.name')}</Label>
+        <Input
+          id={nameInputId}
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor={amountInputId}>{t('common.amount')}</Label>
+        <Input
+          id={amountInputId}
+          type="number"
+          step="0.01"
+          min="0"
+          value={amount}
+          onChange={(event) => setAmount(event.target.value)}
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor={expectedDateInputId}>
+          {t('income.instanceExpectedDate')}
+        </Label>
+        <Input
+          id={expectedDateInputId}
+          type="date"
+          value={expectedDate}
+          onChange={(event) => setExpectedDate(event.target.value)}
+        />
+      </div>
+      <div className="space-y-2">
+        <Label>{t('common.account')}</Label>
+        <Select
+          value={accountId}
+          onValueChange={setAccountId}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder={t('forms.selectAccount')} />
+          </SelectTrigger>
+          <SelectContent>
+            {accounts.map((account) => (
+              <SelectItem
+                key={account.id}
+                value={account.id}
+              >
+                {account.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="space-y-2">
+        <Label>{t('common.category')}</Label>
+        <Select
+          value={categoryId}
+          onValueChange={setCategoryId}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder={t('forms.selectCategory')} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={NO_CATEGORY_VALUE}>
+              {t('forms.noCategory')}
+            </SelectItem>
+            {categories.map((category) => (
+              <SelectItem
+                key={category.id}
+                value={category.id}
+              >
+                {category.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="flex justify-end gap-2 pt-2">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onClose}
+        >
+          {t('common.cancel')}
+        </Button>
+        <Button
+          type="submit"
+          disabled={
+            updateMutation.isPending ||
+            !name ||
+            !accountId ||
+            !expectedDate ||
+            !amount
+          }
+        >
+          {updateMutation.isPending ? t('common.saving') : t('common.save')}
+        </Button>
+      </div>
+    </form>
+  )
+}
+
 function IncomePage() {
-	const { t } = useTranslation()
-	const { budgetId: urlBudgetId } = Route.useSearch()
-	const { userId, householdId } = useAuth()
-	const { selectedBudgetId } = useSelectedBudget(userId, householdId)
-	const budgetId = urlBudgetId || selectedBudgetId
+  const { t } = useTranslation()
+  const { userId, householdId } = useAuth()
+  const queryClient = useQueryClient()
+  const { openDrawer, closeDrawer, isOpen } = useDrawer()
+  const { confirm, confirmDialog } = useConfirmDialog()
+  const [isTransactionFormOpen, setIsTransactionFormOpen] = useState(false)
+  const [expandedIncomeIds, setExpandedIncomeIds] = useState<
+    Record<string, boolean>
+  >({})
 
-	const { openDrawer, closeDrawer } = useDrawer()
-	const [includeArchived, setIncludeArchived] = useState(false)
+  useEffect(() => {
+    if (!isOpen) {
+      setIsTransactionFormOpen(false)
+    }
+  }, [
+    isOpen
+  ])
 
-	// Fetch income
-	const incomeQuery = useIncomeList({
-		householdId,
-		budgetId,
-		userId,
-		includeArchived
-	})
+  const incomeQuery = useIncomeList({
+    householdId,
+    userId,
+    includeArchived: true
+  })
 
-	// Fetch accounts for form
-	const accountsQuery = useAccountsList({
-		householdId,
-		userId,
-		budgetId: budgetId,
-		excludeArchived: true // Don't show archived accounts in selection dropdowns
-	})
+  const accountsQuery = useAccountsList({
+    householdId,
+    userId,
+    excludeArchived: true
+  })
+  const selectableAccounts = (accountsQuery.data ?? []).filter(
+    (account) => !account.archived
+  )
 
-	// Fetch categories for form (income categories only)
-	const categoriesQuery = useCategoriesList({
-		householdId,
-		userId,
-		type: 'INCOME'
-	})
+  const categoriesQuery = useCategoriesList({
+    householdId,
+    userId,
+    type: 'INCOME'
+  })
+  const incomeCategories = (categoriesQuery.data ?? []).map((category) => ({
+    ...category,
+    type: 'INCOME'
+  }))
+  const selectableIncomeCategories = incomeCategories.filter(
+    (category) => !category.archived
+  )
 
-	const incomeCategories = (categoriesQuery.data ?? []).map((c) => ({
-		...c,
-		type: 'INCOME'
-	}))
+  const budgetsQuery = useBudgetsList({
+    householdId,
+    userId,
+    enabled: !!householdId && isTransactionFormOpen
+  })
 
-	// Fetch recipients for TransactionForm
-	const { data: recipients } = useRecipientsList({
-		householdId,
-		userId,
-		enabled: !!budgetId
-	})
+  const { data: recipients } = useRecipientsList({
+    householdId,
+    userId,
+    enabled: !!householdId && isTransactionFormOpen
+  })
+  const selectableRecipients = (recipients ?? []).filter(
+    (recipient) => !recipient.archived
+  )
 
-	// Fetch bills for TransactionForm
-	const { data: bills } = useBillsList({
-		budgetId: budgetId || '',
-		userId,
-		enabled: !!budgetId
-	})
+  const createMutation = useCreateIncome({
+    onSuccess: () => {
+      incomeQuery.refetch()
+      closeDrawer()
+      toast.success(t('income.createSuccess'))
+    },
+    onError: (error) => {
+      toast.error(getErrorMessage(error))
+    }
+  })
 
-	// Create mutation
-	const createMutation = useCreateIncome({
-		onSuccess: () => {
-			incomeQuery.refetch()
-			closeDrawer()
-		}
-	})
+  const updateMutation = useUpdateIncome({
+    onSuccess: () => {
+      incomeQuery.refetch()
+      closeDrawer()
+      toast.success(t('income.updateSuccess'))
+    },
+    onError: (error) => {
+      toast.error(getErrorMessage(error))
+    }
+  })
 
-	// Update mutation
-	const updateMutation = useUpdateIncome({
-		onSuccess: () => {
-			incomeQuery.refetch()
-			closeDrawer()
-		}
-	})
+  const deleteMutation = useDeleteIncome({
+    onSuccess: () => {
+      incomeQuery.refetch()
+      toast.success(t('income.deleteSuccess'))
+    },
+    onError: (error) => {
+      toast.error(getErrorMessage(error))
+    }
+  })
 
-	// Delete mutation
-	const deleteMutation = useDeleteIncome({
-		onSuccess: () => {
-			incomeQuery.refetch()
-		}
-	})
+  const archiveMutation = useArchiveIncome({
+    onSuccess: (_data, variables) => {
+      incomeQuery.refetch()
+      toast.success(
+        variables.archived
+          ? t('income.archiveSuccess')
+          : t('income.unarchiveSuccess')
+      )
+    },
+    onError: (error) => {
+      toast.error(getErrorMessage(error))
+    }
+  })
 
-	// Archive mutation
-	const archiveMutation = useArchiveIncome({
-		onSuccess: () => {
-			incomeQuery.refetch()
-		}
-	})
+  const createTransactionMutation = useCreateTransaction({
+    onSuccess: () => {
+      void invalidateByOperation(queryClient, 'listIncomeInstances')
+      void invalidateByOperation(queryClient, 'getIncomeInstance')
+      setIsTransactionFormOpen(false)
+      closeDrawer()
+      toast.success(t('transactions.createSuccess'))
+    },
+    onError: (error) => {
+      toast.error(getErrorMessage(error))
+    }
+  })
 
-	// Create transaction mutation
-	const createTransactionMutation = useCreateTransaction({
-		onSuccess: () => {
-			closeDrawer()
-		}
-	})
+  const incomeSourcesById = useMemo(
+    () =>
+      (incomeQuery.data ?? []).reduce<Record<string, IncomeSource>>(
+        (accumulator, income) => {
+          if (income.incomeSource) {
+            accumulator[income.incomeSource.id] = income.incomeSource
+          }
+          return accumulator
+        },
+        {}
+      ),
+    [
+      incomeQuery.data
+    ]
+  )
 
-	const incomeSourcesById = (incomeQuery.data ?? []).reduce<Record<string, IncomeSource>>(
-		(accumulator, income) => {
-			if (income.incomeSource) {
-				accumulator[income.incomeSource.id] = income.incomeSource
-			}
-			return accumulator
-		},
-		{}
-	)
-	const incomeSources = Object.values(incomeSourcesById).map((incomeSource) => ({
-		id: incomeSource.id,
-		name: incomeSource.name
-	}))
+  const incomeSources = Object.values(incomeSourcesById).map(
+    (incomeSource) => ({
+      id: incomeSource.id,
+      name: incomeSource.name,
+      archived: incomeSource.archived
+    })
+  )
+  const selectableIncomeSources = incomeSources
+    .filter((incomeSource) => !incomeSource.archived)
+    .map((incomeSource) => ({
+      id: incomeSource.id,
+      name: incomeSource.name
+    }))
 
-	const getIncomeSourceName = (income: Income): string => {
-		if (income.incomeSource?.name) return income.incomeSource.name
-		return incomeSourcesById[income.incomeSourceId]?.name ?? ''
-	}
+  const accountsById = useMemo(
+    () =>
+      new Map(
+        (accountsQuery.data ?? []).map((account) => [
+          account.id,
+          {
+            id: account.id,
+            name: account.name,
+            archived: account.archived
+          }
+        ])
+      ),
+    [
+      accountsQuery.data
+    ]
+  )
+  const categoriesById = useMemo(
+    () =>
+      new Map(
+        (categoriesQuery.data ?? []).map((category) => [
+          category.id,
+          {
+            id: category.id,
+            name: category.name,
+            types: category.types,
+            archived: category.archived
+          }
+        ])
+      ),
+    [
+      categoriesQuery.data
+    ]
+  )
 
-	if (!budgetId) {
-		return (
-			<Card>
-				<CardHeader>
-					<CardTitle>{t('budgets.noBudgetSelected')}</CardTitle>
-					<CardDescription>{t('income.selectBudget')}</CardDescription>
-				</CardHeader>
-				<CardContent>
-					<Button asChild>
-						<Link to="/budgets">{t('budgets.goToBudgets')}</Link>
-					</Button>
-				</CardContent>
-			</Card>
-		)
-	}
+  const getIncomeSourceName = (income: NormalizedIncome): string => {
+    if (income.incomeSource?.name) return income.incomeSource.name
+    return incomeSourcesById[income.incomeSourceId]?.name ?? ''
+  }
 
-	const handleCreate = () => {
-		openDrawer(
-			<div className="p-4">
-				<h2 className="text-2xl font-bold mb-4">{t('income.add')}</h2>
-				<p className="text-muted-foreground mb-6">{t('income.createDesc')}</p>
-				{accountsQuery.data && categoriesQuery.data ? (
-					<IncomeForm
-						onSubmit={(data) => {
-							const incomeSourceData = data.incomeSource
-								? typeof data.incomeSource === 'string'
-									? { incomeSourceId: data.incomeSource }
-									: { newIncomeSourceName: data.incomeSource.name }
-								: {}
+  const getRecurrenceLabel = (
+    type: RecurrenceType,
+    customDays?: number | null
+  ) => {
+    switch (type) {
+      case RecurrenceType.NONE:
+        return t('income.oneTime')
+      case RecurrenceType.WEEKLY:
+        return t('income.weekly')
+      case RecurrenceType.MONTHLY:
+        return t('income.monthly')
+      case RecurrenceType.QUARTERLY:
+        return t('income.quarterly')
+      case RecurrenceType.YEARLY:
+        return t('income.yearly')
+      case RecurrenceType.CUSTOM:
+        return t('income.custom', {
+          days: customDays
+        })
+      default:
+        return type
+    }
+  }
 
-							const categoryData =
-								typeof data.category === 'string'
-									? { categoryId: data.category }
-									: {
-											newCategoryName: data.category.name
-										}
+  const toggleExpanded = (incomeId: string) => {
+    setExpandedIncomeIds((current) => ({
+      ...current,
+      [incomeId]: !current[incomeId]
+    }))
+  }
 
-							createMutation.mutate({
-								name: data.name,
-								amount: data.amount,
-								expectedDate: data.expectedDate.toISOString(),
-								accountId: data.accountId,
-								...incomeSourceData,
-								...categoryData,
-								recurrenceType: data.recurrenceType,
-								customIntervalDays: data.customIntervalDays ?? undefined,
-								endDate: data.endDate ? data.endDate.toISOString() : undefined,
-								userId,
-								householdId: householdId!
-							})
-						}}
-						onCancel={closeDrawer}
-						accounts={accountsQuery.data}
-						categories={incomeCategories}
-						incomeSources={incomeSources}
-					/>
-				) : (
-					<div className="flex items-center justify-center p-8">
-						<p className="text-muted-foreground">{t('income.loadingForm')}</p>
-					</div>
-				)}
-			</div>,
-			t('income.add')
-		)
-	}
+  const handleCreate = () => {
+    if (!householdId) return
+    const currentHouseholdId = householdId
+    setIsTransactionFormOpen(false)
+    openDrawer(
+      <div className="p-4">
+        <h2 className="mb-4 text-2xl font-bold">{t('income.add')}</h2>
+        <p className="mb-6 text-muted-foreground">{t('income.createDesc')}</p>
+        {accountsQuery.data && categoriesQuery.data ? (
+          <IncomeForm
+            onSubmit={(data) => {
+              const incomeSourceData = data.incomeSource
+                ? typeof data.incomeSource === 'string'
+                  ? {
+                      incomeSourceId: data.incomeSource
+                    }
+                  : {
+                      newIncomeSourceName: data.incomeSource.name
+                    }
+                : {}
 
-	const handleEdit = (income: any) => {
-		openDrawer(
-			<div className="p-4">
-				<h2 className="text-2xl font-bold mb-4">{t('income.edit')}</h2>
-				<p className="text-muted-foreground mb-6">{t('income.editDesc')}</p>
-				{accountsQuery.data && categoriesQuery.data ? (
-					<IncomeForm
-						defaultValues={{
-							name: income.name,
-							incomeSource: income.incomeSourceId ?? null,
-							amount: income.estimatedAmount,
-							expectedDate: new Date(income.expectedDate),
-							accountId: income.accountId,
-							category: income.categoryId,
-							recurrenceType: income.recurrenceType,
-							customIntervalDays: income.customIntervalDays,
-							endDate: income.endDate ? new Date(income.endDate) : null
-						}}
-						onSubmit={(data) => {
-							const incomeSourceData = data.incomeSource
-								? typeof data.incomeSource === 'string'
-									? { incomeSourceId: data.incomeSource }
-									: { newIncomeSourceName: data.incomeSource.name }
-								: { incomeSourceId: undefined, newIncomeSourceName: undefined }
+              const categoryData =
+                typeof data.category === 'string'
+                  ? {
+                      categoryId: data.category
+                    }
+                  : {
+                      newCategoryName: data.category.name
+                    }
 
-							const categoryData =
-								typeof data.category === 'string'
-									? { categoryId: data.category }
-									: {
-											// The update mutation might not support creation on the fly directly in the same named arg if it expects categoryId to be optional but existing.
-											// However, usually our update mutations mimic create if designed well or we might need to handle it.
-											// Looking at useUpdateIncome hook signature would be best, but let's assume it supports newCategoryName similar to create,
-											// or mapped correctly.
-											// Wait, useUpdateIncome usually takes `id` and partial updates. if we send `newCategoryName` it might not be in the type.
-											// Let's assume for now the backend handles it or we need to check the hook.
-											// But typically for updates we might just swap category. Creating new category on update is rare but possible.
-											// If the user selects "Create new", we should handle it.
-											// Let's pass `newCategoryName` if the mutation supports it.
-											newCategoryName: data.category.name
-										}
+              createMutation.mutate({
+                name: data.name,
+                amount: data.amount,
+                expectedDate: data.expectedDate,
+                accountId: data.accountId,
+                ...incomeSourceData,
+                ...categoryData,
+                recurrenceType: data.recurrenceType,
+                customIntervalDays: data.customIntervalDays ?? undefined,
+                endDate: data.endDate ?? undefined,
+                userId,
+                householdId: currentHouseholdId
+              })
+            }}
+            onCancel={closeDrawer}
+            accounts={selectableAccounts}
+            categories={selectableIncomeCategories}
+            incomeSources={selectableIncomeSources}
+          />
+        ) : (
+          <div className="flex items-center justify-center p-8">
+            <p className="text-muted-foreground">{t('income.loadingForm')}</p>
+          </div>
+        )}
+      </div>,
+      t('income.add')
+    )
+  }
 
-							updateMutation.mutate({
-								id: income.id,
-								userId,
-								name: data.name,
-								amount: data.amount,
-								expectedDate: data.expectedDate.toISOString(),
-								accountId: data.accountId,
-								...incomeSourceData,
-								...categoryData,
-								recurrenceType: data.recurrenceType,
-								customIntervalDays: data.customIntervalDays ?? undefined,
-								endDate: data.endDate ? data.endDate.toISOString() : undefined
-							})
-						}}
-						onCancel={closeDrawer}
-						accounts={accountsQuery.data}
-						categories={incomeCategories}
-						incomeSources={incomeSources}
-					/>
-				) : (
-					<div className="flex items-center justify-center p-8">
-						<p className="text-muted-foreground">{t('income.loadingForm')}</p>
-					</div>
-				)}
-			</div>,
-			t('income.edit')
-		)
-	}
+  const handleEdit = (income: NormalizedIncome) => {
+    setIsTransactionFormOpen(false)
+    openDrawer(
+      <div className="p-4">
+        <h2 className="mb-4 text-2xl font-bold">{t('income.edit')}</h2>
+        <p className="mb-6 text-muted-foreground">{t('income.editDesc')}</p>
+        {accountsQuery.data && categoriesQuery.data ? (
+          <IncomeForm
+            defaultValues={{
+              name: income.name,
+              incomeSource: income.incomeSourceId ?? null,
+              amount: income.estimatedAmount,
+              expectedDate: income.expectedDate,
+              accountId: income.accountId,
+              category: income.categoryId,
+              recurrenceType: income.recurrenceType,
+              customIntervalDays: income.customIntervalDays,
+              endDate: income.endDate ?? null
+            }}
+            onSubmit={(data) => {
+              const incomeSourceData = data.incomeSource
+                ? typeof data.incomeSource === 'string'
+                  ? {
+                      incomeSourceId: data.incomeSource
+                    }
+                  : {
+                      newIncomeSourceName: data.incomeSource.name
+                    }
+                : {
+                    incomeSourceId: undefined,
+                    newIncomeSourceName: undefined
+                  }
 
-	const handleDelete = (id: string) => {
-		if (confirm(t('income.deleteConfirm'))) {
-			deleteMutation.mutate({ id, userId })
-		}
-	}
+              const categoryData =
+                typeof data.category === 'string'
+                  ? {
+                      categoryId: data.category
+                    }
+                  : {
+                      newCategoryName: data.category.name
+                    }
 
-	const handleArchive = (id: string, isArchived: boolean) => {
-		archiveMutation.mutate({ id, isArchived, userId })
-	}
+              updateMutation.mutate({
+                id: income.id,
+                userId,
+                name: data.name,
+                amount: data.amount,
+                expectedDate: data.expectedDate,
+                accountId: data.accountId,
+                ...incomeSourceData,
+                ...categoryData,
+                recurrenceType: data.recurrenceType,
+                customIntervalDays: data.customIntervalDays ?? undefined,
+                endDate: data.endDate ?? undefined
+              })
+            }}
+            onCancel={closeDrawer}
+            accounts={selectableAccounts}
+            categories={incomeCategories}
+            incomeSources={incomeSources.map((incomeSource) => ({
+              id: incomeSource.id,
+              name: incomeSource.name
+            }))}
+          />
+        ) : (
+          <div className="flex items-center justify-center p-8">
+            <p className="text-muted-foreground">{t('income.loadingForm')}</p>
+          </div>
+        )}
+      </div>,
+      t('income.edit')
+    )
+  }
 
-	const handleCreateTransactionClick = (income: any) => {
-		openDrawer(
-			<div className="p-4">
-				<h2 className="text-2xl font-bold mb-4">
-					{t('income.createTransaction')}
-				</h2>
-				<p className="text-muted-foreground mb-6">
-					{t('income.createTransactionDesc')}
-				</p>
-				{accountsQuery.data && categoriesQuery.data ? (
-					<TransactionForm
-						categories={categoriesQuery.data}
-						accounts={accountsQuery.data}
-						recipients={recipients}
-						bills={(bills ?? []).map((bill) => ({
-							id: bill.id,
-							name: bill.name,
-							recipient: bill.recipient?.name ?? ''
-						}))}
-						defaultValues={{
-							name: income.name,
-							amount: income.estimatedAmount,
-							date: new Date(),
-							categoryId: income.categoryId,
-							accountId: income.accountId,
-							transactionType: 'INCOME',
-							notes: `Income from ${getIncomeSourceName(income)}`
-						}}
-						onSubmit={(data) => {
-							// Transform category field
-							const categoryData =
-								typeof data.category === 'string'
-									? { categoryId: data.category }
-									: data.category
-										? {
-											newCategory: {
-												name: data.category.name,
-												type: data.transactionType
-											}
-										}
-										: {}
+  const handleEditInstance = (instanceId: string) => {
+    openDrawer(
+      <EditIncomeInstanceDrawerContent
+        instanceId={instanceId}
+        userId={userId}
+        accounts={selectableAccounts.map((account) => ({
+          id: account.id,
+          name: account.name,
+          archived: account.archived
+        }))}
+        categories={selectableIncomeCategories.map((category) => ({
+          id: category.id,
+          name: category.name,
+          types: category.types,
+          archived: category.archived
+        }))}
+        onClose={closeDrawer}
+        onSuccess={() => {
+          void invalidateByOperation(queryClient, 'listIncomeInstances')
+          void invalidateByOperation(queryClient, 'getIncomeInstance')
+        }}
+      />,
+      t('income.editInstance')
+    )
+  }
 
-							// Transform recipient field
-							const recipientData = data.recipient
-								? typeof data.recipient === 'string'
-									? { recipientId: data.recipient }
-									: { newRecipientName: data.recipient.name }
-								: {}
+  const handleDelete = async (id: string) => {
+    const isConfirmed = await confirm({
+      description: t('income.deleteConfirm'),
+      confirmText: t('common.delete')
+    })
+    if (!isConfirmed) return
+    deleteMutation.mutate({
+      id,
+      userId
+    })
+  }
 
-							createTransactionMutation.mutate({
-								name: data.name,
-								amount: data.amount,
-								date: data.date.toISOString(),
-								accountId: data.accountId,
-								notes: data.notes,
-								...categoryData,
-								...recipientData,
-								billId: data.billId || undefined,
-								budgetId,
-								userId,
-								incomeId: income.id
-							})
-						}}
-						onCancel={closeDrawer}
-						submitLabel={t('income.createTransactionAction')}
-					/>
-				) : (
-					<div className="flex items-center justify-center p-8">
-						<p className="text-muted-foreground">{t('income.loadingForm')}</p>
-					</div>
-				)}
-			</div>,
-			t('income.createTransactionAction')
-		)
-	}
+  const handleArchive = (id: string, archived: boolean) => {
+    archiveMutation.mutate({
+      id,
+      archived,
+      userId
+    })
+  }
 
-	const getRecurrenceLabel = (
-		type: RecurrenceType,
-		customDays?: number | null
-	) => {
-		switch (type) {
-			case RecurrenceType.NONE:
-				return t('income.oneTime')
-			case RecurrenceType.WEEKLY:
-				return t('income.weekly')
-			case RecurrenceType.MONTHLY:
-				return t('income.monthly')
-			case RecurrenceType.QUARTERLY:
-				return t('income.quarterly')
-			case RecurrenceType.YEARLY:
-				return t('income.yearly')
-			case RecurrenceType.CUSTOM:
-				return t('income.custom', { days: customDays })
-			default:
-				return type
-		}
-	}
+  const handleRecordIncome = (
+    income: NormalizedIncome,
+    instance: NormalizedIncomeInstance
+  ) => {
+    setIsTransactionFormOpen(true)
+    openDrawer(
+      <div className="p-4">
+        <h2 className="mb-4 text-2xl font-bold">{t('income.recordIncome')}</h2>
+        <p className="mb-6 text-muted-foreground">
+          {t('income.recordIncomeDesc')}
+        </p>
+        {accountsQuery.data && categoriesQuery.data ? (
+          <TransactionForm
+            categories={selectableIncomeCategories}
+            accounts={selectableAccounts}
+            budgets={budgetsQuery.data ?? []}
+            recipients={selectableRecipients}
+            defaultValues={{
+              name: instance.name,
+              amount: instance.amount,
+              date: instance.expectedDate,
+              categoryId: instance.categoryId ?? undefined,
+              accountId: instance.accountId,
+              transactionType: 'INCOME',
+              notes: t('income.recordInstanceNote', {
+                source: getIncomeSourceName(income)
+              })
+            }}
+            onSubmit={(data) => {
+              const categoryData =
+                typeof data.category === 'string'
+                  ? {
+                      categoryId: data.category
+                    }
+                  : data.category
+                    ? {
+                        newCategory: {
+                          name: data.category.name,
+                          type: TransactionType.INCOME
+                        }
+                      }
+                    : {}
 
-	return (
-		<div className="space-y-6">
-			{/* Toolbar */}
-			<div className="flex items-center justify-end gap-2">
-				<Button
-					variant="outline"
-					onClick={() => setIncludeArchived(!includeArchived)}
-				>
-					{includeArchived
-						? t('income.hideArchived')
-						: t('income.showArchived')}
-				</Button>
-				<Button onClick={handleCreate}>
-					<Plus className="mr-2 h-4 w-4" />
-					{t('income.add')}
-				</Button>
-			</div>
+              const recipientData = data.recipient
+                ? typeof data.recipient === 'string'
+                  ? {
+                      recipientId: data.recipient
+                    }
+                  : {
+                      newRecipientName: data.recipient.name
+                    }
+                : {}
 
-			{incomeQuery.isLoading ? (
-				<div className="flex items-center justify-center p-8">
-					<p className="text-muted-foreground">{t('income.loading')}</p>
-				</div>
-			) : !incomeQuery.data || incomeQuery.data.length === 0 ? (
-				<div className="flex flex-col items-center justify-center p-12 border rounded-lg bg-card text-card-foreground shadow-sm">
-					<div className="bg-primary/10 p-4 rounded-full mb-4">
-						<Wallet className="h-8 w-8 text-primary" />
-					</div>
-					<h3 className="text-lg font-semibold mb-2">{t('nav.income')}</h3>
-					<p className="text-muted-foreground text-center max-w-sm mb-6">
-						{t('income.noIncome')}
-					</p>
-					<Button onClick={handleCreate}>
-						<Plus className="mr-2 h-4 w-4" />
-						{t('income.add')}
-					</Button>
-				</div>
-			) : (
-				<Card>
-					<CardContent>
-						<Table>
-							<TableHeader>
-								<TableRow>
-									<TableHead>{t('common.name')}</TableHead>
-									<TableHead>{t('income.source')}</TableHead>
-									<TableHead>{t('common.account')}</TableHead>
-									<TableHead>{t('common.amount')}</TableHead>
-									<TableHead>{t('recurrence.label')}</TableHead>
-									<TableHead>{t('income.nextExpected')}</TableHead>
-									<TableHead>{t('common.category')}</TableHead>
-									<TableHead className="text-right">
-										{t('common.actions')}
-									</TableHead>
-								</TableRow>
-							</TableHeader>
-							<TableBody>
-								{incomeQuery.data.map((income) => (
-									<TableRow
-										key={income.id}
-										className={income.isArchived ? 'opacity-50' : ''}
-									>
-										<TableCell className="font-medium">
-											{income.isArchived && (
-												<Badge variant="secondary" className="mr-2">
-													{t('income.archived')}
-												</Badge>
-											)}
-											{income.name}
-										</TableCell>
-										<TableCell>{getIncomeSourceName(income)}</TableCell>
-										<TableCell>
-											<div className="flex items-center gap-2">
-												{income.account?.name ?? '-'}
-												{/* @ts-ignore - isArchived may not be in type definition yet but is in API response */}
-												{income.account?.isArchived && (
-													<TooltipProvider>
-														<Tooltip>
-															<TooltipTrigger>
-																<AlertCircle className="h-4 w-4 text-yellow-500" />
-															</TooltipTrigger>
-															<TooltipContent>
-																<p>{t('income.archivedAccountWarning')}</p>
-															</TooltipContent>
-														</Tooltip>
-													</TooltipProvider>
-												)}
-											</div>
-										</TableCell>
-										<TableCell>
-											{new Intl.NumberFormat('sv-SE', {
-												style: 'currency',
-												currency: 'SEK'
-											}).format(income.estimatedAmount)}
-										</TableCell>
-										<TableCell>
-											{getRecurrenceLabel(
-												income.recurrenceType,
-												income.customIntervalDays
-											)}
-										</TableCell>
-										<TableCell>
-											{format(new Date(income.expectedDate), 'MMM d, yyyy')}
-										</TableCell>
-										<TableCell>{income.category?.name ?? '-'}</TableCell>
-										<TableCell className="text-right">
-											<DropdownMenu>
-												<DropdownMenuTrigger asChild>
-													<Button variant="ghost" size="sm">
-														<MoreVerticalIcon className="h-4 w-4" />
-													</Button>
-												</DropdownMenuTrigger>
-												<DropdownMenuContent align="end">
-													<DropdownMenuItem
-														onClick={() => handleCreateTransactionClick(income)}
-													>
-														<PlusCircle className="mr-2 h-4 w-4" />
-														{t('income.createTransactionAction')}
-													</DropdownMenuItem>
-													<DropdownMenuSeparator />
-													<DropdownMenuItem onClick={() => handleEdit(income)}>
-														<Pencil className="mr-2 h-4 w-4" />
-														{t('common.edit')}
-													</DropdownMenuItem>
-													<DropdownMenuItem
-														onClick={() =>
-															income.isArchived
-																? handleArchive(income.id, false)
-																: handleArchive(income.id, true)
-														}
-													>
-														{income.isArchived ? (
-															<>
-																<ArchiveRestore className="mr-2 h-4 w-4" />
-																{t('common.unarchive')}
-															</>
-														) : (
-															<>
-																<Archive className="mr-2 h-4 w-4" />
-																{t('common.archive')}
-															</>
-														)}
-													</DropdownMenuItem>
-													<DropdownMenuSeparator />
-													<DropdownMenuItem
-														onClick={() => handleDelete(income.id)}
-														className="text-destructive"
-													>
-														<Trash2 className="mr-2 h-4 w-4" />
-														{t('common.delete')}
-													</DropdownMenuItem>
-												</DropdownMenuContent>
-											</DropdownMenu>
-										</TableCell>
-									</TableRow>
-								))}
-							</TableBody>
-						</Table>
-					</CardContent>
-				</Card>
-			)}
-		</div>
-	)
+              createTransactionMutation.mutate({
+                type: TransactionType.INCOME,
+                name: data.name,
+                amount: data.amount,
+                date: data.date,
+                accountId: data.accountId,
+                notes: data.notes,
+                instanceId: instance.id,
+                budgetId: data.budgetId || undefined,
+                userId,
+                ...categoryData,
+                ...recipientData
+              })
+            }}
+            onCancel={() => {
+              setIsTransactionFormOpen(false)
+              closeDrawer()
+            }}
+            submitLabel={t('income.recordIncome')}
+          />
+        ) : (
+          <div className="flex items-center justify-center p-8">
+            <p className="text-muted-foreground">{t('income.loadingForm')}</p>
+          </div>
+        )}
+      </div>,
+      t('income.recordIncome')
+    )
+  }
+
+  return (
+    <>
+      <div className="space-y-6">
+        <div className="flex items-center justify-end gap-2">
+          <Button onClick={handleCreate}>
+            <Plus className="mr-2 h-4 w-4" />
+            {t('income.add')}
+          </Button>
+        </div>
+
+        {incomeQuery.isLoading ? (
+          <div className="flex items-center justify-center p-8">
+            <p className="text-muted-foreground">{t('income.loading')}</p>
+          </div>
+        ) : !(incomeQuery.data && incomeQuery.data.length > 0) ? (
+          <div className="flex flex-col items-center justify-center rounded-lg border bg-card p-12 text-card-foreground shadow-sm">
+            <div className="mb-4 rounded-full bg-primary/10 p-4">
+              <Wallet className="h-8 w-8 text-primary" />
+            </div>
+            <h3 className="mb-2 text-lg font-semibold">{t('nav.income')}</h3>
+            <p className="mb-6 max-w-sm text-center text-muted-foreground">
+              {t('income.noIncome')}
+            </p>
+            <Button onClick={handleCreate}>
+              <Plus className="mr-2 h-4 w-4" />
+              {t('income.add')}
+            </Button>
+          </div>
+        ) : (
+          <Card>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-10" />
+                    <TableHead>{t('common.name')}</TableHead>
+                    <TableHead>{t('income.source')}</TableHead>
+                    <TableHead>{t('common.account')}</TableHead>
+                    <TableHead>{t('common.amount')}</TableHead>
+                    <TableHead>{t('recurrence.label')}</TableHead>
+                    <TableHead>{t('income.nextExpected')}</TableHead>
+                    <TableHead>{t('common.category')}</TableHead>
+                    <TableHead className="text-right">
+                      {t('common.actions')}
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {incomeQuery.data?.map((income) => {
+                    const isExpanded = !!expandedIncomeIds[income.id]
+
+                    return (
+                      <Fragment key={income.id}>
+                        <TableRow
+                          className={income.archived ? 'opacity-50' : ''}
+                        >
+                          <TableCell>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => toggleExpanded(income.id)}
+                              aria-label={t('income.toggleInstances')}
+                            >
+                              {isExpanded ? (
+                                <ChevronDown className="h-4 w-4" />
+                              ) : (
+                                <ChevronRight className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </TableCell>
+                          <TableCell className="font-medium">
+                            {income.archived ? (
+                              <Badge
+                                variant="secondary"
+                                className="mr-2"
+                              >
+                                {t('income.archived')}
+                              </Badge>
+                            ) : null}
+                            {income.name}
+                          </TableCell>
+                          <TableCell>{getIncomeSourceName(income)}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              {income.account?.name ?? '-'}
+                              {income.account?.archived ? (
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <AlertCircle className="h-4 w-4 text-yellow-500" />
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>
+                                        {t('income.archivedAccountWarning')}
+                                      </p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              ) : null}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {formatCurrency(income.estimatedAmount)}
+                          </TableCell>
+                          <TableCell>
+                            {getRecurrenceLabel(
+                              income.recurrenceType,
+                              income.customIntervalDays
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {format(income.expectedDate, 'MMM d, yyyy')}
+                          </TableCell>
+                          <TableCell>{income.category?.name ?? '-'}</TableCell>
+                          <TableCell className="text-right">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                >
+                                  <MoreVerticalIcon className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem
+                                  onClick={() => toggleExpanded(income.id)}
+                                >
+                                  {isExpanded ? (
+                                    <ChevronDown className="mr-2 h-4 w-4" />
+                                  ) : (
+                                    <ChevronRight className="mr-2 h-4 w-4" />
+                                  )}
+                                  {t('income.viewInstances')}
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  onClick={() => handleEdit(income)}
+                                >
+                                  <Pencil className="mr-2 h-4 w-4" />
+                                  {t('common.edit')}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    income.archived
+                                      ? handleArchive(income.id, false)
+                                      : handleArchive(income.id, true)
+                                  }
+                                >
+                                  {income.archived ? (
+                                    <>
+                                      <ArchiveRestore className="mr-2 h-4 w-4" />
+                                      {t('common.unarchive')}
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Archive className="mr-2 h-4 w-4" />
+                                      {t('common.archive')}
+                                    </>
+                                  )}
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  onClick={() => handleDelete(income.id)}
+                                  className="text-destructive"
+                                >
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  {t('common.delete')}
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                        {isExpanded ? (
+                          <TableRow>
+                            <TableCell
+                              colSpan={9}
+                              className="bg-muted/10"
+                            >
+                              <div className="space-y-3 py-2">
+                                <div className="flex items-center justify-between">
+                                  <div>
+                                    <p className="font-medium">
+                                      {t('income.instancesSectionTitle')}
+                                    </p>
+                                    <p className="text-sm text-muted-foreground">
+                                      {t('income.instancesSectionDescription')}
+                                    </p>
+                                  </div>
+                                </div>
+                                <IncomeInstancesSection
+                                  income={income}
+                                  expanded={isExpanded}
+                                  userId={userId}
+                                  accountsById={accountsById}
+                                  categoriesById={categoriesById}
+                                  onEditInstance={handleEditInstance}
+                                  onRecordInstance={handleRecordIncome}
+                                />
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ) : null}
+                      </Fragment>
+                    )
+                  })}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+      {confirmDialog}
+    </>
+  )
 }

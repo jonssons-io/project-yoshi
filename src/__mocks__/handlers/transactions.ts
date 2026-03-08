@@ -1,132 +1,358 @@
 import { HttpResponse, http } from 'msw'
 import {
-	categories,
-	nextId,
-	nowIso,
-	paginate,
-	readJson,
-	transactions
+  accounts,
+  bills,
+  billInstances,
+  budgets,
+  categories,
+  households,
+  incomes,
+  incomeInstances,
+  incomeSources,
+  nextId,
+  nowIso,
+  paginate,
+  readJson,
+  recipients,
+  transactions
 } from '../data'
 
 const BASE = '/api/v1'
 
+function toRelationRef(
+  entity?: {
+    id: string
+    name?: string | null
+  } | null
+) {
+  return entity
+    ? {
+        id: entity.id,
+        name: entity.name ?? null
+      }
+    : null
+}
+
+const enrichTransaction = (transaction: (typeof transactions)[number]) => {
+  const household = households.find(
+    (item) => item.id === transaction.householdId
+  )
+  const account = accounts.find((item) => item.id === transaction.accountId)
+  const category = transaction.categoryId
+    ? categories.find((item) => item.id === transaction.categoryId)
+    : null
+  const recipient = transaction.recipientId
+    ? recipients.find((item) => item.id === transaction.recipientId)
+    : null
+  const budget = transaction.budgetId
+    ? budgets.find((item) => item.id === transaction.budgetId)
+    : null
+  const transferToAccount = transaction.transferToAccountId
+    ? accounts.find((item) => item.id === transaction.transferToAccountId)
+    : null
+  const billInstance =
+    (transaction.instanceId
+      ? billInstances.find((item) => item.id === transaction.instanceId)
+      : undefined) ??
+    billInstances.find((item) => item.transactionId === transaction.id)
+  const incomeInstance =
+    (transaction.instanceId
+      ? incomeInstances.find((item) => item.id === transaction.instanceId)
+      : undefined) ??
+    incomeInstances.find((item) => item.transactionId === transaction.id)
+  const bill = billInstance?.billId
+    ? bills.find((item) => item.id === billInstance.billId)
+    : null
+  const income = incomeInstance?.incomeId
+    ? incomes.find((item) => item.id === incomeInstance.incomeId)
+    : null
+  const incomeSourceId =
+    incomeInstance?.incomeSourceId ?? income?.incomeSourceId ?? null
+  const incomeSource = incomeSourceId
+    ? incomeSources.find((item) => item.id === incomeSourceId)
+    : null
+
+  return {
+    id: transaction.id,
+    name: transaction.name,
+    amount: transaction.amount,
+    date: transaction.date,
+    type: transaction.type,
+    status: transaction.status,
+    notes: transaction.notes ?? null,
+    household: toRelationRef(household),
+    account: toRelationRef(account),
+    category: toRelationRef(category),
+    transferToAccount: toRelationRef(transferToAccount),
+    budget: toRelationRef(budget),
+    billInstance: toRelationRef(
+      billInstance
+        ? {
+            id: billInstance.id,
+            name: billInstance.name
+          }
+        : null
+    ),
+    bill: toRelationRef(bill),
+    incomeInstance: toRelationRef(
+      incomeInstance
+        ? {
+            id: incomeInstance.id,
+            name: incomeInstance.name
+          }
+        : null
+    ),
+    income: toRelationRef(income),
+    incomeSource: toRelationRef(incomeSource),
+    recipient: toRelationRef(recipient),
+    createdAt: transaction.createdAt,
+    splits: transaction.splits
+  }
+}
+
 export const transactionHandlers = [
-	http.get(`${BASE}/transactions`, ({ request }) => {
-		const url = new URL(request.url)
-		const budgetId = url.searchParams.get('budgetId')
-		const accountId = url.searchParams.get('accountId')
-		const filtered = transactions.filter((item) => {
-			if (budgetId && item.budgetId !== budgetId) return false
-			if (accountId && item.accountId !== accountId) return false
-			return true
-		})
-		return HttpResponse.json(
-			paginate(
-				filtered,
-				url.searchParams.get('limit'),
-				url.searchParams.get('offset')
-			)
-		)
-	}),
+  http.get(`${BASE}/transactions`, ({ request }) => {
+    const url = new URL(request.url)
+    const householdId = url.searchParams.get('householdId')
+    const budgetId = url.searchParams.get('budgetId')
+    const accountId = url.searchParams.get('accountId')
+    const type = url.searchParams.get('type')
+    const billInstanceId = url.searchParams.get('billInstanceId')
+    const filtered = transactions.filter((item) => {
+      if (householdId && item.householdId !== householdId) return false
+      if (budgetId && item.budgetId !== budgetId) return false
+      if (accountId && item.accountId !== accountId) return false
+      if (type && item.type !== type) return false
+      if (billInstanceId && item.instanceId !== billInstanceId) return false
+      return true
+    })
+    return HttpResponse.json(
+      paginate(
+        filtered.map(enrichTransaction),
+        url.searchParams.get('limit'),
+        url.searchParams.get('offset')
+      )
+    )
+  }),
 
-	http.get(`${BASE}/transactions/grouped-by-category`, ({ request }) => {
-		const url = new URL(request.url)
-		const budgetId = url.searchParams.get('budgetId')
-		const filtered = transactions.filter((item) =>
-			budgetId ? item.budgetId === budgetId : true
-		)
-		const grouped = filtered.reduce<Record<string, number>>((acc, item) => {
-			const categoryName =
-				categories.find((category) => category.id === item.categoryId)?.name ??
-				'Uncategorized'
-			acc[categoryName] = (acc[categoryName] ?? 0) + item.amount
-			return acc
-		}, {})
-		return HttpResponse.json(
-			Object.entries(grouped).map(([name, total]) => ({ name, total }))
-		)
-	}),
+  http.get(`${BASE}/transactions/grouped-by-category`, ({ request }) => {
+    const url = new URL(request.url)
+    const budgetId = url.searchParams.get('budgetId')
+    const filtered = transactions.filter((item) =>
+      budgetId ? item.budgetId === budgetId : true
+    )
+    const grouped = filtered.reduce<Record<string, number>>((acc, item) => {
+      const categoryName =
+        categories.find((category) => category.id === item.categoryId)?.name ??
+        'Uncategorized'
+      acc[categoryName] = (acc[categoryName] ?? 0) + item.amount
+      return acc
+    }, {})
+    return HttpResponse.json(
+      Object.entries(grouped).map(([name, total]) => ({
+        name,
+        total
+      }))
+    )
+  }),
 
-	http.post(`${BASE}/transactions`, async ({ request }) => {
-		const body = await readJson<
-			Partial<{
-				budgetId: string
-				accountId: string
-				categoryId: string
-				recipientId: string
-				billId: string
-				amount: number
-				date: string
-				note: string
-			}>
-		>(request)
-		const transaction = {
-			id: nextId('txn'),
-			budgetId: body.budgetId ?? 'budget_1',
-			accountId: body.accountId ?? 'acc_1',
-			categoryId: body.categoryId ?? null,
-			recipientId: body.recipientId ?? null,
-			billId: body.billId ?? null,
-			amount: body.amount ?? 0,
-			date: body.date ?? nowIso().slice(0, 10),
-			note: body.note ?? '',
-			createdAt: nowIso()
-		}
-		transactions.push(transaction)
-		return HttpResponse.json(transaction, { status: 201 })
-	}),
+  http.post(`${BASE}/transactions`, async ({ request }) => {
+    const body =
+      await readJson<
+        Partial<{
+          type: 'EXPENSE' | 'INCOME' | 'TRANSFER'
+          name: string
+          budgetId: string
+          accountId: string
+          categoryId: string
+          newCategory: {
+            name: string
+            type: 'EXPENSE' | 'INCOME' | 'TRANSFER'
+          }
+          recipientId: string
+          newRecipientName: string
+          transferToAccountId: string
+          instanceId: string
+          splits: Array<{
+            subtitle: string
+            amount: number
+            categoryId: string
+            budgetId?: string
+          }>
+          amount: number
+          date: string
+          notes: string
+        }>
+      >(request)
+    const account = accounts.find((item) => item.id === body.accountId)
+    const createdCategory =
+      body.newCategory && body.newCategory.type !== 'TRANSFER'
+        ? {
+            id: nextId('cat'),
+            householdId: account?.householdId ?? 'hh_1',
+            name: body.newCategory.name,
+            types: [
+              body.newCategory.type.toLowerCase()
+            ],
+            createdAt: nowIso()
+          }
+        : null
+    if (createdCategory) {
+      categories.push(createdCategory)
+    }
+    const createdRecipient = body.newRecipientName
+      ? {
+          id: nextId('rec'),
+          householdId: account?.householdId ?? 'hh_1',
+          name: body.newRecipientName,
+          archived: false,
+          createdAt: nowIso()
+        }
+      : null
+    if (createdRecipient) {
+      recipients.push(createdRecipient)
+    }
+    const transaction = {
+      id: nextId('txn'),
+      name: body.name ?? 'Transaction',
+      householdId: account?.householdId ?? 'hh_1',
+      type: body.type ?? 'EXPENSE',
+      status: 'EFFECTIVE' as const,
+      budgetId: body.budgetId ?? null,
+      accountId: body.accountId ?? 'acc_1',
+      categoryId: body.categoryId ?? createdCategory?.id ?? null,
+      recipientId: body.recipientId ?? createdRecipient?.id ?? null,
+      transferToAccountId: body.transferToAccountId ?? null,
+      instanceId: body.instanceId ?? null,
+      splits: body.splits ?? undefined,
+      amount: body.amount ?? 0,
+      date: body.date ?? nowIso().slice(0, 10),
+      notes: body.notes ?? '',
+      createdAt: nowIso()
+    }
+    transactions.push(transaction)
+    if (transaction.instanceId) {
+      const billInstanceIndex = billInstances.findIndex(
+        (item) => item.id === transaction.instanceId
+      )
+      if (billInstanceIndex !== -1) {
+        billInstances[billInstanceIndex] = {
+          ...billInstances[billInstanceIndex],
+          transactionId: transaction.id,
+          status: 'HANDLED'
+        }
+      }
+      const incomeInstanceIndex = incomeInstances.findIndex(
+        (item) => item.id === transaction.instanceId
+      )
+      if (incomeInstanceIndex !== -1) {
+        incomeInstances[incomeInstanceIndex] = {
+          ...incomeInstances[incomeInstanceIndex],
+          transactionId: transaction.id,
+          status: 'HANDLED'
+        }
+      }
+    }
+    return HttpResponse.json(enrichTransaction(transaction), {
+      status: 201
+    })
+  }),
 
-	http.get(`${BASE}/transactions/:transactionId`, ({ params }) => {
-		const transaction = transactions.find((item) => item.id === params.transactionId)
-		if (!transaction) {
-			return HttpResponse.json(
-				{ error: { code: 'NOT_FOUND', message: 'Transaction not found' } },
-				{ status: 404 }
-			)
-		}
-		return HttpResponse.json(transaction)
-	}),
+  http.get(`${BASE}/transactions/:transactionId`, ({ params }) => {
+    const transaction = transactions.find(
+      (item) => item.id === params.transactionId
+    )
+    if (!transaction) {
+      return HttpResponse.json(
+        {
+          error: {
+            code: 'NOT_FOUND',
+            message: 'Transaction not found'
+          }
+        },
+        {
+          status: 404
+        }
+      )
+    }
+    return HttpResponse.json(enrichTransaction(transaction))
+  }),
 
-	http.patch(`${BASE}/transactions/:transactionId`, async ({ params, request }) => {
-		const index = transactions.findIndex((item) => item.id === params.transactionId)
-		if (index === -1) {
-			return HttpResponse.json(
-				{ error: { code: 'NOT_FOUND', message: 'Transaction not found' } },
-				{ status: 404 }
-			)
-		}
-		const body = await readJson<Record<string, unknown>>(request)
-		transactions[index] = { ...transactions[index], ...body }
-		return HttpResponse.json(transactions[index])
-	}),
+  http.patch(
+    `${BASE}/transactions/:transactionId`,
+    async ({ params, request }) => {
+      const index = transactions.findIndex(
+        (item) => item.id === params.transactionId
+      )
+      if (index === -1) {
+        return HttpResponse.json(
+          {
+            error: {
+              code: 'NOT_FOUND',
+              message: 'Transaction not found'
+            }
+          },
+          {
+            status: 404
+          }
+        )
+      }
+      const body = await readJson<Record<string, unknown>>(request)
+      transactions[index] = {
+        ...transactions[index],
+        ...body
+      }
+      return HttpResponse.json(enrichTransaction(transactions[index]))
+    }
+  ),
 
-	http.delete(`${BASE}/transactions/:transactionId`, ({ params }) => {
-		const index = transactions.findIndex((item) => item.id === params.transactionId)
-		if (index === -1) {
-			return HttpResponse.json(
-				{ error: { code: 'NOT_FOUND', message: 'Transaction not found' } },
-				{ status: 404 }
-			)
-		}
-		transactions.splice(index, 1)
-		return HttpResponse.json({ success: true })
-	}),
+  http.delete(`${BASE}/transactions/:transactionId`, ({ params }) => {
+    const index = transactions.findIndex(
+      (item) => item.id === params.transactionId
+    )
+    if (index === -1) {
+      return HttpResponse.json(
+        {
+          error: {
+            code: 'NOT_FOUND',
+            message: 'Transaction not found'
+          }
+        },
+        {
+          status: 404
+        }
+      )
+    }
+    transactions.splice(index, 1)
+    return HttpResponse.json({
+      success: true
+    })
+  }),
 
-	http.post(`${BASE}/transactions/:transactionId/clone`, ({ params }) => {
-		const source = transactions.find((item) => item.id === params.transactionId)
-		if (!source) {
-			return HttpResponse.json(
-				{ error: { code: 'NOT_FOUND', message: 'Transaction not found' } },
-				{ status: 404 }
-			)
-		}
-		const clone = {
-			...source,
-			id: nextId('txn'),
-			note: `${source.note} (copy)`,
-			createdAt: nowIso()
-		}
-		transactions.push(clone)
-		return HttpResponse.json(clone, { status: 201 })
-	})
+  http.post(`${BASE}/transactions/:transactionId/clone`, ({ params }) => {
+    const source = transactions.find((item) => item.id === params.transactionId)
+    if (!source) {
+      return HttpResponse.json(
+        {
+          error: {
+            code: 'NOT_FOUND',
+            message: 'Transaction not found'
+          }
+        },
+        {
+          status: 404
+        }
+      )
+    }
+    const clone = {
+      ...source,
+      id: nextId('txn'),
+      notes: `${source.notes ?? ''} (copy)`.trim(),
+      createdAt: nowIso()
+    }
+    transactions.push(clone)
+    return HttpResponse.json(enrichTransaction(clone), {
+      status: 201
+    })
+  })
 ]

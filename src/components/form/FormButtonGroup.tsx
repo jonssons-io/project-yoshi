@@ -16,74 +16,77 @@ import { CancelButton, type CancelButtonProps } from './CancelButton'
 import { DeleteButton, type DeleteButtonProps } from './DeleteButton'
 
 export interface FormButtonGroupProps {
-	/**
-	 * Callback when delete is clicked
-	 */
-	onDelete?: DeleteButtonProps['onDelete']
+  /**
+   * Callback when delete is clicked
+   */
+  onDelete?: DeleteButtonProps['onDelete']
 
-	/**
-	 * Callback when cancel is clicked
-	 */
-	onCancel?: CancelButtonProps['onCancel']
+  /**
+   * Callback when cancel is clicked
+   */
+  onCancel?: CancelButtonProps['onCancel']
 
-	/**
-	 * Text for the submit button
-	 * @default "Save"
-	 */
-	submitLabel?: string
+  /**
+   * Text for the submit button
+   * @default "Save"
+   */
+  submitLabel?: string
 
-	/**
-	 * Text for the delete button
-	 * @default "Delete"
-	 */
-	deleteLabel?: string
+  /**
+   * Text for the delete button
+   * @default "Delete"
+   */
+  deleteLabel?: string
 
-	/**
-	 * Text for the cancel button
-	 * @default "Cancel"
-	 */
-	cancelLabel?: string
+  /**
+   * Text for the cancel button
+   * @default "Cancel"
+   */
+  cancelLabel?: string
 
-	/**
-	 * Text shown while submitting
-	 * @default "Saving..."
-	 */
-	loadingText?: string
+  /**
+   * Text shown while submitting
+   * @default "Saving..."
+   */
+  loadingText?: string
 }
 
 export function FormButtonGroup({
-	onDelete,
-	onCancel,
-	submitLabel,
-	deleteLabel,
-	cancelLabel,
-	loadingText
+  onDelete,
+  onCancel,
+  submitLabel,
+  deleteLabel,
+  cancelLabel,
+  loadingText
 }: FormButtonGroupProps) {
-	const { t } = useTranslation()
-	const form = useFormContext()
+  const { t } = useTranslation()
+  const form = useFormContext()
 
-	const effectiveSubmitLabel = submitLabel || t('common.save')
-	const effectiveDeleteLabel = deleteLabel || t('common.delete')
-	const effectiveCancelLabel = cancelLabel || t('common.cancel')
-	const effectiveLoadingText = loadingText || t('common.loading')
+  const effectiveSubmitLabel = submitLabel || t('common.save')
+  const effectiveDeleteLabel = deleteLabel || t('common.delete')
+  const effectiveCancelLabel = cancelLabel || t('common.cancel')
+  const effectiveLoadingText = loadingText || t('common.loading')
 
-	return (
-		<div className="flex gap-2 justify-end">
-			<DeleteButton onDelete={onDelete}>{effectiveDeleteLabel}</DeleteButton>
-			<CancelButton onCancel={onCancel}>{effectiveCancelLabel}</CancelButton>
-			<form.Subscribe
-				selector={(state) => ({
-					canSubmit: state.canSubmit,
-					isSubmitting: state.isSubmitting
-				})}
-			>
-				{({ canSubmit, isSubmitting }) => (
-					<Button type="submit" disabled={!canSubmit || isSubmitting}>
-						{isSubmitting && <Loader2 className="animate-spin" />}
-						{isSubmitting ? effectiveLoadingText : effectiveSubmitLabel}
-					</Button>
-				)}
-			</form.Subscribe>
-		</div>
-	)
+  return (
+    <div className="flex gap-2 justify-end">
+      <DeleteButton onDelete={onDelete}>{effectiveDeleteLabel}</DeleteButton>
+      <CancelButton onCancel={onCancel}>{effectiveCancelLabel}</CancelButton>
+      <form.Subscribe
+        selector={(state) => ({
+          canSubmit: state.canSubmit,
+          isSubmitting: state.isSubmitting
+        })}
+      >
+        {({ canSubmit, isSubmitting }) => (
+          <Button
+            type="submit"
+            disabled={!canSubmit || isSubmitting}
+          >
+            {isSubmitting && <Loader2 className="animate-spin" />}
+            {isSubmitting ? effectiveLoadingText : effectiveSubmitLabel}
+          </Button>
+        )}
+      </form.Subscribe>
+    </div>
+  )
 }
