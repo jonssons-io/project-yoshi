@@ -109,9 +109,7 @@ ${colorConfig
     )
     .join('\n')
 
-  return (
-    <style>{cssText}</style>
-  )
+  return <style>{cssText}</style>
 }
 
 const ChartTooltip = RechartsPrimitive.Tooltip

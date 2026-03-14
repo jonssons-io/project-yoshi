@@ -1,16 +1,20 @@
 import { PlusIcon } from 'lucide-react'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { HouseholdForm } from '@/forms/HouseholdForm'
+import { useHouseholdContext } from '@/contexts/household-context'
 import { AccountForm } from '@/forms/AccountForm'
 import { BudgetForm } from '@/forms/BudgetForm'
-import { useHouseholdContext } from '@/contexts/household-context'
+import { HouseholdForm } from '@/forms/HouseholdForm'
 import {
   useCreateAccount,
   useCreateBudget,
   useCreateHousehold
 } from '@/hooks/api'
 import { useDrawer } from '@/hooks/use-drawer'
+import {
+  Illustration,
+  type IllustrationVariant
+} from '../illustrations/Illustration'
 import { Button } from '../ui/button'
 import {
   Card,
@@ -19,12 +23,14 @@ import {
   CardHeader,
   CardTitle
 } from '../ui/card'
-import {
-  Illustration,
-  type IllustrationVariant
-} from '../illustrations/Illustration'
 
-export type SetupPromptVariant = 'no-household' | 'no-budget' | 'no-account'
+export type SetupPromptVariant =
+  | 'no-household'
+  | 'no-budget'
+  | 'no-account'
+  | 'no-category'
+  | 'no-income'
+  | 'no-bills'
 
 type SetupPromptConfig = {
   titleKey: string
@@ -35,6 +41,7 @@ type SetupPromptConfig = {
 type SetupPromptProps = {
   variant: SetupPromptVariant
   onCompleted?: () => void
+  onAction?: () => void
 }
 
 const SETUP_PROMPT_CONFIG: Record<SetupPromptVariant, SetupPromptConfig> = {
@@ -52,20 +59,48 @@ const SETUP_PROMPT_CONFIG: Record<SetupPromptVariant, SetupPromptConfig> = {
     titleKey: 'setup.noAccountTitle',
     descriptionKey: 'setup.noAccountDescription',
     buttonKey: 'setup.noAccountButton'
+  },
+  'no-category': {
+    titleKey: 'setup.noCategoryTitle',
+    descriptionKey: 'setup.noCategoryDescription',
+    buttonKey: 'setup.noCategoryButton'
+  },
+  'no-income': {
+    titleKey: 'setup.noIncomeTitle',
+    descriptionKey: 'setup.noIncomeDescription',
+    buttonKey: 'setup.noIncomeButton'
+  },
+  'no-bills': {
+    titleKey: 'setup.noBillsTitle',
+    descriptionKey: 'setup.noBillsDescription',
+    buttonKey: 'setup.noBillsButton'
   }
 }
 
 const ILLUSTRATIONS_MAP: Record<SetupPromptVariant, IllustrationVariant> = {
   'no-household': 'pana-no-household',
   'no-budget': 'pana-no-budget',
-  'no-account': 'pana-no-account'
+  'no-account': 'pana-no-account',
+  'no-category': 'pana-no-category',
+  'no-income': 'pana-no-income',
+  'no-bills': 'pana-no-bills'
 }
 
+const ACTION_VARIANTS: SetupPromptVariant[] = [
+  'no-category',
+  'no-income',
+  'no-bills'
+]
+
 /**
- * Reusable setup state shown on dashboard before the user has:
- * household -> account -> budget.
+ * Reusable empty-state prompt with illustration, shown when a resource
+ * has not been created yet (household, budget, account, category, income, bills).
  */
-export function SetupPrompt({ variant, onCompleted }: SetupPromptProps) {
+export function SetupPrompt({
+  variant,
+  onCompleted,
+  onAction
+}: SetupPromptProps) {
   const { t } = useTranslation()
   const { userId, selectedHouseholdId } = useHouseholdContext()
   const { openDrawer, closeDrawer } = useDrawer()
@@ -102,6 +137,11 @@ export function SetupPrompt({ variant, onCompleted }: SetupPromptProps) {
   ])
 
   const handleOpenSetupDrawer = () => {
+    if (ACTION_VARIANTS.includes(variant)) {
+      onAction?.()
+      return
+    }
+
     if (variant === 'no-household') {
       openDrawer(
         <div className="p-4">
@@ -177,7 +217,7 @@ export function SetupPrompt({ variant, onCompleted }: SetupPromptProps) {
       <Card className="w-full max-w-xl">
         <CardHeader className="items-center text-center">
           <div className="flex flex-col items-center justify-center">
-            <div className="flex h-42 w-42 items-center justify-center rounded-full border-2 border-dashed border-muted-foreground/40 bg-muted/40 text-xs text-muted-foreground">
+            <div className="flex h-42 w-42 items-center justify-center text-xs text-muted-foreground">
               <Illustration variant={ILLUSTRATIONS_MAP[variant]} />
             </div>
           </div>
