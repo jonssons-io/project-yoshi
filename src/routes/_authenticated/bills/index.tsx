@@ -24,6 +24,7 @@ import {
   TransactionType
 } from '@/api/generated/types.gen'
 import { BillForm } from '@/components/bills/BillForm'
+import { SetupPrompt } from '@/components/dashboard/SetupPrompt'
 import { TransactionForm } from '@/components/transactions/TransactionForm'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -72,8 +73,8 @@ import {
 } from '@/hooks/api'
 import { useUpdateBillInstance } from '@/hooks/api/mutations/use-bills-mutations'
 import { useBillInstancesList } from '@/hooks/api/queries/use-bills-query'
-import { useDrawer } from '@/hooks/use-drawer'
 import { useConfirmDialog } from '@/hooks/use-confirm-dialog'
+import { useDrawer } from '@/hooks/use-drawer'
 import { getErrorMessage } from '@/lib/api-error'
 import { formatCurrency } from '@/lib/utils'
 
@@ -532,6 +533,22 @@ function BillsPage() {
     )
   }
 
+  if (billsQuery.isLoading) {
+    return (
+      <div className="text-center py-8 text-muted-foreground">
+        {t('common.loading')}
+      </div>
+    )
+  }
+  if (billsQuery.data?.length === 0) {
+    return (
+      <SetupPrompt
+        variant="no-bills"
+        onAction={handleCreate}
+      />
+    )
+  }
+
   const handleEditBillInstance = (bill: NormalizedBillInstance) => {
     openDrawer(
       <div className="p-4">
@@ -746,197 +763,187 @@ function BillsPage() {
         </div>
         <Card>
           <CardContent>
-            {billsQuery.isLoading ? (
-              <div className="text-center py-8 text-muted-foreground">
-                {t('common.loading')}
-              </div>
-            ) : billsQuery.data?.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                {t('bills.noBills')}
-              </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t('common.name')}</TableHead>
-                    <TableHead>{t('common.recipient')}</TableHead>
-                    <TableHead>{t('common.account')}</TableHead>
-                    <TableHead>{t('common.amount')}</TableHead>
-                    <TableHead>{t('recurrence.label')}</TableHead>
-                    <TableHead>{t('forms.nextExpectedDate')}</TableHead>
-                    <TableHead>{t('bills.status')}</TableHead>
-                    <TableHead>{t('common.category')}</TableHead>
-                    <TableHead>{t('bills.linkedTransaction')}</TableHead>
-                    <TableHead className="text-right">
-                      {t('common.actions')}
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {billsQuery.data?.map((bill) => {
-                    const hasSplits = bill.splits && bill.splits.length > 0
-                    const linkedTransaction = bill.transaction?.id
-                      ? transactionsById.get(bill.transaction.id)
-                      : undefined
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t('common.name')}</TableHead>
+                  <TableHead>{t('common.recipient')}</TableHead>
+                  <TableHead>{t('common.account')}</TableHead>
+                  <TableHead>{t('common.amount')}</TableHead>
+                  <TableHead>{t('recurrence.label')}</TableHead>
+                  <TableHead>{t('forms.nextExpectedDate')}</TableHead>
+                  <TableHead>{t('bills.status')}</TableHead>
+                  <TableHead>{t('common.category')}</TableHead>
+                  <TableHead>{t('bills.linkedTransaction')}</TableHead>
+                  <TableHead className="text-right">
+                    {t('common.actions')}
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {billsQuery.data?.map((bill) => {
+                  const hasSplits = bill.splits && bill.splits.length > 0
+                  const linkedTransaction = bill.transaction?.id
+                    ? transactionsById.get(bill.transaction.id)
+                    : undefined
 
-                    return (
-                      <TableRow
-                        key={bill.id}
-                        className={bill.archived ? 'opacity-50' : ''}
-                      >
-                        <TableCell className="font-medium">
-                          {bill.name}
-                          {bill.archived && (
-                            <Badge
-                              variant="secondary"
-                              className="ml-2"
-                            >
-                              {t('common.archived')}
-                            </Badge>
-                          )}
-                        </TableCell>
-                        <TableCell>{getBillRecipientName(bill)}</TableCell>
-                        <TableCell>{bill.account?.name ?? '-'}</TableCell>
-                        <TableCell>{formatCurrency(bill.amount)}</TableCell>
-                        <TableCell>
-                          {getRecurrenceLabel(bill.recurrenceType)}
-                        </TableCell>
-                        <TableCell>
-                          {format(bill.dueDate, 'MMM d, yyyy')}
-                        </TableCell>
-                        <TableCell>
+                  return (
+                    <TableRow
+                      key={bill.id}
+                      className={bill.archived ? 'opacity-50' : ''}
+                    >
+                      <TableCell className="font-medium">
+                        {bill.name}
+                        {bill.archived && (
                           <Badge
-                            variant="outline"
-                            className={getBillStatusBadgeClass(bill.status)}
+                            variant="secondary"
+                            className="ml-2"
                           >
-                            {t(
-                              `bills.instanceStatus.${bill.status.toLowerCase()}`
-                            )}
+                            {t('common.archived')}
                           </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {hasSplits ? (
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Badge
-                                    variant="outline"
-                                    className="cursor-help"
-                                  >
-                                    {(bill.splits ?? []).length}{' '}
-                                    {t('bills.sections')}
-                                  </Badge>
-                                </TooltipTrigger>
-                                <TooltipContent className="w-64 p-0">
-                                  <div className="p-2 space-y-2">
-                                    <p className="font-semibold text-xs border-b pb-1">
-                                      {t('bills.sections')}
-                                    </p>
-                                    {(bill.splits ?? []).map((s, i: number) => (
-                                      <div
-                                        key={`${i}-${s.amount}`}
-                                        className="flex justify-between text-xs"
-                                      >
-                                        <span>
-                                          {s.subtitle || s.category?.name}
-                                        </span>
-                                        <span>{formatCurrency(s.amount)}</span>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          ) : (
-                            (bill.category?.name ?? '-')
+                        )}
+                      </TableCell>
+                      <TableCell>{getBillRecipientName(bill)}</TableCell>
+                      <TableCell>{bill.account?.name ?? '-'}</TableCell>
+                      <TableCell>{formatCurrency(bill.amount)}</TableCell>
+                      <TableCell>
+                        {getRecurrenceLabel(bill.recurrenceType)}
+                      </TableCell>
+                      <TableCell>
+                        {format(bill.dueDate, 'MMM d, yyyy')}
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant="outline"
+                          className={getBillStatusBadgeClass(bill.status)}
+                        >
+                          {t(
+                            `bills.instanceStatus.${bill.status.toLowerCase()}`
                           )}
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {bill.status === InstanceStatus.HANDLED &&
-                          bill.transaction?.id ? (
-                            <div className="space-y-1">
-                              <p className="font-medium text-foreground">
-                                {linkedTransaction?.name ??
-                                  t('bills.linkedTransactionFallback')}
-                              </p>
-                              <p>
-                                {linkedTransaction
-                                  ? `${format(linkedTransaction.date, 'MMM d, yyyy')} · ${formatCurrency(linkedTransaction.amount)}`
-                                  : bill.transaction.id}
-                              </p>
-                            </div>
-                          ) : (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleLinkTransaction(bill)}
-                            >
-                              <ReceiptIcon className="mr-2 h-4 w-4" />
-                              {t('transactions.createTransaction')}
-                            </Button>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                              >
-                                <MoreVerticalIcon className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              {bill.status !== InstanceStatus.HANDLED && (
-                                <>
-                                  <DropdownMenuItem
-                                    onClick={() => handleLinkTransaction(bill)}
-                                  >
-                                    <ReceiptIcon className="h-4 w-4 mr-2" />
-                                    {t('bills.linkTransaction')}
-                                  </DropdownMenuItem>
-                                  <DropdownMenuSeparator />
-                                </>
-                              )}
-                              {bill.status !== InstanceStatus.HANDLED ? (
-                                <DropdownMenuItem
-                                  onClick={() => handleEditBillInstance(bill)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {hasSplits ? (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Badge
+                                  variant="outline"
+                                  className="cursor-help"
                                 >
-                                  <Edit2Icon className="h-4 w-4 mr-2" />
-                                  {t('common.edit')}
+                                  {(bill.splits ?? []).length}{' '}
+                                  {t('bills.sections')}
+                                </Badge>
+                              </TooltipTrigger>
+                              <TooltipContent className="w-64 p-0">
+                                <div className="p-2 space-y-2">
+                                  <p className="font-semibold text-xs border-b pb-1">
+                                    {t('bills.sections')}
+                                  </p>
+                                  {(bill.splits ?? []).map((s, i: number) => (
+                                    <div
+                                      key={`${i}-${s.amount}`}
+                                      className="flex justify-between text-xs"
+                                    >
+                                      <span>
+                                        {s.subtitle || s.category?.name}
+                                      </span>
+                                      <span>{formatCurrency(s.amount)}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        ) : (
+                          (bill.category?.name ?? '-')
+                        )}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {bill.status === InstanceStatus.HANDLED &&
+                        bill.transaction?.id ? (
+                          <div className="space-y-1">
+                            <p className="font-medium text-foreground">
+                              {linkedTransaction?.name ??
+                                t('bills.linkedTransactionFallback')}
+                            </p>
+                            <p>
+                              {linkedTransaction
+                                ? `${format(linkedTransaction.date, 'MMM d, yyyy')} · ${formatCurrency(linkedTransaction.amount)}`
+                                : bill.transaction.id}
+                            </p>
+                          </div>
+                        ) : (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleLinkTransaction(bill)}
+                          >
+                            <ReceiptIcon className="mr-2 h-4 w-4" />
+                            {t('transactions.createTransaction')}
+                          </Button>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                            >
+                              <MoreVerticalIcon className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            {bill.status !== InstanceStatus.HANDLED && (
+                              <>
+                                <DropdownMenuItem
+                                  onClick={() => handleLinkTransaction(bill)}
+                                >
+                                  <ReceiptIcon className="h-4 w-4 mr-2" />
+                                  {t('bills.linkTransaction')}
                                 </DropdownMenuItem>
-                              ) : null}
+                                <DropdownMenuSeparator />
+                              </>
+                            )}
+                            {bill.status !== InstanceStatus.HANDLED ? (
                               <DropdownMenuItem
-                                onClick={() => {
-                                  if (!bill.bill?.id) return
-                                  handleArchive(bill.bill.id, !bill.archived)
-                                }}
+                                onClick={() => handleEditBillInstance(bill)}
                               >
-                                <ArchiveIcon className="h-4 w-4 mr-2" />
-                                {bill.archived
-                                  ? t('common.unarchive')
-                                  : t('common.archive')}
+                                <Edit2Icon className="h-4 w-4 mr-2" />
+                                {t('common.edit')}
                               </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                onClick={() => {
-                                  if (!bill.bill?.id) return
-                                  handleDelete(bill.bill.id)
-                                }}
-                                className="text-destructive"
-                              >
-                                <TrashIcon className="h-4 w-4 mr-2" />
-                                {t('common.delete')}
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    )
-                  })}
-                </TableBody>
-              </Table>
-            )}
+                            ) : null}
+                            <DropdownMenuItem
+                              onClick={() => {
+                                if (!bill.bill?.id) return
+                                handleArchive(bill.bill.id, !bill.archived)
+                              }}
+                            >
+                              <ArchiveIcon className="h-4 w-4 mr-2" />
+                              {bill.archived
+                                ? t('common.unarchive')
+                                : t('common.archive')}
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={() => {
+                                if (!bill.bill?.id) return
+                                handleDelete(bill.bill.id)
+                              }}
+                              className="text-destructive"
+                            >
+                              <TrashIcon className="h-4 w-4 mr-2" />
+                              {t('common.delete')}
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
+              </TableBody>
+            </Table>
           </CardContent>
         </Card>
       </div>

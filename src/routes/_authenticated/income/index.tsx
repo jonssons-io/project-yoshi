@@ -15,8 +15,7 @@ import {
   Pencil,
   Plus,
   ReceiptText,
-  Trash2,
-  Wallet
+  Trash2
 } from 'lucide-react'
 import {
   Fragment,
@@ -36,6 +35,7 @@ import {
   InstanceStatus,
   RecurrenceType
 } from '@/api/generated/types.gen'
+import { SetupPrompt } from '@/components/dashboard/SetupPrompt'
 import { TransactionForm } from '@/components/transactions/TransactionForm'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -938,19 +938,10 @@ function IncomePage() {
             <p className="text-muted-foreground">{t('income.loading')}</p>
           </div>
         ) : !(incomeQuery.data && incomeQuery.data.length > 0) ? (
-          <div className="flex flex-col items-center justify-center rounded-lg border bg-card p-12 text-card-foreground shadow-sm">
-            <div className="mb-4 rounded-full bg-primary/10 p-4">
-              <Wallet className="h-8 w-8 text-primary" />
-            </div>
-            <h3 className="mb-2 text-lg font-semibold">{t('nav.income')}</h3>
-            <p className="mb-6 max-w-sm text-center text-muted-foreground">
-              {t('income.noIncome')}
-            </p>
-            <Button onClick={handleCreate}>
-              <Plus className="mr-2 h-4 w-4" />
-              {t('income.add')}
-            </Button>
-          </div>
+          <SetupPrompt
+            variant="no-income"
+            onAction={handleCreate}
+          />
         ) : (
           <Card>
             <CardContent>

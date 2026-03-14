@@ -416,7 +416,16 @@
     "noBudgetButton": "Skapa budget",
     "noAccountTitle": "Lägg till ditt första konto",
     "noAccountDescription": "Lägg till ett konto först så att hushållet kan börja registrera transaktioner.",
-    "noAccountButton": "Skapa konto"
+    "noAccountButton": "Skapa konto",
+    "noCategoryTitle": "Inga kategorier",
+    "noCategoryDescription": "Skapa din första kategori för att organisera transaktioner.",
+    "noCategoryButton": "Skapa kategori",
+    "noIncomeTitle": "Ingen inkomst",
+    "noIncomeDescription": "Lägg till din lön eller andra inkomstkällor för att hålla koll på dina intäkter.",
+    "noIncomeButton": "Lägg till inkomst",
+    "noBillsTitle": "Inga räkningar",
+    "noBillsDescription": "Skapa din första räkning för att hålla koll på återkommande utgifter.",
+    "noBillsButton": "Skapa räkning"
   },
   "bills": {
     "title": "Räkningar",

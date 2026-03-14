@@ -74,7 +74,9 @@ function BudgetDetailPage() {
   const remainingAmount = budget.remainingAmount ?? 0
   const isOverdrafted = remainingAmount < 0
   const recentTransactions = (transactions ?? []).slice(0, 5)
-  const allocationHistory = [...(allocations ?? [])]
+  const allocationHistory = [
+    ...(allocations ?? [])
+  ]
     .sort(
       (
         a: {
@@ -192,29 +194,25 @@ function BudgetDetailPage() {
             ) : (
               <div className="space-y-3">
                 {allocationHistory.map(
-                  (allocation: {
-                    id: string
-                    amount: number
-                    date: Date
-                  }) => (
-                  <div
-                    key={allocation.id}
-                    className="flex items-center justify-between rounded-md border p-3"
-                  >
-                    <div>
-                      <p className="font-medium">
-                        {formatCurrency(allocation.amount)}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        {format(allocation.date, 'PP')}
-                      </p>
+                  (allocation: { id: string; amount: number; date: Date }) => (
+                    <div
+                      key={allocation.id}
+                      className="flex items-center justify-between rounded-md border p-3"
+                    >
+                      <div>
+                        <p className="font-medium">
+                          {formatCurrency(allocation.amount)}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {format(allocation.date, 'PP')}
+                        </p>
+                      </div>
+                      <Badge variant="outline">
+                        {t('allocation.allocation', {
+                          defaultValue: 'Allocation'
+                        })}
+                      </Badge>
                     </div>
-                    <Badge variant="outline">
-                      {t('allocation.allocation', {
-                        defaultValue: 'Allocation'
-                      })}
-                    </Badge>
-                  </div>
                   )
                 )}
               </div>
@@ -227,7 +225,8 @@ function BudgetDetailPage() {
             <CardTitle>{t('transactions.title')}</CardTitle>
             <CardDescription>
               {t('budgets.detail.transactionsDescription', {
-                defaultValue: 'Recent spending and money movement for this envelope'
+                defaultValue:
+                  'Recent spending and money movement for this envelope'
               })}
             </CardDescription>
           </CardHeader>

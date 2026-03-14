@@ -14,15 +14,10 @@ import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { CategoryForm } from '@/components/categories/CategoryForm'
+import { SetupPrompt } from '@/components/dashboard/SetupPrompt'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle
-} from '@/components/ui/card'
+import { Card } from '@/components/ui/card'
 import {
   Table,
   TableBody,
@@ -313,18 +308,10 @@ function CategoriesPage() {
       </div>
 
       {categories?.length === 0 ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('categories.noCategories')}</CardTitle>
-            <CardDescription>{t('categories.getStarted')}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button onClick={handleCreate}>
-              <PlusIcon className="mr-2 h-4 w-4" />
-              {t('categories.createFirst')}
-            </Button>
-          </CardContent>
-        </Card>
+        <SetupPrompt
+          variant="no-category"
+          onAction={handleCreate}
+        />
       ) : (
         <Card>
           <Table>
