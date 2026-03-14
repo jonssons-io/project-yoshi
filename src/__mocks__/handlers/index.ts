@@ -8,18 +8,16 @@ import { incomeHandlers } from './income'
 import { invitationHandlers } from './invitations'
 import { recipientHandlers } from './recipients'
 import { transactionHandlers } from './transactions'
-import { transferHandlers } from './transfers'
 
 export const handlers = [
-	...householdHandlers,
-	...accountHandlers,
-	...budgetHandlers,
-	...categoryHandlers,
-	...transactionHandlers,
-	...billHandlers,
-	...transferHandlers,
-	...incomeHandlers,
-	...recipientHandlers,
-	...invitationHandlers,
-	...allocationHandlers
+  ...householdHandlers,
+  ...accountHandlers,
+  ...budgetHandlers,
+  ...categoryHandlers,
+  ...transactionHandlers,
+  ...billHandlers,
+  ...incomeHandlers,
+  ...recipientHandlers,
+  ...invitationHandlers,
+  ...allocationHandlers
 ]

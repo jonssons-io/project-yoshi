@@ -1,70 +1,85 @@
-import { useUser } from '@clerk/clerk-react'
-import { createContext, type ReactNode, useContext } from 'react'
+import { createContext, useContext, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { NoHousehold } from '@/components/dashboard/NoHousehold'
-import { useSelectedHousehold } from '@/hooks/use-selected-household'
+import { SetupPrompt } from '@/components/dashboard/SetupPrompt'
+import { useHouseholdContext } from '@/contexts/household-context'
+import { useAccountsList } from '@/hooks/api'
 
 /**
  * Context value providing guaranteed non-null userId and householdId
  * for all authenticated pages that require both values
  */
 interface AuthContextValue {
-	userId: string
-	householdId: string
-	setSelectedHousehold: (id: string | null) => void
+  userId: string
+  householdId: string
+  setSelectedHousehold: (id: string | null) => void
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
 
 interface AuthProviderProps {
-	children: ReactNode
+  children: ReactNode
 }
 
 /**
- * Provides userId and householdId to all child components.
- * Handles loading states and shows NoHousehold when no household is selected.
+ * Gates child routes behind household selection.
+ * Shows loading state while households are being fetched,
+ * and SetupPrompt when no household is selected.
+ * Provides guaranteed userId + householdId to children via AuthContext.
  */
 export function AuthProvider({ children }: AuthProviderProps) {
-	const { t } = useTranslation()
-	const { user, isLoaded } = useUser()
-	const userId = user?.id
+  const { t } = useTranslation()
+  const {
+    userId,
+    households,
+    selectedHouseholdId,
+    setSelectedHousehold,
+    isHouseholdsLoading
+  } = useHouseholdContext()
 
-	const {
-		selectedHouseholdId,
-		setSelectedHousehold,
-		isLoading: isHouseholdLoading
-	} = useSelectedHousehold(userId)
+  const { data: accounts, isLoading: accountsLoading } = useAccountsList({
+    householdId: selectedHouseholdId,
+    userId,
+    enabled: !!selectedHouseholdId,
+    excludeArchived: true
+  })
 
-	// Show loading while Clerk or household selection is loading
-	if (!isLoaded || isHouseholdLoading) {
-		return (
-			<div className="flex items-center justify-center">
-				<p className="text-muted-foreground">{t('common.loading')}</p>
-			</div>
-		)
-	}
+  let content = children
+  if (isHouseholdsLoading) {
+    content = (
+      <div className="flex items-center justify-center">
+        <p className="text-muted-foreground">{t('common.loading')}</p>
+      </div>
+    )
+  } else if (!households || households.length === 0) {
+    content = <SetupPrompt variant="no-household" />
+  } else if (!selectedHouseholdId) {
+    // Keep provider mounted while selection resolves during client navigation.
+    content = (
+      <div className="flex items-center justify-center">
+        <p className="text-muted-foreground">{t('common.loading')}</p>
+      </div>
+    )
+  } else if (accountsLoading) {
+    content = (
+      <div className="flex items-center justify-center">
+        <p className="text-muted-foreground">{t('common.loading')}</p>
+      </div>
+    )
+  } else if (!accounts || accounts.length === 0) {
+    content = <SetupPrompt variant="no-account" />
+  }
 
-	// User should always be present in authenticated routes due to route guard
-	if (!userId) {
-		return null
-	}
-
-	// Show household selection UI when no household is selected
-	if (!selectedHouseholdId) {
-		return <NoHousehold userId={userId} />
-	}
-
-	return (
-		<AuthContext.Provider
-			value={{
-				userId,
-				householdId: selectedHouseholdId,
-				setSelectedHousehold
-			}}
-		>
-			{children}
-		</AuthContext.Provider>
-	)
+  return (
+    <AuthContext.Provider
+      value={{
+        userId,
+        householdId: selectedHouseholdId ?? '',
+        setSelectedHousehold
+      }}
+    >
+      {content}
+    </AuthContext.Provider>
+  )
 }
 
 /**
@@ -74,9 +89,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
  * @throws Error if used outside of AuthProvider
  */
 export function useAuth(): AuthContextValue {
-	const context = useContext(AuthContext)
-	if (!context) {
-		throw new Error('useAuth must be used within an AuthProvider')
-	}
-	return context
+  const context = useContext(AuthContext)
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider')
+  }
+  return context
 }

@@ -1,94 +1,116 @@
 import { ArrowRightLeftIcon } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { TransactionType } from '@/api/generated/types.gen'
+import { TransactionForm } from '@/components/transactions/TransactionForm'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/contexts/auth-context'
-import { TransferForm } from '@/forms/TransferForm'
-import { useAccountsList, useCreateTransfer } from '@/hooks/api'
+import { useAccountsList, useCreateTransaction } from '@/hooks/api'
 import { useDrawer } from '@/hooks/use-drawer'
-import { useSelectedBudget } from '@/hooks/use-selected-budget'
 
 interface CreateTransferButtonProps {
-	budgetId?: string
-	className?: string
-	variant?: 'default' | 'outline' | 'secondary' | 'ghost' | 'link'
+  budgetId?: string
+  className?: string
+  variant?: 'default' | 'outline' | 'secondary' | 'ghost' | 'link'
+}
+
+type TransferDrawerContentProps = {
+  householdId: string
+  userId: string
+  onClose: () => void
+}
+
+function TransferDrawerContent({
+  householdId,
+  userId,
+  onClose
+}: TransferDrawerContentProps) {
+  const { t } = useTranslation()
+  const { data: accounts } = useAccountsList({
+    householdId,
+    userId,
+    enabled: true,
+    excludeArchived: true
+  })
+
+  const { mutate: createTransaction } = useCreateTransaction({
+    onSuccess: () => {
+      onClose()
+    }
+  })
+
+  if (!accounts) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <p className="text-muted-foreground">{t('transactions.loadingArgs')}</p>
+      </div>
+    )
+  }
+
+  return (
+    <TransactionForm
+      defaultValues={{
+        transactionType: TransactionType.TRANSFER,
+        name: t('common.transfer')
+      }}
+      categories={[]}
+      accounts={accounts}
+      onSubmit={(data) => {
+        createTransaction({
+          type: TransactionType.TRANSFER,
+          name: data.name,
+          amount: data.amount,
+          date: data.date,
+          accountId: data.accountId,
+          transferToAccountId: data.transferToAccountId || undefined,
+          notes: data.notes,
+          userId
+        })
+      }}
+      onCancel={onClose}
+      submitLabel={t('transfers.create')}
+    />
+  )
 }
 
 export function CreateTransferButton({
-	budgetId: propsBudgetId,
-	className,
-	variant = 'outline'
+  budgetId: _budgetId,
+  className,
+  variant = 'outline'
 }: CreateTransferButtonProps) {
-	const { t } = useTranslation()
-	const { openDrawer, closeDrawer } = useDrawer()
-	const { userId, householdId } = useAuth()
-	const { selectedBudgetId } = useSelectedBudget(userId, householdId)
+  const { t } = useTranslation()
+  const { openDrawer, closeDrawer } = useDrawer()
+  const { userId, householdId } = useAuth()
 
-	const budgetId = propsBudgetId || selectedBudgetId
+  const handleClick = () => {
+    if (!householdId) return
 
-	const { data: accounts } = useAccountsList({
-		householdId,
-		userId,
-		budgetId: budgetId || undefined,
-		enabled: !!budgetId,
-		excludeArchived: true
-	})
+    openDrawer(
+      <div className="p-4">
+        <h2 className="text-2xl font-bold mb-4">
+          {t('transactions.transferFunds')}
+        </h2>
+        <p className="text-muted-foreground mb-6">
+          {t('transactions.transferFundsDesc')}
+        </p>
+        <TransferDrawerContent
+          householdId={householdId}
+          userId={userId}
+          onClose={closeDrawer}
+        />
+      </div>,
+      t('transactions.transferFunds')
+    )
+  }
 
-	// Mutation
-	const { mutate: createTransfer } = useCreateTransfer({
-		onSuccess: () => {
-			closeDrawer()
-		}
-	})
-
-	const handleClick = () => {
-		if (!budgetId) return
-
-		openDrawer(
-			<div className="p-4">
-				<h2 className="text-2xl font-bold mb-4">
-					{t('transactions.transferFunds')}
-				</h2>
-				<p className="text-muted-foreground mb-6">
-					{t('transactions.transferFundsDesc')}
-				</p>
-
-				{accounts ? (
-					<TransferForm
-						accounts={accounts}
-						onSubmit={(data) => {
-							createTransfer({
-								budgetId: budgetId,
-								userId,
-								fromAccountId: data.fromAccountId,
-								toAccountId: data.toAccountId,
-								amount: data.amount,
-								date: data.date,
-								notes: data.notes
-							})
-						}}
-						onCancel={closeDrawer}
-					/>
-				) : (
-					<div className="flex items-center justify-center p-8">
-						<p className="text-muted-foreground">
-							{t('transactions.loadingArgs')}
-						</p>
-					</div>
-				)}
-			</div>,
-			t('transactions.transferFunds')
-		)
-	}
-
-	return (
-		<Button
-			onClick={handleClick}
-			className={className}
-			variant={variant}
-			disabled={!budgetId}
-		>
-			<ArrowRightLeftIcon className="mr-2 h-4 w-4" />
-			{t('transactions.transferFunds')}
-		</Button>
-	)
+  return (
+    <Button
+      onClick={handleClick}
+      className={className}
+      variant={variant}
+      disabled={!householdId}
+    >
+      <ArrowRightLeftIcon className="mr-2 h-4 w-4" />
+      {t('transactions.transferFunds')}
+    </Button>
+  )
 }

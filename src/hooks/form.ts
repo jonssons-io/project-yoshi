@@ -41,27 +41,27 @@ import { TextField } from '@/components/form/TextField'
 
 // Create contexts for field and form components to access form state
 const { fieldContext, useFieldContext, formContext, useFormContext } =
-	createFormHookContexts()
+  createFormHookContexts()
 
 // Export contexts for use in custom components
 export { useFieldContext, useFormContext }
 
 // Create the custom form hook with pre-bound components
 export const { useAppForm, withForm } = createFormHook({
-	fieldComponents: {
-		TextField,
-		DateField,
-		SelectField,
-		NumberField,
-		ComboboxField,
-		RadioGroupField
-	},
-	formComponents: {
-		SubmitButton,
-		CancelButton,
-		DeleteButton,
-		FormButtonGroup
-	},
-	fieldContext,
-	formContext
+  fieldComponents: {
+    TextField,
+    DateField,
+    SelectField,
+    NumberField,
+    ComboboxField,
+    RadioGroupField
+  },
+  formComponents: {
+    SubmitButton,
+    CancelButton,
+    DeleteButton,
+    FormButtonGroup
+  },
+  fieldContext,
+  formContext
 })

@@ -1,6 +1,7 @@
 ---
 alwaysApply: true
 ---
+
 # Project Guidelines
 
 This project uses TanStack ecosystem (Router, Query, Form, Store) with React, TypeScript, shadcn-ui, and Tailwind CSS.
@@ -29,12 +30,12 @@ Use `@/` path alias for imports:
 
 ```tsx
 // ✅ Correct
-import { Button } from '@/components/ui/button'
-import { useAppForm } from '@/hooks/form'
-import { cn } from '@/lib/utils'
+import { Button } from "@/components/ui/button";
+import { useAppForm } from "@/hooks/form";
+import { cn } from "@/lib/utils";
 
 // ❌ Wrong
-import { Button } from '../../../components/ui/button'
+import { Button } from "../../../components/ui/button";
 ```
 
 ### Import Organization
@@ -48,18 +49,18 @@ Organize imports in this order:
 
 ```tsx
 // External
-import { useState } from 'react'
-import { z } from 'zod'
+import { useState } from "react";
+import { z } from "zod";
 
 // Internal
-import { useAppForm } from '@/hooks/form'
-import { Button } from '@/components/ui/button'
+import { useAppForm } from "@/hooks/form";
+import { Button } from "@/components/ui/button";
 
 // Types
-import type { FormData } from '@/types'
+import type { FormData } from "@/types";
 
 // Styles (if any)
-import './styles.css'
+import "./styles.css";
 ```
 
 ## Code Quality
@@ -75,47 +76,47 @@ import './styles.css'
 ```tsx
 // ✅ Good
 const config = {
-  name: 'app',
+  name: "app",
   version: 1,
-} satisfies Config
+} satisfies Config;
 
 // Type inference example
 const schema = z.object({
   name: z.string(),
-})
-type FormData = z.infer<typeof schema>
+});
+type FormData = z.infer<typeof schema>;
 ```
 
 ### Component Structure
 
 ```tsx
 // 1. Imports
-import { useState } from 'react'
+import { useState } from "react";
 
 // 2. Types
 interface MyComponentProps {
-  title: string
-  onSubmit: () => void
+  title: string;
+  onSubmit: () => void;
 }
 
 // 3. Component
 export function MyComponent({ title, onSubmit }: MyComponentProps) {
   // Hooks
-  const [state, setState] = useState(false)
-  
+  const [state, setState] = useState(false);
+
   // Event handlers
   const handleClick = () => {
-    setState(true)
-    onSubmit()
-  }
-  
+    setState(true);
+    onSubmit();
+  };
+
   // Render
   return (
     <div>
       <h1>{title}</h1>
       <button onClick={handleClick}>Click</button>
     </div>
-  )
+  );
 }
 ```
 
@@ -125,23 +126,26 @@ export function MyComponent({ title, onSubmit }: MyComponentProps) {
 - Include parameter descriptions and return types
 - Document complex logic with inline comments
 
-```tsx
+````tsx
 /**
  * Creates a new user account
- * 
+ *
  * @param email - User's email address
  * @param password - User's password (min 8 characters)
  * @returns Promise with the created user ID
- * 
+ *
  * @example
  * ```tsx
  * const userId = await createUser('user@example.com', 'password123')
  * ```
  */
-export async function createUser(email: string, password: string): Promise<string> {
+export async function createUser(
+  email: string,
+  password: string,
+): Promise<string> {
   // Implementation
 }
-```
+````
 
 ### Best Practices
 
@@ -156,20 +160,20 @@ export async function createUser(email: string, password: string): Promise<strin
 ```tsx
 // ✅ Good - Early return
 function processUser(user: User | null) {
-  if (!user) return null
-  if (!user.isActive) return null
-  
-  return user.name
+  if (!user) return null;
+  if (!user.isActive) return null;
+
+  return user.name;
 }
 
 // ❌ Bad - Nested conditions
 function processUser(user: User | null) {
   if (user) {
     if (user.isActive) {
-      return user.name
+      return user.name;
     }
   }
-  return null
+  return null;
 }
 ```
 
@@ -189,4 +193,37 @@ This project uses Biome for linting and formatting:
 npm run lint      # Check for linting errors
 npm run format    # Format code
 npm run check     # Check and fix
+```
+
+## Generated API Boundary (Do Not Edit)
+
+- **Never modify files in `src/api/generated/**`\*\*.
+- Treat `src/api/generated/**` as read-only generated output from backend/OpenAPI contracts.
+- If a frontend issue is caused by schema mismatch, API response shape, nullable/optional contract mismatch, backend validation, endpoint behavior, or anything backend-contract related:
+  - Do **not** patch generated files locally.
+  - Do **not** implement frontend workarounds that hide backend contract issues.
+  - Provide the user with a backend handoff prompt they can send directly to the backend developer.
+
+Use this backend handoff prompt template:
+
+```text
+We found a backend/API contract mismatch affecting the frontend.
+
+Issue:
+- [Describe endpoint + observed behavior]
+- [Describe expected behavior from contract/OpenAPI]
+
+Evidence:
+- Endpoint: [METHOD] [PATH]
+- Status: [e.g., 201]
+- Response body: [paste actual payload]
+- Frontend expectation: [type/schema expectation]
+- Validation/parsing error (if any): [paste error]
+
+Requested backend fix:
+1) Update backend response/validation to match the OpenAPI contract OR
+2) Update OpenAPI schema to match actual backend behavior, then regenerate frontend client/types.
+
+Acceptance criteria:
+- OpenAPI and backend responses are aligned.
 ```

@@ -1,12 +1,13 @@
 import { useQuery } from '@tanstack/react-query'
 import {
-	getCategoryOptions,
-	listCategoriesOptions
+  getCategoryOptions,
+  listCategoriesOptions
 } from '@/api/generated/@tanstack/react-query.gen'
 import type {
-	GetCategoryData,
-	ListCategoriesData
+  GetCategoryData,
+  ListCategoriesData
 } from '@/api/generated/types.gen'
+import { fromApiDate } from '@/hooks/api/date-normalization'
 
 type ListCategoriesQuery = NonNullable<ListCategoriesData['query']>
 
@@ -15,24 +16,30 @@ type ListCategoriesQuery = NonNullable<ListCategoriesData['query']>
  * Query is auto-disabled when householdId or userId is undefined/null
  */
 export function useCategoriesList(params: {
-	householdId?: ListCategoriesData['path']['householdId'] | null
-	userId?: string | null
-	budgetId?: ListCategoriesQuery['budgetId'] | null
-	type?: ListCategoriesQuery['type']
-	enabled?: boolean
+  householdId?: ListCategoriesData['path']['householdId'] | null
+  userId?: string | null
+  budgetId?: ListCategoriesQuery['budgetId'] | null
+  type?: ListCategoriesQuery['type']
+  enabled?: boolean
 }) {
-	const { householdId, budgetId, type, enabled = true } = params
-	return useQuery({
-		...listCategoriesOptions({
-			path: { householdId: householdId ?? '' },
-			query: {
-				budgetId: budgetId ?? undefined,
-				type
-			}
-		}),
-		enabled: enabled && !!householdId,
-		select: (response) => response.data ?? []
-	})
+  const { householdId, budgetId, type, enabled = true } = params
+  return useQuery({
+    ...listCategoriesOptions({
+      path: {
+        householdId: householdId ?? ''
+      },
+      query: {
+        budgetId: budgetId ?? undefined,
+        type
+      }
+    }),
+    enabled: enabled && !!householdId,
+    select: (response) =>
+      (response.data ?? []).map((category) => ({
+        ...category,
+        createdAt: fromApiDate(category.createdAt)
+      }))
+  })
 }
 
 /**
@@ -40,15 +47,25 @@ export function useCategoriesList(params: {
  * Query is auto-disabled when categoryId or userId is undefined/null
  */
 export function useCategoryById(params: {
-	categoryId?: GetCategoryData['path']['categoryId'] | null
-	userId?: string | null
-	enabled?: boolean
+  categoryId?: GetCategoryData['path']['categoryId'] | null
+  userId?: string | null
+  enabled?: boolean
 }) {
-	const { categoryId, enabled = true } = params
-	return useQuery({
-		...getCategoryOptions({
-			path: { categoryId: categoryId ?? '' }
-		}),
-		enabled: enabled && !!categoryId
-	})
+  const { categoryId, enabled = true } = params
+  return useQuery({
+    ...getCategoryOptions({
+      path: {
+        categoryId: categoryId ?? ''
+      }
+    }),
+    enabled: enabled && !!categoryId,
+    retry: false,
+    // Always refresh when reopening edit drawer so latest category types/budget links are shown.
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
+    select: (category) => ({
+      ...category,
+      createdAt: fromApiDate(category.createdAt)
+    })
+  })
 }

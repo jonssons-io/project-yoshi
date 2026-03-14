@@ -1,42 +1,65 @@
 /**
  * Hook to get and set the currently selected budget
- * Uses localStorage to persist the selection
- * Scopes the storage to the current user to prevent conflicts when multiple users share a browser
+ * through API-backed user settings.
  */
 
-import { useBudgetsList } from '@/hooks/api'
-import { useLocalStorageSelection } from './use-local-storage-selection'
-
-const STORAGE_KEY_PREFIX = 'yoshi-selected-budget'
+import { useQuery } from '@tanstack/react-query'
+import { listBudgetsOptions } from '@/api/generated/@tanstack/react-query.gen'
+import { useSetDefaultBudget } from '@/hooks/api'
 
 export function useSelectedBudget(
-	userId?: string | null,
-	householdId?: string | null
+  userId?: string | null,
+  householdId?: string | null,
+  enabled = true
 ) {
-	// Generate user-specific storage key
-	const storageKey = userId ? `${STORAGE_KEY_PREFIX}-${userId}` : null
+  const {
+    data,
+    isLoading: isBudgetsLoading,
+    isFetching: isBudgetsFetching
+  } = useQuery({
+    ...listBudgetsOptions({
+      path: {
+        householdId: householdId ?? ''
+      }
+    }),
+    enabled: enabled && !!householdId && !!userId,
+    retry: false,
+    staleTime: 60_000,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    select: (response) => ({
+      budgets: response.data ?? [],
+      defaultBudgetId: response.defaultBudgetId ?? null
+    })
+  })
 
-	// Fetch budgets to validate selection
-	const { data: budgets, isLoading: isBudgetsLoading } = useBudgetsList({
-		householdId,
-		userId
-	})
+  const budgets = data?.budgets
+  const apiDefaultBudgetId = data?.defaultBudgetId ?? null
 
-	// Use generic selection hook
-	const {
-		selectedId: selectedBudgetId,
-		setSelectedId: setSelectedBudget,
-		isLoading
-	} = useLocalStorageSelection({
-		storageKey,
-		items: budgets,
-		isLoading: isBudgetsLoading,
-		getId: (budget) => budget.id
-	})
+  const fallbackBudgetId =
+    !apiDefaultBudgetId && budgets && budgets.length > 0
+      ? (budgets[0]?.id ?? null)
+      : null
 
-	return {
-		selectedBudgetId,
-		setSelectedBudget,
-		isLoading
-	}
+  const selectedBudgetId = apiDefaultBudgetId ?? fallbackBudgetId
+
+  const { mutate: setDefaultBudget } = useSetDefaultBudget()
+
+  const setSelectedBudget = (id: string | null) => {
+    if (!id || !householdId || !userId) return
+    setDefaultBudget({
+      householdId,
+      budgetId: id,
+      userId
+    })
+  }
+
+  const isLoading = isBudgetsLoading || isBudgetsFetching
+
+  return {
+    selectedBudgetId,
+    setSelectedBudget,
+    isLoading
+  }
 }

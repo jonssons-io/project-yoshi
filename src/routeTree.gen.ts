@@ -16,7 +16,6 @@ import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/
 import { Route as SignUpSsoCallbackRouteImport } from './routes/sign-up/sso-callback'
 import { Route as SignInSsoCallbackRouteImport } from './routes/sign-in/sso-callback'
 import { Route as AuthenticatedTransactionsIndexRouteImport } from './routes/_authenticated/transactions/index'
-import { Route as AuthenticatedPlanIndexRouteImport } from './routes/_authenticated/plan/index'
 import { Route as AuthenticatedIncomeIndexRouteImport } from './routes/_authenticated/income/index'
 import { Route as AuthenticatedCategoriesIndexRouteImport } from './routes/_authenticated/categories/index'
 import { Route as AuthenticatedBudgetsIndexRouteImport } from './routes/_authenticated/budgets/index'
@@ -59,11 +58,6 @@ const AuthenticatedTransactionsIndexRoute =
     path: '/transactions/',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
-const AuthenticatedPlanIndexRoute = AuthenticatedPlanIndexRouteImport.update({
-  id: '/plan/',
-  path: '/plan/',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
 const AuthenticatedIncomeIndexRoute =
   AuthenticatedIncomeIndexRouteImport.update({
     id: '/income/',
@@ -112,7 +106,6 @@ export interface FileRoutesByFullPath {
   '/budgets/': typeof AuthenticatedBudgetsIndexRoute
   '/categories/': typeof AuthenticatedCategoriesIndexRoute
   '/income/': typeof AuthenticatedIncomeIndexRoute
-  '/plan/': typeof AuthenticatedPlanIndexRoute
   '/transactions/': typeof AuthenticatedTransactionsIndexRoute
 }
 export interface FileRoutesByTo {
@@ -127,7 +120,6 @@ export interface FileRoutesByTo {
   '/budgets': typeof AuthenticatedBudgetsIndexRoute
   '/categories': typeof AuthenticatedCategoriesIndexRoute
   '/income': typeof AuthenticatedIncomeIndexRoute
-  '/plan': typeof AuthenticatedPlanIndexRoute
   '/transactions': typeof AuthenticatedTransactionsIndexRoute
 }
 export interface FileRoutesById {
@@ -144,7 +136,6 @@ export interface FileRoutesById {
   '/_authenticated/budgets/': typeof AuthenticatedBudgetsIndexRoute
   '/_authenticated/categories/': typeof AuthenticatedCategoriesIndexRoute
   '/_authenticated/income/': typeof AuthenticatedIncomeIndexRoute
-  '/_authenticated/plan/': typeof AuthenticatedPlanIndexRoute
   '/_authenticated/transactions/': typeof AuthenticatedTransactionsIndexRoute
 }
 export interface FileRouteTypes {
@@ -161,7 +152,6 @@ export interface FileRouteTypes {
     | '/budgets/'
     | '/categories/'
     | '/income/'
-    | '/plan/'
     | '/transactions/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -176,7 +166,6 @@ export interface FileRouteTypes {
     | '/budgets'
     | '/categories'
     | '/income'
-    | '/plan'
     | '/transactions'
   id:
     | '__root__'
@@ -192,7 +181,6 @@ export interface FileRouteTypes {
     | '/_authenticated/budgets/'
     | '/_authenticated/categories/'
     | '/_authenticated/income/'
-    | '/_authenticated/plan/'
     | '/_authenticated/transactions/'
   fileRoutesById: FileRoutesById
 }
@@ -253,13 +241,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedTransactionsIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/plan/': {
-      id: '/_authenticated/plan/'
-      path: '/plan'
-      fullPath: '/plan/'
-      preLoaderRoute: typeof AuthenticatedPlanIndexRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
     '/_authenticated/income/': {
       id: '/_authenticated/income/'
       path: '/income'
@@ -313,7 +294,6 @@ interface AuthenticatedRouteChildren {
   AuthenticatedBudgetsIndexRoute: typeof AuthenticatedBudgetsIndexRoute
   AuthenticatedCategoriesIndexRoute: typeof AuthenticatedCategoriesIndexRoute
   AuthenticatedIncomeIndexRoute: typeof AuthenticatedIncomeIndexRoute
-  AuthenticatedPlanIndexRoute: typeof AuthenticatedPlanIndexRoute
   AuthenticatedTransactionsIndexRoute: typeof AuthenticatedTransactionsIndexRoute
 }
 
@@ -325,7 +305,6 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedBudgetsIndexRoute: AuthenticatedBudgetsIndexRoute,
   AuthenticatedCategoriesIndexRoute: AuthenticatedCategoriesIndexRoute,
   AuthenticatedIncomeIndexRoute: AuthenticatedIncomeIndexRoute,
-  AuthenticatedPlanIndexRoute: AuthenticatedPlanIndexRoute,
   AuthenticatedTransactionsIndexRoute: AuthenticatedTransactionsIndexRoute,
 }
 
