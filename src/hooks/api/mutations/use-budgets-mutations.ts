@@ -133,7 +133,8 @@ export function useUpdateBudget(
 
 /**
  * Hook to delete a budget
- * Invalidates budgets, transactions, and bills since they cascade on budget delete
+ * Invalidates budgets, unallocated funds, accounts, transactions, and bills
+ * since budget deletion affects household summaries and linked account counts.
  */
 export function useDeleteBudget(
   callbacks?: MutationCallbacks<DeleteBudgetResponse, DeleteBudgetVariables>
@@ -155,6 +156,8 @@ export function useDeleteBudget(
     },
     onSuccess: (data, variables) => {
       invalidateByOperation(queryClient, 'listBudgets')
+      invalidateByOperation(queryClient, 'getUnallocatedFunds')
+      invalidateByOperation(queryClient, 'listAccounts')
       invalidateByOperation(queryClient, 'listTransactions')
       invalidateByOperation(queryClient, 'listBills')
       callbacks?.onSuccess?.(data, variables)
