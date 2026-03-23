@@ -14,6 +14,7 @@ import {
   validateForm
 } from '@/components/form'
 import { RecurrenceType } from '@/api/generated/types.gen'
+import { BaseButton } from '@/components/base-button/base-button'
 
 // Schema for bill form - categoryId is handled via ComboboxValue
 // Schema for bill form - categoryId is handled via ComboboxValue
@@ -130,7 +131,7 @@ import { Plus, Trash2 } from 'lucide-react'
 import { useId, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
-import { Button } from '@/components/ui/button'
+import { IconButton } from '@/components/icon-button/icon-button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
@@ -473,18 +474,18 @@ export function BillForm({
                               )}
                             </form.AppField>
                           </div>
-                          <div className="pt-2">
+                          <div className={index === 0 ? 'pt-2 mt-6' : 'pt-2'}>
                             {field.state.value.length > 1 && (
-                              <Button
+                              <IconButton
                                 type="button"
-                                variant="ghost"
-                                size="icon"
-                                className={index === 0 ? 'mt-6' : ''}
+                                variant="text"
+                                color="subtle"
                                 onClick={() => field.removeValue(index)}
                                 title={t('forms.splitBillRemoveSection')}
-                              >
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                              </Button>
+                                icon={
+                                  <Trash2 className="h-4 w-4 text-destructive" />
+                                }
+                              />
                             )}
                           </div>
                         </div>
@@ -518,10 +519,10 @@ export function BillForm({
                       </CardContent>
                     </Card>
                   ))}
-                  <Button
+                  <BaseButton
                     type="button"
-                    variant="outline"
-                    size="sm"
+                    variant="outlined"
+                    color="subtle"
                     onClick={() =>
                       field.pushValue({
                         id: crypto.randomUUID(),
@@ -532,9 +533,9 @@ export function BillForm({
                     }
                     className="w-full border-dashed"
                   >
-                    <Plus className="h-4 w-4 mr-2" />
-                    {t('forms.splitBillAddSection')}
-                  </Button>
+                    <Plus />
+                    <span>{t('forms.splitBillAddSection')}</span>
+                  </BaseButton>
                 </>
               )}
             </div>

@@ -10,7 +10,12 @@ import {
   DayPicker,
   getDefaultClassNames
 } from 'react-day-picker'
-import { Button, buttonVariants } from '@/components/ui/button'
+import {
+  BaseButton,
+  type ButtonColor,
+  type ButtonVariant,
+  baseButtonVariants
+} from '@/components/base-button/base-button'
 import { cn } from '@/lib/utils'
 
 type CalendarRootProps = React.ComponentProps<'div'> & {
@@ -82,12 +87,14 @@ function Calendar({
   classNames,
   showOutsideDays = true,
   captionLayout = 'label',
-  buttonVariant = 'ghost',
+  buttonVariant = 'text',
+  buttonColor = 'subtle',
   formatters,
   components,
   ...props
 }: React.ComponentProps<typeof DayPicker> & {
-  buttonVariant?: React.ComponentProps<typeof Button>['variant']
+  buttonVariant?: ButtonVariant
+  buttonColor?: ButtonColor
 }) {
   const defaultClassNames = getDefaultClassNames()
 
@@ -121,15 +128,19 @@ function Calendar({
           defaultClassNames.nav
         ),
         button_previous: cn(
-          buttonVariants({
-            variant: buttonVariant
+          baseButtonVariants({
+            variant: buttonVariant,
+            color: buttonColor,
+            iconOnly: true
           }),
           'size-(--cell-size) aria-disabled:opacity-50 p-0 select-none',
           defaultClassNames.button_previous
         ),
         button_next: cn(
-          buttonVariants({
-            variant: buttonVariant
+          baseButtonVariants({
+            variant: buttonVariant,
+            color: buttonColor,
+            iconOnly: true
           }),
           'size-(--cell-size) aria-disabled:opacity-50 p-0 select-none',
           defaultClassNames.button_next
@@ -214,8 +225,10 @@ function Calendar({
 
 function CalendarDayButton({
   className,
+  children,
   day,
   modifiers,
+  color: _color,
   ...props
 }: React.ComponentProps<typeof DayButton>) {
   const defaultClassNames = getDefaultClassNames()
@@ -228,10 +241,11 @@ function CalendarDayButton({
   ])
 
   return (
-    <Button
+    <BaseButton
       ref={ref}
-      variant="ghost"
-      size="icon"
+      variant="text"
+      color="subtle"
+      iconOnly
       data-day={day.date.toLocaleDateString()}
       data-selected-single={
         modifiers.selected &&
@@ -248,7 +262,9 @@ function CalendarDayButton({
         className
       )}
       {...props}
-    />
+    >
+      {children}
+    </BaseButton>
   )
 }
 

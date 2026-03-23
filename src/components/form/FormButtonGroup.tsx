@@ -10,7 +10,7 @@
 
 import { Loader2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { Button } from '@/components/ui/button'
+import { BaseButton } from '@/components/base-button/base-button'
 import { useFormContext } from '@/hooks/form'
 import { CancelButton, type CancelButtonProps } from './CancelButton'
 import { DeleteButton, type DeleteButtonProps } from './DeleteButton'
@@ -69,8 +69,14 @@ export function FormButtonGroup({
 
   return (
     <div className="flex gap-2 justify-end">
-      <DeleteButton onDelete={onDelete}>{effectiveDeleteLabel}</DeleteButton>
-      <CancelButton onCancel={onCancel}>{effectiveCancelLabel}</CancelButton>
+      <DeleteButton
+        onDelete={onDelete}
+        label={effectiveDeleteLabel}
+      />
+      <CancelButton
+        onCancel={onCancel}
+        label={effectiveCancelLabel}
+      />
       <form.Subscribe
         selector={(state) => ({
           canSubmit: state.canSubmit,
@@ -78,13 +84,16 @@ export function FormButtonGroup({
         })}
       >
         {({ canSubmit, isSubmitting }) => (
-          <Button
+          <BaseButton
             type="submit"
             disabled={!canSubmit || isSubmitting}
+            className="gap-2"
           >
-            {isSubmitting && <Loader2 className="animate-spin" />}
-            {isSubmitting ? effectiveLoadingText : effectiveSubmitLabel}
-          </Button>
+            {isSubmitting ? <Loader2 className="animate-spin" /> : null}
+            <span>
+              {isSubmitting ? effectiveLoadingText : effectiveSubmitLabel}
+            </span>
+          </BaseButton>
         )}
       </form.Subscribe>
     </div>

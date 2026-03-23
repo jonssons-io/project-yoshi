@@ -1,6 +1,7 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
-import { Button } from '@/components/ui/button'
+import { BaseButton } from '@/components/base-button/base-button'
+import { Button } from '@/components/button/button'
 import {
   Drawer,
   DrawerContent,
@@ -186,7 +187,7 @@ export function TransferDrawer({
             </div>
           </div>
           <DrawerFooter>
-            <Button
+            <BaseButton
               type="submit"
               disabled={
                 transferMutation.isPending ||
@@ -198,14 +199,14 @@ export function TransferDrawer({
               {transferMutation.isPending
                 ? t('allocation.transferDrawer.transferring')
                 : t('allocation.transferDrawer.transfer')}
-            </Button>
+            </BaseButton>
             <Button
-              variant="outline"
+              variant="outlined"
+              color="subtle"
               onClick={() => onOpenChange(false)}
               type="button"
-            >
-              {t('common.cancel')}
-            </Button>
+              label={t('common.cancel')}
+            />
           </DrawerFooter>
         </form>
       </DrawerContent>

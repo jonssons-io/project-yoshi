@@ -2,15 +2,15 @@ import { ArrowRightLeftIcon } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { TransactionType } from '@/api/generated/types.gen'
 import { TransactionForm } from '@/components/transactions/TransactionForm'
-import { Button } from '@/components/ui/button'
+import { Button } from '@/components/button/button'
 import { useAuth } from '@/contexts/auth-context'
 import { useAccountsList, useCreateTransaction } from '@/hooks/api'
 import { useDrawer } from '@/hooks/use-drawer'
 
 interface CreateTransferButtonProps {
   budgetId?: string
-  className?: string
-  variant?: 'default' | 'outline' | 'secondary' | 'ghost' | 'link'
+  variant?: React.ComponentProps<typeof Button>['variant']
+  color?: React.ComponentProps<typeof Button>['color']
 }
 
 type TransferDrawerContentProps = {
@@ -74,8 +74,8 @@ function TransferDrawerContent({
 
 export function CreateTransferButton({
   budgetId: _budgetId,
-  className,
-  variant = 'outline'
+  variant = 'outlined',
+  color = 'subtle'
 }: CreateTransferButtonProps) {
   const { t } = useTranslation()
   const { openDrawer, closeDrawer } = useDrawer()
@@ -105,12 +105,11 @@ export function CreateTransferButton({
   return (
     <Button
       onClick={handleClick}
-      className={className}
       variant={variant}
+      color={color}
       disabled={!householdId}
-    >
-      <ArrowRightLeftIcon className="mr-2 h-4 w-4" />
-      {t('transactions.transferFunds')}
-    </Button>
+      icon={<ArrowRightLeftIcon />}
+      label={t('transactions.transferFunds')}
+    />
   )
 }

@@ -25,8 +25,9 @@ import {
   useAppForm,
   validateForm
 } from '@/components/form'
+import { BaseButton } from '@/components/base-button/base-button'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { Button } from '@/components/ui/button'
+import { IconButton } from '@/components/icon-button/icon-button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
@@ -954,19 +955,19 @@ export function TransactionForm({
                                 )}
                               </form.AppField>
                             </div>
-                            <div className="pt-2">
-                              <Button
+                            <div className={index === 0 ? 'pt-2 mt-6' : 'pt-2'}>
+                              <IconButton
                                 type="button"
-                                variant="ghost"
-                                size="icon"
-                                className={index === 0 ? 'mt-6' : ''}
+                                variant="text"
+                                color="subtle"
                                 onClick={() => field.removeValue(index)}
                                 disabled={
                                   (field.state.value || []).length === 1
                                 }
-                              >
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                              </Button>
+                                icon={
+                                  <Trash2 className="h-4 w-4 text-destructive" />
+                                }
+                              />
                             </div>
                           </div>
 
@@ -1006,10 +1007,10 @@ export function TransactionForm({
                         </CardContent>
                       </Card>
                     ))}
-                    <Button
+                    <BaseButton
                       type="button"
-                      variant="outline"
-                      size="sm"
+                      variant="outlined"
+                      color="subtle"
                       onClick={() =>
                         field.pushValue({
                           subtitle: '',
@@ -1019,9 +1020,9 @@ export function TransactionForm({
                       }
                       className="w-full border-dashed"
                     >
-                      <Plus className="h-4 w-4 mr-2" />
-                      {t('forms.addSection')}
-                    </Button>
+                      <Plus />
+                      <span>{t('forms.addSection')}</span>
+                    </BaseButton>
                   </div>
                 )}
               </form.Field>

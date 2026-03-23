@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { TransactionType } from '@/api/generated/types.gen'
 import { TransactionForm } from '@/components/transactions/TransactionForm'
-import { Button } from '@/components/ui/button'
+import { Button } from '@/components/button/button'
 import { useAuth } from '@/contexts/auth-context'
 import {
   useAccountsList,
@@ -20,8 +20,8 @@ import { getErrorMessage } from '@/lib/api-error'
 
 interface CreateTransactionButtonProps {
   budgetId?: string
-  className?: string
-  variant?: 'default' | 'outline' | 'secondary' | 'ghost' | 'link'
+  variant?: React.ComponentProps<typeof Button>['variant']
+  color?: React.ComponentProps<typeof Button>['color']
   preSelectedBillId?: string
   instanceId?: string
   defaultTransactionType?: 'INCOME' | 'EXPENSE' | 'TRANSFER'
@@ -226,8 +226,8 @@ function TransactionDrawerContent({
 
 export function CreateTransactionButton({
   budgetId: propsBudgetId,
-  className,
-  variant = 'default',
+  variant = 'filled',
+  color = 'primary',
   preSelectedBillId,
   instanceId,
   defaultTransactionType = 'EXPENSE'
@@ -266,12 +266,11 @@ export function CreateTransactionButton({
   return (
     <Button
       onClick={handleClick}
-      className={className}
       variant={variant}
+      color={color}
       disabled={!householdId}
-    >
-      <PlusIcon className="mr-2 h-4 w-4" />
-      {t('transactions.addTransaction')}
-    </Button>
+      icon={<PlusIcon />}
+      label={t('transactions.addTransaction')}
+    />
   )
 }

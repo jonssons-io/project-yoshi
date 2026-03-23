@@ -8,8 +8,9 @@ import { Trash2, X } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { z } from 'zod'
+import { Button } from '@/components/button/button'
+import { IconButton } from '@/components/icon-button/icon-button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
   useCreateInvitation,
@@ -156,10 +157,10 @@ export function HouseholdForm({
                     </div>
                   </div>
                   {member.userId !== userId && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                    <IconButton
+                      variant="text"
+                      color="destructive"
+                      icon={<Trash2 className="h-4 w-4" />}
                       onClick={() =>
                         removeMember({
                           householdId,
@@ -167,9 +168,7 @@ export function HouseholdForm({
                           removeUserId: member.userId
                         })
                       }
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    />
                   )}
                 </div>
               ))}
@@ -190,9 +189,8 @@ export function HouseholdForm({
               <Button
                 onClick={handleInvite}
                 disabled={!inviteEmail || isInviting}
-              >
-                {t('forms.send')}
-              </Button>
+                label={t('forms.send')}
+              />
             </div>
 
             {invitations && invitations.length > 0 && (
@@ -207,19 +205,17 @@ export function HouseholdForm({
                       className="flex items-center justify-between p-2 rounded-lg border bg-muted/50"
                     >
                       <span className="text-sm">{invitation.email}</span>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
+                      <IconButton
+                        variant="text"
+                        color="subtle"
+                        icon={<X className="h-4 w-4" />}
                         onClick={() =>
                           revokeInvitation({
                             invitationId: invitation.id,
                             userId
                           })
                         }
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
+                      />
                     </div>
                   ))}
                 </div>

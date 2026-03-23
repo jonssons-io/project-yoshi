@@ -5,8 +5,8 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { format } from 'date-fns'
 import { useTranslation } from 'react-i18next'
+import { BaseButton } from '@/components/base-button/base-button'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import {
   Card,
   CardContent,
@@ -61,9 +61,9 @@ function BudgetDetailPage() {
           <CardDescription>{t('budgets.notFoundDesc')}</CardDescription>
         </CardHeader>
         <CardContent>
-          <Button asChild>
+          <BaseButton asChild>
             <Link to="/budgets">{t('budgets.backToBudgets')}</Link>
-          </Button>
+          </BaseButton>
         </CardContent>
       </Card>
     )
@@ -271,7 +271,7 @@ function BudgetDetailPage() {
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-2">
-            <Button asChild>
+            <BaseButton asChild>
               <Link
                 to="/transactions"
                 search={{
@@ -280,13 +280,14 @@ function BudgetDetailPage() {
               >
                 {t('budgets.viewTransactions')}
               </Link>
-            </Button>
-            <Button
+            </BaseButton>
+            <BaseButton
               asChild
-              variant="outline"
+              variant="outlined"
+              color="subtle"
             >
               <Link to="/budgets">{t('allocation.allocateFunds')}</Link>
-            </Button>
+            </BaseButton>
           </div>
         </CardContent>
       </Card>

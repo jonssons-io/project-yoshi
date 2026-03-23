@@ -8,7 +8,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { Card } from '@/components/card/Card'
-import { Button } from '@/components/ui/button'
+import { Button } from '@/components/button/button'
 import { useAuth } from '@/contexts/auth-context'
 import { AccountForm } from '@/forms/AccountForm'
 import {
@@ -179,10 +179,11 @@ function AccountsPage() {
     <div className="space-y-6">
       {/* Toolbar */}
       <div className="flex items-center justify-end">
-        <Button onClick={handleCreateAccount}>
-          <PlusIcon className="mr-2 h-4 w-4" />
-          {t('accounts.add')}
-        </Button>
+        <Button
+          onClick={handleCreateAccount}
+          icon={<PlusIcon />}
+          label={t('accounts.add')}
+        />
       </div>
 
       {accounts?.length === 0 ? (
@@ -190,10 +191,11 @@ function AccountsPage() {
           title={t('accounts.noAccounts')}
           description={t('accounts.getStarted')}
         >
-          <Button onClick={handleCreateAccount}>
-            <PlusIcon className="mr-2 h-4 w-4" />
-            {t('accounts.createFirst')}
-          </Button>
+          <Button
+            onClick={handleCreateAccount}
+            icon={<PlusIcon />}
+            label={t('accounts.createFirst')}
+          />
         </Card>
       ) : (
         <Card>

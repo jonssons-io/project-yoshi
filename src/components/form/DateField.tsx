@@ -9,7 +9,7 @@ import { format } from 'date-fns'
 import { sv } from 'date-fns/locale'
 import { CalendarIcon } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { Button } from '@/components/ui/button'
+import { BaseButton } from '@/components/base-button/base-button'
 import { Calendar } from '@/components/ui/calendar'
 import {
   Field,
@@ -69,9 +69,10 @@ export function DateField({
         {description && <FieldDescription>{description}</FieldDescription>}
         <Popover>
           <PopoverTrigger asChild>
-            <Button
+            <BaseButton
               id={field.name}
-              variant="outline"
+              variant="outlined"
+              color="subtle"
               className={cn(
                 'w-full justify-start text-left font-normal',
                 !field.state.value && 'text-muted-foreground'
@@ -86,7 +87,7 @@ export function DateField({
               ) : (
                 <span>{effectivePlaceholder}</span>
               )}
-            </Button>
+            </BaseButton>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0">
             <Calendar

@@ -9,7 +9,7 @@
 
 import { Loader2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { Button } from '@/components/ui/button'
+import { BaseButton } from '@/components/base-button/base-button'
 import { useFormContext } from '@/hooks/form'
 
 export interface SubmitButtonProps {
@@ -17,7 +17,7 @@ export interface SubmitButtonProps {
    * Button text
    * @default "Submit"
    */
-  children?: React.ReactNode
+  label?: React.ReactNode
 
   /**
    * Text to show when submitting
@@ -27,36 +27,36 @@ export interface SubmitButtonProps {
 
   /**
    * Button variant
-   * @default "default"
+   * @default "filled"
    */
-  variant?: React.ComponentProps<typeof Button>['variant']
+  variant?: React.ComponentProps<typeof BaseButton>['variant']
 
   /**
-   * Button size
-   * @default "default"
+   * Button color
+   * @default "primary"
    */
-  size?: React.ComponentProps<typeof Button>['size']
+  color?: React.ComponentProps<typeof BaseButton>['color']
 
   /**
-   * Additional props to pass to the Button component
+   * Additional props to pass to the BaseButton component
    */
   buttonProps?: Omit<
-    React.ComponentProps<typeof Button>,
-    'type' | 'disabled' | 'children'
+    React.ComponentProps<typeof BaseButton>,
+    'type' | 'disabled' | 'label'
   >
 }
 
 export function SubmitButton({
-  children,
+  label,
   loadingText,
-  variant = 'default',
-  size = 'default',
+  variant = 'filled',
+  color = 'primary',
   buttonProps
 }: SubmitButtonProps) {
   const { t } = useTranslation()
   const form = useFormContext()
 
-  const effectiveChildren = children ?? t('common.submit')
+  const effectiveLabel = label ?? t('common.submit')
   const effectiveLoadingText = loadingText ?? t('common.submitting')
 
   return (
@@ -67,16 +67,17 @@ export function SubmitButton({
       })}
     >
       {({ canSubmit, isSubmitting }) => (
-        <Button
+        <BaseButton
           type="submit"
           disabled={!canSubmit || isSubmitting}
           variant={variant}
-          size={size}
+          color={color}
+          className="gap-2"
           {...buttonProps}
         >
-          {isSubmitting && <Loader2 className="animate-spin" />}
-          {isSubmitting ? effectiveLoadingText : effectiveChildren}
-        </Button>
+          {isSubmitting ? <Loader2 className="animate-spin" /> : null}
+          <span>{isSubmitting ? effectiveLoadingText : effectiveLabel}</span>
+        </BaseButton>
       )}
     </form.Subscribe>
   )

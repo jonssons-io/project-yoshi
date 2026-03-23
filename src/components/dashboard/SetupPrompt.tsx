@@ -15,7 +15,7 @@ import {
   Illustration,
   type IllustrationVariant
 } from '../illustrations/Illustration'
-import { Button } from '../ui/button'
+import { Button } from '@/components/button/button'
 import {
   Card,
   CardContent,
@@ -228,10 +228,9 @@ export function SetupPrompt({
           <Button
             disabled={isActionDisabled}
             onClick={handleOpenSetupDrawer}
-          >
-            <PlusIcon className="mr-2 h-4 w-4" />
-            {t(config.buttonKey)}
-          </Button>
+            icon={<PlusIcon />}
+            label={t(config.buttonKey)}
+          />
         </CardContent>
       </Card>
     </div>

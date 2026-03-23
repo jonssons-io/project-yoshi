@@ -10,7 +10,7 @@
 import { CheckIcon, ChevronsUpDownIcon, PlusIcon } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Button } from '@/components/ui/button'
+import { BaseButton } from '@/components/base-button/base-button'
 import {
   Command,
   CommandEmpty,
@@ -185,9 +185,10 @@ export function ComboboxField({
           onOpenChange={setOpen}
         >
           <PopoverTrigger asChild>
-            <Button
+            <BaseButton
               id={field.name}
-              variant="outline"
+              variant="outlined"
+              color="subtle"
               aria-expanded={open}
               className={cn(
                 'w-full justify-between font-normal',
@@ -210,7 +211,7 @@ export function ComboboxField({
                 )}
               </span>
               <ChevronsUpDownIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-            </Button>
+            </BaseButton>
           </PopoverTrigger>
           <PopoverContent className="w-(--radix-popover-trigger-width) p-0">
             <Command shouldFilter={false}>

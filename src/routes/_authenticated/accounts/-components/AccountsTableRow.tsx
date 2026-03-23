@@ -5,7 +5,8 @@ import {
   TrashIcon
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { Button } from '@/components/ui/button'
+import { BaseButton } from '@/components/base-button/base-button'
+import { IconButton } from '@/components/icon-button/icon-button'
 import { TableCell, TableRow } from '@/components/ui/table'
 
 export type AccountRowAccount = {
@@ -59,9 +60,10 @@ export const AccountRow = ({
       <TableCell>{transactionCount}</TableCell>
       <TableCell className="text-right">
         <div className="flex justify-end gap-2">
-          <Button
-            variant="ghost"
-            size="icon"
+          <IconButton
+            variant="text"
+            color="subtle"
+            icon={<PencilIcon className="h-4 w-4" />}
             onClick={() =>
               onEdit({
                 id: account.id,
@@ -75,12 +77,17 @@ export const AccountRow = ({
                 currentBalance: account.currentBalance
               })
             }
-          >
-            <PencilIcon className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
+          />
+          <IconButton
+            variant="text"
+            color="subtle"
+            icon={
+              account.archived ? (
+                <ArchiveRestoreIcon className="h-4 w-4" />
+              ) : (
+                <ArchiveIcon className="h-4 w-4" />
+              )
+            }
             onClick={() =>
               onArchive({
                 id: account.id,
@@ -90,16 +97,11 @@ export const AccountRow = ({
             title={
               account.archived ? t('common.unarchive') : t('common.archive')
             }
-          >
-            {account.archived ? (
-              <ArchiveRestoreIcon className="h-4 w-4" />
-            ) : (
-              <ArchiveIcon className="h-4 w-4" />
-            )}
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
+          />
+          <BaseButton
+            variant="text"
+            color="subtle"
+            iconOnly
             className={!canDelete ? 'opacity-50' : undefined}
             onClick={() =>
               onDelete({
@@ -111,7 +113,7 @@ export const AccountRow = ({
             title={t('common.delete')}
           >
             <TrashIcon className="h-4 w-4" />
-          </Button>
+          </BaseButton>
         </div>
       </TableCell>
     </TableRow>

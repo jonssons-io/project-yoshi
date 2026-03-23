@@ -1,7 +1,7 @@
 import { useUser } from '@clerk/clerk-react'
 import { Check, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { Button } from '@/components/ui/button'
+import { IconButton } from '@/components/icon-button/icon-button'
 import {
   useAcceptInvitation,
   useDeclineInvitation,
@@ -58,11 +58,11 @@ export function PendingInvitations({ onJoin }: PendingInvitationsProps) {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <Button
-              size="icon"
-              variant="outline"
-              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+            <IconButton
+              variant="outlined"
+              color="destructive"
               title={t('dashboard.decline')}
+              icon={<X />}
               onClick={() => {
                 if (!userId) return
                 declineInvitation({
@@ -70,12 +70,12 @@ export function PendingInvitations({ onJoin }: PendingInvitationsProps) {
                   userId
                 })
               }}
-            >
-              <X className="h-4 w-4" />
-            </Button>
-            <Button
-              size="icon"
+            />
+            <IconButton
+              variant="filled"
+              color="primary"
               title={t('dashboard.accept')}
+              icon={<Check />}
               onClick={() => {
                 if (!userId) return
                 acceptInvitation({
@@ -84,9 +84,7 @@ export function PendingInvitations({ onJoin }: PendingInvitationsProps) {
                   userId
                 })
               }}
-            >
-              <Check className="h-4 w-4" />
-            </Button>
+            />
           </div>
         </div>
       ))}

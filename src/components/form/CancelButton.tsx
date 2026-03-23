@@ -6,7 +6,7 @@
  */
 
 import { useTranslation } from 'react-i18next'
-import { Button } from '@/components/ui/button'
+import { Button } from '@/components/button/button'
 
 export interface CancelButtonProps {
   /**
@@ -18,38 +18,38 @@ export interface CancelButtonProps {
    * Button text
    * @default "Cancel"
    */
-  children?: React.ReactNode
+  label?: React.ReactNode
 
   /**
    * Button variant
-   * @default "outline"
+   * @default "outlined"
    */
   variant?: React.ComponentProps<typeof Button>['variant']
 
   /**
-   * Button size
-   * @default "default"
+   * Button color
+   * @default "subtle"
    */
-  size?: React.ComponentProps<typeof Button>['size']
+  color?: React.ComponentProps<typeof Button>['color']
 
   /**
    * Additional props to pass to the Button component
    */
   buttonProps?: Omit<
     React.ComponentProps<typeof Button>,
-    'type' | 'onClick' | 'children'
+    'type' | 'onClick' | 'label'
   >
 }
 
 export function CancelButton({
   onCancel,
-  children,
-  variant = 'outline',
-  size = 'default',
+  label,
+  variant = 'outlined',
+  color = 'subtle',
   buttonProps
 }: CancelButtonProps) {
   const { t } = useTranslation()
-  const content = children || t('common.cancel')
+  const content = label || t('common.cancel')
 
   if (!onCancel) {
     return null
@@ -59,11 +59,10 @@ export function CancelButton({
     <Button
       type="button"
       variant={variant}
-      size={size}
+      color={color}
+      label={content}
       onClick={onCancel}
       {...buttonProps}
-    >
-      {content}
-    </Button>
+    />
   )
 }

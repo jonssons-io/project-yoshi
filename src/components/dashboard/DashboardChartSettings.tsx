@@ -1,6 +1,7 @@
 import { CalendarIcon } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { Button } from '@/components/ui/button'
+import { BaseButton } from '@/components/base-button/base-button'
+import { Button } from '@/components/button/button'
 import { Calendar } from '@/components/ui/calendar'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
@@ -44,29 +45,27 @@ export function DashboardChartSettings({
         <h3 className="text-lg font-medium">{t('dashboard.dateRange')}</h3>
         <div className="flex flex-wrap gap-2">
           <Button
-            variant={dateRange === 'current-month' ? 'default' : 'outline'}
+            variant={dateRange === 'current-month' ? 'filled' : 'outlined'}
+            color={dateRange === 'current-month' ? 'primary' : 'subtle'}
             onClick={() => onDateRangeChange('current-month')}
-            size="sm"
-          >
-            {t('dashboard.currentMonth')}
-          </Button>
+            label={t('dashboard.currentMonth')}
+          />
           <Button
-            variant={dateRange === '3-months' ? 'default' : 'outline'}
+            variant={dateRange === '3-months' ? 'filled' : 'outlined'}
+            color={dateRange === '3-months' ? 'primary' : 'subtle'}
             onClick={() => onDateRangeChange('3-months')}
-            size="sm"
-          >
-            {t('dashboard.threeMonths')}
-          </Button>
+            label={t('dashboard.threeMonths')}
+          />
 
           <Popover>
             <PopoverTrigger asChild>
-              <Button
-                variant={dateRange === 'custom' ? 'default' : 'outline'}
-                size="sm"
+              <BaseButton
+                variant={dateRange === 'custom' ? 'filled' : 'outlined'}
+                color={dateRange === 'custom' ? 'primary' : 'subtle'}
               >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {t('dashboard.custom')}
-              </Button>
+                <CalendarIcon />
+                <span>{t('dashboard.custom')}</span>
+              </BaseButton>
             </PopoverTrigger>
             <PopoverContent
               className="w-auto p-0"
@@ -111,17 +110,18 @@ export function DashboardChartSettings({
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-medium">{t('accounts.title')}</h3>
           <Button
-            variant="ghost"
-            size="sm"
+            variant="text"
+            color="subtle"
             onClick={() => {
               const allSelected = selectedAccountIds.length === accounts.length
               onToggleAllAccounts(!allSelected)
             }}
-          >
-            {selectedAccountIds.length === accounts.length
-              ? t('dashboard.deselectAll')
-              : t('dashboard.selectAll')}
-          </Button>
+            label={
+              selectedAccountIds.length === accounts.length
+                ? t('dashboard.deselectAll')
+                : t('dashboard.selectAll')
+            }
+          />
         </div>
         <div className="grid gap-2">
           {accounts.map((account) => (

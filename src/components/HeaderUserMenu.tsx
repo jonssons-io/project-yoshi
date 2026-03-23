@@ -7,8 +7,8 @@ import {
   Settings
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { BaseButton } from '@/components/base-button/base-button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -62,8 +62,9 @@ export function HeaderUserMenu({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
+        <BaseButton
+          variant="text"
+          color="subtle"
           className="relative h-8 w-8 rounded-full cursor-pointer"
         >
           <Avatar className="h-8 w-8">
@@ -73,7 +74,7 @@ export function HeaderUserMenu({
             />
             <AvatarFallback>{userInitials}</AvatarFallback>
           </Avatar>
-        </Button>
+        </BaseButton>
       </DropdownMenuTrigger>
       <DropdownMenuContent
         className="w-56"

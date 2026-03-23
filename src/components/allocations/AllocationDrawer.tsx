@@ -1,6 +1,7 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
-import { Button } from '@/components/ui/button'
+import { BaseButton } from '@/components/base-button/base-button'
+import { Button } from '@/components/button/button'
 import {
   Drawer,
   DrawerContent,
@@ -191,21 +192,21 @@ export function AllocationDrawer({
             </div>
           </div>
           <DrawerFooter>
-            <Button
+            <BaseButton
               type="submit"
               disabled={
                 activeMutation.isPending || !budgetId || isInvalidAmount
               }
             >
               {activeMutation.isPending ? pendingLabel : submitLabel}
-            </Button>
+            </BaseButton>
             <Button
-              variant="outline"
+              variant="outlined"
+              color="subtle"
               onClick={() => onOpenChange(false)}
               type="button"
-            >
-              {t('common.cancel')}
-            </Button>
+              label={t('common.cancel')}
+            />
           </DrawerFooter>
         </form>
       </DrawerContent>

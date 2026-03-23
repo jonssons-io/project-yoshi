@@ -17,8 +17,10 @@ import { toast } from 'sonner'
 import { AllocationDrawer } from '@/components/allocations/AllocationDrawer'
 import { TransferDrawer } from '@/components/allocations/TransferDrawer'
 import { SetupPrompt } from '@/components/dashboard/SetupPrompt'
+import { BaseButton } from '@/components/base-button/base-button'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
+import { Button } from '@/components/button/button'
+import { IconButton } from '@/components/icon-button/icon-button'
 import {
   Card,
   CardContent,
@@ -124,7 +126,10 @@ function BudgetsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Button onClick={() => refetch()}>{t('budgets.tryAgain')}</Button>
+          <Button
+            onClick={() => refetch()}
+            label={t('budgets.tryAgain')}
+          />
         </CardContent>
       </Card>
     )
@@ -218,26 +223,27 @@ function BudgetsPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-end gap-2">
           <Button
-            variant="outline"
+            variant="outlined"
+            color="subtle"
             onClick={() => {
               setSelectedBudgetId(undefined)
               setAllocationOpen(true)
             }}
-          >
-            <PlusIcon className="mr-2 h-4 w-4" />
-            {t('allocation.allocateFunds')}
-          </Button>
+            icon={<PlusIcon />}
+            label={t('allocation.allocateFunds')}
+          />
           <Button
-            variant="outline"
+            variant="outlined"
+            color="subtle"
             onClick={() => handleTransfer()}
-          >
-            <ArrowLeftRight className="mr-2 h-4 w-4" />
-            {t('allocation.transferFunds')}
-          </Button>
-          <Button onClick={handleCreate}>
-            <PlusIcon className="mr-2 h-4 w-4" />
-            {t('budgets.create')}
-          </Button>
+            icon={<ArrowLeftRight />}
+            label={t('allocation.transferFunds')}
+          />
+          <Button
+            onClick={handleCreate}
+            icon={<PlusIcon />}
+            label={t('budgets.create')}
+          />
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">
@@ -335,34 +341,38 @@ function BudgetsPage() {
                 />
               </CardContent>
               <CardFooter className="flex flex-wrap gap-2">
-                <Button
-                  variant="secondary"
-                  className="flex-1"
-                  onClick={() => handleAllocate(budget.id)}
-                >
-                  {t('allocation.allocate')}
-                </Button>
-                <Button
-                  variant="outline"
-                  className="flex-1"
-                  onClick={() => handleDeallocate(budget.id)}
-                  disabled={(budget.remainingAmount ?? 0) <= 0}
-                >
-                  <MinusIcon className="mr-2 h-4 w-4" />
-                  {t('allocation.deallocate')}
-                </Button>
-                <Button
-                  variant="outline"
-                  className="flex-1"
-                  onClick={() => handleTransfer(budget.id)}
-                  disabled={(budget.remainingAmount ?? 0) <= 0}
-                >
-                  <ArrowLeftRight className="mr-2 h-4 w-4" />
-                  {t('allocation.transfer')}
-                </Button>
-                <Button
+                <div className="flex-1">
+                  <Button
+                    variant="filled"
+                    color="subtle"
+                    onClick={() => handleAllocate(budget.id)}
+                    label={t('allocation.allocate')}
+                  />
+                </div>
+                <div className="flex-1">
+                  <Button
+                    variant="outlined"
+                    color="subtle"
+                    onClick={() => handleDeallocate(budget.id)}
+                    disabled={(budget.remainingAmount ?? 0) <= 0}
+                    icon={<MinusIcon />}
+                    label={t('allocation.deallocate')}
+                  />
+                </div>
+                <div className="flex-1">
+                  <Button
+                    variant="outlined"
+                    color="subtle"
+                    onClick={() => handleTransfer(budget.id)}
+                    disabled={(budget.remainingAmount ?? 0) <= 0}
+                    icon={<ArrowLeftRight />}
+                    label={t('allocation.transfer')}
+                  />
+                </div>
+                <BaseButton
                   asChild
-                  variant="outline"
+                  variant="outlined"
+                  color="subtle"
                   className="flex-1"
                 >
                   <Link
@@ -373,31 +383,29 @@ function BudgetsPage() {
                   >
                     {t('budgets.viewDetails')}
                   </Link>
-                </Button>
-                <Button
-                  variant="outline"
-                  size="icon"
+                </BaseButton>
+                <IconButton
+                  variant="outlined"
+                  color="subtle"
+                  icon={<PencilIcon className="h-4 w-4" />}
                   onClick={() =>
                     handleEdit({
                       id: budget.id,
                       name: budget.name
                     })
                   }
-                >
-                  <PencilIcon className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="icon"
+                />
+                <IconButton
+                  variant="outlined"
+                  color="subtle"
+                  icon={<TrashIcon className="h-4 w-4" />}
                   onClick={() =>
                     handleDeleteBudget({
                       id: budget.id,
                       name: budget.name
                     })
                   }
-                >
-                  <TrashIcon className="h-4 w-4" />
-                </Button>
+                />
               </CardFooter>
             </Card>
           ))}

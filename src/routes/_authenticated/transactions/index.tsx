@@ -14,11 +14,12 @@ import {
   TransactionStatus,
   TransactionType
 } from '@/api/generated/types.gen'
+import { BaseButton } from '@/components/base-button/base-button'
 import { CreateTransactionButton } from '@/components/transactions/CreateTransactionButton'
 import { TransactionForm } from '@/components/transactions/TransactionForm'
 import { CreateTransferButton } from '@/components/transfers/CreateTransferButton'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
+import { Button } from '@/components/button/button'
 import {
   Card,
   CardContent,
@@ -480,29 +481,29 @@ function TransactionsPage() {
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="flex gap-2">
             <Button
-              variant={filter === 'ALL' ? 'default' : 'outline'}
+              variant={filter === 'ALL' ? 'filled' : 'outlined'}
+              color={filter === 'ALL' ? 'primary' : 'subtle'}
               onClick={() => setFilter('ALL')}
-            >
-              {allFilterLabel}
-            </Button>
+              label={allFilterLabel}
+            />
             <Button
-              variant={filter === 'INCOME' ? 'default' : 'outline'}
+              variant={filter === 'INCOME' ? 'filled' : 'outlined'}
+              color={filter === 'INCOME' ? 'primary' : 'subtle'}
               onClick={() => setFilter('INCOME')}
-            >
-              {incomeFilterLabel}
-            </Button>
+              label={incomeFilterLabel}
+            />
             <Button
-              variant={filter === 'EXPENSE' ? 'default' : 'outline'}
+              variant={filter === 'EXPENSE' ? 'filled' : 'outlined'}
+              color={filter === 'EXPENSE' ? 'primary' : 'subtle'}
               onClick={() => setFilter('EXPENSE')}
-            >
-              {expenseFilterLabel}
-            </Button>
+              label={expenseFilterLabel}
+            />
             <Button
-              variant={filter === 'TRANSFER' ? 'default' : 'outline'}
+              variant={filter === 'TRANSFER' ? 'filled' : 'outlined'}
+              color={filter === 'TRANSFER' ? 'primary' : 'subtle'}
               onClick={() => setFilter('TRANSFER')}
-            >
-              {transferFilterLabel}
-            </Button>
+              label={transferFilterLabel}
+            />
           </div>
           <Select
             value={budgetFilter}
@@ -537,12 +538,9 @@ function TransactionsPage() {
               <CreateTransactionButton
                 budgetId={budgetId}
                 preSelectedBillId={createFromBill}
-                variant="default"
-              >
-                {/* We can't actually change text this way with current component,
-                  but the standard button text is fine or we can add a text props if needed,
-                  for now using default text "Add Transaction" is acceptable */}
-              </CreateTransactionButton>
+                variant="filled"
+                color="primary"
+              />
             </CardContent>
           </Card>
         ) : (
@@ -650,12 +648,13 @@ function TransactionsPage() {
                       <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
+                            <BaseButton
+                              variant="text"
+                              color="subtle"
+                              iconOnly
                             >
                               <MoreVerticalIcon className="h-4 w-4" />
-                            </Button>
+                            </BaseButton>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             {type === 'TRANSFER' ? (

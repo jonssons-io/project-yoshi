@@ -13,10 +13,12 @@ import {
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
+import { BaseButton } from '@/components/base-button/base-button'
 import { CategoryForm } from '@/components/categories/CategoryForm'
 import { SetupPrompt } from '@/components/dashboard/SetupPrompt'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
+import { Button } from '@/components/button/button'
+import { IconButton } from '@/components/icon-button/icon-button'
 import { Card } from '@/components/ui/card'
 import {
   Table,
@@ -279,32 +281,30 @@ function CategoriesPage() {
       <div className="flex items-center justify-end gap-2">
         <div className="flex gap-2">
           <Button
-            variant={filter === 'ALL' ? 'default' : 'outline'}
+            variant={filter === 'ALL' ? 'filled' : 'outlined'}
+            color={filter === 'ALL' ? 'primary' : 'subtle'}
             onClick={() => setFilter('ALL')}
-            size="sm"
-          >
-            {`${t('categories.all')} (${categories?.length ?? 0})`}
-          </Button>
+            label={`${t('categories.all')} (${categories?.length ?? 0})`}
+          />
           <Button
-            variant={filter === 'INCOME' ? 'default' : 'outline'}
+            variant={filter === 'INCOME' ? 'filled' : 'outlined'}
+            color={filter === 'INCOME' ? 'primary' : 'subtle'}
             onClick={() => setFilter('INCOME')}
-            size="sm"
-          >
-            {`${t('categories.income')} (${incomeCount})`}
-          </Button>
+            label={`${t('categories.income')} (${incomeCount})`}
+          />
           <Button
-            variant={filter === 'EXPENSE' ? 'default' : 'outline'}
+            variant={filter === 'EXPENSE' ? 'filled' : 'outlined'}
+            color={filter === 'EXPENSE' ? 'primary' : 'subtle'}
             onClick={() => setFilter('EXPENSE')}
-            size="sm"
-          >
-            {`${t('categories.expense')} (${expenseCount})`}
-          </Button>
+            label={`${t('categories.expense')} (${expenseCount})`}
+          />
         </div>
 
-        <Button onClick={handleCreate}>
-          <PlusIcon className="mr-2 h-4 w-4" />
-          {t('categories.add')}
-        </Button>
+        <Button
+          onClick={handleCreate}
+          icon={<PlusIcon />}
+          label={t('categories.add')}
+        />
       </div>
 
       {categories?.length === 0 ? (
@@ -355,16 +355,22 @@ function CategoriesPage() {
                   <TableCell>{category._count?.transactions ?? 0}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
+                      <IconButton
+                        variant="text"
+                        color="subtle"
+                        icon={<PencilIcon />}
                         onClick={() => setEditingCategoryId(category.id)}
-                      >
-                        <PencilIcon className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
+                      />
+                      <IconButton
+                        variant="text"
+                        color="subtle"
+                        icon={
+                          category.archived ? (
+                            <ArchiveRestoreIcon className="h-4 w-4" />
+                          ) : (
+                            <ArchiveIcon className="h-4 w-4" />
+                          )
+                        }
                         onClick={() =>
                           archiveCategory({
                             id: category.id,
@@ -377,16 +383,11 @@ function CategoriesPage() {
                             ? t('common.unarchive')
                             : t('common.archive')
                         }
-                      >
-                        {category.archived ? (
-                          <ArchiveRestoreIcon className="h-4 w-4" />
-                        ) : (
-                          <ArchiveIcon className="h-4 w-4" />
-                        )}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
+                      />
+                      <BaseButton
+                        variant="text"
+                        color="subtle"
+                        iconOnly
                         className={
                           (category._count?.transactions ?? 0) > 0
                             ? 'opacity-50'
@@ -396,7 +397,7 @@ function CategoriesPage() {
                         title={t('common.delete')}
                       >
                         <TrashIcon className="h-4 w-4" />
-                      </Button>
+                      </BaseButton>
                     </div>
                   </TableCell>
                 </TableRow>

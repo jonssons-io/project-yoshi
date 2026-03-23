@@ -23,11 +23,12 @@ import {
   RecurrenceType,
   TransactionType
 } from '@/api/generated/types.gen'
+import { BaseButton } from '@/components/base-button/base-button'
 import { BillForm } from '@/components/bills/BillForm'
 import { SetupPrompt } from '@/components/dashboard/SetupPrompt'
 import { TransactionForm } from '@/components/transactions/TransactionForm'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
+import { Button } from '@/components/button/button'
 import { Card, CardContent } from '@/components/ui/card'
 import {
   DropdownMenu,
@@ -292,12 +293,12 @@ function BillInstanceEditDrawerContent({
       <div className="flex justify-end gap-2 pt-2">
         <Button
           type="button"
-          variant="outline"
+          variant="outlined"
+          color="subtle"
           onClick={onClose}
-        >
-          {t('common.cancel')}
-        </Button>
-        <Button
+          label={t('common.cancel')}
+        />
+        <BaseButton
           type="submit"
           disabled={
             isSubmitting ||
@@ -309,7 +310,7 @@ function BillInstanceEditDrawerContent({
           }
         >
           {isSubmitting ? t('common.saving') : t('common.save')}
-        </Button>
+        </BaseButton>
       </div>
     </form>
   )
@@ -741,25 +742,26 @@ function BillsPage() {
             </SelectContent>
           </Select>
           <Button
-            variant={thisMonthOnly ? 'default' : 'outline'}
+            variant={thisMonthOnly ? 'filled' : 'outlined'}
+            color={thisMonthOnly ? 'primary' : 'subtle'}
             onClick={() => setThisMonthOnly(!thisMonthOnly)}
-            size="sm"
-          >
-            {t('bills.thisMonth')}
-          </Button>
+            label={t('bills.thisMonth')}
+          />
           <Button
-            variant={includeArchived ? 'default' : 'outline'}
+            variant={includeArchived ? 'filled' : 'outlined'}
+            color={includeArchived ? 'primary' : 'subtle'}
             onClick={() => setIncludeArchived(!includeArchived)}
-            size="sm"
-          >
-            {includeArchived
-              ? t('bills.hideArchived')
-              : t('bills.showArchived')}
-          </Button>
-          <Button onClick={handleCreate}>
-            <PlusIcon className="h-4 w-4 mr-2" />
-            {t('bills.newBill')}
-          </Button>
+            label={
+              includeArchived
+                ? t('bills.hideArchived')
+                : t('bills.showArchived')
+            }
+          />
+          <Button
+            onClick={handleCreate}
+            icon={<PlusIcon className="h-4 w-4" />}
+            label={t('bills.newBill')}
+          />
         </div>
         <Card>
           <CardContent>
@@ -875,24 +877,24 @@ function BillsPage() {
                           </div>
                         ) : (
                           <Button
-                            variant="outline"
-                            size="sm"
+                            variant="outlined"
+                            color="subtle"
                             onClick={() => handleLinkTransaction(bill)}
-                          >
-                            <ReceiptIcon className="mr-2 h-4 w-4" />
-                            {t('transactions.createTransaction')}
-                          </Button>
+                            icon={<ReceiptIcon className="h-4 w-4" />}
+                            label={t('transactions.createTransaction')}
+                          />
                         )}
                       </TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="sm"
+                            <BaseButton
+                              variant="text"
+                              color="subtle"
+                              iconOnly
                             >
                               <MoreVerticalIcon className="h-4 w-4" />
-                            </Button>
+                            </BaseButton>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             {bill.status !== InstanceStatus.HANDLED && (

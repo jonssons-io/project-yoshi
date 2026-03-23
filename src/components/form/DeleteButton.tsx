@@ -6,7 +6,7 @@
  */
 
 import { useTranslation } from 'react-i18next'
-import { Button } from '@/components/ui/button'
+import { Button } from '@/components/button/button'
 
 export interface DeleteButtonProps {
   /**
@@ -18,46 +18,53 @@ export interface DeleteButtonProps {
    * Button text
    * @default "Delete"
    */
-  children?: React.ReactNode
+  label?: React.ReactNode
 
   /**
-   * Button size
-   * @default "default"
+   * Button variant
+   * @default "filled"
    */
-  size?: React.ComponentProps<typeof Button>['size']
+  variant?: React.ComponentProps<typeof Button>['variant']
+
+  /**
+   * Button color
+   * @default "destructive"
+   */
+  color?: React.ComponentProps<typeof Button>['color']
 
   /**
    * Additional props to pass to the Button component
    */
   buttonProps?: Omit<
     React.ComponentProps<typeof Button>,
-    'type' | 'onClick' | 'children' | 'variant'
+    'type' | 'onClick' | 'label'
   >
 }
 
 export function DeleteButton({
   onDelete,
-  children,
-  size = 'default',
+  label,
+  variant = 'filled',
+  color = 'destructive',
   buttonProps
 }: DeleteButtonProps) {
   const { t } = useTranslation()
-  const content = children || t('common.delete')
+  const content = label || t('common.delete')
 
   if (!onDelete) {
     return null
   }
 
   return (
-    <Button
-      type="button"
-      variant="destructive"
-      size={size}
-      onClick={onDelete}
-      className="mr-auto"
-      {...buttonProps}
-    >
-      {content}
-    </Button>
+    <div className="mr-auto">
+      <Button
+        type="button"
+        variant={variant}
+        color={color}
+        label={content}
+        onClick={onDelete}
+        {...buttonProps}
+      />
+    </div>
   )
 }

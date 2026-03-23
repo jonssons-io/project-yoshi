@@ -35,10 +35,12 @@ import {
   InstanceStatus,
   RecurrenceType
 } from '@/api/generated/types.gen'
+import { BaseButton } from '@/components/base-button/base-button'
 import { SetupPrompt } from '@/components/dashboard/SetupPrompt'
 import { TransactionForm } from '@/components/transactions/TransactionForm'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
+import { Button } from '@/components/button/button'
+import { IconButton } from '@/components/icon-button/icon-button'
 import { Card, CardContent } from '@/components/ui/card'
 import {
   DropdownMenu,
@@ -238,23 +240,24 @@ function IncomeInstancesSection({
               <TableCell className="text-right">
                 <div className="flex justify-end gap-2">
                   <Button
-                    variant="outline"
-                    size="sm"
+                    variant="outlined"
+                    color="subtle"
                     onClick={() => onEditInstance(instance.id)}
-                  >
-                    <Pencil className="mr-2 h-4 w-4" />
-                    {t('income.editInstance')}
-                  </Button>
+                    icon={<Pencil />}
+                    label={t('income.editInstance')}
+                  />
                   <Button
-                    size="sm"
+                    variant="filled"
+                    color="primary"
                     onClick={() => onRecordInstance(income, instance)}
                     disabled={instance.status === InstanceStatus.HANDLED}
-                  >
-                    <ReceiptText className="mr-2 h-4 w-4" />
-                    {instance.status === InstanceStatus.HANDLED
-                      ? t('income.handled')
-                      : t('income.recordIncome')}
-                  </Button>
+                    icon={<ReceiptText />}
+                    label={
+                      instance.status === InstanceStatus.HANDLED
+                        ? t('income.handled')
+                        : t('income.recordIncome')
+                    }
+                  />
                 </div>
               </TableCell>
             </TableRow>
@@ -418,12 +421,12 @@ function EditIncomeInstanceDrawerContent({
       <div className="flex justify-end gap-2 pt-2">
         <Button
           type="button"
-          variant="outline"
+          variant="outlined"
+          color="subtle"
           onClick={onClose}
-        >
-          {t('common.cancel')}
-        </Button>
-        <Button
+          label={t('common.cancel')}
+        />
+        <BaseButton
           type="submit"
           disabled={
             updateMutation.isPending ||
@@ -434,7 +437,7 @@ function EditIncomeInstanceDrawerContent({
           }
         >
           {updateMutation.isPending ? t('common.saving') : t('common.save')}
-        </Button>
+        </BaseButton>
       </div>
     </form>
   )
@@ -927,10 +930,11 @@ function IncomePage() {
     <>
       <div className="space-y-6">
         <div className="flex items-center justify-end gap-2">
-          <Button onClick={handleCreate}>
-            <Plus className="mr-2 h-4 w-4" />
-            {t('income.add')}
-          </Button>
+          <Button
+            onClick={handleCreate}
+            icon={<Plus />}
+            label={t('income.add')}
+          />
         </div>
 
         {incomeQuery.isLoading ? (
@@ -971,18 +975,19 @@ function IncomePage() {
                           className={income.archived ? 'opacity-50' : ''}
                         >
                           <TableCell>
-                            <Button
-                              variant="ghost"
-                              size="icon"
+                            <IconButton
+                              variant="text"
+                              color="subtle"
+                              icon={
+                                isExpanded ? (
+                                  <ChevronDown className="h-4 w-4" />
+                                ) : (
+                                  <ChevronRight className="h-4 w-4" />
+                                )
+                              }
                               onClick={() => toggleExpanded(income.id)}
                               aria-label={t('income.toggleInstances')}
-                            >
-                              {isExpanded ? (
-                                <ChevronDown className="h-4 w-4" />
-                              ) : (
-                                <ChevronRight className="h-4 w-4" />
-                              )}
-                            </Button>
+                            />
                           </TableCell>
                           <TableCell className="font-medium">
                             {income.archived ? (
@@ -1031,12 +1036,13 @@ function IncomePage() {
                           <TableCell className="text-right">
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
+                                <BaseButton
+                                  variant="text"
+                                  color="subtle"
+                                  iconOnly
                                 >
                                   <MoreVerticalIcon className="h-4 w-4" />
-                                </Button>
+                                </BaseButton>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
                                 <DropdownMenuItem

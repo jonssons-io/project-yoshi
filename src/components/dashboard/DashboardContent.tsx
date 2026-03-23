@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { CreateTransactionButton } from '@/components/transactions/CreateTransactionButton'
 import { CreateTransferButton } from '@/components/transfers/CreateTransferButton'
-import { Button } from '@/components/ui/button'
+import { IconButton } from '@/components/icon-button/icon-button'
 import {
   Card,
   CardContent,
@@ -219,12 +219,12 @@ export function DashboardContent({
     <div className="space-y-6">
       <div className="flex items-center justify-end gap-2">
         <CreateTransactionButton
-          variant="default"
-          className="h-9"
+          variant="filled"
+          color="primary"
         />
         <CreateTransferButton
-          variant="outline"
-          className="h-9"
+          variant="outlined"
+          color="subtle"
         />
       </div>
 
@@ -310,13 +310,12 @@ export function DashboardContent({
               </p>
             ) : null}
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
+          <IconButton
+            variant="text"
+            color="subtle"
             onClick={handleOpenSettings}
-          >
-            <SettingsIcon className="h-4 w-4" />
-          </Button>
+            icon={<SettingsIcon />}
+          />
         </CardHeader>
         <CardContent>
           <DashboardChart
