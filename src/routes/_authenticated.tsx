@@ -8,11 +8,8 @@ import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { configureApiClient } from '@/api/client-config'
 import { AppSidebar } from '@/components/app-sidebar'
-import { Breadcrumbs } from '@/components/Breadcrumbs'
 import { PendingInvitations } from '@/components/dashboard/PendingInvitations'
 import { DrawerProvider } from '@/components/drawer-context'
-import { HeaderUserMenu } from '@/components/HeaderUserMenu'
-import { Separator } from '@/components/ui/separator'
 import {
   SidebarInset,
   SidebarProvider,
@@ -126,11 +123,9 @@ function AuthenticatedLayoutContent() {
 
   const handleCreateHousehold = () => {
     openDrawer(
-      <div className="p-4">
-        <h2 className="text-2xl font-bold mb-4">
-          {t('forms.createHousehold')}
-        </h2>
-        <p className="text-muted-foreground mb-6">
+      <div className="flex flex-col gap-4 p-4">
+        <h2 className="text-2xl font-bold">{t('forms.createHousehold')}</h2>
+        <p className="text-muted-foreground">
           {t('forms.createHouseholdDesc')}
         </p>
         <HouseholdForm
@@ -155,8 +150,8 @@ function AuthenticatedLayoutContent() {
     if (!currentHousehold) return
 
     openDrawer(
-      <div className="p-4">
-        <h2 className="text-2xl font-bold mb-4">{t('forms.editHousehold')}</h2>
+      <div className="flex flex-col gap-4 p-4">
+        <h2 className="text-2xl font-bold">{t('forms.editHousehold')}</h2>
         <HouseholdForm
           defaultValues={{
             name: currentHousehold.name
@@ -191,8 +186,8 @@ function AuthenticatedLayoutContent() {
 
   const handleShowInvitations = () => {
     openDrawer(
-      <div className="p-4">
-        <h2 className="text-2xl font-bold mb-4">
+      <div className="flex flex-col gap-4 p-4">
+        <h2 className="text-2xl font-bold">
           {t('forms.pendingInvitationsTitle')}
         </h2>
         <PendingInvitations
@@ -221,41 +216,29 @@ function AuthenticatedLayoutContent() {
       }}
     >
       <SidebarProvider>
-        <AppSidebar />
+        <SidebarTrigger className="fixed top-4 left-4 z-50" />
+        <AppSidebar
+          user={{
+            imageUrl: user.imageUrl,
+            fullName: user.fullName,
+            firstName: user.firstName,
+            email: user.primaryEmailAddress?.emailAddress
+          }}
+          households={households}
+          selectedHouseholdId={selectedHouseholdId}
+          onSelectHousehold={setSelectedHousehold}
+          onCreateHousehold={handleCreateHousehold}
+          onEditHousehold={handleEditHousehold}
+          onShowInvitations={handleShowInvitations}
+          onSignOut={handleSignOut}
+        />
         <SidebarInset>
-          <header className="flex h-16 shrink-0 items-center justify-between border-b px-4">
-            <div className="flex items-center gap-2">
-              <SidebarTrigger className="-ml-1" />
-              <Separator
-                orientation="vertical"
-                className="mr-2 data-[orientation=vertical]:h-4"
-              />
-              <Breadcrumbs />
-            </div>
-            {user && (
-              <HeaderUserMenu
-                user={{
-                  imageUrl: user.imageUrl,
-                  fullName: user.fullName,
-                  firstName: user.firstName,
-                  email: user.primaryEmailAddress?.emailAddress
-                }}
-                households={households}
-                selectedHouseholdId={selectedHouseholdId}
-                onSelectHousehold={setSelectedHousehold}
-                onCreateHousehold={handleCreateHousehold}
-                onEditHousehold={handleEditHousehold}
-                onShowInvitations={handleShowInvitations}
-                onSignOut={handleSignOut}
-              />
-            )}
-          </header>
-          <main className="p-6">
+          <div className="min-w-0 flex-1 overflow-auto p-6">
             <AuthProvider>
               <Outlet />
             </AuthProvider>
             {confirmDialog}
-          </main>
+          </div>
         </SidebarInset>
       </SidebarProvider>
     </HouseholdProvider>
