@@ -40,7 +40,7 @@ export function Tabs({ value, onValueChange, children }: TabsProps) {
 }
 
 /**
- * Full-width bar with bottom border and container padding (horizontal 0.5rem, top 0.25rem, no bottom).
+ * Full-width bar with bottom border and container padding (horizontal 0.5rem / 8px, top 0.25rem, no bottom).
  */
 export function TabsList({ children }: { children: ReactNode }) {
   return (
