@@ -1,0 +1,43 @@
+---
+description: UI overhaul — new components stay clean; legacy adapts; placement; dead-code removal; no speculative APIs
+alwaysApply: true
+---
+
+# UI Overhaul & Migration
+
+During the major UI overhaul, **new design system code stays minimal and strict**. Legacy behavior lives in **old routes and unmigrated pages**, not in shared primitives.
+
+## New base components vs legacy pages
+
+- **Base components** (new buttons, layout pieces, etc.) should **not** accumulate compatibility props (`className` passthrough, “legacy” variants, optional escape hatches) so unmigrated screens keep working.
+- **Unmigrated pages** carry the debt: e.g. if the new `Button` does not accept `className`, the old page uses a **native `<button>`** (or a tiny local wrapper) until that screen is migrated—not the other way around.
+
+## Dead code when removing or replacing pages
+
+When a page is **removed or replaced** in the new design:
+
+- Delete **unused** components, hooks, helpers, and types that were only used there.
+- Update **navigation** (e.g. sidebar), **routes**, and **imports** so nothing references removed UI.
+- Prefer **one cleanup pass** that leaves no orphaned files or imports.
+
+## Where to put components
+
+| Kind                                                                  | Location                                                                               |
+| --------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| shadcn primitives                                                     | `src/components/ui/`                                                                   |
+| Shared components (each in its own directory)                         | `src/components/<name>/`                                                               |
+| UI with **no** business/domain coupling (buttons, tabs, inputs, etc.) | Under `src/components/` (not buried in route-only folders)                             |
+| Used on **one** page / area only                                      | Feature folder, e.g. `src/components/dashboard/`                                       |
+| Needed on **another** page later                                      | **Graduate** to a shared components directory under `src/routes/` (project convention) |
+
+Match existing folder naming; keep trees shallow and obvious.
+
+## Simplicity and APIs
+
+- **Do not overengineer**: smallest change that matches the new design and project patterns.
+- **Do not** add props “for later” or to keep old call sites working on new components—tight, typesafe public APIs only.
+- Align with **`.agents/skills/vercel-react-best-practices/`**, **`.agents/skills/vercel-composition-patterns/`**, **`.agents/skills/web-design-guidelines`**, and **`.agents/skills/TanStack Start/`** (routing, SSR, performance, and React patterns) alongside **`.cursor/rules/general.mdc`**.
+
+## Important rules
+
+- **NEVER use margin**: prefer flex layouts, gap, padding etc.
