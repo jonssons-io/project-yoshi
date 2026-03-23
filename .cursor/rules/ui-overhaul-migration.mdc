@@ -1,11 +1,24 @@
 ---
-description: UI overhaul — new components stay clean; legacy adapts; placement; dead-code removal; no speculative APIs
+description: UI overhaul — PageLayout shell; drawers; dummy handlers; backend tickets for API gaps; new components stay clean; legacy adapts; placement; dead-code removal
 alwaysApply: true
 ---
 
 # UI Overhaul & Migration
 
 During the major UI overhaul, **new design system code stays minimal and strict**. Legacy behavior lives in **old routes and unmigrated pages**, not in shared primitives.
+
+## Full page layout
+
+- **Every migrated page** should use **`PageLayout`** from `@/components/page-layout/page-layout` as its base shell: title, description, optional quick actions and info cards, optional full-width tabs, then main content. Do not invent alternate page chrome for migrated routes unless the design explicitly requires it.
+
+## Layout-phase behavior (until wiring is requested)
+
+- **Buttons and interactive elements** (toggles, row actions, etc.) should use **dummy handlers** only—for example `() => void 0` or equivalent no-ops—until you are **explicitly** asked to connect them to real navigation, mutations, or domain logic.
+
+## Forms and the drawer system
+
+- **All forms** that belong in a page flow (create, edit, etc.) should open in the **app drawer** by default, not as the primary inline or full-page form, **unless** you are explicitly told **not** to use a drawer.
+- **Implementation**: the authenticated layout wraps the tree in **`DrawerProvider`** from `@/components/drawer-context`. Use **`useDrawer()`** from `@/hooks/use-drawer` for **`openDrawer(content, title?)`**, **`closeDrawer`**, and **`isOpen`**. Primitives live under **`@/components/ui/drawer`** (Vaul).
 
 ## New base components vs legacy pages
 
@@ -37,6 +50,25 @@ Match existing folder naming; keep trees shallow and obvious.
 - **Do not overengineer**: smallest change that matches the new design and project patterns.
 - **Do not** add props “for later” or to keep old call sites working on new components—tight, typesafe public APIs only.
 - Align with **`.agents/skills/vercel-react-best-practices/`**, **`.agents/skills/vercel-composition-patterns/`**, **`.agents/skills/web-design-guidelines`**, and **`.agents/skills/TanStack Start/`** (routing, SSR, performance, and React patterns) alongside **`.cursor/rules/general.mdc`**.
+
+## Backend API gaps during migration
+
+When a migrated screen needs data or behavior that **`src/api`** (the generated client and OpenAPI-aligned contract) does **not** support, **do not** fake it in the frontend or patch generated code. Treat it as a **backend dependency** and write a **ticket for the backend team**.
+
+**Ticket shape**
+
+- **Title**: Short, actionable (what capability is missing).
+- **Description**: Markdown-friendly body the team can paste into Jira/Linear/GitHub. Structure it as a **user story**, then concrete API detail.
+
+**Description should include**
+
+1. **User story** — e.g. “As a [role], I want [capability] so that [outcome].”
+2. **What exists today** — Which endpoints, fields, or operations are already available (method, path, and what they return or allow). Reference **`src/api`** / OpenAPI as the source of truth for “current contract.”
+3. **What is missing** — What the new UI or flow needs that the API cannot express yet (fields, filters, aggregates, mutations, validation, error shapes, pagination, etc.).
+4. **Proposed backend change** — One or more concrete options: extend an existing endpoint (request/response), add a new endpoint, new query params, webhook, etc. Prefer the smallest change that satisfies the story; note tradeoffs if relevant.
+5. **Acceptance criteria** — e.g. OpenAPI and implementation match; frontend can regenerate **`src/api`** and implement without workarounds.
+
+This complements the **generated API boundary** in **`.cursor/rules/general.mdc`**: contract mismatches and missing capabilities are backend or schema work, not local hacks.
 
 ## Important rules
 
