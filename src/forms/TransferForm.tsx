@@ -195,8 +195,7 @@ export function TransferForm({
         {(field) => (
           <field.NumberField
             label={t('common.amount')}
-            placeholder="0.00"
-            step="0.01"
+            placeholder="0"
             min={0}
           />
         )}

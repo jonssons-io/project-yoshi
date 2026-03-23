@@ -1,15 +1,15 @@
 import { useQuery } from '@tanstack/react-query'
 import {
   getAccountBalanceOptions,
-  getMultiAccountBalanceHistoryOptions,
   getAccountOptions,
+  getMultiAccountBalanceHistoryOptions,
   listAccountBalancesOptions,
   listAccountsOptions
 } from '@/api/generated/@tanstack/react-query.gen'
 import type {
   GetAccountBalanceData,
-  GetMultiAccountBalanceHistoryData,
   GetAccountData,
+  GetMultiAccountBalanceHistoryData,
   ListAccountBalancesData,
   ListAccountsData
 } from '@/api/generated/types.gen'

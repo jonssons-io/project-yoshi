@@ -168,8 +168,7 @@ export function TransferDrawer({
               <Input
                 id={amountId}
                 type="number"
-                min="0.01"
-                step="0.01"
+                min="0"
                 placeholder={t('forms.zeroPlaceholder')}
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}

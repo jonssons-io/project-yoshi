@@ -152,7 +152,6 @@ export function AccountForm({
           <field.NumberField
             label={t('forms.initialBalance')}
             placeholder={t('forms.zeroPlaceholder')}
-            step="0.01"
             min={0}
           />
         )}

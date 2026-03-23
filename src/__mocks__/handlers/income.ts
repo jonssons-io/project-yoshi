@@ -2,9 +2,9 @@ import { HttpResponse, http } from 'msw'
 import {
   accounts,
   categories,
-  incomes,
   incomeInstances,
   incomeSources,
+  incomes,
   nextId,
   nowIso,
   paginate,

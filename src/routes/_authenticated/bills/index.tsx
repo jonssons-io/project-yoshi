@@ -17,18 +17,18 @@ import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { z } from 'zod'
 import {
-  BillUpdateType,
   type BillInstance,
+  BillUpdateType,
   InstanceStatus,
   RecurrenceType,
   TransactionType
 } from '@/api/generated/types.gen'
 import { BaseButton } from '@/components/base-button/base-button'
 import { BillForm } from '@/components/bills/BillForm'
+import { Button } from '@/components/button/button'
 import { SetupPrompt } from '@/components/dashboard/SetupPrompt'
 import { TransactionForm } from '@/components/transactions/TransactionForm'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/button/button'
 import { Card, CardContent } from '@/components/ui/card'
 import {
   DropdownMenu,
@@ -205,7 +205,6 @@ function BillInstanceEditDrawerContent({
         <Input
           id={amountId}
           type="number"
-          step="0.01"
           min="0"
           value={amount}
           onChange={(event) => setAmount(event.target.value)}

@@ -14,11 +14,11 @@ import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { BaseButton } from '@/components/base-button/base-button'
+import { Button } from '@/components/button/button'
 import { CategoryForm } from '@/components/categories/CategoryForm'
 import { SetupPrompt } from '@/components/dashboard/SetupPrompt'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/button/button'
 import { IconButton } from '@/components/icon-button/icon-button'
+import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
 import {
   Table,
@@ -30,10 +30,10 @@ import {
 } from '@/components/ui/table'
 import { useAuth } from '@/contexts/auth-context'
 import {
+  useArchiveCategory,
   useBudgetsList,
   useCategoriesList,
   useCategoryById,
-  useArchiveCategory,
   useCreateCategory,
   useDeleteCategory,
   useUpdateCategory

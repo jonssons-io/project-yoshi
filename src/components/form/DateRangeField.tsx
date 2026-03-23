@@ -1,10 +1,11 @@
 /**
- * DateField — single date with calendar popover
+ * DateRangeField — date range with calendar popover
  */
 
 import { format } from 'date-fns'
 import { sv } from 'date-fns/locale'
 import { CalendarIcon } from 'lucide-react'
+import type { DateRange } from 'react-day-picker'
 import { useTranslation } from 'react-i18next'
 import { FormField } from '@/components/form-field/form-field'
 import {
@@ -21,7 +22,23 @@ import {
 import { useFieldContext } from '@/hooks/form'
 import { cn } from '@/lib/utils'
 
-export interface DateFieldProps {
+function formatRange(range: DateRange | undefined, locale: typeof sv): string {
+  if (!range?.from) {
+    return ''
+  }
+  if (!range.to) {
+    return format(range.from, 'P', {
+      locale
+    })
+  }
+  return `${format(range.from, 'P', {
+    locale
+  })} – ${format(range.to, 'P', {
+    locale
+  })}`
+}
+
+export interface DateRangeFieldProps {
   label: string
   labelHelpText?: string
   description?: string
@@ -29,21 +46,23 @@ export interface DateFieldProps {
   disabled?: boolean
 }
 
-export function DateField({
+export function DateRangeField({
   label,
   labelHelpText,
   description,
   placeholder,
   disabled
-}: DateFieldProps) {
+}: DateRangeFieldProps) {
   const { t } = useTranslation()
-  const effectivePlaceholder = placeholder || t('common.pickDate')
+  const effectivePlaceholder = placeholder ?? t('common.pickDate')
 
-  const field = useFieldContext<Date>()
+  const field = useFieldContext<DateRange | undefined>()
 
   const hasError =
     field.state.meta.isTouched && field.state.meta.errors.length > 0
   const errorText = hasError ? field.state.meta.errors.join(', ') : null
+
+  const display = formatRange(field.state.value, sv)
 
   return (
     <FormField
@@ -63,21 +82,16 @@ export function DateField({
             aria-invalid={hasError || undefined}
             className={cn(
               inputShellClassName,
-              'min-h-7 w-full justify-between gap-2 font-normal',
-              !field.state.value && 'text-gray-500'
+              'min-h-7 w-full justify-between gap-2 font-normal'
             )}
           >
             <span
               className={cn(
                 'min-w-0 flex-1 truncate text-left type-label',
-                field.state.value ? 'text-black' : 'text-gray-500'
+                display ? 'text-black' : 'text-gray-500'
               )}
             >
-              {field.state.value
-                ? format(field.state.value, 'PPP', {
-                    locale: sv
-                  })
-                : effectivePlaceholder}
+              {display || effectivePlaceholder}
             </span>
             <CalendarIcon
               strokeWidth={INPUT_ICON_STROKE}
@@ -91,15 +105,14 @@ export function DateField({
           align="start"
         >
           <Calendar
-            mode="single"
+            mode="range"
             selected={field.state.value}
-            onSelect={(date) => {
-              if (date) {
-                field.handleChange(date)
-              }
+            onSelect={(range) => {
+              field.handleChange(range)
             }}
             initialFocus
             locale={sv}
+            numberOfMonths={2}
           />
         </PopoverContent>
       </Popover>

@@ -1,6 +1,6 @@
 # Form System Documentation
 
-This document describes the custom TanStack Form system integrated with shadcn-ui components and Zod v4 validation.
+This document describes the custom TanStack Form system integrated with Zod v4 validation, shared **`FormField`** layout, and design-system input primitives (`InputShell`, `ui/input`, etc.).
 
 ## Overview
 
@@ -12,12 +12,13 @@ Our form system provides:
 - **Automatic error handling** and display
 - **Loading states** and form state management
 - **Reusable and scalable** architecture
+- **Shared field shell** (`FormField`) and input primitives aligned with the app design system
 
 ## Core Components
 
 ### `useAppForm`
 
-The main hook for creating forms with pre-configured components.
+The main hook for creating forms with pre-bound field and form components. Field UI components are registered in `src/hooks/form.ts` and used as `field.TextField`, `field.SelectField`, etc.
 
 ```tsx
 import { useAppForm } from "@/hooks/form";
@@ -33,72 +34,110 @@ const form = useAppForm({
 });
 ```
 
-### `TextField`
+### Field layout (`FormField`)
 
-A pre-bound text field component that integrates shadcn-ui Field, Label, and Input.
+Pre-bound fields use **`FormField`** (`src/components/form-field/form-field.tsx`) for the outer structure:
 
-**Props:**
+- **Layout**: vertical stack with **4px** gap (`gap-1`), no padding on the field root.
+- **Label**: `type-label`, `text-gray-800`.
+- **`labelHelpText`** (optional): when set, shows a **?** control on the same row as the label with the text in a tooltip.
+- **`description`**: assistive text (`type-label-small`, `text-gray-800`). Omitted when the field has a validation error (errors replace assistive text for that slot).
+- **Errors**: from TanStack Field meta (`validators` on `AppField`); shown as `type-label-small`, `text-red-700`.
+- **Validating**: optional “validating” line when `meta.isValidating` is true and there is no error.
+- **`groupLabelId`** (optional): when set, the title is a `<span id={…}>` (no `htmlFor`) so a **`fieldset`** can use `aria-labelledby` — used by **`CheckboxGroupField`** and available for custom grouped controls.
 
-- `label` (required): Label text
-- `description` (optional): Helper text shown below the label
-- `placeholder` (optional): Input placeholder
-- `type` (optional): Input type (text, email, password, etc.)
-- `disabled` (optional): Whether the field is disabled
-- `inputProps` (optional): Additional props for the Input component
+Typography utilities are defined in `src/styles.css` (e.g. `type-label`, `type-label-small`, `type-body-medium`). **Input value text, placeholders, select/combobox/multiselect options, checkbox and radio row labels, command palette rows, and textarea content** use **`type-label`** (with **`type-label-small`** for `SelectLabel` group headings). Control chrome uses **`InputShell`** / **`ui/input`** / **`ui/select`** / **`ui/textarea`** as documented in those modules.
+
+For **custom** controls, compose **`FormField`** yourself (also exported from `@/components/form`) and wire `fieldId`, `error`, and `isValidating` from `useFieldContext`.
+
+### Pre-bound field components (`field.*`)
+
+Use these inside `<form.AppField name="...">` as render props, e.g. `<field.TextField label="Name" />`.
+
+| Component | Value type | Summary |
+| --- | --- | --- |
+| `TextField` | `string` | Text-like input; optional Lucide `prependIcon`. |
+| `NumberField` | `number` | Text input with `inputMode="decimal"`; values are rounded to **at most two decimal places**. Chevron **step** is a **positive integer**, **default `1`** (usually omitted). Optional `unit`. |
+| `SelectField` | `string` | Radix `Select`; options as `{ value, label }[]`. |
+| `ComboboxField` | `ComboboxValue` | Searchable single select; optional inline create (`allowCreate`). |
+| `MultiselectField` | `string[]` | Search + checkbox list; selected values as pills in the trigger. |
+| `DateField` | `Date` | Single date + calendar popover. |
+| `DateRangeField` | `DateRange \| undefined` | Range + calendar (`react-day-picker`). |
+| `CheckboxField` | `boolean` | **Single** checkbox: optional `fieldLabel` (top) + `label` (beside control). Omit `fieldLabel` only for a solo checkbox. |
+| `CheckboxGroupField` | `string[]` | **Several** checkboxes: **required** field `label` + options; selected values are option `value`s. |
+| `SwitchField` | `boolean` | Same label pattern as checkbox. |
+| `RadioGroupField` | `string` | Radio options; `direction` `horizontal` \| `vertical`. |
+
+**Shared props** (where applicable): `label`, `labelHelpText`, `description`, `disabled`. See each component’s `*Props` in `src/components/form/` for the full list.
+
+**`TextField`**: `placeholder`, `type`, `inputProps` (native input props except `value` / `onChange` / `onBlur` / `id` / `name` / `disabled` / `aria-invalid` / `className`).
+
+**`NumberField`**: `placeholder`, `min`, `max`, `unit`; optional **`step`** — integer delta for the chevron buttons (≥ 1). **Defaults to `1`**; omit it in most forms. Stored values use **≤ 2** decimal places.
+
+**`SelectField`**: `placeholder`, `options`.
+
+**`ComboboxField`**: `placeholder`, `searchPlaceholder`, `emptyText`, `options`, `allowCreate`, `createLabel`.
+
+**`MultiselectField`**: `placeholder`, `searchPlaceholder`, `emptyText`, `options`.
+
+**`DateField` / `DateRangeField`**: `placeholder`.
+
+**`CheckboxField`**: `label` (beside the checkbox), optional `fieldLabel` (omit only for one standalone checkbox).
+
+**`CheckboxGroupField`**: `label` (field label for the group), `options` (`value`, `label`), `direction` `vertical` \| `horizontal`.
+
+**`SwitchField`**: `fieldLabel?`, `label` (text beside the switch).
+
+**`RadioGroupField`**: `options` (`value`, `label`, optional `description`), `direction`, `onValueChange`.
+
+### Standalone inputs (not on `useAppForm`)
+
+These are **not** registered on the form hook. Use them for filters, toolbars, or custom layouts.
+
+- **`SearchInput`** / **`DropdownSearchInput`** — `@/components/search-input/search-input`. Fixed search icon; `DropdownSearchInput` uses tighter horizontal padding for popovers (used internally by combobox / multiselect).
+- **`Pill`** — `@/components/pill/pill`. Removable chip; used by `MultiselectField` for selected tags.
 
 ### `SubmitButton`
 
-A pre-bound submit button that automatically handles loading and disabled states.
+Submit button with loading state; uses `BaseButton` and form context.
 
 **Props:**
 
-- `children` (optional): Button text (default: "Submit")
-- `loadingText` (optional): Text during submission (default: "Submitting...")
-- `variant` (optional): Button variant (default, destructive, outline, etc.)
-- `size` (optional): Button size (default, sm, lg)
-- `buttonProps` (optional): Additional props for the Button component
+- `label` (optional): Button text (default from i18n, e.g. “Submit”).
+- `loadingText` (optional): Text while submitting (default from i18n).
+- `variant` / `color` (optional): `BaseButton` variants.
+- `buttonProps` (optional): Extra props for `BaseButton` (excluding `type`, `disabled`, `label`).
 
 ### `CancelButton`
 
-A pre-bound cancel button for forms. Only renders when `onCancel` is provided.
+Only renders when `onCancel` is provided.
 
 **Props:**
 
-- `onCancel` (optional): Callback when cancel is clicked. If not provided, button won't render.
-- `children` (optional): Button text (default: "Cancel")
-- `variant` (optional): Button variant (default: "outline")
-- `size` (optional): Button size (default, sm, lg)
-- `buttonProps` (optional): Additional props for the Button component
+- `onCancel` (optional): Callback; if omitted, the button does not render.
+- `label` (optional): Button text (default from i18n).
+- `variant` / `color` (optional): `Button` variants.
+- `buttonProps` (optional): Extra props for `Button`.
 
 ### `DeleteButton`
 
-A pre-bound destructive button for delete actions. Only renders when `onDelete` is provided.
-Automatically positions itself to the left with `mr-auto`.
+Only renders when `onDelete` is provided. Typically used inside `FormButtonGroup`.
 
 **Props:**
 
-- `onDelete` (optional): Callback when delete is clicked. If not provided, button won't render.
-- `children` (optional): Button text (default: "Delete")
-- `size` (optional): Button size (default, sm, lg)
-- `buttonProps` (optional): Additional props for the Button component
+- `onDelete` (optional): Callback; if omitted, the button does not render.
+- `label` (optional): Button text (default from i18n).
+- `variant` / `color` (optional): `Button` variants.
+- `buttonProps` (optional): Extra props for `Button`.
 
 ### `FormButtonGroup`
 
-A layout component that arranges form action buttons in a consistent pattern:
-
-- Delete button on the left (if provided)
-- Cancel button followed by Submit button on the right
-
-This eliminates the need to manually create button layouts in every form.
+Layout: delete (left, if any), cancel + submit (right). Submit subscribes to form submit state.
 
 **Props:**
 
-- `onDelete` (optional): Callback for delete action
-- `onCancel` (optional): Callback for cancel action
-- `submitLabel` (optional): Text for submit button (default: "Save")
-- `deleteLabel` (optional): Text for delete button (default: "Delete")
-- `cancelLabel` (optional): Text for cancel button (default: "Cancel")
-- `loadingText` (optional): Text shown while submitting (default: "Saving...")
+- `onDelete`, `onCancel` (optional)
+- `submitLabel`, `deleteLabel`, `cancelLabel`, `loadingText` (optional; defaults for labels from i18n / “Save”, “Delete”, “Cancel”, “Saving…”)
 
 ## Validation Helpers
 
@@ -251,7 +290,7 @@ For simple forms, use just the `SubmitButton`:
 
 ```tsx
 <form.AppForm>
-  <form.SubmitButton>Create Account</form.SubmitButton>
+  <form.SubmitButton label="Create Account" />
 </form.AppForm>
 ```
 
@@ -293,29 +332,38 @@ For forms with delete/cancel actions, use `FormButtonGroup` for consistent layou
 
 ### Custom Field Components
 
-You can access the field context to create custom components:
+Use `useFieldContext` together with **`FormField`** so labels, errors, and assistive text stay consistent:
 
 ```tsx
+import { FormField } from "@/components/form";
 import { useFieldContext } from "@/hooks/form";
 
-export function CustomField() {
+export function CustomField({ label }: { label: string }) {
   const field = useFieldContext<string>();
+  const hasError =
+    field.state.meta.isTouched && field.state.meta.errors.length > 0;
+  const errorText = hasError ? field.state.meta.errors.join(", ") : null;
 
   return (
-    <div>
-      <label>{field.name}</label>
+    <FormField
+      label={label}
+      fieldId={field.name}
+      error={errorText}
+      isValidating={Boolean(field.state.meta.isValidating && !hasError)}
+    >
       <input
-        value={field.state.value}
+        id={field.name}
+        value={field.state.value ?? ""}
         onChange={(e) => field.handleChange(e.target.value)}
         onBlur={field.handleBlur}
+        aria-invalid={hasError || undefined}
       />
-      {field.state.meta.errors.map((error) => (
-        <span key={error}>{error}</span>
-      ))}
-    </div>
+    </FormField>
   );
 }
 ```
+
+Register the component in `src/hooks/form.ts` if you want it as `field.CustomField`.
 
 ### Form State Subscription
 
@@ -455,46 +503,48 @@ export const UserForm = withForm({
 
 To add more pre-bound field components:
 
-1. Create the component in `src/components/form/`:
+1. Create the component in `src/components/form/`, using **`FormField`** and (if needed) `InputShell` / `Textarea` from `@/components/ui/textarea`:
 
 ```tsx
 // src/components/form/TextAreaField.tsx
+import { FormField } from "@/components/form";
 import { useFieldContext } from "@/hooks/form";
-import {
-  Field,
-  FieldContent,
-  FieldError,
-  FieldLabel,
-} from "@/components/ui/field";
 import { Textarea } from "@/components/ui/textarea";
 
-export function TextAreaField({ label, placeholder }) {
+export function TextAreaField({
+  label,
+  placeholder,
+}: {
+  label: string;
+  placeholder?: string;
+}) {
   const field = useFieldContext<string>();
   const hasError =
     field.state.meta.isTouched && field.state.meta.errors.length > 0;
+  const errorText = hasError ? field.state.meta.errors.join(", ") : null;
 
   return (
-    <Field data-invalid={hasError || undefined}>
-      <FieldContent>
-        <FieldLabel htmlFor={field.name}>{label}</FieldLabel>
-        <Textarea
-          id={field.name}
-          name={field.name}
-          placeholder={placeholder}
-          value={field.state.value ?? ""}
-          onChange={(e) => field.handleChange(e.target.value)}
-          onBlur={field.handleBlur}
-        />
-        {hasError && (
-          <FieldError>{field.state.meta.errors.join(", ")}</FieldError>
-        )}
-      </FieldContent>
-    </Field>
+    <FormField
+      label={label}
+      fieldId={field.name}
+      error={errorText}
+      isValidating={Boolean(field.state.meta.isValidating && !hasError)}
+    >
+      <Textarea
+        id={field.name}
+        name={field.name}
+        placeholder={placeholder}
+        value={field.state.value ?? ""}
+        onChange={(e) => field.handleChange(e.target.value)}
+        onBlur={field.handleBlur}
+        aria-invalid={hasError || undefined}
+      />
+    </FormField>
   );
 }
 ```
 
-2. Add it to `src/hooks/form.ts`:
+2. Add it to `src/hooks/form.ts` in `fieldComponents` (alongside `TextField`, `DateField`, etc.):
 
 ```tsx
 import { TextAreaField } from "@/components/form/TextAreaField";
@@ -503,9 +553,11 @@ export const { useAppForm, withForm } = createFormHook({
   fieldComponents: {
     TextField,
     TextAreaField, // Add here
+    // ...
   },
   formComponents: {
     SubmitButton,
+    // ...
   },
   fieldContext,
   formContext,
@@ -608,7 +660,7 @@ export function LoginForm() {
 			</form.AppField>
 
 			<form.AppForm>
-				<form.SubmitButton>Sign In</form.SubmitButton>
+				<form.SubmitButton label="Sign In" />
 			</form.AppForm>
 		</form>
 	)
@@ -659,6 +711,7 @@ const addressSchema = z.object({
 8. **Type safety**: Always define types for your form data using `z.infer<typeof schema>`
 9. **Use FormButtonGroup**: For forms with delete/cancel/submit actions, use `FormButtonGroup` for consistent layout
 10. **Use validation helpers**: Always use `createZodValidator` for field validation and `validateForm` for submit validation
+11. **Use `FormField` for custom controls**: Keeps label, tooltip, assistive text, and errors aligned with pre-bound fields
 
 ## Resources
 

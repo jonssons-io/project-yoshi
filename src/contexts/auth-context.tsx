@@ -1,4 +1,4 @@
-import { createContext, useContext, type ReactNode } from 'react'
+import { createContext, type ReactNode, useContext } from 'react'
 import { useTranslation } from 'react-i18next'
 import { SetupPrompt } from '@/components/dashboard/SetupPrompt'
 import { useHouseholdContext } from '@/contexts/household-context'

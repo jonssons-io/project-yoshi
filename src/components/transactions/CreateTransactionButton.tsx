@@ -3,8 +3,8 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { TransactionType } from '@/api/generated/types.gen'
-import { TransactionForm } from '@/components/transactions/TransactionForm'
 import { Button } from '@/components/button/button'
+import { TransactionForm } from '@/components/transactions/TransactionForm'
 import { useAuth } from '@/contexts/auth-context'
 import {
   useAccountsList,

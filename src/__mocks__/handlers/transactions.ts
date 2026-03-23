@@ -1,14 +1,14 @@
 import { HttpResponse, http } from 'msw'
 import {
   accounts,
-  bills,
   billInstances,
+  bills,
   budgets,
   categories,
   households,
-  incomes,
   incomeInstances,
   incomeSources,
+  incomes,
   nextId,
   nowIso,
   paginate,

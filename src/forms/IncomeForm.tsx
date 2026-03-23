@@ -4,13 +4,13 @@
 
 import { useTranslation } from 'react-i18next'
 import { z } from 'zod'
+import { RecurrenceType } from '@/api/generated/types.gen'
 import {
   type ComboboxValue,
   createZodValidator,
   safeValidateForm,
   useAppForm
 } from '@/components/form'
-import { RecurrenceType } from '@/api/generated/types.gen'
 
 // Schema for the form
 const incomeSchema = z.object({
@@ -196,9 +196,8 @@ export function IncomeForm({
           {(field) => (
             <field.NumberField
               label={t('forms.estimatedAmount')}
-              placeholder="0.00"
+              placeholder="0"
               min={0}
-              step="0.01"
             />
           )}
         </form.AppField>

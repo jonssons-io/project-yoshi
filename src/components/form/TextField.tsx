@@ -1,53 +1,29 @@
 /**
  * TextField component for TanStack Form
- *
- * Integrates shadcn-ui Field, Label, and Input components with TanStack Form
- * Automatically handles validation errors and field states
  */
 
-import { useTranslation } from 'react-i18next'
+import type { LucideIcon } from 'lucide-react'
+import type * as React from 'react'
+import { FormField } from '@/components/form-field/form-field'
 import {
-  Field,
-  FieldContent,
-  FieldDescription,
-  FieldError,
-  FieldLabel
-} from '@/components/ui/field'
-import { Input } from '@/components/ui/input'
+  INPUT_ICON_STROKE,
+  InputShell,
+  InputShellIcon,
+  inputInnerClassName
+} from '@/components/input-shell/input-shell'
 import { useFieldContext } from '@/hooks/form'
+import { cn } from '@/lib/utils'
 
 export interface TextFieldProps {
-  /**
-   * Label text for the field
-   */
   label: string
-
-  /**
-   * Optional description text shown below the label
-   */
+  labelHelpText?: string
   description?: string
-
-  /**
-   * Optional placeholder text for the input
-   */
   placeholder?: string
-
-  /**
-   * Input type (text, email, password, etc.)
-   * @default "text"
-   */
-  type?: React.ComponentProps<typeof Input>['type']
-
-  /**
-   * Whether the field is disabled
-   */
+  type?: React.HTMLInputTypeAttribute
   disabled?: boolean
-
-  /**
-   * Additional props to pass to the Input component
-   */
+  prependIcon?: LucideIcon
   inputProps?: Omit<
-    React.ComponentProps<typeof Input>,
+    React.ComponentProps<'input'>,
     | 'value'
     | 'onChange'
     | 'onBlur'
@@ -56,29 +32,45 @@ export interface TextFieldProps {
     | 'type'
     | 'disabled'
     | 'aria-invalid'
+    | 'className'
   >
 }
 
 export function TextField({
   label,
+  labelHelpText,
   description,
   placeholder,
   type = 'text',
   disabled,
+  prependIcon: PrependIcon,
   inputProps
 }: TextFieldProps) {
-  const { t } = useTranslation()
   const field = useFieldContext<string>()
 
   const hasError =
     field.state.meta.isTouched && field.state.meta.errors.length > 0
+  const errorText = hasError ? field.state.meta.errors.join(', ') : null
 
   return (
-    <Field data-invalid={hasError || undefined}>
-      <FieldContent>
-        <FieldLabel htmlFor={field.name}>{label}</FieldLabel>
-        {description && <FieldDescription>{description}</FieldDescription>}
-        <Input
+    <FormField
+      label={label}
+      labelHelpText={labelHelpText}
+      description={description}
+      fieldId={field.name}
+      error={errorText}
+      isValidating={field.state.meta.isValidating && !hasError}
+    >
+      <InputShell data-invalid={hasError || undefined}>
+        {PrependIcon ? (
+          <InputShellIcon>
+            <PrependIcon
+              strokeWidth={INPUT_ICON_STROKE}
+              aria-hidden
+            />
+          </InputShellIcon>
+        ) : null}
+        <input
           id={field.name}
           name={field.name}
           type={type}
@@ -88,17 +80,10 @@ export function TextField({
           onBlur={field.handleBlur}
           disabled={disabled}
           aria-invalid={hasError || undefined}
+          className={cn(inputInnerClassName)}
           {...inputProps}
         />
-        {hasError && (
-          <FieldError>{field.state.meta.errors.join(', ')}</FieldError>
-        )}
-        {field.state.meta.isValidating && (
-          <span className="text-sm text-muted-foreground">
-            {t('common.validating')}
-          </span>
-        )}
-      </FieldContent>
-    </Field>
+      </InputShell>
+    </FormField>
   )
 }

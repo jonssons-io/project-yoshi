@@ -15,8 +15,8 @@ import {
 import { useConfirmDialog } from '@/hooks/use-confirm-dialog'
 import { getErrorMessage } from '@/lib/api-error'
 import { formatCurrency } from '@/lib/utils'
-import { AccountRow } from './AccountsTableRow'
 import type { AccountRowAccount } from './AccountsTableRow'
+import { AccountRow } from './AccountsTableRow'
 
 export const AccountsTable = ({
   userId,

@@ -29,14 +29,19 @@
 
 import { createFormHook, createFormHookContexts } from '@tanstack/react-form'
 import { CancelButton } from '@/components/form/CancelButton'
+import { CheckboxField } from '@/components/form/CheckboxField'
+import { CheckboxGroupField } from '@/components/form/CheckboxGroupField'
 import { ComboboxField } from '@/components/form/ComboboxField'
 import { DateField } from '@/components/form/DateField'
+import { DateRangeField } from '@/components/form/DateRangeField'
 import { DeleteButton } from '@/components/form/DeleteButton'
 import { FormButtonGroup } from '@/components/form/FormButtonGroup'
+import { MultiselectField } from '@/components/form/MultiselectField'
 import { NumberField } from '@/components/form/NumberField'
 import { RadioGroupField } from '@/components/form/RadioGroupField'
 import { SelectField } from '@/components/form/SelectField'
 import { SubmitButton } from '@/components/form/SubmitButton'
+import { SwitchField } from '@/components/form/SwitchField'
 import { TextField } from '@/components/form/TextField'
 
 // Create contexts for field and form components to access form state
@@ -51,10 +56,15 @@ export const { useAppForm, withForm } = createFormHook({
   fieldComponents: {
     TextField,
     DateField,
+    DateRangeField,
     SelectField,
     NumberField,
     ComboboxField,
-    RadioGroupField
+    MultiselectField,
+    RadioGroupField,
+    CheckboxField,
+    CheckboxGroupField,
+    SwitchField
   },
   formComponents: {
     SubmitButton,

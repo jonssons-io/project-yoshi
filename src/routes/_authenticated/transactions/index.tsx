@@ -15,11 +15,11 @@ import {
   TransactionType
 } from '@/api/generated/types.gen'
 import { BaseButton } from '@/components/base-button/base-button'
+import { Button } from '@/components/button/button'
 import { CreateTransactionButton } from '@/components/transactions/CreateTransactionButton'
 import { TransactionForm } from '@/components/transactions/TransactionForm'
 import { CreateTransferButton } from '@/components/transfers/CreateTransferButton'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/button/button'
 import {
   Card,
   CardContent,

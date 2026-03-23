@@ -1,4 +1,4 @@
-import { createContext, useContext, type ReactNode } from 'react'
+import { createContext, type ReactNode, useContext } from 'react'
 import type { Household } from '@/api/generated/types.gen'
 
 type NormalizedHousehold = Omit<Household, 'createdAt'> & {

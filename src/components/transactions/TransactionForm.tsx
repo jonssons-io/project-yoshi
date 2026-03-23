@@ -19,15 +19,15 @@ import {
   type RecurrenceType as RecurrenceTypeType,
   TransactionType
 } from '@/api/generated/types.gen'
+import { BaseButton } from '@/components/base-button/base-button'
 import {
   type ComboboxValue,
   createZodValidator,
   useAppForm,
   validateForm
 } from '@/components/form'
-import { BaseButton } from '@/components/base-button/base-button'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { IconButton } from '@/components/icon-button/icon-button'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Card, CardContent } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
@@ -663,8 +663,7 @@ export function TransactionForm({
         {(field) => (
           <field.NumberField
             label={t('common.amount')}
-            placeholder="0.00"
-            step="0.01"
+            placeholder="0"
             min={0}
           />
         )}
@@ -950,7 +949,6 @@ export function TransactionForm({
                                     }
                                     placeholder={t('forms.amountPlaceholder')}
                                     min={0}
-                                    step="1"
                                   />
                                 )}
                               </form.AppField>
@@ -1194,7 +1192,7 @@ export function TransactionForm({
                     <Label>{t('common.recipient')}</Label>
                     <input
                       type="text"
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                      className="h-auto min-h-7 w-full min-w-0 rounded-sm border border-gray-300 bg-white px-4 py-1 type-label text-black shadow-none outline-none placeholder:text-gray-500 focus-visible:ring-0"
                       value={billRecipient}
                       onChange={(e) => setBillRecipient(e.target.value)}
                       placeholder={t('forms.recipientPlaceholder')}
@@ -1205,7 +1203,7 @@ export function TransactionForm({
                     <Label>{t('forms.startDateFirstPayment')}</Label>
                     <input
                       type="date"
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                      className="h-auto min-h-7 w-full min-w-0 rounded-sm border border-gray-300 bg-white px-4 py-1 type-label text-black shadow-none outline-none placeholder:text-gray-500 focus-visible:ring-0"
                       value={billStartDate.toISOString().split('T')[0]}
                       onChange={(e) =>
                         setBillStartDate(new Date(e.target.value))
@@ -1216,7 +1214,7 @@ export function TransactionForm({
                   <div className="space-y-2">
                     <Label>{t('recurrence.label')}</Label>
                     <select
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                      className="h-auto min-h-7 w-full min-w-0 rounded-sm border border-gray-300 bg-white px-4 py-1 type-label text-black shadow-none outline-none placeholder:text-gray-500 focus-visible:ring-0"
                       value={billRecurrence}
                       onChange={(e) =>
                         setBillRecurrence(e.target.value as RecurrenceTypeType)
@@ -1238,7 +1236,7 @@ export function TransactionForm({
                       <Label>{t('forms.daysBetweenPayments')}</Label>
                       <input
                         type="number"
-                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                        className="h-auto min-h-7 w-full min-w-0 rounded-sm border border-gray-300 bg-white px-4 py-1 type-label text-black shadow-none outline-none placeholder:text-gray-500 focus-visible:ring-0"
                         value={billCustomDays ?? ''}
                         onChange={(e) =>
                           setBillCustomDays(Number(e.target.value) || undefined)
@@ -1253,7 +1251,7 @@ export function TransactionForm({
                     <Label>{t('forms.lastPaymentDateOptional')}</Label>
                     <input
                       type="date"
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                      className="h-auto min-h-7 w-full min-w-0 rounded-sm border border-gray-300 bg-white px-4 py-1 type-label text-black shadow-none outline-none placeholder:text-gray-500 focus-visible:ring-0"
                       value={billLastPayment?.toISOString().split('T')[0] ?? ''}
                       onChange={(e) =>
                         setBillLastPayment(

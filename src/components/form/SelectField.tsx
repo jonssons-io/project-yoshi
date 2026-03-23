@@ -1,17 +1,9 @@
 /**
  * SelectField component for TanStack Form
- *
- * Integrates shadcn-ui Field and Select with TanStack Form
  */
 
 import { useTranslation } from 'react-i18next'
-import {
-  Field,
-  FieldContent,
-  FieldDescription,
-  FieldError,
-  FieldLabel
-} from '@/components/ui/field'
+import { FormField } from '@/components/form-field/form-field'
 import {
   Select,
   SelectContent,
@@ -22,29 +14,11 @@ import {
 import { useFieldContext } from '@/hooks/form'
 
 export interface SelectFieldProps {
-  /**
-   * Label text for the field
-   */
   label: string
-
-  /**
-   * Optional description text shown below the label
-   */
+  labelHelpText?: string
   description?: string
-
-  /**
-   * Optional placeholder text
-   */
   placeholder?: string
-
-  /**
-   * Whether the field is disabled
-   */
   disabled?: boolean
-
-  /**
-   * Select options
-   */
   options: Array<{
     value: string
     label: string
@@ -53,6 +27,7 @@ export interface SelectFieldProps {
 
 export function SelectField({
   label,
+  labelHelpText,
   description,
   placeholder,
   disabled,
@@ -65,40 +40,39 @@ export function SelectField({
 
   const hasError =
     field.state.meta.isTouched && field.state.meta.errors.length > 0
+  const errorText = hasError ? field.state.meta.errors.join(', ') : null
 
   return (
-    <Field data-invalid={hasError || undefined}>
-      <FieldContent>
-        <FieldLabel htmlFor={field.name}>{label}</FieldLabel>
-        {description && <FieldDescription>{description}</FieldDescription>}
-        <Select
-          value={field.state.value ?? ''}
-          onValueChange={(value) => field.handleChange(value)}
-          disabled={disabled}
+    <FormField
+      label={label}
+      labelHelpText={labelHelpText}
+      description={description}
+      fieldId={field.name}
+      error={errorText}
+      isValidating={Boolean(field.state.meta.isValidating && !hasError)}
+    >
+      <Select
+        value={field.state.value ?? ''}
+        onValueChange={(value) => field.handleChange(value)}
+        disabled={disabled}
+      >
+        <SelectTrigger
+          id={field.name}
+          aria-invalid={hasError || undefined}
         >
-          <SelectTrigger id={field.name}>
-            <SelectValue placeholder={effectivePlaceholder} />
-          </SelectTrigger>
-          <SelectContent>
-            {options.map((option) => (
-              <SelectItem
-                key={option.value}
-                value={option.value}
-              >
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {hasError && (
-          <FieldError>{field.state.meta.errors.join(', ')}</FieldError>
-        )}
-        {field.state.meta.isValidating && (
-          <span className="text-sm text-muted-foreground">
-            {t('common.validating')}
-          </span>
-        )}
-      </FieldContent>
-    </Field>
+          <SelectValue placeholder={effectivePlaceholder} />
+        </SelectTrigger>
+        <SelectContent position="popper">
+          {options.map((option) => (
+            <SelectItem
+              key={option.value}
+              value={option.value}
+            >
+              {option.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </FormField>
   )
 }

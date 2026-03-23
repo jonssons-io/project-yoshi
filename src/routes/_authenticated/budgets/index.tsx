@@ -16,11 +16,11 @@ import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { AllocationDrawer } from '@/components/allocations/AllocationDrawer'
 import { TransferDrawer } from '@/components/allocations/TransferDrawer'
-import { SetupPrompt } from '@/components/dashboard/SetupPrompt'
 import { BaseButton } from '@/components/base-button/base-button'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/button/button'
+import { SetupPrompt } from '@/components/dashboard/SetupPrompt'
 import { IconButton } from '@/components/icon-button/icon-button'
+import { Badge } from '@/components/ui/badge'
 import {
   Card,
   CardContent,

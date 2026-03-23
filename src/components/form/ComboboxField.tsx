@@ -1,31 +1,22 @@
 /**
- * ComboboxField component for TanStack Form
- *
- * A searchable dropdown that allows:
- * - Selecting from existing options
- * - Typing to filter options
- * - Creating new items when no match exists
+ * ComboboxField — searchable single-select with optional create
  */
 
-import { CheckIcon, ChevronsUpDownIcon, PlusIcon } from 'lucide-react'
+import {
+  CheckIcon,
+  ChevronDownIcon,
+  ChevronUpIcon,
+  PlusIcon
+} from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { BaseButton } from '@/components/base-button/base-button'
+import { FormField } from '@/components/form-field/form-field'
 import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList
-} from '@/components/ui/command'
-import {
-  Field,
-  FieldContent,
-  FieldDescription,
-  FieldError,
-  FieldLabel
-} from '@/components/ui/field'
+  INPUT_ICON_STROKE,
+  inputShellClassName
+} from '@/components/input-shell/input-shell'
+import { DropdownSearchInput } from '@/components/search-input/search-input'
+import { ShadcnButton } from '@/components/ui/button'
 import {
   Popover,
   PopoverContent,
@@ -39,11 +30,6 @@ export interface ComboboxOption {
   label: string
 }
 
-/**
- * Value can be either:
- * - A string ID (existing item selected)
- * - An object with isNew flag (new item to create)
- */
 export type ComboboxValue =
   | string
   | {
@@ -53,54 +39,21 @@ export type ComboboxValue =
   | null
 
 export interface ComboboxFieldProps {
-  /**
-   * Label text for the field
-   */
   label: string
-
-  /**
-   * Optional description text shown below the label
-   */
+  labelHelpText?: string
   description?: string
-
-  /**
-   * Optional placeholder text
-   */
   placeholder?: string
-
-  /**
-   * Placeholder for the search input
-   */
   searchPlaceholder?: string
-
-  /**
-   * Text shown when no options match the search
-   */
   emptyText?: string
-
-  /**
-   * Whether the field is disabled
-   */
   disabled?: boolean
-
-  /**
-   * Available options to select from
-   */
   options: ComboboxOption[]
-
-  /**
-   * Whether to allow creating new items
-   */
   allowCreate?: boolean
-
-  /**
-   * Label for the create option (e.g., "Create category")
-   */
   createLabel?: string
 }
 
 export function ComboboxField({
   label,
+  labelHelpText,
   description,
   placeholder,
   searchPlaceholder,
@@ -123,35 +76,31 @@ export function ComboboxField({
 
   const hasError =
     field.state.meta.isTouched && field.state.meta.errors.length > 0
+  const errorText = hasError ? field.state.meta.errors.join(', ') : null
 
-  // Get display value based on current field value
   const getDisplayValue = (): string => {
     const value = field.state.value
-    if (!value) return ''
-
+    if (!value) {
+      return ''
+    }
     if (typeof value === 'string') {
       const option = options.find((opt) => opt.value === value)
       return option?.label ?? ''
     }
-
     if (typeof value === 'object' && value.isNew) {
       return value.name
     }
-
     return ''
   }
 
-  // Check if the search term exactly matches an existing option
   const exactMatch = options.find(
     (opt) => opt.label.toLowerCase() === searchValue.toLowerCase()
   )
 
-  // Filter options based on search
   const filteredOptions = options.filter((opt) =>
     opt.label.toLowerCase().includes(searchValue.toLowerCase())
   )
 
-  // Should show create option?
   const showCreateOption =
     allowCreate && searchValue.trim() !== '' && !exactMatch
 
@@ -174,107 +123,123 @@ export function ComboboxField({
   const isNewValue =
     typeof field.state.value === 'object' && field.state.value?.isNew
 
-  return (
-    <Field data-invalid={hasError || undefined}>
-      <FieldContent>
-        <FieldLabel htmlFor={field.name}>{label}</FieldLabel>
-        {description && <FieldDescription>{description}</FieldDescription>}
+  const selectedString =
+    typeof field.state.value === 'string' ? field.state.value : null
 
-        <Popover
-          open={open}
-          onOpenChange={setOpen}
-        >
-          <PopoverTrigger asChild>
-            <BaseButton
-              id={field.name}
-              variant="outlined"
-              color="subtle"
-              aria-expanded={open}
-              className={cn(
-                'w-full justify-between font-normal',
-                !displayValue && 'text-muted-foreground'
-              )}
-              disabled={disabled}
-            >
-              <span className="truncate">
-                {displayValue ? (
-                  <span className="flex items-center gap-2">
-                    {isNewValue && (
-                      <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded">
-                        {t('common.new')}
-                      </span>
-                    )}
+  return (
+    <FormField
+      label={label}
+      labelHelpText={labelHelpText}
+      description={description}
+      fieldId={field.name}
+      error={errorText}
+      isValidating={Boolean(field.state.meta.isValidating && !hasError)}
+    >
+      <Popover
+        open={open}
+        onOpenChange={setOpen}
+      >
+        <PopoverTrigger asChild>
+          <ShadcnButton
+            id={field.name}
+            type="button"
+            disabled={disabled}
+            aria-expanded={open}
+            aria-invalid={hasError || undefined}
+            className={cn(
+              inputShellClassName,
+              'group min-h-7 w-full justify-between gap-2 font-normal',
+              !displayValue && 'text-gray-500'
+            )}
+          >
+            <span className="min-w-0 flex-1 truncate text-left type-label">
+              {displayValue ? (
+                <span className="flex min-w-0 items-center gap-2">
+                  {isNewValue ? (
+                    <span className="type-label shrink-0 rounded-sm border border-gray-300 bg-gray-100 px-1.5 py-0.5 text-gray-800">
+                      {t('common.new')}
+                    </span>
+                  ) : null}
+                  <span className="min-w-0 truncate text-black">
                     {displayValue}
                   </span>
-                ) : (
-                  (placeholder ?? textValues.placeholder)
-                )}
-              </span>
-              <ChevronsUpDownIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-            </BaseButton>
-          </PopoverTrigger>
-          <PopoverContent className="w-(--radix-popover-trigger-width) p-0">
-            <Command shouldFilter={false}>
-              <CommandInput
-                placeholder={searchPlaceholder ?? textValues.searchPlaceholder}
-                value={searchValue}
-                onValueChange={setSearchValue}
-              />
-              <CommandList>
-                {filteredOptions.length === 0 && !showCreateOption && (
-                  <CommandEmpty>
-                    {emptyText ?? textValues.emptyText}
-                  </CommandEmpty>
-                )}
-
-                {filteredOptions.length > 0 && (
-                  <CommandGroup>
-                    {filteredOptions.map((option) => (
-                      <CommandItem
-                        key={option.value}
-                        value={option.value}
-                        onSelect={handleSelect}
-                      >
-                        <CheckIcon
-                          className={cn(
-                            'mr-2 h-4 w-4',
-                            field.state.value === option.value
-                              ? 'opacity-100'
-                              : 'opacity-0'
-                          )}
-                        />
-                        {option.label}
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                )}
-
-                {showCreateOption && (
-                  <CommandGroup>
-                    <CommandItem
-                      value={`create-${searchValue}`}
-                      onSelect={handleCreate}
-                      className="text-primary"
-                    >
-                      <PlusIcon className="mr-2 h-4 w-4" />
-                      {`${createLabel || textValues.create} "${searchValue.trim()}"`}
-                    </CommandItem>
-                  </CommandGroup>
-                )}
-              </CommandList>
-            </Command>
-          </PopoverContent>
-        </Popover>
-
-        {hasError && (
-          <FieldError>{field.state.meta.errors.join(', ')}</FieldError>
-        )}
-        {field.state.meta.isValidating && (
-          <span className="text-sm text-muted-foreground">
-            {t('common.validating')}
-          </span>
-        )}
-      </FieldContent>
-    </Field>
+                </span>
+              ) : (
+                (placeholder ?? textValues.placeholder)
+              )}
+            </span>
+            <ChevronDownIcon
+              strokeWidth={INPUT_ICON_STROKE}
+              className="size-4 shrink-0 text-gray-500 group-data-[state=open]:hidden"
+              aria-hidden
+            />
+            <ChevronUpIcon
+              strokeWidth={INPUT_ICON_STROKE}
+              className="hidden size-4 shrink-0 text-gray-500 group-data-[state=open]:block"
+              aria-hidden
+            />
+          </ShadcnButton>
+        </PopoverTrigger>
+        <PopoverContent
+          className="flex w-(--radix-popover-trigger-width) flex-col gap-0 overflow-hidden rounded-sm border border-gray-300 bg-white p-0 shadow-md"
+          align="start"
+        >
+          <DropdownSearchInput
+            placeholder={searchPlaceholder ?? textValues.searchPlaceholder}
+            value={searchValue}
+            onChange={(e) => setSearchValue(e.target.value)}
+          />
+          <div
+            className="h-px w-full shrink-0 bg-gray-300"
+            aria-hidden
+          />
+          <div className="flex max-h-[min(300px,var(--radix-popover-content-available-height))] flex-col gap-2 overflow-y-auto">
+            {filteredOptions.length === 0 && !showCreateOption ? (
+              <p className="type-label px-2 py-1 text-center text-black">
+                {emptyText ?? textValues.emptyText}
+              </p>
+            ) : null}
+            {filteredOptions.map((option) => {
+              const isSelected = selectedString === option.value
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  className="flex w-full items-center justify-between gap-2 rounded-none px-2 py-1 type-label text-black hover:bg-gray-100"
+                  onClick={() => handleSelect(option.value)}
+                >
+                  <span className="min-w-0 flex-1 truncate text-left">
+                    {option.label}
+                  </span>
+                  {isSelected ? (
+                    <CheckIcon
+                      strokeWidth={INPUT_ICON_STROKE}
+                      className="size-4 shrink-0 text-green-500"
+                      aria-hidden
+                    />
+                  ) : null}
+                </button>
+              )
+            })}
+            {showCreateOption ? (
+              <button
+                type="button"
+                className="flex w-full items-center gap-2 rounded-none px-2 py-1 type-label text-black hover:bg-gray-100"
+                onClick={handleCreate}
+              >
+                <PlusIcon
+                  strokeWidth={INPUT_ICON_STROKE}
+                  className="size-4 shrink-0 text-gray-500"
+                  aria-hidden
+                />
+                <span className="truncate text-left">
+                  {`${createLabel || textValues.create} "${searchValue.trim()}"`}
+                </span>
+              </button>
+            ) : null}
+          </div>
+        </PopoverContent>
+      </Popover>
+    </FormField>
   )
 }

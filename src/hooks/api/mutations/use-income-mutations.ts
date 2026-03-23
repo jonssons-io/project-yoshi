@@ -5,12 +5,12 @@ import {
   createIncomeMutation,
   deleteIncomeMutation,
   getIncomeInstanceQueryKey,
+  updateIncomeInstanceMutation,
   updateIncomeMutation
 } from '@/api/generated/@tanstack/react-query.gen'
-import { updateIncomeInstanceMutation } from '@/api/generated/@tanstack/react-query.gen'
 import type {
-  ArchiveIncomeResponse,
   ArchiveIncomeRequest,
+  ArchiveIncomeResponse,
   ArchiveIncomeSourceRequest,
   ArchiveIncomeSourceResponse,
   CreateIncomeRequest,

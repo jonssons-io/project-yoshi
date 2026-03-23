@@ -18,8 +18,8 @@ import {
   Trash2
 } from 'lucide-react'
 import {
-  Fragment,
   type FormEvent,
+  Fragment,
   useEffect,
   useId,
   useMemo,
@@ -28,19 +28,19 @@ import {
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import {
-  TransactionType,
   type Income,
   type IncomeInstance,
   type IncomeSource,
   InstanceStatus,
-  RecurrenceType
+  RecurrenceType,
+  TransactionType
 } from '@/api/generated/types.gen'
 import { BaseButton } from '@/components/base-button/base-button'
+import { Button } from '@/components/button/button'
 import { SetupPrompt } from '@/components/dashboard/SetupPrompt'
+import { IconButton } from '@/components/icon-button/icon-button'
 import { TransactionForm } from '@/components/transactions/TransactionForm'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/button/button'
-import { IconButton } from '@/components/icon-button/icon-button'
 import { Card, CardContent } from '@/components/ui/card'
 import {
   DropdownMenu,
@@ -356,7 +356,6 @@ function EditIncomeInstanceDrawerContent({
         <Input
           id={amountInputId}
           type="number"
-          step="0.01"
           min="0"
           value={amount}
           onChange={(event) => setAmount(event.target.value)}

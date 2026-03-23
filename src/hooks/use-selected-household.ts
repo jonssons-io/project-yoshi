@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { listHouseholdsOptions } from '@/api/generated/@tanstack/react-query.gen'
-import { fromApiDate } from '@/hooks/api/date-normalization'
 import { useSetDefaultHousehold } from '@/hooks/api'
+import { fromApiDate } from '@/hooks/api/date-normalization'
 
 /**
  * Custom hook to manage household selection through API-backed user settings.

@@ -7,14 +7,14 @@
  */
 
 import { z } from 'zod'
+import { RecurrenceType } from '@/api/generated/types.gen'
+import { BaseButton } from '@/components/base-button/base-button'
 import {
   type ComboboxValue,
   createZodValidator,
   useAppForm,
   validateForm
 } from '@/components/form'
-import { RecurrenceType } from '@/api/generated/types.gen'
-import { BaseButton } from '@/components/base-button/base-button'
 
 // Schema for bill form - categoryId is handled via ComboboxValue
 // Schema for bill form - categoryId is handled via ComboboxValue
@@ -395,7 +395,6 @@ export function BillForm({
                       <amtField.NumberField
                         label={t('common.amount')}
                         min={0}
-                        step="1"
                       />
                     )}
                   </form.AppField>
@@ -469,7 +468,6 @@ export function BillForm({
                                 <amtField.NumberField
                                   label={t('common.amount')}
                                   min={0}
-                                  step="1"
                                 />
                               )}
                             </form.AppField>

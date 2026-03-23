@@ -17,7 +17,11 @@ export type PageLayoutProps = {
   /** Filled subtle buttons; order preserved left-to-right in the row */
   quickActions?: PageLayoutQuickAction[]
   /** Right-aligned cards; first item is visually rightmost (fills leftward) */
-  infoCards?: Array<InfoCardProps & { id?: string }>
+  infoCards?: Array<
+    InfoCardProps & {
+      id?: string
+    }
+  >
   /** Full-width tab row (e.g. {@link Tabs} + {@link TabsList}); border should span edge to edge */
   tabs?: ReactNode
   children: ReactNode
@@ -45,12 +49,17 @@ export function PageLayout({
           <div className="flex min-w-0 flex-1 flex-col">
             <div className="flex flex-col gap-3">
               <h1 className="type-title-large text-black">{title}</h1>
-              <div className="type-body-medium text-gray-800">{description}</div>
+              <div className="type-body-medium text-gray-800">
+                {description}
+              </div>
             </div>
             {hasQuickActions ? (
               <>
                 {hasInfoCards ? (
-                  <div className="min-h-0 flex-1" aria-hidden={true} />
+                  <div
+                    className="min-h-0 flex-1"
+                    aria-hidden={true}
+                  />
                 ) : null}
                 <div className="flex flex-wrap gap-2">
                   {(quickActions ?? []).map((action) => (
