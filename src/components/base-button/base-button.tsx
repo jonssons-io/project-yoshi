@@ -88,7 +88,8 @@ export type BaseButtonProps = Omit<ShadcnButtonProps, 'children' | 'color'> & {
 }
 
 /**
- * Shared button foundation used by strict Button and IconButton wrappers.
+ * Shared button foundation used by strict `Button` and `IconButton` wrappers.
+ * `className` is intended for layered `ui/` composition (for example calendar cells), not ad-hoc styling — prefer `Button` / `IconButton` or a local wrapper in feature code.
  */
 export const BaseButton = React.forwardRef<HTMLButtonElement, BaseButtonProps>(
   (

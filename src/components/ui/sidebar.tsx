@@ -161,21 +161,22 @@ function SidebarTrigger({
   }
 
   return (
-    <BaseButton
-      data-slot="sidebar-trigger"
-      variant="text"
-      color="subtle"
-      iconOnly
-      className={cn(className)}
-      onClick={(event) => {
-        onClick?.(event)
-        toggleSidebar()
-      }}
-      {...props}
-    >
-      <PanelLeftIcon />
-      <span className="sr-only">{t('dashboard.toggleSidebar')}</span>
-    </BaseButton>
+    <div className={cn(className)}>
+      <BaseButton
+        data-slot="sidebar-trigger"
+        variant="text"
+        color="subtle"
+        iconOnly
+        onClick={(event) => {
+          onClick?.(event)
+          toggleSidebar()
+        }}
+        {...props}
+      >
+        <PanelLeftIcon />
+        <span className="sr-only">{t('dashboard.toggleSidebar')}</span>
+      </BaseButton>
+    </div>
   )
 }
 

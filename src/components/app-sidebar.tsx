@@ -14,7 +14,7 @@ import {
   ReceiptText
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { SidebarUserMenu } from '@/components/SidebarUserMenu'
+import { SidebarUserMenu } from '@/components/sidebar-user-menu/sidebar-user-menu'
 import { Sidebar } from '@/components/ui/sidebar'
 
 type AppSidebarProps = {
