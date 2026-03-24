@@ -27,6 +27,8 @@ export interface DateFieldProps {
   description?: string
   placeholder?: string
   disabled?: boolean
+  /** Calendar icon before the value (default: after). */
+  calendarPosition?: 'start' | 'end'
 }
 
 export function DateField({
@@ -34,7 +36,8 @@ export function DateField({
   labelHelpText,
   description,
   placeholder,
-  disabled
+  disabled,
+  calendarPosition = 'end'
 }: DateFieldProps) {
   const { t } = useTranslation()
   const effectivePlaceholder = placeholder || t('common.pickDate')
@@ -63,10 +66,17 @@ export function DateField({
             aria-invalid={hasError || undefined}
             className={cn(
               inputShellClassName,
-              'min-h-7 w-full justify-between gap-2 font-normal',
-              !field.state.value && 'text-gray-500'
+              'min-h-7 w-full gap-2 font-normal',
+              calendarPosition === 'end' ? 'justify-between' : 'justify-start'
             )}
           >
+            {calendarPosition === 'start' ? (
+              <CalendarIcon
+                strokeWidth={INPUT_ICON_STROKE}
+                className="size-4 shrink-0 text-gray-500"
+                aria-hidden
+              />
+            ) : null}
             <span
               className={cn(
                 'min-w-0 flex-1 truncate text-left type-label',
@@ -79,11 +89,13 @@ export function DateField({
                   })
                 : effectivePlaceholder}
             </span>
-            <CalendarIcon
-              strokeWidth={INPUT_ICON_STROKE}
-              className="size-4 shrink-0 text-gray-500"
-              aria-hidden
-            />
+            {calendarPosition === 'end' ? (
+              <CalendarIcon
+                strokeWidth={INPUT_ICON_STROKE}
+                className="size-4 shrink-0 text-gray-500"
+                aria-hidden
+              />
+            ) : null}
           </ShadcnButton>
         </PopoverTrigger>
         <PopoverContent
@@ -98,7 +110,7 @@ export function DateField({
                 field.handleChange(date)
               }
             }}
-            initialFocus
+            autoFocus
             locale={sv}
           />
         </PopoverContent>

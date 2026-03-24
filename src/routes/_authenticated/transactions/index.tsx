@@ -63,8 +63,10 @@ function TransactionsPage() {
   const budgetId = budgetFilter === ALL_BUDGETS_VALUE ? undefined : budgetFilter
 
   const openCreateTransactionDrawer = useCallback(() => {
-    void 0
-  }, [])
+    openDrawer('createTransaction', {})
+  }, [
+    openDrawer
+  ])
 
   const {
     data: transactions,

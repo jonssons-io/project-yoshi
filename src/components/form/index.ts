@@ -62,6 +62,7 @@ export {
 export {
   createAsyncValidator,
   createFormValidator,
+  createTranslatedZodValidator,
   createZodValidator,
   getZodErrors,
   safeValidateForm,

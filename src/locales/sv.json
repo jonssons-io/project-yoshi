@@ -251,6 +251,12 @@
     "unarchiveSuccess": "Kategori avarkiverad"
   },
   "forms": {
+    "transactionDate": "Transaktionsdatum",
+    "splitThisTransaction": "Dela denna transaktion",
+    "namelessSection": "Namnlös sektion",
+    "sectionNameField": "Sektionsnamn",
+    "totalAmountLabel": "Totalt belopp: {{amount}}",
+    "splitSectionSummary": "{{title}}: {{amount}}",
     "transactionName": "Transaktionsnamn",
     "transactionType": "Transaktionstyp",
     "notesOptional": "Anteckningar (Valfritt)",

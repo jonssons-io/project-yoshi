@@ -4,6 +4,7 @@
  * These helpers simplify Zod validation integration with TanStack Form
  */
 
+import type { TFunction } from 'i18next'
 import type { z } from 'zod'
 
 /**
@@ -29,6 +30,40 @@ export function createZodValidator<T extends z.ZodType>(schema: T) {
   return ({ value }: { value: unknown }) => {
     const result = schema.safeParse(value)
     return result.success ? undefined : result.error.issues[0]?.message
+  }
+}
+
+const I18N_MESSAGE_PREFIXES = [
+  'validation.',
+  'forms.',
+  'common.'
+] as const
+
+export function isLikelyI18nKey(message: string): boolean {
+  return I18N_MESSAGE_PREFIXES.some((p) => message.startsWith(p))
+}
+
+/** Use for submit-level / API errors whose `message` may be an i18n key. */
+export function translateIfLikelyI18nKey(
+  message: string,
+  t: TFunction
+): string {
+  return isLikelyI18nKey(message) ? t(message) : message
+}
+
+/**
+ * Like `createZodValidator`, but turns Zod `message` values that look like i18n keys
+ * (e.g. `validation.required`) into translated copy via `t`.
+ */
+export function createTranslatedZodValidator<T extends z.ZodType>(
+  schema: T,
+  t: TFunction
+) {
+  return ({ value }: { value: unknown }) => {
+    const result = schema.safeParse(value)
+    if (result.success) return undefined
+    const msg = result.error.issues[0]?.message
+    return msg ? translateIfLikelyI18nKey(msg, t) : undefined
   }
 }
 

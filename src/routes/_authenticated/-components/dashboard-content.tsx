@@ -23,6 +23,7 @@ import {
   TableRow
 } from '@/components/table/table'
 import { useAuth } from '@/contexts/auth-context'
+import { useDrawer } from '@/drawers'
 import { useMultiAccountBalanceHistory, useTransactionsList } from '@/hooks/api'
 import {
   generateChartDataFromSnapshots,
@@ -84,6 +85,7 @@ export function DashboardContent({
 }: DashboardContentProps) {
   const { t } = useTranslation()
   const { userId, householdId } = useAuth()
+  const { openDrawer } = useDrawer()
 
   const { quickSelection, customStartDate, customEndDate, selectedAccountIds } =
     dashboardSettings
@@ -215,7 +217,9 @@ export function DashboardContent({
               aria-hidden={true}
             />
           ),
-          onClick: noop
+          onClick: () => {
+            openDrawer('createTransaction', {})
+          }
         },
         {
           id: 'add-income',
