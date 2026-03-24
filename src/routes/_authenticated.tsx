@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/sidebar'
 import { AuthProvider } from '@/contexts/auth-context'
 import { HouseholdProvider } from '@/contexts/household-context'
+import { DrawerProvider } from '@/drawers'
 import { useSelectedHousehold } from '@/hooks/use-selected-household'
 
 const authStateFn = createServerFn().handler(async () => {
@@ -98,31 +99,33 @@ function AuthenticatedLayoutContent() {
         isHouseholdsLoading
       }}
     >
-      <SidebarProvider>
-        <SidebarTrigger className="fixed top-4 left-4 z-50" />
-        <AppSidebar
-          user={{
-            imageUrl: user.imageUrl,
-            fullName: user.fullName,
-            firstName: user.firstName,
-            email: user.primaryEmailAddress?.emailAddress
-          }}
-          households={households}
-          selectedHouseholdId={selectedHouseholdId}
-          onSelectHousehold={setSelectedHousehold}
-          onCreateHousehold={handleCreateHousehold}
-          onEditHousehold={handleEditHousehold}
-          onShowInvitations={handleShowInvitations}
-          onSignOut={handleSignOut}
-        />
-        <SidebarInset>
-          <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-            <AuthProvider>
-              <Outlet />
-            </AuthProvider>
-          </div>
-        </SidebarInset>
-      </SidebarProvider>
+      <AuthProvider>
+        <SidebarProvider>
+          <SidebarTrigger className="fixed top-4 left-4 z-50" />
+          <AppSidebar
+            user={{
+              imageUrl: user.imageUrl,
+              fullName: user.fullName,
+              firstName: user.firstName,
+              email: user.primaryEmailAddress?.emailAddress
+            }}
+            households={households}
+            selectedHouseholdId={selectedHouseholdId}
+            onSelectHousehold={setSelectedHousehold}
+            onCreateHousehold={handleCreateHousehold}
+            onEditHousehold={handleEditHousehold}
+            onShowInvitations={handleShowInvitations}
+            onSignOut={handleSignOut}
+          />
+          <SidebarInset>
+            <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+              <DrawerProvider>
+                <Outlet />
+              </DrawerProvider>
+            </div>
+          </SidebarInset>
+        </SidebarProvider>
+      </AuthProvider>
     </HouseholdProvider>
   )
 }

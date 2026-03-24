@@ -12,7 +12,7 @@ type UseDashboardSettingsParams = {
   accounts: AccountLike[] | undefined
 }
 
-type UseDashboardSettingsResult = {
+export type UseDashboardSettingsResult = {
   quickSelection: DateRangeOption
   setQuickSelection: (value: DateRangeOption) => void
   customStartDate: Date | undefined

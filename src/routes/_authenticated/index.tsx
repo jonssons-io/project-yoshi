@@ -1,8 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { type ReactNode, useMemo } from 'react'
+import { type ReactNode, useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { PageLayout } from '@/components/page-layout/page-layout'
 import { useAuth } from '@/contexts/auth-context'
+import { useDrawer } from '@/drawers'
 import { SetupPrompt } from '@/features/setup-prompt/setup-prompt'
 import {
   useAccountBalancesList,
@@ -11,6 +12,7 @@ import {
   useBudgetsList
 } from '@/hooks/api'
 import { DashboardContent } from './-components/dashboard-content'
+import { useDashboardSettings } from './-components/use-dashboard-settings'
 
 export const Route = createFileRoute('/_authenticated/')({
   component: Dashboard
@@ -33,6 +35,13 @@ function Dashboard() {
     enabled: !!householdId,
     excludeArchived: true
   })
+
+  const dashboardSettings = useDashboardSettings({
+    userId: userId ?? '',
+    accounts: accounts ?? undefined
+  })
+
+  const { openDrawer } = useDrawer()
 
   const accountIds = useMemo(
     () => (accounts ?? []).map((account) => account.id),
@@ -76,6 +85,22 @@ function Dashboard() {
     externalIdentifier: account.externalIdentifier ?? null
   }))
 
+  const openChartSettingsDrawer = useCallback(() => {
+    openDrawer('dashboardChartSettings', {
+      accounts: dashboardAccounts.map((account) => ({
+        id: account.id,
+        name: account.name
+      })),
+      selectedAccountIds: dashboardSettings.selectedAccountIds,
+      onApply: dashboardSettings.updateSelectedAccounts
+    })
+  }, [
+    dashboardAccounts,
+    dashboardSettings.selectedAccountIds,
+    dashboardSettings.updateSelectedAccounts,
+    openDrawer
+  ])
+
   const withDashboardChrome = (content: ReactNode) => (
     <PageLayout
       title={dashboardTitle}
@@ -117,6 +142,8 @@ function Dashboard() {
       <DashboardContent
         accounts={dashboardAccounts}
         budgets={budgets ?? []}
+        dashboardSettings={dashboardSettings}
+        onOpenChartSettings={openChartSettingsDrawer}
         unallocatedAmount={allocationSummary?.unallocated ?? 0}
       />
     </div>

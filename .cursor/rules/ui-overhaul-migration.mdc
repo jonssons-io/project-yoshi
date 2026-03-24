@@ -1,5 +1,5 @@
 ---
-description: UI overhaul — PageLayout; shadcn in ui/ vs wrapped components; drawers (components/drawers vs src/drawers); no direct shadcn usage; placement; backend tickets
+description: UI overhaul — PageLayout; shadcn in ui/ vs wrapped components; typed drawers (DrawerShell + src/drawers registry); no direct shadcn usage; placement; backend tickets
 alwaysApply: true
 ---
 
@@ -15,19 +15,28 @@ During the major UI overhaul, **new design system code stays minimal and strict*
 
 - **Buttons and interactive elements** (toggles, row actions, etc.) should use **dummy handlers** only—for example `() => void 0` or equivalent no-ops—until you are **explicitly** asked to connect them to real navigation, mutations, or domain logic.
 
-## Forms and the drawer system
+## Forms and the typed drawer system
 
 - **All forms** that belong in a page flow (create, edit, etc.) should open in the **app drawer** by default, not as the primary inline or full-page form, **unless** you are explicitly told **not** to use a drawer.
-- **Implementation**: the authenticated layout wraps the tree in **`DrawerProvider`** from `@/components/drawer-context`. Use **`useDrawer()`** from `@/hooks/use-drawer` for **`openDrawer(content, title?)`**, **`closeDrawer`**, and **`isOpen`**. The **Vaul** primitive installed by shadcn lives under **`@/components/ui/drawer`**—treat it like other **`ui/`** code: **do not import it directly** in product screens; expose drawer behavior through **wrappers** (see **shadcn and wrappers** below).
+- **Implementation**: the authenticated layout wraps the tree in **`DrawerProvider`** from **`@/drawers`**. Use **`useDrawer()`** from **`@/drawers`** for **`openDrawer(name, props)`** and **`closeDrawer`**. Drawer names and props are **fully type-checked** via **`DrawerPropsMap`** in **`src/drawers/registry.ts`**. The **Vaul** primitive from shadcn lives under **`@/components/ui/drawer`**—treat it like other **`ui/`** code: **do not import it directly** in routes, features, or wired drawer bodies; use **`DrawerShell`** from **`@/components/drawer/drawer`** only inside the drawer infrastructure (see **shadcn and wrappers** below).
+
+### Drawer architecture (single source of truth)
+
+| Piece                                                  | Responsibility                                                                                                                                                                                        |
+| ------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`src/components/ui/drawer.tsx`**                     | shadcn / Vaul primitives only.                                                                                                                                                                        |
+| **`src/components/drawer/drawer.tsx`** (`DrawerShell`) | Visual shell only: `open` / `onOpenChange`, overlay, side panel layout, optional title and description, close control, scrollable body. **No** domain logic.                                          |
+| **`src/drawers/registry.ts`**                          | **`DrawerPropsMap`**, **`drawerMeta`** (title / optional description), **`drawerComponents`** (name → body component). Every new drawer extends all three in sync.                                    |
+| **`src/drawers/provider.tsx`**                         | Context, **`DrawerProvider`**, active drawer state, delayed unmount after close (~300ms) so content does not disappear mid-animation. Renders **`DrawerShell`** and the active body via the registry. |
+| **`src/drawers/use-drawer.ts`**                        | **`useDrawer()`** — throws if used outside **`DrawerProvider`**.                                                                                                                                      |
+| **`src/drawers/drawers/<name>.tsx`**                   | Wired drawer **body** only (forms, **`src/api`**, mutations). Receives typed props from the map plus **`onClose`**. Does **not** import **`DrawerShell`** or **`ui/drawer`**.                         |
 
 ### Drawer placement
 
-There are **two** drawer locations; do not mix them.
+- **Shell and registry**: only **`DrawerShell`** lives under **`src/components/drawer/`**; the typed registry, provider, and hook live under **`src/drawers/`** (plus **`index.ts`** barrel exports).
+- **Wired drawer bodies** (complete forms, hooks to **`src/api`**, mutations): implement as **`src/drawers/drawers/<feature>.tsx`** and register in **`registry.ts`**. Shared or route-specific wired bodies both use **`src/drawers/`**—do **not** put API or mutations inside **`src/components/drawer/`**.
 
-- **Pure drawer UI** (shared chrome, sections, composition—**no** complete forms, **no** domain data fetching or mutations): **`src/components/drawers/`** (one building block per file or small module).
-- **Wired (“unpure”) drawer bodies** (complete forms, lists, hooks to **`src/api`**, mutations, or other domain logic): **`src/drawers/`**—always, including when shared across authenticated routes. Organize with files or subfolders inside **`src/drawers/`** as needed. This keeps domain-heavy drawer flows out of **`src/components/`**.
-
-When a wired drawer is tightly owned by **one** route and tiny, you may still implement it under **`src/drawers/`** next to a clear name (e.g. by feature file); **do not** put domain wiring in **`src/components/drawers/`**.
+When a wired drawer is tightly owned by **one** route and tiny, you may still implement it under **`src/drawers/drawers/`** with a clear file name; **do not** put domain wiring in **`src/components/drawer/`**.
 
 ## New base components vs legacy pages
 
@@ -52,9 +61,9 @@ Use **one** of these three placements. Pick the **first** that applies.
 
 **→** Under **`src/components/`**, with a **strict split**:
 
-| What | Where |
-| --- | --- |
-| **shadcn-generated primitives** (output of `npx shadcn add …`) | **`src/components/ui/`** only |
+| What                                                                                                                  | Where                                                                            |
+| --------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| **shadcn-generated primitives** (output of `npx shadcn add …`)                                                        | **`src/components/ui/`** only                                                    |
 | **Everything else pure**—app-owned components, **wrappers around shadcn**, illustrations, design-system buttons, etc. | **`src/components/<name>/`** (each component or family in **its own directory**) |
 
 #### shadcn and wrappers

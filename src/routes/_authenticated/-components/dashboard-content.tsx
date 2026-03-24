@@ -29,7 +29,7 @@ import {
   getDateRange
 } from '@/lib/dashboard-utils'
 import { formatCurrency } from '@/lib/utils'
-import { useDashboardSettings } from './use-dashboard-settings'
+import type { UseDashboardSettingsResult } from './use-dashboard-settings'
 
 type DashboardAccount = {
   id: string
@@ -52,6 +52,8 @@ type DashboardBudget = {
 type DashboardContentProps = {
   accounts: DashboardAccount[]
   budgets: DashboardBudget[]
+  dashboardSettings: UseDashboardSettingsResult
+  onOpenChartSettings: () => void
   unallocatedAmount: number
 }
 
@@ -76,16 +78,15 @@ function budgetProgressClass(tone: 'danger' | 'warning' | 'success'): string {
 export function DashboardContent({
   accounts,
   budgets,
+  dashboardSettings,
+  onOpenChartSettings,
   unallocatedAmount
 }: DashboardContentProps) {
   const { t } = useTranslation()
   const { userId, householdId } = useAuth()
 
   const { quickSelection, customStartDate, customEndDate, selectedAccountIds } =
-    useDashboardSettings({
-      userId: userId ?? '',
-      accounts
-    })
+    dashboardSettings
 
   const { startDate, endDate } = getDateRange(
     quickSelection,
@@ -294,7 +295,7 @@ export function DashboardContent({
             <IconButton
               variant="text"
               color="subtle"
-              onClick={noop}
+              onClick={onOpenChartSettings}
               aria-label={t('dashboard.chartSettings')}
               icon={
                 <SettingsIcon
