@@ -14,15 +14,6 @@ import {
   CardTitle
 } from '@/components/ui/card'
 import { useHouseholdContext } from '@/contexts/household-context'
-import { AccountForm } from '@/forms/AccountForm'
-import { BudgetForm } from '@/forms/BudgetForm'
-import { HouseholdForm } from '@/forms/HouseholdForm'
-import {
-  useCreateAccount,
-  useCreateBudget,
-  useCreateHousehold
-} from '@/hooks/api'
-import { useDrawer } from '@/hooks/use-drawer'
 
 export type SetupPromptVariant =
   | 'no-household'
@@ -96,35 +87,9 @@ const ACTION_VARIANTS: SetupPromptVariant[] = [
  * Reusable empty-state prompt with illustration, shown when a resource
  * has not been created yet (household, budget, account, category, income, bills).
  */
-export function SetupPrompt({
-  variant,
-  onCompleted,
-  onAction
-}: SetupPromptProps) {
+export function SetupPrompt({ variant, onAction }: SetupPromptProps) {
   const { t } = useTranslation()
-  const { userId, selectedHouseholdId } = useHouseholdContext()
-  const { openDrawer, closeDrawer } = useDrawer()
-
-  const { mutate: createHousehold } = useCreateHousehold({
-    onSuccess: () => {
-      onCompleted?.()
-      closeDrawer()
-    }
-  })
-
-  const { mutate: createBudget } = useCreateBudget({
-    onSuccess: () => {
-      onCompleted?.()
-      closeDrawer()
-    }
-  })
-
-  const { mutate: createAccount } = useCreateAccount({
-    onSuccess: () => {
-      onCompleted?.()
-      closeDrawer()
-    }
-  })
+  const { selectedHouseholdId } = useHouseholdContext()
 
   const config = SETUP_PROMPT_CONFIG[variant]
 
@@ -141,77 +106,7 @@ export function SetupPrompt({
       onAction?.()
       return
     }
-
-    if (variant === 'no-household') {
-      openDrawer(
-        <div className="flex flex-col gap-6 p-4">
-          <div className="flex flex-col gap-4">
-            <h2 className="text-2xl font-bold">{t(config.titleKey)}</h2>
-            <p className="text-muted-foreground">{t(config.descriptionKey)}</p>
-          </div>
-          <HouseholdForm
-            onSubmit={(data) => {
-              createHousehold({
-                name: data.name,
-                userId
-              })
-            }}
-            onCancel={closeDrawer}
-            submitLabel={t(config.buttonKey)}
-          />
-        </div>,
-        t(config.buttonKey)
-      )
-      return
-    }
-
-    if (!selectedHouseholdId) return
-
-    if (variant === 'no-budget') {
-      openDrawer(
-        <div className="flex flex-col gap-6 p-4">
-          <div className="flex flex-col gap-4">
-            <h2 className="text-2xl font-bold">{t(config.titleKey)}</h2>
-            <p className="text-muted-foreground">{t(config.descriptionKey)}</p>
-          </div>
-          <BudgetForm
-            onSubmit={(data) => {
-              createBudget({
-                name: data.name,
-                householdId: selectedHouseholdId,
-                userId
-              })
-            }}
-            onCancel={closeDrawer}
-            submitLabel={t(config.buttonKey)}
-          />
-        </div>,
-        t(config.buttonKey)
-      )
-      return
-    }
-
-    openDrawer(
-      <div className="flex flex-col gap-6 p-4">
-        <div className="flex flex-col gap-4">
-          <h2 className="text-2xl font-bold">{t(config.titleKey)}</h2>
-          <p className="text-muted-foreground">{t(config.descriptionKey)}</p>
-        </div>
-        <AccountForm
-          onSubmit={(data) => {
-            createAccount({
-              ...data,
-              householdId: selectedHouseholdId,
-              userId
-            })
-          }}
-          onCancel={closeDrawer}
-          submitLabel={t(config.buttonKey)}
-          budgets={[]}
-        />
-      </div>,
-      t(config.buttonKey)
-    )
+    void 0
   }
 
   return (

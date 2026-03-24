@@ -20,12 +20,10 @@ import { AccountRow } from './AccountsTableRow'
 
 export const AccountsTable = ({
   userId,
-  selectedHouseholdId,
-  setEditingAccountId
+  selectedHouseholdId
 }: {
   userId: string
   selectedHouseholdId: string
-  setEditingAccountId: (id: string) => void
 }) => {
   const { t } = useTranslation()
   const { data: accounts, refetch } = useAccountsList({
@@ -118,7 +116,7 @@ export const AccountsTable = ({
             <AccountRow
               key={account.id}
               account={account as AccountRowAccount}
-              onEdit={(acc) => setEditingAccountId(acc.id)}
+              onEdit={() => void 0}
               onArchive={(data) =>
                 toggleArchive({
                   id: data.id,

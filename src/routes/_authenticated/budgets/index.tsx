@@ -11,11 +11,8 @@ import {
   PlusIcon,
   TrashIcon
 } from 'lucide-react'
-import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
-import { AllocationDrawer } from '@/components/allocations/AllocationDrawer'
-import { TransferDrawer } from '@/components/allocations/TransferDrawer'
 import { BaseButton } from '@/components/base-button/base-button'
 import { Button } from '@/components/button/button'
 import { IconButton } from '@/components/icon-button/icon-button'
@@ -31,16 +28,9 @@ import {
 import { Progress } from '@/components/ui/progress'
 import { useAuth } from '@/contexts/auth-context'
 import { SetupPrompt } from '@/features/setup-prompt/setup-prompt'
-import { BudgetForm } from '@/forms/BudgetForm'
-import {
-  useBudgetsList,
-  useCreateBudget,
-  useDeleteBudget,
-  useUpdateBudget
-} from '@/hooks/api'
+import { useBudgetsList, useDeleteBudget } from '@/hooks/api'
 import { useAllocationsQuery } from '@/hooks/api/use-allocations'
 import { useConfirmDialog } from '@/hooks/use-confirm-dialog'
-import { useDrawer } from '@/hooks/use-drawer'
 import { getErrorMessage } from '@/lib/api-error'
 import { formatCurrency } from '@/lib/utils'
 
@@ -51,15 +41,7 @@ export const Route = createFileRoute('/_authenticated/budgets/')({
 function BudgetsPage() {
   const { t } = useTranslation()
   const { userId, householdId } = useAuth()
-  const { openDrawer, closeDrawer } = useDrawer()
   const { confirm, confirmDialog } = useConfirmDialog()
-  const [allocationOpen, setAllocationOpen] = useState(false)
-  const [deallocationOpen, setDeallocationOpen] = useState(false)
-  const [transferOpen, setTransferOpen] = useState(false)
-  const [selectedBudgetId, setSelectedBudgetId] = useState<string | undefined>()
-  const [transferSourceBudgetId, setTransferSourceBudgetId] = useState<
-    string | undefined
-  >()
   const allocationSummary = useAllocationsQuery({
     householdId: householdId ?? '',
     userId,
@@ -74,28 +56,6 @@ function BudgetsPage() {
   } = useBudgetsList({
     householdId,
     userId
-  })
-
-  const { mutate: createBudget } = useCreateBudget({
-    onSuccess: () => {
-      refetch()
-      closeDrawer()
-      toast.success(t('budgets.createSuccess'))
-    },
-    onError: (error) => {
-      toast.error(getErrorMessage(error))
-    }
-  })
-
-  const { mutate: updateBudget } = useUpdateBudget({
-    onSuccess: () => {
-      refetch()
-      closeDrawer()
-      toast.success(t('budgets.updateSuccess'))
-    },
-    onError: (error) => {
-      toast.error(getErrorMessage(error))
-    }
   })
 
   const { mutate: deleteBudget } = useDeleteBudget({
@@ -138,49 +98,11 @@ function BudgetsPage() {
   }
 
   const handleCreate = () => {
-    openDrawer(
-      <div className="p-4">
-        <h2 className="text-2xl font-bold mb-4">{t('budgets.create')}</h2>
-        <p className="text-muted-foreground mb-6">{t('budgets.createDesc')}</p>
-        <BudgetForm
-          onSubmit={async (data) => {
-            createBudget({
-              name: data.name,
-              startDate: new Date(),
-              householdId,
-              userId
-            })
-          }}
-          onCancel={closeDrawer}
-          submitLabel={t('budgets.create')}
-        />
-      </div>,
-      t('budgets.create')
-    )
+    void 0
   }
 
-  const handleEdit = (budget: { id: string; name: string }) => {
-    openDrawer(
-      <div className="p-4">
-        <h2 className="text-2xl font-bold mb-4">{t('budgets.edit')}</h2>
-        <p className="text-muted-foreground mb-6">{t('budgets.editDesc')}</p>
-        <BudgetForm
-          defaultValues={{
-            name: budget.name
-          }}
-          onSubmit={async (data) => {
-            updateBudget({
-              id: budget.id,
-              userId,
-              name: data.name
-            })
-          }}
-          onCancel={closeDrawer}
-          submitLabel={t('common.update')}
-        />
-      </div>,
-      t('budgets.edit')
-    )
+  const handleEdit = (_budget: { id: string; name: string }) => {
+    void 0
   }
 
   const handleDeleteBudget = async (budget: { id: string; name: string }) => {
@@ -197,19 +119,16 @@ function BudgetsPage() {
     })
   }
 
-  const handleAllocate = (budgetId: string) => {
-    setSelectedBudgetId(budgetId)
-    setAllocationOpen(true)
+  const handleAllocate = (_budgetId: string) => {
+    void 0
   }
 
-  const handleDeallocate = (budgetId: string) => {
-    setSelectedBudgetId(budgetId)
-    setDeallocationOpen(true)
+  const handleDeallocate = (_budgetId: string) => {
+    void 0
   }
 
-  const handleTransfer = (budgetId?: string) => {
-    setTransferSourceBudgetId(budgetId)
-    setTransferOpen(true)
+  const handleTransfer = (_budgetId?: string) => {
+    void 0
   }
 
   const unallocatedAmount = allocationSummary.data?.unallocated ?? 0
@@ -232,10 +151,7 @@ function BudgetsPage() {
             <Button
               variant="outlined"
               color="subtle"
-              onClick={() => {
-                setSelectedBudgetId(undefined)
-                setAllocationOpen(true)
-              }}
+              onClick={() => void 0}
               icon={<PlusIcon />}
               label={t('allocation.allocateFunds')}
             />
@@ -419,28 +335,6 @@ function BudgetsPage() {
           </div>
         </div>
       </div>
-      <AllocationDrawer
-        open={allocationOpen}
-        onOpenChange={setAllocationOpen}
-        householdId={householdId ?? ''}
-        userId={userId}
-        preselectedBudgetId={selectedBudgetId}
-      />
-      <AllocationDrawer
-        open={deallocationOpen}
-        onOpenChange={setDeallocationOpen}
-        householdId={householdId ?? ''}
-        userId={userId}
-        preselectedBudgetId={selectedBudgetId}
-        mode="deallocate"
-      />
-      <TransferDrawer
-        open={transferOpen}
-        onOpenChange={setTransferOpen}
-        householdId={householdId ?? ''}
-        userId={userId}
-        preselectedSourceBudgetId={transferSourceBudgetId}
-      />
       {confirmDialog}
     </>
   )

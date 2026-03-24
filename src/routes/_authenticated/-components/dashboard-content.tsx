@@ -6,7 +6,7 @@ import {
   TrendingDown,
   TrendingUp
 } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { TransactionType } from '@/api/generated/types.gen'
 import { DashboardMultiSeriesLineChart } from '@/charts/dashboard-multi-series-line-chart/dashboard-multi-series-line-chart'
@@ -23,9 +23,7 @@ import {
   TableRow
 } from '@/components/table/table'
 import { useAuth } from '@/contexts/auth-context'
-import { DashboardChartSettings } from '@/drawers/dashboard-chart-settings'
 import { useMultiAccountBalanceHistory, useTransactionsList } from '@/hooks/api'
-import { useDrawer } from '@/hooks/use-drawer'
 import {
   generateChartDataFromSnapshots,
   getDateRange
@@ -82,19 +80,12 @@ export function DashboardContent({
 }: DashboardContentProps) {
   const { t } = useTranslation()
   const { userId, householdId } = useAuth()
-  const { openDrawer, isOpen } = useDrawer()
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
 
-  const {
-    quickSelection,
-    customStartDate,
-    customEndDate,
-    selectedAccountIds,
-    updateSelectedAccounts
-  } = useDashboardSettings({
-    userId: userId ?? '',
-    accounts
-  })
+  const { quickSelection, customStartDate, customEndDate, selectedAccountIds } =
+    useDashboardSettings({
+      userId: userId ?? '',
+      accounts
+    })
 
   const { startDate, endDate } = getDateRange(
     quickSelection,
@@ -201,52 +192,6 @@ export function DashboardContent({
     endDate
   ])
 
-  const renderSettingsContent = () => (
-    <DashboardChartSettings
-      accounts={accounts}
-      selectedAccountIds={selectedAccountIds}
-      onToggleAccount={(id, checked) => {
-        updateSelectedAccounts(
-          checked
-            ? [
-                ...selectedAccountIds,
-                id
-              ]
-            : selectedAccountIds.filter((accountId) => accountId !== id)
-        )
-      }}
-      onDeselectAll={() => {
-        updateSelectedAccounts([])
-      }}
-    />
-  )
-
-  useEffect(() => {
-    if (!isOpen) {
-      setIsSettingsOpen(false)
-    }
-  }, [
-    isOpen
-  ])
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: openDrawer target updates while drawer is open.
-  useEffect(() => {
-    if (!isOpen || !isSettingsOpen) return
-    openDrawer(renderSettingsContent(), t('dashboard.chartSettings'))
-  }, [
-    isOpen,
-    isSettingsOpen,
-    openDrawer,
-    t,
-    accounts,
-    selectedAccountIds
-  ])
-
-  const handleOpenSettings = () => {
-    setIsSettingsOpen(true)
-    openDrawer(renderSettingsContent(), t('dashboard.chartSettings'))
-  }
-
   const noop = () => {
     void 0
   }
@@ -349,7 +294,7 @@ export function DashboardContent({
             <IconButton
               variant="text"
               color="subtle"
-              onClick={handleOpenSettings}
+              onClick={noop}
               aria-label={t('dashboard.chartSettings')}
               icon={
                 <SettingsIcon

@@ -10,12 +10,11 @@ import {
   PlusIcon,
   TrashIcon
 } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { BaseButton } from '@/components/base-button/base-button'
 import { Button } from '@/components/button/button'
-import { CategoryForm } from '@/components/categories/CategoryForm'
 import { IconButton } from '@/components/icon-button/icon-button'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
@@ -31,15 +30,10 @@ import { useAuth } from '@/contexts/auth-context'
 import { SetupPrompt } from '@/features/setup-prompt/setup-prompt'
 import {
   useArchiveCategory,
-  useBudgetsList,
   useCategoriesList,
-  useCategoryById,
-  useCreateCategory,
-  useDeleteCategory,
-  useUpdateCategory
+  useDeleteCategory
 } from '@/hooks/api'
 import { useConfirmDialog } from '@/hooks/use-confirm-dialog'
-import { useDrawer } from '@/hooks/use-drawer'
 import { getErrorMessage } from '@/lib/api-error'
 
 export const Route = createFileRoute('/_authenticated/categories/')({
@@ -49,55 +43,13 @@ export const Route = createFileRoute('/_authenticated/categories/')({
 function CategoriesPage() {
   const { t } = useTranslation()
   const { userId, householdId } = useAuth()
-  const { isOpen, openDrawer, closeDrawer } = useDrawer()
-  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(
-    null
-  )
   const [filter, setFilter] = useState<'ALL' | 'INCOME' | 'EXPENSE'>('ALL')
-  const wasDrawerOpenRef = useRef(isOpen)
   const { confirm, confirmDialog } = useConfirmDialog()
-
-  // Fetch full category details when editing (including budget links)
-  const { data: editingCategory, isFetching: isEditingCategoryFetching } =
-    useCategoryById({
-      categoryId: editingCategoryId,
-      userId,
-      enabled: !!editingCategoryId
-    })
 
   const { data: categories, refetch } = useCategoriesList({
     householdId,
     userId,
     type: filter === 'ALL' ? undefined : filter
-  })
-
-  // Fetch budgets for linking when creating categories
-  const { data: budgets } = useBudgetsList({
-    householdId,
-    userId
-  })
-
-  const { mutate: createCategory } = useCreateCategory({
-    onSuccess: () => {
-      refetch()
-      closeDrawer()
-      toast.success(t('categories.createSuccess'))
-    },
-    onError: (error) => {
-      toast.error(getErrorMessage(error))
-    }
-  })
-
-  const { mutate: updateCategory } = useUpdateCategory({
-    onSuccess: () => {
-      refetch()
-      closeDrawer()
-      setEditingCategoryId(null)
-      toast.success(t('categories.updateSuccess'))
-    },
-    onError: (error) => {
-      toast.error(getErrorMessage(error))
-    }
   })
 
   const { mutateAsync: deleteCategory } = useDeleteCategory({
@@ -156,119 +108,9 @@ function CategoriesPage() {
     })
   }
 
-  type CategoryWithBudgets = {
-    budgets?: Array<{
-      id?: string
-      budgetId?: string
-    }>
-  }
-
-  type BudgetWithCategories = {
-    id: string
-    categories?: Array<{
-      categoryId?: string
-    }>
-  }
-
   const handleCreate = () => {
-    openDrawer(
-      <div className="p-4">
-        <h2 className="text-2xl font-bold mb-4">{t('categories.create')}</h2>
-        <p className="text-muted-foreground mb-6">
-          {t('categories.createDesc')}
-        </p>
-        <CategoryForm
-          onSubmit={async (data) => {
-            createCategory({
-              ...data,
-              householdId,
-              userId
-            })
-          }}
-          onCancel={closeDrawer}
-          submitLabel={t('categories.createAction')}
-          budgets={budgets ?? []}
-        />
-      </div>,
-      t('categories.create')
-    )
+    void 0
   }
-
-  // Open drawer when editingCategoryId is set and data is loaded
-  useEffect(() => {
-    if (editingCategoryId && editingCategory && !isEditingCategoryFetching) {
-      const categoryWithBudgets = editingCategory as CategoryWithBudgets
-      const budgetsWithCategories = (budgets ?? []) as BudgetWithCategories[]
-
-      const budgetIdsFromCategory = categoryWithBudgets.budgets
-        ?.map((budget) => budget.id ?? budget.budgetId)
-        .filter((budgetId): budgetId is string => !!budgetId)
-
-      const budgetIdsFromBudgets =
-        !budgetIdsFromCategory || budgetIdsFromCategory.length === 0
-          ? budgetsWithCategories
-              .filter((budget) =>
-                budget.categories?.some(
-                  (category) => category.categoryId === editingCategory.id
-                )
-              )
-              .map((budget) => budget.id)
-          : undefined
-      const resolvedBudgetIds =
-        budgetIdsFromCategory ?? budgetIdsFromBudgets ?? []
-
-      openDrawer(
-        <div className="p-4">
-          <h2 className="text-2xl font-bold mb-4">{t('categories.edit')}</h2>
-          <p className="text-muted-foreground mb-6">
-            {t('categories.editDesc')}
-          </p>
-          <CategoryForm
-            key={editingCategory.id}
-            defaultValues={{
-              name: editingCategory.name,
-              types: editingCategory.types,
-              budgetIds: resolvedBudgetIds
-            }}
-            onSubmit={async (data) => {
-              updateCategory({
-                id: editingCategory.id,
-                userId,
-                ...data
-              })
-            }}
-            onCancel={() => {
-              closeDrawer()
-              setEditingCategoryId(null)
-            }}
-            submitLabel={t('categories.update')}
-            budgets={budgets ?? []}
-          />
-        </div>,
-        t('categories.edit')
-      )
-    }
-  }, [
-    editingCategoryId,
-    editingCategory,
-    isEditingCategoryFetching,
-    openDrawer,
-    closeDrawer,
-    updateCategory,
-    userId,
-    budgets,
-    t
-  ])
-
-  // Reset edit state whenever the drawer is dismissed externally (overlay, ESC, close button)
-  useEffect(() => {
-    if (wasDrawerOpenRef.current && !isOpen) {
-      setEditingCategoryId(null)
-    }
-    wasDrawerOpenRef.current = isOpen
-  }, [
-    isOpen
-  ])
 
   const incomeCount =
     categories?.filter((c) => c.types.includes('INCOME')).length ?? 0
@@ -349,9 +191,9 @@ function CategoriesPage() {
                       <Badge variant="outline">
                         {category.types
                           .map(
-                            (t) =>
-                              t.charAt(0).toUpperCase() +
-                              t.slice(1).toLowerCase()
+                            (ty) =>
+                              ty.charAt(0).toUpperCase() +
+                              ty.slice(1).toLowerCase()
                           )
                           .join(' & ')}
                       </Badge>
@@ -363,7 +205,7 @@ function CategoriesPage() {
                           variant="text"
                           color="subtle"
                           icon={<PencilIcon />}
-                          onClick={() => setEditingCategoryId(category.id)}
+                          onClick={() => void 0}
                         />
                         <IconButton
                           variant="text"
