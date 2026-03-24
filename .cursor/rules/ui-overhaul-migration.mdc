@@ -1,5 +1,5 @@
 ---
-description: UI overhaul — PageLayout shell; drawers; dummy handlers; backend tickets for API gaps; new components stay clean; legacy adapts; placement; dead-code removal
+description: UI overhaul — PageLayout; shadcn in ui/ vs wrapped components; drawers (components/drawers vs src/drawers); no direct shadcn usage; placement; backend tickets
 alwaysApply: true
 ---
 
@@ -18,7 +18,16 @@ During the major UI overhaul, **new design system code stays minimal and strict*
 ## Forms and the drawer system
 
 - **All forms** that belong in a page flow (create, edit, etc.) should open in the **app drawer** by default, not as the primary inline or full-page form, **unless** you are explicitly told **not** to use a drawer.
-- **Implementation**: the authenticated layout wraps the tree in **`DrawerProvider`** from `@/components/drawer-context`. Use **`useDrawer()`** from `@/hooks/use-drawer` for **`openDrawer(content, title?)`**, **`closeDrawer`**, and **`isOpen`**. Primitives live under **`@/components/ui/drawer`** (Vaul).
+- **Implementation**: the authenticated layout wraps the tree in **`DrawerProvider`** from `@/components/drawer-context`. Use **`useDrawer()`** from `@/hooks/use-drawer` for **`openDrawer(content, title?)`**, **`closeDrawer`**, and **`isOpen`**. The **Vaul** primitive installed by shadcn lives under **`@/components/ui/drawer`**—treat it like other **`ui/`** code: **do not import it directly** in product screens; expose drawer behavior through **wrappers** (see **shadcn and wrappers** below).
+
+### Drawer placement
+
+There are **two** drawer locations; do not mix them.
+
+- **Pure drawer UI** (shared chrome, sections, composition—**no** complete forms, **no** domain data fetching or mutations): **`src/components/drawers/`** (one building block per file or small module).
+- **Wired (“unpure”) drawer bodies** (complete forms, lists, hooks to **`src/api`**, mutations, or other domain logic): **`src/drawers/`**—always, including when shared across authenticated routes. Organize with files or subfolders inside **`src/drawers/`** as needed. This keeps domain-heavy drawer flows out of **`src/components/`**.
+
+When a wired drawer is tightly owned by **one** route and tiny, you may still implement it under **`src/drawers/`** next to a clear name (e.g. by feature file); **do not** put domain wiring in **`src/components/drawers/`**.
 
 ## New base components vs legacy pages
 
@@ -35,15 +44,47 @@ When a page is **removed or replaced** in the new design:
 
 ## Where to put components
 
-| Kind                                                                  | Location                                                                               |
-| --------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| shadcn primitives                                                     | `src/components/ui/`                                                                   |
-| Shared components (each in its own directory)                         | `src/components/<name>/`                                                               |
-| UI with **no** business/domain coupling (buttons, tabs, inputs, etc.) | Under `src/components/` (not buried in route-only folders)                             |
-| Used on **one** page / area only                                      | Feature folder, e.g. `src/components/dashboard/`                                       |
-| Needed on **another** page later                                      | **Graduate** to a shared components directory under `src/routes/` (project convention) |
+Use **one** of these three placements. Pick the **first** that applies.
 
-Match existing folder naming; keep trees shallow and obvious.
+### 1. Pure UI
+
+**Question:** Is it **pure UI** (presentation, layout primitives, no domain rules, no app-specific data fetching or mutations)?
+
+**→** Under **`src/components/`**, with a **strict split**:
+
+| What | Where |
+| --- | --- |
+| **shadcn-generated primitives** (output of `npx shadcn add …`) | **`src/components/ui/`** only |
+| **Everything else pure**—app-owned components, **wrappers around shadcn**, illustrations, design-system buttons, etc. | **`src/components/<name>/`** (each component or family in **its own directory**) |
+
+#### shadcn and wrappers
+
+- **Never use shadcn primitives directly** in routes, features, or drawer bodies. **Always** go through **wrappers** you own under **`src/components/<name>/`** (or the appropriate **Type 2 / Type 3** location if the wrapper is route- or feature-specific).
+- **Why:** shadcn exposes a very wide, flexible API; we want a **small, intentional surface** so usage stays consistent and hard to misuse.
+- **Adding components:** Continue to install with `npx shadcn add …` into **`src/components/ui/`**, then add or extend **wrappers** in **`src/components/<name>/`** and import **those** everywhere else.
+- **Exception:** **`src/components/ui/`** itself may import and compose primitives internally; **unmigrated** legacy screens may still import **`ui/`** directly until they are migrated—new and migrated code should not.
+
+### 2. Tied to a single route
+
+**Question:** Is it **owned by one route** (screen-specific layout, table rows, widgets used only on that page)?
+
+**→** **Colocate** under that route: **`src/routes/<segment-path>/-components/`** (one folder per route area as needed).
+
+**TanStack Router:** Folders whose names start with **`-`** (e.g. **`-components`**) are **not** URL segments—they are import-only colocation pockets.
+
+**Example:** `src/routes/_authenticated/accounts/-components/AccountsTable.tsx`
+
+### 3. Shared and domain-heavy
+
+**Question:** Is it used from **more than one route** **and** does it carry **business logic** (hooks to API/domain, mutations, non-trivial state tied to product rules)?
+
+**→** **`src/features/<featurename>/`** (feature module: UI + logic for that slice of the product).
+
+### Promotion
+
+If something in **Type 2** is later imported from a **second** route, **promote** it to **`src/features/<featurename>/`** (and peel any remaining purely presentational pieces back to **`src/components/`** if that keeps boundaries clean). That is a normal, healthy refactor—not a mistake in the original placement.
+
+**Naming:** Match existing folder naming; keep trees shallow and obvious.
 
 ## Simplicity and APIs
 
