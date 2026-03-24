@@ -1,5 +1,5 @@
 ---
-description: UI overhaul — PageLayout; shadcn in ui/ vs wrapped components; typed drawers (DrawerShell + src/drawers registry); no direct shadcn usage; placement; backend tickets
+description: UI overhaul — PageLayout; data tables (TanStack + src/components/data-table); typed drawers (DrawerShell + src/drawers registry); shadcn in ui/ vs wrappers; placement; backend tickets
 alwaysApply: true
 ---
 
@@ -37,6 +37,39 @@ During the major UI overhaul, **new design system code stays minimal and strict*
 - **Wired drawer bodies** (complete forms, hooks to **`src/api`**, mutations): implement as **`src/drawers/drawers/<feature>.tsx`** and register in **`registry.ts`**. Shared or route-specific wired bodies both use **`src/drawers/`**—do **not** put API or mutations inside **`src/components/drawer/`**.
 
 When a wired drawer is tightly owned by **one** route and tiny, you may still implement it under **`src/drawers/drawers/`** with a clear file name; **do not** put domain wiring in **`src/components/drawer/`**.
+
+## Data tables (TanStack Table)
+
+Migrated list screens use a **shared table system**: one visual pattern everywhere (toolbar search, filter control, active filter pills, primary action, table, optional pagination). **TanStack Table** powers sorting and filtering; consumers do not configure `useReactTable` directly—they use **`useDataTable`** and **`DataTable`**.
+
+- **Implementation**: import from **`@/components/data-table`** (barrel). Define **`DataTableColumnDef<TData>[]`** with optional **`meta`** (search, filter labels, pill formatting). Call **`useDataTable({ data, columns, … })`**, then render **`DataTable`** with the returned state and callbacks. Use **`@/components/table/table`** (wrapper around shadcn **`ui/table`**) only **inside** the data-table module—not in routes or feature bodies for migrated tables.
+
+### Data table architecture (single source of truth)
+
+| Piece | Responsibility |
+| ----- | ---------------- |
+| **`src/components/data-table/types.ts`** | **`DataTableColumnMeta`**, **`DataTableColumnDef`**, **`ActiveFilter`**. Extend TanStack column defs via **`meta`** (e.g. **`globalSearchable`**, **`searchValue`**, **`filterable`**, **`filterLabel`**, **`filterPillValue`**). |
+| **`src/components/data-table/use-data-table.ts`** | **`useDataTable`** — wraps **`useReactTable`**: sorting, global filter, column filters, derived **`activeFilters`** (pills), optional pagination. Custom global filter iterates searchable columns and **`meta.searchValue`** where cells are not plain text. |
+| **`src/components/data-table/data-table-toolbar.tsx`** | Pure UI: debounced search, filter button (optional **`filterDisabled`**), filter pills, primary action. |
+| **`src/components/data-table/data-table.tsx`** | Shell: toolbar + header/body using **`Table`** wrapper + sort affordances. |
+| **`src/components/data-table/data-table-pagination.tsx`** | Shared pagination controls when pagination is enabled in the hook. |
+| **`src/components/data-table/index.ts`** | Barrel exports. |
+
+### Column definitions and search
+
+- **Global search** is the toolbar field; it is **not** a visible column. Searchable fields come from **per-column** **`meta`**: set **`globalSearchable`** / **`searchValue`** so composite cells (badges, currency, etc.) still match text meaningfully. Do **not** concatenate a giant “search blob” string; keep search behavior in column **`meta`**.
+- Where **`searchValue`** differs from the accessor sort key, give the column an explicit **`sortingFn`** so sorting stays correct (see existing transactions columns).
+
+### Filter drawers
+
+- **Per-table** filter UIs (different fields per screen) live in **wired drawer bodies** under **`src/drawers/drawers/<name>.tsx`**, registered in **`DrawerPropsMap`** like any other drawer.
+- Contract: pass **`columnFilters`**, **`onApply`**, and any **domain props** the filter needs (e.g. options derived from current data). **`Apply`** updates **`ColumnFiltersState`**; **`Reset`** clears relevant filters. Column defs must define **`filterFn`** / **`meta`** for filterable columns so TanStack applies them.
+
+### Data table placement
+
+- **Shell + hook + toolbar + pagination** live only under **`src/components/data-table/`**—**no** API calls or route-specific copy inside those files.
+- **Column definitions** for a single route: **`src/routes/<segment-path>/-components/`** (e.g. factory that returns **`DataTableColumnDef[]`**).
+- **Shared** tables used across routes with real domain logic: **`src/features/<feature>/`** as appropriate.
 
 ## New base components vs legacy pages
 

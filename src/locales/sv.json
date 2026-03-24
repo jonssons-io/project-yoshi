@@ -37,6 +37,12 @@
     "selectAnOption": "Välj ett alternativ",
     "search": "Sök...",
     "filter": "Filtrera",
+    "clearAllFilters": "Rensa alla",
+    "removeFilter": "Ta bort filter",
+    "activeFiltersCount": "{{count}} aktiva filter",
+    "paginationPage": "Sida {{current}} av {{total}}",
+    "previousPage": "Föregående sida",
+    "nextPage": "Nästa sida",
     "budget": "Budget",
     "noResultsFound": "Inga resultat hittades.",
     "saving": "Sparar...",
@@ -54,6 +60,7 @@
   "transactions": {
     "title": "Transaktioner",
     "pageSubtitle": "Hantera inkomster, utgifter och överföringar.",
+    "applyFilters": "Tillämpa",
     "add": "Lägg till transaktion",
     "edit": "Redigera transaktion",
     "income": "Inkomst",
@@ -447,7 +454,10 @@
     "noIncomeButton": "Lägg till inkomst",
     "noBillsTitle": "Inga räkningar",
     "noBillsDescription": "Skapa din första räkning för att hålla koll på återkommande utgifter.",
-    "noBillsButton": "Skapa räkning"
+    "noBillsButton": "Skapa räkning",
+    "noTransactionsTitle": "Inga transaktioner än",
+    "noTransactionsDescription": "Registrera din första transaktion för att se historik och översikt här.",
+    "noTransactionsButton": "Skapa transaktion"
   },
   "bills": {
     "title": "Räkningar",
