@@ -1,6 +1,9 @@
+import type { ColumnFiltersState } from '@tanstack/react-table'
 import type { ComponentType } from 'react'
 
+import type { TransactionType } from '@/api/generated/types.gen'
 import { DashboardChartSettingsDrawer } from './drawers/dashboard-chart-settings-drawer'
+import { TransactionsTableFilterDrawer } from './drawers/transactions-table-filter-drawer'
 
 /**
  * Single source of truth for typed drawers. To add a drawer:
@@ -17,6 +20,12 @@ export type DrawerPropsMap = {
     selectedAccountIds: string[]
     onApply: (accountIds: string[]) => void
   }
+  transactionsTableFilterDrawer: {
+    columnFilters: ColumnFiltersState
+    onApply: (filters: ColumnFiltersState) => void
+    /** Transaction types that exist in the current dataset (controls which checkboxes appear). */
+    availableTransactionTypes: TransactionType[]
+  }
 }
 
 export type DrawerName = keyof DrawerPropsMap
@@ -31,11 +40,15 @@ export type DrawerMeta = {
 export const drawerMeta = {
   dashboardChartSettings: {
     title: 'Diagraminställningar'
+  },
+  transactionsTableFilterDrawer: {
+    title: 'Filtrera'
   }
 } satisfies DrawerMeta
 
 export const drawerComponents = {
-  dashboardChartSettings: DashboardChartSettingsDrawer
+  dashboardChartSettings: DashboardChartSettingsDrawer,
+  transactionsTableFilterDrawer: TransactionsTableFilterDrawer
 } satisfies {
   [K in keyof DrawerPropsMap]: ComponentType<
     DrawerPropsMap[K] & {

@@ -3,17 +3,18 @@
  */
 
 import { createFileRoute } from '@tanstack/react-router'
-import { format } from 'date-fns'
 import { PlusIcon, Scale, TrendingDown, TrendingUp } from 'lucide-react'
-import { type ReactNode, useCallback, useMemo, useState } from 'react'
+import { type ReactNode, useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { z } from 'zod'
-import { TransactionType } from '@/api/generated/types.gen'
+import { TransactionStatus, TransactionType } from '@/api/generated/types.gen'
 import { Button } from '@/components/button/button'
-import { PageDataTable } from '@/components/page-data-table/page-data-table'
+import { DataTable, useDataTable } from '@/components/data-table'
 import { PageLayout } from '@/components/page-layout/page-layout'
 import { useAuth } from '@/contexts/auth-context'
+import { useDrawer } from '@/drawers'
+import { NoData } from '@/features/no-data/no-data'
 import {
   useAccountsList,
   useCloneTransaction,
@@ -24,8 +25,8 @@ import { useConfirmDialog } from '@/hooks/use-confirm-dialog'
 import { getErrorMessage } from '@/lib/api-error'
 import { formatCurrency } from '@/lib/utils'
 import {
-  type TransactionListItem,
-  TransactionsTable
+  createTransactionTableColumns,
+  type TransactionListItem
 } from './-components/transactions-table'
 
 const transactionsSearchSchema = z.object({
@@ -40,43 +41,16 @@ export const Route = createFileRoute('/_authenticated/transactions/')({
 
 const ALL_BUDGETS_VALUE = '__all_budgets__'
 
+const TRANSACTION_TYPE_ORDER: TransactionType[] = [
+  TransactionType.INCOME,
+  TransactionType.EXPENSE,
+  TransactionType.TRANSFER
+]
+
 function getTransactionType(
   transaction: Pick<TransactionListItem, 'type'>
 ): TransactionType {
   return transaction.type
-}
-
-function accountLineForSearch(transaction: TransactionListItem): string {
-  if (transaction.type === TransactionType.TRANSFER) {
-    return `${transaction.account?.name ?? ''} ${transaction.transferToAccount?.name ?? ''}`
-  }
-  return transaction.account?.name ?? ''
-}
-
-function transactionSearchBlob(
-  transaction: TransactionListItem,
-  t: (k: string) => string
-): string {
-  const type = getTransactionType(transaction)
-  const typeLabel =
-    type === TransactionType.INCOME
-      ? t('transactions.income')
-      : type === TransactionType.EXPENSE
-        ? t('transactions.expense')
-        : t('common.transfer')
-  return [
-    format(transaction.date, 'yyyy-MM-dd'),
-    transaction.name,
-    typeLabel,
-    String(transaction.amount),
-    formatCurrency(transaction.amount),
-    accountLineForSearch(transaction),
-    transaction.budget?.name ?? '',
-    transaction.category?.name ?? '',
-    transaction.recipient?.name ?? ''
-  ]
-    .join(' ')
-    .toLowerCase()
 }
 
 function TransactionsPage() {
@@ -84,7 +58,7 @@ function TransactionsPage() {
   const { userId, householdId } = useAuth()
   const { confirm, confirmDialog } = useConfirmDialog()
   const { t } = useTranslation()
-  const [searchQuery, setSearchQuery] = useState('')
+  const { openDrawer } = useDrawer()
   const budgetFilter = urlBudgetId ?? ALL_BUDGETS_VALUE
   const budgetId = budgetFilter === ALL_BUDGETS_VALUE ? undefined : budgetFilter
 
@@ -131,13 +105,13 @@ function TransactionsPage() {
     }
   })
 
-  const handleEditTransaction = () => {
+  const handleEditTransaction = useCallback(() => {
     void 0
-  }
+  }, [])
 
-  const handleEditTransfer = () => {
+  const handleEditTransfer = useCallback(() => {
     void 0
-  }
+  }, [])
 
   const handleDeleteTransaction = useCallback(
     (transaction: TransactionListItem) => {
@@ -206,6 +180,56 @@ function TransactionsPage() {
     ]
   )
 
+  const columns = useMemo(
+    () =>
+      createTransactionTableColumns({
+        t,
+        onEditTransaction: handleEditTransaction,
+        onEditTransfer: handleEditTransfer,
+        onClone: handleClone,
+        onDeleteTransaction: handleDeleteTransaction,
+        onDeleteTransfer: handleDeleteTransfer
+      }),
+    [
+      t,
+      handleEditTransaction,
+      handleEditTransfer,
+      handleClone,
+      handleDeleteTransaction,
+      handleDeleteTransfer
+    ]
+  )
+
+  const tableData = transactions ?? []
+
+  const {
+    table,
+    globalFilter,
+    setGlobalFilter,
+    columnFilters,
+    setColumnFilters,
+    activeFilters
+  } = useDataTable({
+    data: tableData,
+    columns,
+    defaultPageSize: 15
+  })
+
+  const filteredRowCount = table.getRowModel().rows.length
+  const totalTransactionCount = transactions?.length ?? 0
+
+  const availableTransactionTypes = useMemo(() => {
+    const present = new Set<TransactionType>()
+    for (const tx of tableData) {
+      present.add(tx.type)
+    }
+    return TRANSACTION_TYPE_ORDER.filter((type) => present.has(type))
+  }, [
+    tableData
+  ])
+
+  const filterDisabled = totalTransactionCount === 0
+
   const incomeTransactions = useMemo(
     () =>
       transactions?.filter(
@@ -231,33 +255,25 @@ function TransactionsPage() {
   const totalInitialBalance =
     accounts?.reduce((sum, a) => sum + a.initialBalance, 0) ?? 0
   const totalIncome =
-    incomeTransactions.reduce((sum, t) => sum + t.amount, 0) +
+    incomeTransactions.reduce((sum, tx) => sum + tx.amount, 0) +
     totalInitialBalance
-  const totalExpense = expenseTransactions.reduce((sum, t) => sum + t.amount, 0)
+  const totalExpense = expenseTransactions.reduce(
+    (sum, tx) => sum + tx.amount,
+    0
+  )
   const net = totalIncome - totalExpense
 
   const formattedIncome = formatCurrency(totalIncome)
   const formattedExpense = formatCurrency(totalExpense)
   const formattedNet = formatCurrency(net)
 
-  const filteredTransactions = useMemo(() => {
-    const list = transactions ?? []
-    const q = searchQuery.trim().toLowerCase()
-    if (!q) return list
-    return list.filter((tx) => transactionSearchBlob(tx, t).includes(q))
-  }, [
-    transactions,
-    searchQuery,
-    t
-  ])
-
-  const handleFilterClick = () => {
-    void 0
-  }
+  const showNoTransactions = !!householdId && (transactions?.length ?? 0) === 0
 
   const tableEmptyMessage = useMemo((): ReactNode | undefined => {
-    const total = transactions?.length ?? 0
-    if (total === 0) {
+    if (showNoTransactions) {
+      return undefined
+    }
+    if (totalTransactionCount === 0) {
       return (
         <div className="flex flex-col items-center gap-4 py-4">
           <p className="type-body-medium text-gray-800">
@@ -277,16 +293,17 @@ function TransactionsPage() {
         </div>
       )
     }
-    if (filteredTransactions.length === 0) {
+    if (filteredRowCount === 0) {
       return t('common.noResultsFound')
     }
     return undefined
   }, [
-    filteredTransactions.length,
+    filteredRowCount,
     householdId,
     openCreateTransactionDrawer,
+    showNoTransactions,
     t,
-    transactions?.length
+    totalTransactionCount
   ])
 
   if (isLoading) {
@@ -346,38 +363,48 @@ function TransactionsPage() {
           }
         ]}
       >
-        <PageDataTable
-          search={{
-            value: searchQuery,
-            onChange: setSearchQuery,
-            placeholder: t('common.search')
-          }}
-          filter={{
-            label: t('common.filter'),
-            onClick: handleFilterClick
-          }}
-          primaryAction={
-            <Button
-              color="primary"
-              disabled={!householdId}
-              icon={<PlusIcon />}
-              label={t('transactions.createTransaction')}
-              onClick={openCreateTransactionDrawer}
-              variant="filled"
+        <div className="flex min-h-0 flex-1 flex-col">
+          {showNoTransactions ? (
+            <NoData
+              variant="no-transactions"
+              onAction={openCreateTransactionDrawer}
             />
-          }
-        >
-          <TransactionsTable
-            transactions={filteredTransactions}
-            emptyMessage={tableEmptyMessage}
-            t={t}
-            onClone={handleClone}
-            onDeleteTransaction={handleDeleteTransaction}
-            onDeleteTransfer={handleDeleteTransfer}
-            onEditTransaction={handleEditTransaction}
-            onEditTransfer={handleEditTransfer}
-          />
-        </PageDataTable>
+          ) : (
+            <DataTable
+              table={table}
+              columns={columns}
+              globalFilter={globalFilter}
+              onGlobalFilterChange={setGlobalFilter}
+              filterDisabled={filterDisabled}
+              onFilterClick={() =>
+                openDrawer('transactionsTableFilterDrawer', {
+                  columnFilters,
+                  onApply: setColumnFilters,
+                  availableTransactionTypes
+                })
+              }
+              activeFilters={activeFilters}
+              actionButton={{
+                label: t('transactions.createTransaction'),
+                icon: <PlusIcon />,
+                onClick: openCreateTransactionDrawer,
+                disabled: !householdId
+              }}
+              toolbarLabels={{
+                searchPlaceholder: t('common.search'),
+                filter: t('common.filter'),
+                pillRemoveAriaLabel: t('common.removeFilter')
+              }}
+              showPagination
+              emptyMessage={tableEmptyMessage}
+              getRowClassName={(row) =>
+                row.status === TransactionStatus.PENDING
+                  ? 'opacity-60'
+                  : undefined
+              }
+            />
+          )}
+        </div>
       </PageLayout>
       {confirmDialog}
     </>
