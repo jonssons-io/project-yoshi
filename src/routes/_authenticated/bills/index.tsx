@@ -54,7 +54,7 @@ import {
   TooltipTrigger
 } from '@/components/ui/tooltip'
 import { useAuth } from '@/contexts/auth-context'
-import { SetupPrompt } from '@/features/setup-prompt/setup-prompt'
+import { NoData } from '@/features/no-data/no-data'
 import {
   useArchiveBill,
   useBudgetsList,
@@ -180,7 +180,7 @@ function BillsPage() {
   if (billsQuery.data?.length === 0) {
     return (
       <div className="px-4 pt-6 pb-6">
-        <SetupPrompt
+        <NoData
           variant="no-bills"
           onAction={handleCreate}
         />

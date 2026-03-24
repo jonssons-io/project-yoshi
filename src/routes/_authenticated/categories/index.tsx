@@ -27,7 +27,7 @@ import {
   TableRow
 } from '@/components/ui/table'
 import { useAuth } from '@/contexts/auth-context'
-import { SetupPrompt } from '@/features/setup-prompt/setup-prompt'
+import { NoData } from '@/features/no-data/no-data'
 import {
   useArchiveCategory,
   useCategoriesList,
@@ -151,7 +151,7 @@ function CategoriesPage() {
         </div>
 
         {categories?.length === 0 ? (
-          <SetupPrompt
+          <NoData
             variant="no-category"
             onAction={handleCreate}
           />

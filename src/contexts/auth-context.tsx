@@ -1,7 +1,7 @@
 import { createContext, type ReactNode, useContext } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useHouseholdContext } from '@/contexts/household-context'
-import { SetupPrompt } from '@/features/setup-prompt/setup-prompt'
+import { NoData } from '@/features/no-data/no-data'
 import { useAccountsList } from '@/hooks/api'
 
 /**
@@ -23,7 +23,7 @@ interface AuthProviderProps {
 /**
  * Gates child routes behind household selection.
  * Shows loading state while households are being fetched,
- * and SetupPrompt when no household is selected.
+ * and NoData when no household is selected.
  * Provides guaranteed userId + householdId to children via AuthContext.
  */
 export function AuthProvider({ children }: AuthProviderProps) {
@@ -53,7 +53,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   } else if (!households || households.length === 0) {
     content = (
       <div className="flex min-h-0 flex-1 overflow-auto px-4 pt-6 pb-6">
-        <SetupPrompt variant="no-household" />
+        <NoData variant="no-household" />
       </div>
     )
   } else if (!selectedHouseholdId) {
@@ -72,7 +72,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   } else if (!accounts || accounts.length === 0) {
     content = (
       <div className="flex min-h-0 flex-1 overflow-auto px-4 pt-6 pb-6">
-        <SetupPrompt variant="no-account" />
+        <NoData variant="no-account" />
       </div>
     )
   }

@@ -53,7 +53,7 @@ import {
   TooltipTrigger
 } from '@/components/ui/tooltip'
 import { useAuth } from '@/contexts/auth-context'
-import { SetupPrompt } from '@/features/setup-prompt/setup-prompt'
+import { NoData } from '@/features/no-data/no-data'
 import {
   useAccountsList,
   useArchiveIncome,
@@ -416,7 +416,7 @@ function IncomePage() {
             <p className="text-muted-foreground">{t('income.loading')}</p>
           </div>
         ) : !(incomeQuery.data && incomeQuery.data.length > 0) ? (
-          <SetupPrompt
+          <NoData
             variant="no-income"
             onAction={handleCreate}
           />

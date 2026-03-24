@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { PageLayout } from '@/components/page-layout/page-layout'
 import { useAuth } from '@/contexts/auth-context'
 import { useDrawer } from '@/drawers'
-import { SetupPrompt } from '@/features/setup-prompt/setup-prompt'
+import { NoData } from '@/features/no-data/no-data'
 import {
   useAccountBalancesList,
   useAccountsList,
@@ -126,15 +126,15 @@ function Dashboard() {
   }
 
   if (!householdId) {
-    return withDashboardChrome(<SetupPrompt variant="no-household" />)
+    return withDashboardChrome(<NoData variant="no-household" />)
   }
 
   if (dashboardAccounts.length === 0) {
-    return withDashboardChrome(<SetupPrompt variant="no-account" />)
+    return withDashboardChrome(<NoData variant="no-account" />)
   }
 
   if (!(budgets?.length ?? 0)) {
-    return withDashboardChrome(<SetupPrompt variant="no-budget" />)
+    return withDashboardChrome(<NoData variant="no-budget" />)
   }
 
   return (

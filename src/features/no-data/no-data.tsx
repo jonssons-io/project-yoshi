@@ -15,27 +15,27 @@ import {
 } from '@/components/ui/card'
 import { useHouseholdContext } from '@/contexts/household-context'
 
-export type SetupPromptVariant =
+export type NoDataVariant =
   | 'no-household'
   | 'no-budget'
   | 'no-account'
   | 'no-category'
   | 'no-income'
   | 'no-bills'
+  | 'no-transactions'
 
-type SetupPromptConfig = {
+type NoDataConfig = {
   titleKey: string
   descriptionKey: string
   buttonKey: string
 }
 
-type SetupPromptProps = {
-  variant: SetupPromptVariant
-  onCompleted?: () => void
+type NoDataProps = {
+  variant: NoDataVariant
   onAction?: () => void
 }
 
-const SETUP_PROMPT_CONFIG: Record<SetupPromptVariant, SetupPromptConfig> = {
+const NO_DATA_CONFIG: Record<NoDataVariant, NoDataConfig> = {
   'no-household': {
     titleKey: 'setup.noHouseholdTitle',
     descriptionKey: 'setup.noHouseholdDescription',
@@ -65,33 +65,41 @@ const SETUP_PROMPT_CONFIG: Record<SetupPromptVariant, SetupPromptConfig> = {
     titleKey: 'setup.noBillsTitle',
     descriptionKey: 'setup.noBillsDescription',
     buttonKey: 'setup.noBillsButton'
+  },
+  'no-transactions': {
+    titleKey: 'setup.noTransactionsTitle',
+    descriptionKey: 'setup.noTransactionsDescription',
+    buttonKey: 'setup.noTransactionsButton'
   }
 }
 
-const ILLUSTRATIONS_MAP: Record<SetupPromptVariant, IllustrationVariant> = {
+const ILLUSTRATIONS_MAP: Record<NoDataVariant, IllustrationVariant> = {
   'no-household': 'pana-no-household',
   'no-budget': 'pana-no-budget',
   'no-account': 'pana-no-account',
   'no-category': 'pana-no-category',
   'no-income': 'pana-no-income',
-  'no-bills': 'pana-no-bills'
+  'no-bills': 'pana-no-bills',
+  'no-transactions': 'pana-no-transactions'
 }
 
-const ACTION_VARIANTS: SetupPromptVariant[] = [
+const ACTION_VARIANTS: NoDataVariant[] = [
   'no-category',
   'no-income',
-  'no-bills'
+  'no-bills',
+  'no-transactions'
 ]
 
 /**
  * Reusable empty-state prompt with illustration, shown when a resource
- * has not been created yet (household, budget, account, category, income, bills).
+ * has not been created yet or a list is empty (household, budget, account,
+ * category, income, bills, transactions).
  */
-export function SetupPrompt({ variant, onAction }: SetupPromptProps) {
+export function NoData({ variant, onAction }: NoDataProps) {
   const { t } = useTranslation()
   const { selectedHouseholdId } = useHouseholdContext()
 
-  const config = SETUP_PROMPT_CONFIG[variant]
+  const config = NO_DATA_CONFIG[variant]
 
   const isActionDisabled = useMemo(() => {
     if (variant === 'no-household') return false
@@ -101,7 +109,7 @@ export function SetupPrompt({ variant, onAction }: SetupPromptProps) {
     selectedHouseholdId
   ])
 
-  const handleOpenSetupDrawer = () => {
+  const handleAction = () => {
     if (ACTION_VARIANTS.includes(variant)) {
       onAction?.()
       return
@@ -114,7 +122,7 @@ export function SetupPrompt({ variant, onAction }: SetupPromptProps) {
       <Card className="w-full max-w-xl">
         <CardHeader className="items-center text-center">
           <div className="flex flex-col items-center justify-center">
-            <div className="flex h-42 w-42 items-center justify-center text-xs text-muted-foreground">
+            <div className="flex h-80 w-80 items-center justify-center text-xs text-muted-foreground">
               <Illustration variant={ILLUSTRATIONS_MAP[variant]} />
             </div>
           </div>
@@ -124,7 +132,7 @@ export function SetupPrompt({ variant, onAction }: SetupPromptProps) {
         <CardContent className="flex justify-center">
           <Button
             disabled={isActionDisabled}
-            onClick={handleOpenSetupDrawer}
+            onClick={handleAction}
             icon={<PlusIcon />}
             label={t(config.buttonKey)}
           />

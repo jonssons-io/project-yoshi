@@ -27,7 +27,7 @@ import {
 } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { useAuth } from '@/contexts/auth-context'
-import { SetupPrompt } from '@/features/setup-prompt/setup-prompt'
+import { NoData } from '@/features/no-data/no-data'
 import { useBudgetsList, useDeleteBudget } from '@/hooks/api'
 import { useAllocationsQuery } from '@/hooks/api/use-allocations'
 import { useConfirmDialog } from '@/hooks/use-confirm-dialog'
@@ -138,7 +138,7 @@ function BudgetsPage() {
   if (budgets?.length === 0) {
     return (
       <div className="flex min-h-0 flex-1 overflow-auto px-4 pt-6 pb-6">
-        <SetupPrompt variant="no-budget" />
+        <NoData variant="no-budget" />
       </div>
     )
   }

@@ -6,6 +6,7 @@ import PanaNoBudget from './PanaNoBudget'
 import PanaNoCategory from './PanaNoCategory'
 import PanaNoHousehold from './PanaNoHousehold'
 import PanaNoIncome from './PanaNoIncome'
+import PanaNoTransactions from './PanaNoTransactions'
 
 const ILLUSTRATION_COMPONENTS = {
   'pana-no-household': PanaNoHousehold,
@@ -13,7 +14,8 @@ const ILLUSTRATION_COMPONENTS = {
   'pana-no-account': PanaNoAccount,
   'pana-no-category': PanaNoCategory,
   'pana-no-income': PanaNoIncome,
-  'pana-no-bills': PanaNoBills
+  'pana-no-bills': PanaNoBills,
+  'pana-no-transactions': PanaNoTransactions
 } as const
 
 export type IllustrationVariant = keyof typeof ILLUSTRATION_COMPONENTS
