@@ -21,7 +21,7 @@ export const baseButtonVariants = cva(
         subtle: ''
       },
       iconOnly: {
-        false: 'gap-2 px-4 py-2',
+        false: 'gap-2 px-4 py-1',
         true: 'gap-0 p-1'
       }
     },

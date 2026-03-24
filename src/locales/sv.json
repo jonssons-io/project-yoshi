@@ -36,6 +36,8 @@
     "total": "Summa",
     "selectAnOption": "Välj ett alternativ",
     "search": "Sök...",
+    "filter": "Filtrera",
+    "budget": "Budget",
     "noResultsFound": "Inga resultat hittades.",
     "saving": "Sparar...",
     "more": "Mer",
@@ -51,6 +53,7 @@
   },
   "transactions": {
     "title": "Transaktioner",
+    "pageSubtitle": "Hantera inkomster, utgifter och överföringar.",
     "add": "Lägg till transaktion",
     "edit": "Redigera transaktion",
     "income": "Inkomst",
@@ -81,7 +84,8 @@
     "createSuccess": "Transaktion skapad",
     "updateSuccess": "Transaktion uppdaterad",
     "deleteSuccess": "Transaktion borttagen",
-    "cloneSuccess": "Transaktion klonad"
+    "cloneSuccess": "Transaktion klonad",
+    "scheduledLink": "Kopplad till räkning eller inkomst"
   },
   "transfers": {
     "add": "Lägg till överföring",

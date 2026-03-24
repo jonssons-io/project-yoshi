@@ -86,7 +86,7 @@ export function PageLayout({
         </div>
       </div>
       {tabs}
-      <div className="flex min-h-0 flex-1 flex-col border-t border-gray-300 px-4 pt-6 pb-6">
+      <div className="flex min-h-0 flex-1 flex-col border-t border-gray-300 p-4">
         {children}
       </div>
     </div>
