@@ -1,6 +1,5 @@
 import { format } from 'date-fns'
 import { useMemo } from 'react'
-import { useTranslation } from 'react-i18next'
 import {
   CartesianGrid,
   Line,
@@ -16,15 +15,25 @@ import {
   ChartLegendContent,
   ChartTooltip
 } from '@/components/ui/chart'
-import type { ChartDataPoint } from '@/lib/dashboard-utils'
-import { formatCurrency } from '@/lib/utils'
 
-type DashboardChartProps = {
-  data: ChartDataPoint[]
-  accounts: Array<{
-    id: string
-    name: string
-  }>
+export type LineChartMultiSeriesPoint = {
+  date: string
+  originalDate?: string | Date
+  [key: string]: string | number | Date | undefined
+}
+
+export type LineChartMultiSeriesSeriesMeta = {
+  id: string
+  name: string
+}
+
+type LineChartMultiSeriesProps = {
+  data: LineChartMultiSeriesPoint[]
+  series: LineChartMultiSeriesSeriesMeta[]
+  emptyMessage: string
+  totalLabel: string
+  formatYAxisTick: (value: number) => string
+  formatValue: (value: number) => string
 }
 
 type CustomTooltipItem = {
@@ -41,18 +50,22 @@ type CustomTooltipProps = {
   active?: boolean
   payload?: CustomTooltipItem[]
   label?: string
+  formatValue: (value: number) => string
+  totalLabel: string
 }
 
-export function DashboardChart({ data, accounts }: DashboardChartProps) {
-  const { t } = useTranslation()
+export function LineChartMultiSeries({
+  data,
+  series,
+  emptyMessage,
+  totalLabel,
+  formatYAxisTick,
+  formatValue
+}: LineChartMultiSeriesProps) {
   const chartConfig = useMemo(() => {
-    const config: ChartConfig = {
-      // Define a base balance label if needed, though we use dynamic keys
-    }
+    const config: ChartConfig = {}
 
-    // Assign colors to accounts
-    accounts.forEach((acc, index) => {
-      // Rotate through chart colors 1-5
+    series.forEach((acc, index) => {
       const colorIndex = (index % 5) + 1
       config[acc.id] = {
         label: acc.name,
@@ -62,13 +75,13 @@ export function DashboardChart({ data, accounts }: DashboardChartProps) {
 
     return config
   }, [
-    accounts
+    series
   ])
 
   if (!data || data.length === 0) {
     return (
       <div className="flex h-full min-h-40 w-full items-center justify-center rounded-lg border border-gray-200 bg-gray-50 text-muted-foreground">
-        {t('common.noDataForSelectedPeriod')}
+        {emptyMessage}
       </div>
     )
   }
@@ -107,9 +120,16 @@ export function DashboardChart({ data, accounts }: DashboardChartProps) {
           tick={{
             fontSize: 12
           }}
-          tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
+          tickFormatter={formatYAxisTick}
         />
-        <ChartTooltip content={<CustomTooltip />} />
+        <ChartTooltip
+          content={
+            <CustomTooltip
+              formatValue={formatValue}
+              totalLabel={totalLabel}
+            />
+          }
+        />
         <ChartLegend content={<ChartLegendContent />} />
         <ReferenceLine
           y={0}
@@ -118,7 +138,7 @@ export function DashboardChart({ data, accounts }: DashboardChartProps) {
           strokeDasharray=""
           strokeOpacity={0.25}
         />
-        {accounts.map((acc) => (
+        {series.map((acc) => (
           <Line
             key={acc.id}
             type="monotone"
@@ -136,8 +156,13 @@ export function DashboardChart({ data, accounts }: DashboardChartProps) {
   )
 }
 
-function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
-  const { t } = useTranslation()
+function CustomTooltip({
+  active,
+  payload,
+  label,
+  formatValue,
+  totalLabel
+}: CustomTooltipProps) {
   if (!active || !payload || !payload.length) return null
 
   const date = payload[0]?.payload?.originalDate
@@ -150,7 +175,7 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
 
   return (
     <div className="border-border/50 bg-background grid min-w-50 items-start gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs shadow-xl">
-      <div className="font-medium text-foreground mb-1">{formattedLabel}</div>
+      <div className="font-medium text-foreground">{formattedLabel}</div>
       <div className="grid gap-1.5">
         {payload.map((item) => (
           <div
@@ -165,20 +190,21 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
             />
             <span className="text-muted-foreground flex-1">{item.name}</span>
             <span className="text-foreground font-mono font-medium tabular-nums">
-              {formatCurrency(Number(item.value) || 0)}
+              {formatValue(Number(item.value) || 0)}
             </span>
           </div>
         ))}
       </div>
-      <div className="my-1 border-t border-border" />
-      <div className="flex w-full items-center gap-2">
-        <div className="h-2.5 w-2.5 shrink-0" /> {/* Spacer for alignment */}
-        <span className="text-muted-foreground font-medium flex-1">
-          {t('common.total')}
-        </span>
-        <span className="text-foreground font-mono font-bold tabular-nums">
-          {formatCurrency(total)}
-        </span>
+      <div className="border-t border-border pt-1.5">
+        <div className="flex w-full items-center gap-2">
+          <div className="h-2.5 w-2.5 shrink-0" />
+          <span className="text-muted-foreground font-medium flex-1">
+            {totalLabel}
+          </span>
+          <span className="text-foreground font-mono font-bold tabular-nums">
+            {formatValue(total)}
+          </span>
+        </div>
       </div>
     </div>
   )

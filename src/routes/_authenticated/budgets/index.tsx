@@ -18,7 +18,6 @@ import { AllocationDrawer } from '@/components/allocations/AllocationDrawer'
 import { TransferDrawer } from '@/components/allocations/TransferDrawer'
 import { BaseButton } from '@/components/base-button/base-button'
 import { Button } from '@/components/button/button'
-import { SetupPrompt } from '@/components/dashboard/SetupPrompt'
 import { IconButton } from '@/components/icon-button/icon-button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -31,6 +30,7 @@ import {
 } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { useAuth } from '@/contexts/auth-context'
+import { SetupPrompt } from '@/features/setup-prompt/setup-prompt'
 import { BudgetForm } from '@/forms/BudgetForm'
 import {
   useBudgetsList,

@@ -8,7 +8,6 @@ import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { configureApiClient } from '@/api/client-config'
 import { AppSidebar } from '@/components/app-sidebar'
-import { PendingInvitations } from '@/components/dashboard/PendingInvitations'
 import { DrawerProvider } from '@/components/drawer-context'
 import {
   SidebarInset,
@@ -27,6 +26,7 @@ import { useConfirmDialog } from '@/hooks/use-confirm-dialog'
 import { useDrawer } from '@/hooks/use-drawer'
 import { useSelectedHousehold } from '@/hooks/use-selected-household'
 import { getErrorMessage } from '@/lib/api-error'
+import { PendingInvitations } from '@/routes/_authenticated/-components/pending-invitations'
 
 const authStateFn = createServerFn().handler(async () => {
   const { userId } = await auth()

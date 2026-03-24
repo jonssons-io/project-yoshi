@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/button/button'
-import { Checkbox } from '@/components/ui/checkbox'
+import { Checkbox } from '@/components/checkbox/checkbox'
 
 type DashboardChartSettingsProps = {
   accounts: {
@@ -34,24 +34,15 @@ export function DashboardChartSettings({
         </div>
         <div className="flex flex-col gap-2">
           {accounts.map((account) => (
-            <div
+            <Checkbox
               key={account.id}
-              className="flex items-center gap-2"
-            >
-              <Checkbox
-                id={`account-${account.id}`}
-                checked={selectedAccountIds.includes(account.id)}
-                onCheckedChange={(checked) =>
-                  onToggleAccount(account.id, checked as boolean)
-                }
-              />
-              <label
-                htmlFor={`account-${account.id}`}
-                className="type-body-medium text-black leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-              >
-                {account.name}
-              </label>
-            </div>
+              id={`account-${account.id}`}
+              checked={selectedAccountIds.includes(account.id)}
+              onCheckedChange={(checked) =>
+                onToggleAccount(account.id, checked)
+              }
+              label={account.name}
+            />
           ))}
         </div>
       </div>

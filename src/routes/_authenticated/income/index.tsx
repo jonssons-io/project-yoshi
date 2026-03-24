@@ -37,7 +37,6 @@ import {
 } from '@/api/generated/types.gen'
 import { BaseButton } from '@/components/base-button/base-button'
 import { Button } from '@/components/button/button'
-import { SetupPrompt } from '@/components/dashboard/SetupPrompt'
 import { IconButton } from '@/components/icon-button/icon-button'
 import { TransactionForm } from '@/components/transactions/TransactionForm'
 import { Badge } from '@/components/ui/badge'
@@ -73,6 +72,7 @@ import {
   TooltipTrigger
 } from '@/components/ui/tooltip'
 import { useAuth } from '@/contexts/auth-context'
+import { SetupPrompt } from '@/features/setup-prompt/setup-prompt'
 import { IncomeForm } from '@/forms/IncomeForm'
 import {
   useAccountsList,

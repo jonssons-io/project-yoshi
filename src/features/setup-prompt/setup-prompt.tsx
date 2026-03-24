@@ -2,6 +2,17 @@ import { PlusIcon } from 'lucide-react'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/button/button'
+import {
+  Illustration,
+  type IllustrationVariant
+} from '@/components/illustrations/Illustration'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle
+} from '@/components/ui/card'
 import { useHouseholdContext } from '@/contexts/household-context'
 import { AccountForm } from '@/forms/AccountForm'
 import { BudgetForm } from '@/forms/BudgetForm'
@@ -12,17 +23,6 @@ import {
   useCreateHousehold
 } from '@/hooks/api'
 import { useDrawer } from '@/hooks/use-drawer'
-import {
-  Illustration,
-  type IllustrationVariant
-} from '../illustrations/Illustration'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle
-} from '../ui/card'
 
 export type SetupPromptVariant =
   | 'no-household'
@@ -144,11 +144,11 @@ export function SetupPrompt({
 
     if (variant === 'no-household') {
       openDrawer(
-        <div className="p-4">
-          <h2 className="mb-4 text-2xl font-bold">{t(config.titleKey)}</h2>
-          <p className="mb-6 text-muted-foreground">
-            {t(config.descriptionKey)}
-          </p>
+        <div className="flex flex-col gap-6 p-4">
+          <div className="flex flex-col gap-4">
+            <h2 className="text-2xl font-bold">{t(config.titleKey)}</h2>
+            <p className="text-muted-foreground">{t(config.descriptionKey)}</p>
+          </div>
           <HouseholdForm
             onSubmit={(data) => {
               createHousehold({
@@ -169,11 +169,11 @@ export function SetupPrompt({
 
     if (variant === 'no-budget') {
       openDrawer(
-        <div className="p-4">
-          <h2 className="mb-4 text-2xl font-bold">{t(config.titleKey)}</h2>
-          <p className="mb-6 text-muted-foreground">
-            {t(config.descriptionKey)}
-          </p>
+        <div className="flex flex-col gap-6 p-4">
+          <div className="flex flex-col gap-4">
+            <h2 className="text-2xl font-bold">{t(config.titleKey)}</h2>
+            <p className="text-muted-foreground">{t(config.descriptionKey)}</p>
+          </div>
           <BudgetForm
             onSubmit={(data) => {
               createBudget({
@@ -192,9 +192,11 @@ export function SetupPrompt({
     }
 
     openDrawer(
-      <div className="p-4">
-        <h2 className="mb-4 text-2xl font-bold">{t(config.titleKey)}</h2>
-        <p className="mb-6 text-muted-foreground">{t(config.descriptionKey)}</p>
+      <div className="flex flex-col gap-6 p-4">
+        <div className="flex flex-col gap-4">
+          <h2 className="text-2xl font-bold">{t(config.titleKey)}</h2>
+          <p className="text-muted-foreground">{t(config.descriptionKey)}</p>
+        </div>
         <AccountForm
           onSubmit={(data) => {
             createAccount({

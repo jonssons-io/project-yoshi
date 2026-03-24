@@ -1,15 +1,16 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useMemo } from 'react'
+import { type ReactNode, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { DashboardContent } from '@/components/dashboard/DashboardContent'
-import { SetupPrompt } from '@/components/dashboard/SetupPrompt'
+import { PageLayout } from '@/components/page-layout/page-layout'
 import { useAuth } from '@/contexts/auth-context'
+import { SetupPrompt } from '@/features/setup-prompt/setup-prompt'
 import {
   useAccountBalancesList,
   useAccountsList,
   useAllocationsQuery,
   useBudgetsList
 } from '@/hooks/api'
+import { DashboardContent } from './-components/dashboard-content'
 
 export const Route = createFileRoute('/_authenticated/')({
   component: Dashboard
@@ -18,6 +19,8 @@ export const Route = createFileRoute('/_authenticated/')({
 function Dashboard() {
   const { t } = useTranslation()
   const { userId, householdId } = useAuth()
+  const dashboardTitle = t('nav.dashboard')
+  const dashboardDescription = t('dashboard.overviewSubtitle')
 
   const { data: budgets, isLoading: budgetsLoading } = useBudgetsList({
     householdId,
@@ -73,42 +76,40 @@ function Dashboard() {
     externalIdentifier: account.externalIdentifier ?? null
   }))
 
-  if (
+  const withDashboardChrome = (content: ReactNode) => (
+    <PageLayout
+      title={dashboardTitle}
+      description={dashboardDescription}
+    >
+      {content}
+    </PageLayout>
+  )
+
+  const isDashboardDataLoading =
     householdId &&
     (budgetsLoading ||
       accountsLoading ||
       accountBalancesLoading ||
       allocationSummaryLoading)
-  ) {
-    return (
-      <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto px-4 pt-6 pb-6">
+
+  if (isDashboardDataLoading) {
+    return withDashboardChrome(
+      <div className="flex flex-1 items-center justify-center py-8">
         <p className="text-muted-foreground">{t('common.loading')}</p>
       </div>
     )
   }
 
   if (!householdId) {
-    return (
-      <div className="flex min-h-0 flex-1 overflow-auto px-4 pt-6 pb-6">
-        <SetupPrompt variant="no-household" />
-      </div>
-    )
+    return withDashboardChrome(<SetupPrompt variant="no-household" />)
   }
 
   if (dashboardAccounts.length === 0) {
-    return (
-      <div className="flex min-h-0 flex-1 overflow-auto px-4 pt-6 pb-6">
-        <SetupPrompt variant="no-account" />
-      </div>
-    )
+    return withDashboardChrome(<SetupPrompt variant="no-account" />)
   }
 
   if (!(budgets?.length ?? 0)) {
-    return (
-      <div className="flex min-h-0 flex-1 overflow-auto px-4 pt-6 pb-6">
-        <SetupPrompt variant="no-budget" />
-      </div>
-    )
+    return withDashboardChrome(<SetupPrompt variant="no-budget" />)
   }
 
   return (

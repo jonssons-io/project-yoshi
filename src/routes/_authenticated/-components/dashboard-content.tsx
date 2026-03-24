@@ -9,10 +9,11 @@ import {
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { TransactionType } from '@/api/generated/types.gen'
+import { DashboardMultiSeriesLineChart } from '@/charts/dashboard-multi-series-line-chart/dashboard-multi-series-line-chart'
 import { Button } from '@/components/button/button'
 import { IconButton } from '@/components/icon-button/icon-button'
 import { PageLayout } from '@/components/page-layout/page-layout'
-import { Progress } from '@/components/ui/progress'
+import { Progress } from '@/components/progress/progress'
 import {
   Table,
   TableBody,
@@ -20,18 +21,17 @@ import {
   TableHead,
   TableHeader,
   TableRow
-} from '@/components/ui/table'
+} from '@/components/table/table'
 import { useAuth } from '@/contexts/auth-context'
+import { DashboardChartSettings } from '@/drawers/dashboard-chart-settings'
 import { useMultiAccountBalanceHistory, useTransactionsList } from '@/hooks/api'
-import { useDashboardSettings } from '@/hooks/use-dashboard-settings'
 import { useDrawer } from '@/hooks/use-drawer'
 import {
   generateChartDataFromSnapshots,
   getDateRange
 } from '@/lib/dashboard-utils'
 import { formatCurrency } from '@/lib/utils'
-import { DashboardChart } from './DashboardChart'
-import { DashboardChartSettings } from './DashboardChartSettings'
+import { useDashboardSettings } from './use-dashboard-settings'
 
 type DashboardAccount = {
   id: string
@@ -92,7 +92,7 @@ export function DashboardContent({
     selectedAccountIds,
     updateSelectedAccounts
   } = useDashboardSettings({
-    userId,
+    userId: userId ?? '',
     accounts
   })
 
@@ -114,7 +114,6 @@ export function DashboardContent({
     let income = 0
     let expense = 0
     for (const tx of periodTransactions ?? []) {
-      // INCOME and EXPENSE only; TRANSFER excluded from totals and net.
       if (tx.type === TransactionType.TRANSFER) continue
       if (tx.type === TransactionType.INCOME) income += tx.amount
       else if (tx.type === TransactionType.EXPENSE) expense += tx.amount
@@ -361,16 +360,14 @@ export function DashboardContent({
             />
           </div>
           <div className="min-h-0 flex-1 overflow-hidden pb-4">
-            <DashboardChart
+            <DashboardMultiSeriesLineChart
               data={chartData}
-              accounts={chartAccounts}
+              series={chartAccounts}
             />
           </div>
         </div>
 
-        <hr className="-mx-4 my-0 h-px shrink-0 border-0 bg-gray-300" />
-
-        <div className="flex max-h-[35vh] shrink-0 flex-col overflow-y-auto pt-6 lg:flex-row lg:items-stretch lg:overflow-hidden">
+        <div className="flex max-h-[35vh] shrink-0 flex-col overflow-y-auto border-t border-gray-300 pt-6 lg:flex-row lg:items-stretch lg:overflow-hidden">
           <div className="flex w-full min-w-0 flex-col gap-6 lg:min-h-0 lg:w-0 lg:flex-1 lg:overflow-hidden lg:pr-6">
             <div className="flex shrink-0 flex-wrap items-center justify-between gap-2">
               <p className="min-w-0 flex-1">

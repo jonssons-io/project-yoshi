@@ -26,7 +26,6 @@ import {
 import { BaseButton } from '@/components/base-button/base-button'
 import { BillForm } from '@/components/bills/BillForm'
 import { Button } from '@/components/button/button'
-import { SetupPrompt } from '@/components/dashboard/SetupPrompt'
 import { TransactionForm } from '@/components/transactions/TransactionForm'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
@@ -61,6 +60,7 @@ import {
   TooltipTrigger
 } from '@/components/ui/tooltip'
 import { useAuth } from '@/contexts/auth-context'
+import { SetupPrompt } from '@/features/setup-prompt/setup-prompt'
 import {
   useAccountsList,
   useArchiveBill,

@@ -16,7 +16,6 @@ import { toast } from 'sonner'
 import { BaseButton } from '@/components/base-button/base-button'
 import { Button } from '@/components/button/button'
 import { CategoryForm } from '@/components/categories/CategoryForm'
-import { SetupPrompt } from '@/components/dashboard/SetupPrompt'
 import { IconButton } from '@/components/icon-button/icon-button'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
@@ -29,6 +28,7 @@ import {
   TableRow
 } from '@/components/ui/table'
 import { useAuth } from '@/contexts/auth-context'
+import { SetupPrompt } from '@/features/setup-prompt/setup-prompt'
 import {
   useArchiveCategory,
   useBudgetsList,

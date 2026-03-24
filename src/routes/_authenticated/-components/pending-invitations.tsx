@@ -33,20 +33,20 @@ export function PendingInvitations({ onJoin }: PendingInvitationsProps) {
 
   if (!invitations || invitations.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center p-8 text-center bg-muted/20 rounded-lg">
+      <div className="flex flex-col items-center justify-center rounded-lg bg-muted/20 p-8 text-center">
         <p className="text-muted-foreground">{t('dashboard.noInvitations')}</p>
       </div>
     )
   }
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col gap-4">
       {invitations.map((invitation) => (
         <div
           key={invitation.id}
-          className="flex items-center justify-between p-4 rounded-lg border bg-card"
+          className="flex items-center justify-between rounded-lg border bg-card p-4"
         >
-          <div className="space-y-1">
+          <div className="flex flex-col gap-1">
             <p className="font-medium">
               {t('dashboard.join')}{' '}
               <span className="font-bold">
