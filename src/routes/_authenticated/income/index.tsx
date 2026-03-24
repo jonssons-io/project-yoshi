@@ -926,8 +926,8 @@ function IncomePage() {
   }
 
   return (
-    <>
-      <div className="space-y-6">
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+      <div className="min-h-0 flex-1 space-y-6 overflow-auto px-4 pt-6 pb-6">
         <div className="flex items-center justify-end gap-2">
           <Button
             onClick={handleCreate}
@@ -1132,6 +1132,6 @@ function IncomePage() {
         )}
       </div>
       {confirmDialog}
-    </>
+    </div>
   )
 }

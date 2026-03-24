@@ -47,7 +47,7 @@ function BudgetDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center">
+      <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto px-4 pt-6 pb-6">
         <p className="text-muted-foreground">{t('common.loading')}</p>
       </div>
     )
@@ -55,17 +55,19 @@ function BudgetDetailPage() {
 
   if (!budget) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('budgets.notFound')}</CardTitle>
-          <CardDescription>{t('budgets.notFoundDesc')}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <BaseButton asChild>
-            <Link to="/budgets">{t('budgets.backToBudgets')}</Link>
-          </BaseButton>
-        </CardContent>
-      </Card>
+      <div className="flex min-h-0 flex-1 overflow-auto px-4 pt-6 pb-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>{t('budgets.notFound')}</CardTitle>
+            <CardDescription>{t('budgets.notFoundDesc')}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <BaseButton asChild>
+              <Link to="/budgets">{t('budgets.backToBudgets')}</Link>
+            </BaseButton>
+          </CardContent>
+        </Card>
+      </div>
     )
   }
 
@@ -90,207 +92,213 @@ function BudgetDetailPage() {
     .slice(0, 5)
 
   return (
-    <div className="space-y-6">
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader>
-            <CardTitle>
-              {t('budgets.detail.allocated', {
-                defaultValue: 'Allocated'
-              })}
-            </CardTitle>
-            <CardDescription>
-              {t('budgets.detail.allocatedDescription', {
-                defaultValue: 'Total funds assigned to this envelope'
-              })}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">
-              {formatCurrency(allocatedAmount)}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>
-              {t('budgets.detail.spent', {
-                defaultValue: 'Spent'
-              })}
-            </CardTitle>
-            <CardDescription>
-              {t('budgets.detail.spentDescription', {
-                defaultValue: 'Total effective spending in this envelope'
-              })}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">
-              {formatCurrency(spentAmount)}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>
-              {t('budgets.detail.remaining', {
-                defaultValue: 'Remaining'
-              })}
-            </CardTitle>
-            <CardDescription>
-              {t('budgets.detail.remainingDescription', {
-                defaultValue: 'Available funds left in this envelope'
-              })}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div
-              className={`text-3xl font-bold ${
-                isOverdrafted ? 'text-destructive' : ''
-              }`}
-            >
-              {formatCurrency(remainingAmount)}
-            </div>
-            {isOverdrafted ? (
-              <Badge variant="destructive">
-                {t('budgets.detail.overdrafted', {
-                  defaultValue: 'Overdrafted'
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+      <div className="min-h-0 flex-1 space-y-6 overflow-auto px-4 pt-6 pb-6">
+        <div className="grid gap-4 md:grid-cols-3">
+          <Card>
+            <CardHeader>
+              <CardTitle>
+                {t('budgets.detail.allocated', {
+                  defaultValue: 'Allocated'
                 })}
-              </Badge>
-            ) : (
-              <Badge variant="outline">
-                {t('budgets.detail.healthy', {
-                  defaultValue: 'Healthy'
+              </CardTitle>
+              <CardDescription>
+                {t('budgets.detail.allocatedDescription', {
+                  defaultValue: 'Total funds assigned to this envelope'
                 })}
-              </Badge>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold">
+                {formatCurrency(allocatedAmount)}
+              </div>
+            </CardContent>
+          </Card>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>
-              {t('budgets.detail.allocationHistory', {
-                defaultValue: 'Allocation History'
-              })}
-            </CardTitle>
-            <CardDescription>
-              {t('budgets.detail.allocationHistoryDescription', {
-                defaultValue: 'Recent funding movements into this envelope'
-              })}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {allocationHistory.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                {t('budgets.detail.noAllocations', {
-                  defaultValue: 'No allocations yet.'
+          <Card>
+            <CardHeader>
+              <CardTitle>
+                {t('budgets.detail.spent', {
+                  defaultValue: 'Spent'
                 })}
-              </p>
-            ) : (
-              <div className="space-y-3">
-                {allocationHistory.map(
-                  (allocation: { id: string; amount: number; date: Date }) => (
+              </CardTitle>
+              <CardDescription>
+                {t('budgets.detail.spentDescription', {
+                  defaultValue: 'Total effective spending in this envelope'
+                })}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold">
+                {formatCurrency(spentAmount)}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>
+                {t('budgets.detail.remaining', {
+                  defaultValue: 'Remaining'
+                })}
+              </CardTitle>
+              <CardDescription>
+                {t('budgets.detail.remainingDescription', {
+                  defaultValue: 'Available funds left in this envelope'
+                })}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div
+                className={`text-3xl font-bold ${
+                  isOverdrafted ? 'text-destructive' : ''
+                }`}
+              >
+                {formatCurrency(remainingAmount)}
+              </div>
+              {isOverdrafted ? (
+                <Badge variant="destructive">
+                  {t('budgets.detail.overdrafted', {
+                    defaultValue: 'Overdrafted'
+                  })}
+                </Badge>
+              ) : (
+                <Badge variant="outline">
+                  {t('budgets.detail.healthy', {
+                    defaultValue: 'Healthy'
+                  })}
+                </Badge>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="grid gap-6 lg:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>
+                {t('budgets.detail.allocationHistory', {
+                  defaultValue: 'Allocation History'
+                })}
+              </CardTitle>
+              <CardDescription>
+                {t('budgets.detail.allocationHistoryDescription', {
+                  defaultValue: 'Recent funding movements into this envelope'
+                })}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {allocationHistory.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  {t('budgets.detail.noAllocations', {
+                    defaultValue: 'No allocations yet.'
+                  })}
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {allocationHistory.map(
+                    (allocation: {
+                      id: string
+                      amount: number
+                      date: Date
+                    }) => (
+                      <div
+                        key={allocation.id}
+                        className="flex items-center justify-between rounded-md border p-3"
+                      >
+                        <div>
+                          <p className="font-medium">
+                            {formatCurrency(allocation.amount)}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            {format(allocation.date, 'PP')}
+                          </p>
+                        </div>
+                        <Badge variant="outline">
+                          {t('allocation.allocation', {
+                            defaultValue: 'Allocation'
+                          })}
+                        </Badge>
+                      </div>
+                    )
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>{t('transactions.title')}</CardTitle>
+              <CardDescription>
+                {t('budgets.detail.transactionsDescription', {
+                  defaultValue:
+                    'Recent spending and money movement for this envelope'
+                })}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {recentTransactions.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  {t('budgets.detail.noTransactions', {
+                    defaultValue: 'No transactions yet.'
+                  })}
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {recentTransactions.map((transaction) => (
                     <div
-                      key={allocation.id}
+                      key={transaction.id}
                       className="flex items-center justify-between rounded-md border p-3"
                     >
                       <div>
-                        <p className="font-medium">
-                          {formatCurrency(allocation.amount)}
-                        </p>
+                        <p className="font-medium">{transaction.name}</p>
                         <p className="text-sm text-muted-foreground">
-                          {format(allocation.date, 'PP')}
+                          {format(transaction.date, 'PP')}
                         </p>
                       </div>
-                      <Badge variant="outline">
-                        {t('allocation.allocation', {
-                          defaultValue: 'Allocation'
-                        })}
-                      </Badge>
+                      <div className="text-right">
+                        <p className="font-medium">
+                          {formatCurrency(transaction.amount)}
+                        </p>
+                        <Badge variant="outline">{transaction.type}</Badge>
+                      </div>
                     </div>
-                  )
-                )}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>{t('transactions.title')}</CardTitle>
-            <CardDescription>
-              {t('budgets.detail.transactionsDescription', {
-                defaultValue:
-                  'Recent spending and money movement for this envelope'
-              })}
-            </CardDescription>
+            <CardTitle>{t('budgets.quickActions')}</CardTitle>
+            <CardDescription>{t('budgets.manageData')}</CardDescription>
           </CardHeader>
           <CardContent>
-            {recentTransactions.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                {t('budgets.detail.noTransactions', {
-                  defaultValue: 'No transactions yet.'
-                })}
-              </p>
-            ) : (
-              <div className="space-y-3">
-                {recentTransactions.map((transaction) => (
-                  <div
-                    key={transaction.id}
-                    className="flex items-center justify-between rounded-md border p-3"
-                  >
-                    <div>
-                      <p className="font-medium">{transaction.name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {format(transaction.date, 'PP')}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-medium">
-                        {formatCurrency(transaction.amount)}
-                      </p>
-                      <Badge variant="outline">{transaction.type}</Badge>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+            <div className="flex flex-wrap gap-2">
+              <BaseButton asChild>
+                <Link
+                  to="/transactions"
+                  search={{
+                    budgetId
+                  }}
+                >
+                  {t('budgets.viewTransactions')}
+                </Link>
+              </BaseButton>
+              <BaseButton
+                asChild
+                variant="outlined"
+                color="subtle"
+              >
+                <Link to="/budgets">{t('allocation.allocateFunds')}</Link>
+              </BaseButton>
+            </div>
           </CardContent>
         </Card>
       </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('budgets.quickActions')}</CardTitle>
-          <CardDescription>{t('budgets.manageData')}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-2">
-            <BaseButton asChild>
-              <Link
-                to="/transactions"
-                search={{
-                  budgetId
-                }}
-              >
-                {t('budgets.viewTransactions')}
-              </Link>
-            </BaseButton>
-            <BaseButton
-              asChild
-              variant="outlined"
-              color="subtle"
-            >
-              <Link to="/budgets">{t('allocation.allocateFunds')}</Link>
-            </BaseButton>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   )
 }

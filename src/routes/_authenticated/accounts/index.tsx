@@ -169,43 +169,45 @@ function AccountsPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center">
+      <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto px-4 pt-6 pb-6">
         <p className="text-muted-foreground">{t('accounts.loading')}</p>
       </div>
     )
   }
 
   return (
-    <div className="space-y-6">
-      {/* Toolbar */}
-      <div className="flex items-center justify-end">
-        <Button
-          onClick={handleCreateAccount}
-          icon={<PlusIcon />}
-          label={t('accounts.add')}
-        />
-      </div>
-
-      {accounts?.length === 0 ? (
-        <Card
-          title={t('accounts.noAccounts')}
-          description={t('accounts.getStarted')}
-        >
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+      <div className="min-h-0 flex-1 space-y-6 overflow-auto px-4 pt-6 pb-6">
+        {/* Toolbar */}
+        <div className="flex items-center justify-end">
           <Button
             onClick={handleCreateAccount}
             icon={<PlusIcon />}
-            label={t('accounts.createFirst')}
+            label={t('accounts.add')}
           />
-        </Card>
-      ) : (
-        <Card>
-          <AccountsTable
-            userId={userId}
-            selectedHouseholdId={householdId}
-            setEditingAccountId={setEditingAccountId}
-          />
-        </Card>
-      )}
+        </div>
+
+        {accounts?.length === 0 ? (
+          <Card
+            title={t('accounts.noAccounts')}
+            description={t('accounts.getStarted')}
+          >
+            <Button
+              onClick={handleCreateAccount}
+              icon={<PlusIcon />}
+              label={t('accounts.createFirst')}
+            />
+          </Card>
+        ) : (
+          <Card>
+            <AccountsTable
+              userId={userId}
+              selectedHouseholdId={householdId}
+              setEditingAccountId={setEditingAccountId}
+            />
+          </Card>
+        )}
+      </div>
     </div>
   )
 }

@@ -110,7 +110,7 @@ function BudgetsPage() {
 
   if (isLoading || allocationSummary.isLoading) {
     return (
-      <div className="flex items-center justify-center">
+      <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto px-4 pt-6 pb-6">
         <p className="text-muted-foreground">{t('common.loading')}</p>
       </div>
     )
@@ -118,20 +118,22 @@ function BudgetsPage() {
 
   if (error) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('budgets.error')}</CardTitle>
-          <CardDescription>
-            {error instanceof Error ? error.message : t('common.error')}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button
-            onClick={() => refetch()}
-            label={t('budgets.tryAgain')}
-          />
-        </CardContent>
-      </Card>
+      <div className="flex min-h-0 flex-1 overflow-auto px-4 pt-6 pb-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>{t('budgets.error')}</CardTitle>
+            <CardDescription>
+              {error instanceof Error ? error.message : t('common.error')}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button
+              onClick={() => refetch()}
+              label={t('budgets.tryAgain')}
+            />
+          </CardContent>
+        </Card>
+      </div>
     )
   }
 
@@ -215,200 +217,206 @@ function BudgetsPage() {
   const totalFunds = allocationSummary.data?.totalFunds ?? 0
 
   if (budgets?.length === 0) {
-    return <SetupPrompt variant="no-budget" />
+    return (
+      <div className="flex min-h-0 flex-1 overflow-auto px-4 pt-6 pb-6">
+        <SetupPrompt variant="no-budget" />
+      </div>
+    )
   }
 
   return (
     <>
-      <div className="space-y-6">
-        <div className="flex items-center justify-end gap-2">
-          <Button
-            variant="outlined"
-            color="subtle"
-            onClick={() => {
-              setSelectedBudgetId(undefined)
-              setAllocationOpen(true)
-            }}
-            icon={<PlusIcon />}
-            label={t('allocation.allocateFunds')}
-          />
-          <Button
-            variant="outlined"
-            color="subtle"
-            onClick={() => handleTransfer()}
-            icon={<ArrowLeftRight />}
-            label={t('allocation.transferFunds')}
-          />
-          <Button
-            onClick={handleCreate}
-            icon={<PlusIcon />}
-            label={t('budgets.create')}
-          />
-        </div>
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <div className="min-h-0 flex-1 space-y-6 overflow-auto px-4 pt-6 pb-6">
+          <div className="flex items-center justify-end gap-2">
+            <Button
+              variant="outlined"
+              color="subtle"
+              onClick={() => {
+                setSelectedBudgetId(undefined)
+                setAllocationOpen(true)
+              }}
+              icon={<PlusIcon />}
+              label={t('allocation.allocateFunds')}
+            />
+            <Button
+              variant="outlined"
+              color="subtle"
+              onClick={() => handleTransfer()}
+              icon={<ArrowLeftRight />}
+              label={t('allocation.transferFunds')}
+            />
+            <Button
+              onClick={handleCreate}
+              icon={<PlusIcon />}
+              label={t('budgets.create')}
+            />
+          </div>
 
-        <div className="grid gap-4 md:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm font-medium">
-                {t('allocation.totalAvailable')}
-              </CardTitle>
-              <CardDescription>
-                {t('allocation.allocatedPlusUnallocated')}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">
-                {formatCurrency(totalFunds)}
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm font-medium">
-                {t('allocation.breakdown')}
-              </CardTitle>
-              <CardDescription>
-                {t('allocation.unallocatedPoolDescription')}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex items-center justify-between">
-              <div>
-                <div className="text-sm text-muted-foreground">
-                  {t('allocation.allocated')}
-                </div>
-                <div className="text-2xl font-bold">
-                  {formatCurrency(totalAllocatedAmount)}
-                </div>
-              </div>
-              <div className="mx-4 h-8 w-px bg-border" />
-              <div className="text-right">
-                <div className="text-sm text-muted-foreground">
-                  {t('allocation.unallocated')}
-                </div>
-                <div className="text-2xl font-bold text-primary">
-                  {formatCurrency(unallocatedAmount)}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {budgets?.map((budget) => (
-            <Card key={budget.id}>
+          <div className="grid gap-4 md:grid-cols-2">
+            <Card>
               <CardHeader>
-                <div className="flex items-start justify-between gap-3">
-                  <CardTitle>{budget.name}</CardTitle>
-                  {(budget.remainingAmount ?? 0) < 0 ? (
-                    <Badge
-                      variant="destructive"
-                      className="shrink-0"
-                    >
-                      <AlertTriangleIcon className="h-3 w-3" />
-                      {t('allocation.overdrafted')}
-                    </Badge>
-                  ) : null}
-                </div>
+                <CardTitle className="text-sm font-medium">
+                  {t('allocation.totalAvailable')}
+                </CardTitle>
+                <CardDescription>
+                  {t('allocation.allocatedPlusUnallocated')}
+                </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">
-                      {t('allocation.remaining')}
-                    </span>
-                    <span
-                      className={`font-medium ${
-                        (budget.remainingAmount ?? 0) < 0
-                          ? 'text-destructive'
-                          : ''
-                      }`}
-                    >
-                      {formatCurrency(budget.remainingAmount ?? 0)}
-                    </span>
+              <CardContent>
+                <div className="text-3xl font-bold">
+                  {formatCurrency(totalFunds)}
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm font-medium">
+                  {t('allocation.breakdown')}
+                </CardTitle>
+                <CardDescription>
+                  {t('allocation.unallocatedPoolDescription')}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm text-muted-foreground">
+                    {t('allocation.allocated')}
+                  </div>
+                  <div className="text-2xl font-bold">
+                    {formatCurrency(totalAllocatedAmount)}
                   </div>
                 </div>
-                <Progress
-                  value={
-                    (budget.allocatedAmount ?? 0) > 0
-                      ? Math.min(
-                          ((budget.spentAmount ?? 0) /
-                            (budget.allocatedAmount ?? 0)) *
-                            100,
-                          100
-                        )
-                      : 0
-                  }
-                />
+                <div className="mx-4 h-8 w-px bg-border" />
+                <div className="text-right">
+                  <div className="text-sm text-muted-foreground">
+                    {t('allocation.unallocated')}
+                  </div>
+                  <div className="text-2xl font-bold text-primary">
+                    {formatCurrency(unallocatedAmount)}
+                  </div>
+                </div>
               </CardContent>
-              <CardFooter className="flex flex-wrap gap-2">
-                <div className="flex-1">
-                  <Button
-                    variant="filled"
-                    color="subtle"
-                    onClick={() => handleAllocate(budget.id)}
-                    label={t('allocation.allocate')}
-                  />
-                </div>
-                <div className="flex-1">
-                  <Button
-                    variant="outlined"
-                    color="subtle"
-                    onClick={() => handleDeallocate(budget.id)}
-                    disabled={(budget.remainingAmount ?? 0) <= 0}
-                    icon={<MinusIcon />}
-                    label={t('allocation.deallocate')}
-                  />
-                </div>
-                <div className="flex-1">
-                  <Button
-                    variant="outlined"
-                    color="subtle"
-                    onClick={() => handleTransfer(budget.id)}
-                    disabled={(budget.remainingAmount ?? 0) <= 0}
-                    icon={<ArrowLeftRight />}
-                    label={t('allocation.transfer')}
-                  />
-                </div>
-                <BaseButton
-                  asChild
-                  variant="outlined"
-                  color="subtle"
-                  className="flex-1"
-                >
-                  <Link
-                    to="/budgets/$budgetId"
-                    params={{
-                      budgetId: budget.id
-                    }}
-                  >
-                    {t('budgets.viewDetails')}
-                  </Link>
-                </BaseButton>
-                <IconButton
-                  variant="outlined"
-                  color="subtle"
-                  icon={<PencilIcon className="h-4 w-4" />}
-                  onClick={() =>
-                    handleEdit({
-                      id: budget.id,
-                      name: budget.name
-                    })
-                  }
-                />
-                <IconButton
-                  variant="outlined"
-                  color="subtle"
-                  icon={<TrashIcon className="h-4 w-4" />}
-                  onClick={() =>
-                    handleDeleteBudget({
-                      id: budget.id,
-                      name: budget.name
-                    })
-                  }
-                />
-              </CardFooter>
             </Card>
-          ))}
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {budgets?.map((budget) => (
+              <Card key={budget.id}>
+                <CardHeader>
+                  <div className="flex items-start justify-between gap-3">
+                    <CardTitle>{budget.name}</CardTitle>
+                    {(budget.remainingAmount ?? 0) < 0 ? (
+                      <Badge
+                        variant="destructive"
+                        className="shrink-0"
+                      >
+                        <AlertTriangleIcon className="h-3 w-3" />
+                        {t('allocation.overdrafted')}
+                      </Badge>
+                    ) : null}
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">
+                        {t('allocation.remaining')}
+                      </span>
+                      <span
+                        className={`font-medium ${
+                          (budget.remainingAmount ?? 0) < 0
+                            ? 'text-destructive'
+                            : ''
+                        }`}
+                      >
+                        {formatCurrency(budget.remainingAmount ?? 0)}
+                      </span>
+                    </div>
+                  </div>
+                  <Progress
+                    value={
+                      (budget.allocatedAmount ?? 0) > 0
+                        ? Math.min(
+                            ((budget.spentAmount ?? 0) /
+                              (budget.allocatedAmount ?? 0)) *
+                              100,
+                            100
+                          )
+                        : 0
+                    }
+                  />
+                </CardContent>
+                <CardFooter className="flex flex-wrap gap-2">
+                  <div className="flex-1">
+                    <Button
+                      variant="filled"
+                      color="subtle"
+                      onClick={() => handleAllocate(budget.id)}
+                      label={t('allocation.allocate')}
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <Button
+                      variant="outlined"
+                      color="subtle"
+                      onClick={() => handleDeallocate(budget.id)}
+                      disabled={(budget.remainingAmount ?? 0) <= 0}
+                      icon={<MinusIcon />}
+                      label={t('allocation.deallocate')}
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <Button
+                      variant="outlined"
+                      color="subtle"
+                      onClick={() => handleTransfer(budget.id)}
+                      disabled={(budget.remainingAmount ?? 0) <= 0}
+                      icon={<ArrowLeftRight />}
+                      label={t('allocation.transfer')}
+                    />
+                  </div>
+                  <BaseButton
+                    asChild
+                    variant="outlined"
+                    color="subtle"
+                    className="flex-1"
+                  >
+                    <Link
+                      to="/budgets/$budgetId"
+                      params={{
+                        budgetId: budget.id
+                      }}
+                    >
+                      {t('budgets.viewDetails')}
+                    </Link>
+                  </BaseButton>
+                  <IconButton
+                    variant="outlined"
+                    color="subtle"
+                    icon={<PencilIcon className="h-4 w-4" />}
+                    onClick={() =>
+                      handleEdit({
+                        id: budget.id,
+                        name: budget.name
+                      })
+                    }
+                  />
+                  <IconButton
+                    variant="outlined"
+                    color="subtle"
+                    icon={<TrashIcon className="h-4 w-4" />}
+                    onClick={() =>
+                      handleDeleteBudget({
+                        id: budget.id,
+                        name: budget.name
+                      })
+                    }
+                  />
+                </CardFooter>
+              </Card>
+            ))}
+          </div>
         </div>
       </div>
       <AllocationDrawer

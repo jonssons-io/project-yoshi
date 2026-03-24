@@ -1,25 +1,35 @@
-import { SettingsIcon } from 'lucide-react'
+import {
+  EllipsisVerticalIcon,
+  Plus,
+  Scale,
+  SettingsIcon,
+  TrendingDown,
+  TrendingUp
+} from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { TransactionType } from '@/api/generated/types.gen'
+import { Button } from '@/components/button/button'
 import { IconButton } from '@/components/icon-button/icon-button'
-import { CreateTransactionButton } from '@/components/transactions/CreateTransactionButton'
-import { CreateTransferButton } from '@/components/transfers/CreateTransferButton'
+import { PageLayout } from '@/components/page-layout/page-layout'
+import { Progress } from '@/components/ui/progress'
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle
-} from '@/components/ui/card'
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
+} from '@/components/ui/table'
 import { useAuth } from '@/contexts/auth-context'
-import { useMultiAccountBalanceHistory } from '@/hooks/api'
+import { useMultiAccountBalanceHistory, useTransactionsList } from '@/hooks/api'
 import { useDashboardSettings } from '@/hooks/use-dashboard-settings'
 import { useDrawer } from '@/hooks/use-drawer'
 import {
   generateChartDataFromSnapshots,
   getDateRange
 } from '@/lib/dashboard-utils'
-import { AccountSummaryCard } from './AccountSummaryCard'
+import { formatCurrency } from '@/lib/utils'
 import { DashboardChart } from './DashboardChart'
 import { DashboardChartSettings } from './DashboardChartSettings'
 
@@ -47,22 +57,38 @@ type DashboardContentProps = {
   unallocatedAmount: number
 }
 
+function budgetProgressTone(
+  budget: DashboardBudget
+): 'danger' | 'warning' | 'success' {
+  const allocated = budget.allocatedAmount ?? 0
+  const spent = budget.spentAmount ?? 0
+  const remaining = budget.remainingAmount ?? 0
+  if (budget.isOverdrafted || remaining < 0) return 'danger'
+  if (allocated > 0 && spent / allocated >= 0.8) return 'warning'
+  return 'success'
+}
+
+function budgetProgressClass(tone: 'danger' | 'warning' | 'success'): string {
+  if (tone === 'danger') return '[&_[data-slot=progress-indicator]]:bg-red-500'
+  if (tone === 'warning')
+    return '[&_[data-slot=progress-indicator]]:bg-amber-500'
+  return '[&_[data-slot=progress-indicator]]:bg-green-500'
+}
+
 export function DashboardContent({
   accounts,
   budgets,
   unallocatedAmount
 }: DashboardContentProps) {
   const { t } = useTranslation()
-  const { userId } = useAuth()
+  const { userId, householdId } = useAuth()
   const { openDrawer, isOpen } = useDrawer()
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
 
   const {
     quickSelection,
-    setQuickSelection,
     customStartDate,
     customEndDate,
-    setCustomDateRange,
     selectedAccountIds,
     updateSelectedAccounts
   } = useDashboardSettings({
@@ -75,6 +101,33 @@ export function DashboardContent({
     customStartDate,
     customEndDate
   )
+
+  const { data: periodTransactions } = useTransactionsList({
+    householdId,
+    userId,
+    dateFrom: startDate,
+    dateTo: endDate,
+    enabled: Boolean(householdId)
+  })
+
+  const { totalIncome, totalExpense } = useMemo(() => {
+    let income = 0
+    let expense = 0
+    for (const tx of periodTransactions ?? []) {
+      // INCOME and EXPENSE only; TRANSFER excluded from totals and net.
+      if (tx.type === TransactionType.TRANSFER) continue
+      if (tx.type === TransactionType.INCOME) income += tx.amount
+      else if (tx.type === TransactionType.EXPENSE) expense += tx.amount
+    }
+    return {
+      totalIncome: income,
+      totalExpense: expense
+    }
+  }, [
+    periodTransactions
+  ])
+
+  const netPeriod = totalIncome - totalExpense
 
   const chartAccounts = useMemo(
     () => accounts.filter((account) => selectedAccountIds.includes(account.id)),
@@ -114,7 +167,7 @@ export function DashboardContent({
     accounts
   ])
 
-  const totalBalance = useMemo(
+  const totalAvailableFunds = useMemo(
     () =>
       accounts.reduce(
         (sum, account) => sum + (currentBalances.get(account.id) ?? 0),
@@ -123,16 +176,6 @@ export function DashboardContent({
     [
       accounts,
       currentBalances
-    ]
-  )
-
-  const overdraftedBudgets = useMemo(
-    () =>
-      budgets.filter(
-        (budget) => budget.isOverdrafted || (budget.remainingAmount ?? 0) < 0
-      ),
-    [
-      budgets
     ]
   )
 
@@ -173,16 +216,9 @@ export function DashboardContent({
             : selectedAccountIds.filter((accountId) => accountId !== id)
         )
       }}
-      onToggleAllAccounts={(checked) => {
-        updateSelectedAccounts(
-          checked ? accounts.map((account) => account.id) : []
-        )
+      onDeselectAll={() => {
+        updateSelectedAccounts([])
       }}
-      dateRange={quickSelection}
-      onDateRangeChange={setQuickSelection}
-      customStartDate={customStartDate}
-      customEndDate={customEndDate}
-      onCustomDateChange={setCustomDateRange}
     />
   )
 
@@ -204,10 +240,7 @@ export function DashboardContent({
     openDrawer,
     t,
     accounts,
-    selectedAccountIds,
-    quickSelection,
-    customStartDate,
-    customEndDate
+    selectedAccountIds
   ])
 
   const handleOpenSettings = () => {
@@ -215,125 +248,288 @@ export function DashboardContent({
     openDrawer(renderSettingsContent(), t('dashboard.chartSettings'))
   }
 
+  const noop = () => {
+    void 0
+  }
+
+  const formattedIncome = formatCurrency(totalIncome)
+  const formattedExpense = formatCurrency(totalExpense)
+  const formattedNet = formatCurrency(netPeriod)
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-end gap-2">
-        <CreateTransactionButton
-          variant="filled"
-          color="primary"
-        />
-        <CreateTransferButton
-          variant="outlined"
-          color="subtle"
-        />
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('dashboard.totalBalance')}</CardTitle>
-            <CardDescription>{t('dashboard.totalBalanceDesc')}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {new Intl.NumberFormat('sv-SE', {
-                style: 'currency',
-                currency: 'SEK'
-              }).format(totalBalance)}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('dashboard.unallocatedPool')}</CardTitle>
-            <CardDescription>
-              {t('dashboard.unallocatedPoolDesc')}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {new Intl.NumberFormat('sv-SE', {
-                style: 'currency',
-                currency: 'SEK'
-              }).format(unallocatedAmount)}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {overdraftedBudgets.length > 0 ? (
-        <Card className="border-destructive/40">
-          <CardHeader>
-            <CardTitle>{t('dashboard.overdraftedBudgetsTitle')}</CardTitle>
-            <CardDescription>
-              {t('dashboard.overdraftedBudgetsDesc')}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {overdraftedBudgets.map((budget) => (
-              <div
-                key={budget.id}
-                className="flex items-center justify-between rounded-md border p-3"
-              >
-                <div>
-                  <p className="font-medium">{budget.name}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {t('allocation.overdrafted')}
-                  </p>
-                </div>
-                <p className="font-semibold text-destructive">
-                  {new Intl.NumberFormat('sv-SE', {
-                    style: 'currency',
-                    currency: 'SEK'
-                  }).format(
-                    budget.overdraftAmount ||
-                      Math.abs(budget.remainingAmount ?? 0)
-                  )}
+    <PageLayout
+      title={t('nav.dashboard')}
+      description={t('dashboard.overviewSubtitle')}
+      quickActions={[
+        {
+          id: 'add-transaction',
+          label: t('dashboard.quickAddTransaction'),
+          icon: (
+            <Plus
+              className="size-4 stroke-[1.5]"
+              aria-hidden={true}
+            />
+          ),
+          onClick: noop
+        },
+        {
+          id: 'add-income',
+          label: t('dashboard.quickAddIncome'),
+          icon: (
+            <Plus
+              className="size-4 stroke-[1.5]"
+              aria-hidden={true}
+            />
+          ),
+          onClick: noop
+        },
+        {
+          id: 'add-bill',
+          label: t('dashboard.quickAddBill'),
+          icon: (
+            <Plus
+              className="size-4 stroke-[1.5]"
+              aria-hidden={true}
+            />
+          ),
+          onClick: noop
+        }
+      ]}
+      infoCards={[
+        {
+          id: 'net',
+          color: 'blue',
+          icon: (
+            <Scale
+              className="stroke-[1.5]"
+              aria-hidden={true}
+            />
+          ),
+          label: t('dashboard.net'),
+          value: formattedNet
+        },
+        {
+          id: 'expense',
+          color: 'red',
+          icon: (
+            <TrendingDown
+              className="stroke-[1.5]"
+              aria-hidden={true}
+            />
+          ),
+          label: t('dashboard.totalExpenses'),
+          value: formattedExpense
+        },
+        {
+          id: 'income',
+          color: 'green',
+          icon: (
+            <TrendingUp
+              className="stroke-[1.5]"
+              aria-hidden={true}
+            />
+          ),
+          label: t('dashboard.totalIncomes'),
+          value: formattedIncome
+        }
+      ]}
+    >
+      <div className="flex min-h-0 flex-1 flex-col">
+        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden">
+          <div className="flex shrink-0 flex-row items-start justify-between gap-4">
+            <div className="flex min-w-0 flex-1 flex-col gap-1">
+              <h2 className="type-body-medium text-black">
+                {t('dashboard.accountBalanceTitle')}
+              </h2>
+              {hasStaleHistory ? (
+                <p className="type-label text-gray-800">
+                  {t('dashboard.staleHistory')}
                 </p>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      ) : null}
-
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div className="space-y-1.5">
-            <CardTitle>{t('dashboard.balanceHistory')}</CardTitle>
-            <CardDescription>
-              {t('dashboard.balanceHistoryDesc')}
-            </CardDescription>
-            {hasStaleHistory ? (
-              <p className="text-xs text-muted-foreground">
-                {t('dashboard.staleHistory')}
-              </p>
-            ) : null}
+              ) : null}
+            </div>
+            <IconButton
+              variant="text"
+              color="subtle"
+              onClick={handleOpenSettings}
+              aria-label={t('dashboard.chartSettings')}
+              icon={
+                <SettingsIcon
+                  className="size-4 stroke-[1.5]"
+                  aria-hidden={true}
+                />
+              }
+            />
           </div>
-          <IconButton
-            variant="text"
-            color="subtle"
-            onClick={handleOpenSettings}
-            icon={<SettingsIcon />}
-          />
-        </CardHeader>
-        <CardContent>
-          <DashboardChart
-            data={chartData}
-            accounts={chartAccounts}
-          />
-        </CardContent>
-      </Card>
+          <div className="min-h-0 flex-1 overflow-hidden pb-4">
+            <DashboardChart
+              data={chartData}
+              accounts={chartAccounts}
+            />
+          </div>
+        </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {accounts.map((account) => (
-          <AccountSummaryCard
-            key={account.id}
-            account={account}
-            currentBalance={currentBalances.get(account.id)}
+        <hr className="-mx-4 my-0 h-px shrink-0 border-0 bg-gray-300" />
+
+        <div className="flex max-h-[35vh] shrink-0 flex-col overflow-y-auto pt-6 lg:flex-row lg:items-stretch lg:overflow-hidden">
+          <div className="flex w-full min-w-0 flex-col gap-6 lg:min-h-0 lg:w-0 lg:flex-1 lg:overflow-hidden lg:pr-6">
+            <div className="flex shrink-0 flex-wrap items-center justify-between gap-2">
+              <p className="min-w-0 flex-1">
+                <span className="type-body-medium text-black">
+                  {t('accounts.title')}
+                </span>
+                <span className="type-body-medium text-black">
+                  {t('common.sectionTitleSeparator')}
+                </span>
+                <span className="type-label text-gray-800">
+                  {t('dashboard.availableFundsInline')}{' '}
+                  {formatCurrency(totalAvailableFunds)}
+                </span>
+              </p>
+              <Button
+                variant="filled"
+                color="primary"
+                label={t('dashboard.createAccountCTA')}
+                icon={
+                  <Plus
+                    className="size-4 stroke-[1.5]"
+                    aria-hidden={true}
+                  />
+                }
+                onClick={noop}
+              />
+            </div>
+            <div className="overflow-x-auto lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
+              <Table>
+                <TableHeader className="sticky top-0 z-10 bg-white">
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead className="type-label h-auto py-2 pr-2 pl-0 text-gray-800">
+                      {t('dashboard.accountNameColumn')}
+                    </TableHead>
+                    <TableHead className="type-label h-auto py-2 pr-2 pl-0 text-gray-800">
+                      {t('accounts.externalId')}
+                    </TableHead>
+                    <TableHead className="type-label h-auto py-2 pr-2 pl-0 text-gray-800">
+                      {t('dashboard.balanceColumn')}
+                    </TableHead>
+                    <TableHead className="type-label h-auto w-10 py-2 pr-0 pl-0 text-end text-gray-800">
+                      <span className="sr-only">{t('common.more')}</span>
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {accounts.map((account) => (
+                    <TableRow key={account.id}>
+                      <TableCell className="type-body-medium py-2 pr-2 pl-0 text-black">
+                        {account.name}
+                      </TableCell>
+                      <TableCell className="type-body-medium py-2 pr-2 pl-0 text-black">
+                        {account.externalIdentifier ?? '—'}
+                      </TableCell>
+                      <TableCell className="type-body-medium py-2 pr-2 pl-0 text-black">
+                        {formatCurrency(currentBalances.get(account.id) ?? 0)}
+                      </TableCell>
+                      <TableCell className="py-2 pr-0 pl-0 text-end">
+                        <IconButton
+                          variant="text"
+                          color="subtle"
+                          aria-label={t('common.more')}
+                          onClick={noop}
+                          icon={
+                            <EllipsisVerticalIcon
+                              className="size-4 stroke-[1.5]"
+                              aria-hidden={true}
+                            />
+                          }
+                        />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+
+          <hr className="h-px w-full shrink-0 border-0 bg-gray-300 lg:hidden" />
+
+          <div
+            className="hidden w-px shrink-0 self-stretch bg-gray-300 lg:block"
+            aria-hidden={true}
           />
-        ))}
+
+          <div className="flex w-full min-w-0 flex-col gap-6 lg:min-h-0 lg:w-0 lg:flex-1 lg:overflow-hidden lg:pl-6">
+            <div className="flex shrink-0 flex-wrap items-center justify-between gap-2">
+              <p className="min-w-0 flex-1">
+                <span className="type-body-medium text-black">
+                  {t('nav.budgets')}
+                </span>
+                <span className="type-body-medium text-black">
+                  {t('common.sectionTitleSeparator')}
+                </span>
+                <span className="type-label text-gray-800">
+                  {t('dashboard.unbudgetedInline')}{' '}
+                  {formatCurrency(unallocatedAmount)}
+                </span>
+              </p>
+              <Button
+                variant="filled"
+                color="primary"
+                label={t('dashboard.createBudgetCTA')}
+                icon={
+                  <Plus
+                    className="size-4 stroke-[1.5]"
+                    aria-hidden={true}
+                  />
+                }
+                onClick={noop}
+              />
+            </div>
+            <ul className="flex flex-col gap-6 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
+              {budgets.map((budget) => {
+                const allocated = budget.allocatedAmount ?? 0
+                const remaining = budget.remainingAmount ?? 0
+                const spent = budget.spentAmount ?? 0
+                const pct =
+                  allocated > 0 ? Math.min((spent / allocated) * 100, 100) : 0
+                const tone = budgetProgressTone(budget)
+                return (
+                  <li
+                    key={budget.id}
+                    className="flex flex-col gap-2"
+                  >
+                    <div className="flex flex-row items-start justify-between gap-2">
+                      <span className="type-body-medium text-black">
+                        {budget.name}
+                      </span>
+                      <IconButton
+                        variant="text"
+                        color="subtle"
+                        aria-label={t('common.more')}
+                        onClick={noop}
+                        icon={
+                          <EllipsisVerticalIcon
+                            className="size-4 stroke-[1.5]"
+                            aria-hidden={true}
+                          />
+                        }
+                      />
+                    </div>
+                    <Progress
+                      value={pct}
+                      className={budgetProgressClass(tone)}
+                    />
+                    <p className="type-label text-gray-800">
+                      {t('dashboard.budgetRemainingStatus', {
+                        remaining: formatCurrency(remaining),
+                        allocated: formatCurrency(allocated)
+                      })}
+                    </p>
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
+        </div>
       </div>
-    </div>
+    </PageLayout>
   )
 }

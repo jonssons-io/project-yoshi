@@ -276,136 +276,141 @@ function CategoriesPage() {
     categories?.filter((c) => c.types.includes('EXPENSE')).length ?? 0
 
   return (
-    <div className="space-y-6">
-      {/* Toolbar */}
-      <div className="flex items-center justify-end gap-2">
-        <div className="flex gap-2">
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+      <div className="min-h-0 flex-1 space-y-6 overflow-auto px-4 pt-6 pb-6">
+        {/* Toolbar */}
+        <div className="flex items-center justify-end gap-2">
+          <div className="flex gap-2">
+            <Button
+              variant={filter === 'ALL' ? 'filled' : 'outlined'}
+              color={filter === 'ALL' ? 'primary' : 'subtle'}
+              onClick={() => setFilter('ALL')}
+              label={`${t('categories.all')} (${categories?.length ?? 0})`}
+            />
+            <Button
+              variant={filter === 'INCOME' ? 'filled' : 'outlined'}
+              color={filter === 'INCOME' ? 'primary' : 'subtle'}
+              onClick={() => setFilter('INCOME')}
+              label={`${t('categories.income')} (${incomeCount})`}
+            />
+            <Button
+              variant={filter === 'EXPENSE' ? 'filled' : 'outlined'}
+              color={filter === 'EXPENSE' ? 'primary' : 'subtle'}
+              onClick={() => setFilter('EXPENSE')}
+              label={`${t('categories.expense')} (${expenseCount})`}
+            />
+          </div>
+
           <Button
-            variant={filter === 'ALL' ? 'filled' : 'outlined'}
-            color={filter === 'ALL' ? 'primary' : 'subtle'}
-            onClick={() => setFilter('ALL')}
-            label={`${t('categories.all')} (${categories?.length ?? 0})`}
-          />
-          <Button
-            variant={filter === 'INCOME' ? 'filled' : 'outlined'}
-            color={filter === 'INCOME' ? 'primary' : 'subtle'}
-            onClick={() => setFilter('INCOME')}
-            label={`${t('categories.income')} (${incomeCount})`}
-          />
-          <Button
-            variant={filter === 'EXPENSE' ? 'filled' : 'outlined'}
-            color={filter === 'EXPENSE' ? 'primary' : 'subtle'}
-            onClick={() => setFilter('EXPENSE')}
-            label={`${t('categories.expense')} (${expenseCount})`}
+            onClick={handleCreate}
+            icon={<PlusIcon />}
+            label={t('categories.add')}
           />
         </div>
 
-        <Button
-          onClick={handleCreate}
-          icon={<PlusIcon />}
-          label={t('categories.add')}
-        />
-      </div>
-
-      {categories?.length === 0 ? (
-        <SetupPrompt
-          variant="no-category"
-          onAction={handleCreate}
-        />
-      ) : (
-        <Card>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{t('common.name')}</TableHead>
-                <TableHead>{t('categories.type')}</TableHead>
-                <TableHead>{t('categories.transactions')}</TableHead>
-                <TableHead className="text-right">
-                  {t('common.actions')}
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {categories?.map((category) => (
-                <TableRow
-                  key={category.id}
-                  className={category.archived ? 'opacity-50 bg-muted/50' : ''}
-                >
-                  <TableCell className="font-medium">
-                    {category.name}
-                    {category.archived && (
-                      <Badge
-                        variant="secondary"
-                        className="ml-2"
-                      >
-                        {t('common.archived')}
-                      </Badge>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline">
-                      {category.types
-                        .map(
-                          (t) =>
-                            t.charAt(0).toUpperCase() + t.slice(1).toLowerCase()
-                        )
-                        .join(' & ')}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{category._count?.transactions ?? 0}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <IconButton
-                        variant="text"
-                        color="subtle"
-                        icon={<PencilIcon />}
-                        onClick={() => setEditingCategoryId(category.id)}
-                      />
-                      <IconButton
-                        variant="text"
-                        color="subtle"
-                        icon={
-                          category.archived ? (
-                            <ArchiveRestoreIcon className="h-4 w-4" />
-                          ) : (
-                            <ArchiveIcon className="h-4 w-4" />
-                          )
-                        }
-                        onClick={() =>
-                          archiveCategory({
-                            id: category.id,
-                            archived: !category.archived,
-                            userId
-                          })
-                        }
-                        title={
-                          category.archived
-                            ? t('common.unarchive')
-                            : t('common.archive')
-                        }
-                      />
-                      <BaseButton
-                        variant="text"
-                        color="subtle"
-                        iconOnly
-                        className={
-                          (category._count?.transactions ?? 0) > 0
-                            ? 'opacity-50'
-                            : undefined
-                        }
-                        onClick={() => handleDeleteCategory(category)}
-                        title={t('common.delete')}
-                      >
-                        <TrashIcon className="h-4 w-4" />
-                      </BaseButton>
-                    </div>
-                  </TableCell>
+        {categories?.length === 0 ? (
+          <SetupPrompt
+            variant="no-category"
+            onAction={handleCreate}
+          />
+        ) : (
+          <Card>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t('common.name')}</TableHead>
+                  <TableHead>{t('categories.type')}</TableHead>
+                  <TableHead>{t('categories.transactions')}</TableHead>
+                  <TableHead className="text-right">
+                    {t('common.actions')}
+                  </TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </Card>
-      )}
+              </TableHeader>
+              <TableBody>
+                {categories?.map((category) => (
+                  <TableRow
+                    key={category.id}
+                    className={
+                      category.archived ? 'opacity-50 bg-muted/50' : ''
+                    }
+                  >
+                    <TableCell className="font-medium">
+                      {category.name}
+                      {category.archived && (
+                        <Badge
+                          variant="secondary"
+                          className="ml-2"
+                        >
+                          {t('common.archived')}
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline">
+                        {category.types
+                          .map(
+                            (t) =>
+                              t.charAt(0).toUpperCase() +
+                              t.slice(1).toLowerCase()
+                          )
+                          .join(' & ')}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{category._count?.transactions ?? 0}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <IconButton
+                          variant="text"
+                          color="subtle"
+                          icon={<PencilIcon />}
+                          onClick={() => setEditingCategoryId(category.id)}
+                        />
+                        <IconButton
+                          variant="text"
+                          color="subtle"
+                          icon={
+                            category.archived ? (
+                              <ArchiveRestoreIcon className="h-4 w-4" />
+                            ) : (
+                              <ArchiveIcon className="h-4 w-4" />
+                            )
+                          }
+                          onClick={() =>
+                            archiveCategory({
+                              id: category.id,
+                              archived: !category.archived,
+                              userId
+                            })
+                          }
+                          title={
+                            category.archived
+                              ? t('common.unarchive')
+                              : t('common.archive')
+                          }
+                        />
+                        <BaseButton
+                          variant="text"
+                          color="subtle"
+                          iconOnly
+                          className={
+                            (category._count?.transactions ?? 0) > 0
+                              ? 'opacity-50'
+                              : undefined
+                          }
+                          onClick={() => handleDeleteCategory(category)}
+                          title={t('common.delete')}
+                        >
+                          <TrashIcon className="h-4 w-4" />
+                        </BaseButton>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Card>
+        )}
+      </div>
       {confirmDialog}
     </div>
   )

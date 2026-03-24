@@ -67,7 +67,7 @@ export function DashboardChart({ data, accounts }: DashboardChartProps) {
 
   if (!data || data.length === 0) {
     return (
-      <div className="flex h-75 w-full items-center justify-center text-muted-foreground border rounded-lg bg-card/50">
+      <div className="flex h-full min-h-40 w-full items-center justify-center rounded-lg border border-gray-200 bg-gray-50 text-muted-foreground">
         {t('common.noDataForSelectedPeriod')}
       </div>
     )
@@ -76,7 +76,7 @@ export function DashboardChart({ data, accounts }: DashboardChartProps) {
   return (
     <ChartContainer
       config={chartConfig}
-      className="min-h-75 w-full"
+      className="aspect-auto h-full min-h-40 w-full max-h-full"
     >
       <LineChart
         data={data}

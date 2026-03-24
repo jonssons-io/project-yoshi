@@ -43,24 +43,18 @@ export function PageLayout({
   const hasInfoCards = Boolean(infoCards?.length)
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-6">
-      <div className="px-4 pt-6">
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="px-4 pt-6 pb-6">
         <div className="flex min-h-0 flex-row items-stretch justify-between gap-4">
-          <div className="flex min-w-0 flex-1 flex-col">
-            <div className="flex flex-col gap-3">
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-4">
+            <div className="flex shrink-0 flex-col gap-3">
               <h1 className="type-title-large text-black">{title}</h1>
               <div className="type-body-medium text-gray-800">
                 {description}
               </div>
             </div>
             {hasQuickActions ? (
-              <>
-                {hasInfoCards ? (
-                  <div
-                    className="min-h-0 flex-1"
-                    aria-hidden={true}
-                  />
-                ) : null}
+              <div className="flex min-h-0 flex-1 flex-col justify-end">
                 <div className="flex flex-wrap gap-2">
                   {(quickActions ?? []).map((action) => (
                     <Button
@@ -73,7 +67,7 @@ export function PageLayout({
                     />
                   ))}
                 </div>
-              </>
+              </div>
             ) : null}
           </div>
           {hasInfoCards ? (
@@ -92,7 +86,9 @@ export function PageLayout({
         </div>
       </div>
       {tabs}
-      <div className="min-h-0 flex-1 px-4 pb-6">{children}</div>
+      <div className="flex min-h-0 flex-1 flex-col border-t border-gray-300 px-4 pt-6 pb-6">
+        {children}
+      </div>
     </div>
   )
 }

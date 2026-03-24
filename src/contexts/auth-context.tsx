@@ -46,27 +46,35 @@ export function AuthProvider({ children }: AuthProviderProps) {
   let content = children
   if (isHouseholdsLoading) {
     content = (
-      <div className="flex items-center justify-center">
+      <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto px-4 pt-6 pb-6">
         <p className="text-muted-foreground">{t('common.loading')}</p>
       </div>
     )
   } else if (!households || households.length === 0) {
-    content = <SetupPrompt variant="no-household" />
+    content = (
+      <div className="flex min-h-0 flex-1 overflow-auto px-4 pt-6 pb-6">
+        <SetupPrompt variant="no-household" />
+      </div>
+    )
   } else if (!selectedHouseholdId) {
     // Keep provider mounted while selection resolves during client navigation.
     content = (
-      <div className="flex items-center justify-center">
+      <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto px-4 pt-6 pb-6">
         <p className="text-muted-foreground">{t('common.loading')}</p>
       </div>
     )
   } else if (accountsLoading) {
     content = (
-      <div className="flex items-center justify-center">
+      <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto px-4 pt-6 pb-6">
         <p className="text-muted-foreground">{t('common.loading')}</p>
       </div>
     )
   } else if (!accounts || accounts.length === 0) {
-    content = <SetupPrompt variant="no-account" />
+    content = (
+      <div className="flex min-h-0 flex-1 overflow-auto px-4 pt-6 pb-6">
+        <SetupPrompt variant="no-account" />
+      </div>
+    )
   }
 
   return (
@@ -77,7 +85,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setSelectedHousehold
       }}
     >
-      {content}
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        {content}
+      </div>
     </AuthContext.Provider>
   )
 }

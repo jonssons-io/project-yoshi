@@ -535,17 +535,19 @@ function BillsPage() {
 
   if (billsQuery.isLoading) {
     return (
-      <div className="text-center py-8 text-muted-foreground">
-        {t('common.loading')}
+      <div className="px-4 pt-6 pb-6 text-center text-muted-foreground">
+        <div className="py-8">{t('common.loading')}</div>
       </div>
     )
   }
   if (billsQuery.data?.length === 0) {
     return (
-      <SetupPrompt
-        variant="no-bills"
-        onAction={handleCreate}
-      />
+      <div className="px-4 pt-6 pb-6">
+        <SetupPrompt
+          variant="no-bills"
+          onAction={handleCreate}
+        />
+      </div>
     )
   }
 
@@ -717,8 +719,8 @@ function BillsPage() {
   }
 
   return (
-    <>
-      <div className="space-y-6">
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+      <div className="min-h-0 flex-1 space-y-6 overflow-auto px-4 pt-6 pb-6">
         {/* Toolbar */}
         <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-end">
           <Select
@@ -949,6 +951,6 @@ function BillsPage() {
         </Card>
       </div>
       {confirmDialog}
-    </>
+    </div>
   )
 }

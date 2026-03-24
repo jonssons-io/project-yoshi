@@ -81,29 +81,43 @@ function Dashboard() {
       allocationSummaryLoading)
   ) {
     return (
-      <div className="flex items-center justify-center">
+      <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto px-4 pt-6 pb-6">
         <p className="text-muted-foreground">{t('common.loading')}</p>
       </div>
     )
   }
 
   if (!householdId) {
-    return <SetupPrompt variant="no-household" />
+    return (
+      <div className="flex min-h-0 flex-1 overflow-auto px-4 pt-6 pb-6">
+        <SetupPrompt variant="no-household" />
+      </div>
+    )
   }
 
   if (dashboardAccounts.length === 0) {
-    return <SetupPrompt variant="no-account" />
+    return (
+      <div className="flex min-h-0 flex-1 overflow-auto px-4 pt-6 pb-6">
+        <SetupPrompt variant="no-account" />
+      </div>
+    )
   }
 
   if (!(budgets?.length ?? 0)) {
-    return <SetupPrompt variant="no-budget" />
+    return (
+      <div className="flex min-h-0 flex-1 overflow-auto px-4 pt-6 pb-6">
+        <SetupPrompt variant="no-budget" />
+      </div>
+    )
   }
 
   return (
-    <DashboardContent
-      accounts={dashboardAccounts}
-      budgets={budgets ?? []}
-      unallocatedAmount={allocationSummary?.unallocated ?? 0}
-    />
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+      <DashboardContent
+        accounts={dashboardAccounts}
+        budgets={budgets ?? []}
+        unallocatedAmount={allocationSummary?.unallocated ?? 0}
+      />
+    </div>
   )
 }

@@ -342,7 +342,7 @@ function TransactionsPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center">
+      <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto px-4 pt-6 pb-6">
         <p className="text-muted-foreground">{t('common.loading')}</p>
       </div>
     )
@@ -409,8 +409,8 @@ function TransactionsPage() {
   const transferFilterLabel = `${t('common.transfer')} (${transferTransactions?.length ?? 0})`
 
   return (
-    <>
-      <div className="space-y-6">
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+      <div className="min-h-0 flex-1 space-y-6 overflow-auto px-4 pt-6 pb-6">
         {/* Toolbar */}
         <div className="flex items-center justify-end gap-2">
           <CreateTransactionButton
@@ -765,6 +765,6 @@ function TransactionsPage() {
         )}
       </div>
       {confirmDialog}
-    </>
+    </div>
   )
 }
