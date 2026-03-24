@@ -8,7 +8,6 @@ import {
 } from 'lucide-react'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { TransactionType } from '@/api/generated/types.gen'
 import { DashboardMultiSeriesLineChart } from '@/charts/dashboard-multi-series-line-chart/dashboard-multi-series-line-chart'
 import { Button } from '@/components/button/button'
 import { IconButton } from '@/components/icon-button/icon-button'
@@ -24,7 +23,10 @@ import {
 } from '@/components/table/table'
 import { useAuth } from '@/contexts/auth-context'
 import { useDrawer } from '@/drawers'
-import { useMultiAccountBalanceHistory, useTransactionsList } from '@/hooks/api'
+import {
+  useHouseholdPeriodSummary,
+  useMultiAccountBalanceHistory
+} from '@/hooks/api'
 import {
   generateChartDataFromSnapshots,
   getDateRange
@@ -96,31 +98,16 @@ export function DashboardContent({
     customEndDate
   )
 
-  const { data: periodTransactions } = useTransactionsList({
+  const { data: periodSummary } = useHouseholdPeriodSummary({
     householdId,
-    userId,
     dateFrom: startDate,
     dateTo: endDate,
     enabled: Boolean(householdId)
   })
 
-  const { totalIncome, totalExpense } = useMemo(() => {
-    let income = 0
-    let expense = 0
-    for (const tx of periodTransactions ?? []) {
-      if (tx.type === TransactionType.TRANSFER) continue
-      if (tx.type === TransactionType.INCOME) income += tx.amount
-      else if (tx.type === TransactionType.EXPENSE) expense += tx.amount
-    }
-    return {
-      totalIncome: income,
-      totalExpense: expense
-    }
-  }, [
-    periodTransactions
-  ])
-
-  const netPeriod = totalIncome - totalExpense
+  const totalIncome = periodSummary?.totalIncome ?? 0
+  const totalExpense = periodSummary?.totalExpense ?? 0
+  const netPeriod = periodSummary?.net ?? totalIncome - totalExpense
 
   const chartAccounts = useMemo(
     () => accounts.filter((account) => selectedAccountIds.includes(account.id)),

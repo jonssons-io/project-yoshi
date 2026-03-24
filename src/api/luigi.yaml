@@ -32,6 +32,11 @@ info:
     ## Pagination
     List endpoints support optional `limit` and `offset` (default 0) query parameters. If `limit` is **omitted**, the full dataset is returned. If provided, `limit` must be between 0 and 100: use `limit=0` to fetch only the total count in the pagination metadata; use 1–100 to cap the number of items. Responses include pagination metadata.
 
+    ## Dates and timestamps
+    - **Dates** (`format: date`, `YYYY-MM-DD`) are plain calendar dates. Where a range must cover full UTC days, the server expands them to inclusive UTC bounds (`00:00:00.000Z` on the start date through `23:59:59.999Z` on the end date) unless an operation documents otherwise.
+    - **Timestamps** (`format: date-time`) must be ISO 8601 instants in **UTC** with a **`Z`** suffix (for example `2024-06-01T12:00:00.000Z`). Numeric offsets such as `+00:00` are not accepted on input.
+    - **Responses** serialize timestamps with a `Z` suffix and three fractional digits.
+
     ## Empty List Behavior
     List endpoints always return `200` with an empty `data` array when no matches are found. `404` is reserved for missing parent resources (for example, an unknown `householdId` or `budgetId`).
   version: 1.0.0
@@ -155,11 +160,11 @@ components:
                 lastName:
                   type: [string, "null"]
                 fullName:
-                  type: string
+                  type: [string, "null"]
                 imageUrl:
-                  type: string
+                  type: [string, "null"]
                 email:
-                  type: string
+                  type: [string, "null"]
 
     Account:
       type: object
@@ -560,6 +565,8 @@ components:
           format: double
         subtitle:
           type: string
+        categoryName:
+          type: [string, "null"]
         category:
           $ref: '#/components/schemas/Category'
       required: [id, categoryId, amount, subtitle]
@@ -723,6 +730,33 @@ components:
           type: number
           format: double
       required: [totalFunds, totalAllocated, unallocated]
+
+    HouseholdPeriodSummary:
+      type: object
+      description: |
+        Aggregated INCOME and EXPENSE totals for a household over inclusive UTC calendar dates.
+        TRANSFER transactions are excluded. Both PENDING and EFFECTIVE transactions are included when
+        their transaction date falls within the range. Amounts are sums of stored transaction values only
+        (not account initial balances).
+      properties:
+        householdId:
+          type: string
+        dateFrom:
+          type: string
+          format: date
+        dateTo:
+          type: string
+          format: date
+        totalIncome:
+          type: number
+          format: double
+        totalExpense:
+          type: number
+          format: double
+        net:
+          type: number
+          format: double
+      required: [householdId, dateFrom, dateTo, totalIncome, totalExpense, net]
 
     SuccessResponse:
       type: object
@@ -1063,6 +1097,9 @@ components:
             properties:
               categoryId:
                 type: string
+              newCategoryName:
+                type: string
+                minLength: 1
               budgetId:
                 type: string
               amount:
@@ -1071,7 +1108,7 @@ components:
                 exclusiveMinimum: 0
               subtitle:
                 type: string
-            required: [categoryId, amount, subtitle]
+            required: [amount, subtitle]
       required: [accountId, name, amount, date]
     UpdateTransactionRequest:
       type: object
@@ -1109,6 +1146,9 @@ components:
             properties:
               categoryId:
                 type: string
+              newCategoryName:
+                type: string
+                minLength: 1
               budgetId:
                 type: string
               amount:
@@ -1117,7 +1157,7 @@ components:
                 exclusiveMinimum: 0
               subtitle:
                 type: string
-            required: [categoryId, amount, subtitle]
+            required: [amount, subtitle]
     CloneTransactionRequest:
       type: object
       properties:
@@ -2368,6 +2408,47 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UnallocatedFunds'
+
+  /households/{householdId}/dashboard/period-summary:
+    parameters:
+      - $ref: '#/components/parameters/householdId'
+    get:
+      operationId: getHouseholdPeriodSummary
+      summary: Income and expense totals for a household date range
+      description: |
+        Returns **totalIncome** (sum of INCOME), **totalExpense** (sum of EXPENSE), and **net** (totalIncome − totalExpense)
+        for transactions whose **date** falls in the inclusive UTC range from **dateFrom** through **dateTo** (calendar dates).
+        TRANSFER rows are excluded; PENDING and EFFECTIVE rows are included.
+      tags: [Households]
+      parameters:
+        - name: dateFrom
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: dateTo
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Period totals for the household
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HouseholdPeriodSummary'
+        '404':
+          description: Household not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
 
   # ─────────────────────────
   # TRANSACTIONS

@@ -7,7 +7,13 @@ export const splitRowSchema = z.object({
   subtitle: z.string(),
   amount: z.number().positive('validation.positive'),
   budgetId: z.string().min(1, 'validation.required'),
-  category: z.string().min(1, 'validation.categoryRequired')
+  category: z.union([
+    z.string().min(1),
+    z.object({
+      isNew: z.literal(true),
+      name: z.string().min(1)
+    })
+  ])
 })
 
 export const drawerFormSchema = z

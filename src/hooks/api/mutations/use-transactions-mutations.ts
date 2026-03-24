@@ -68,6 +68,7 @@ export function useCreateTransaction(
     },
     onSuccess: (data, variables) => {
       invalidateByOperation(queryClient, 'listTransactions')
+      invalidateByOperation(queryClient, 'getHouseholdPeriodSummary')
       invalidateByOperation(queryClient, 'listBudgets')
       invalidateByOperation(queryClient, 'getUnallocatedFunds')
       invalidateByOperation(queryClient, 'listAccounts')
@@ -114,6 +115,7 @@ export function useUpdateTransaction(
     },
     onSuccess: (data, variables) => {
       invalidateByOperation(queryClient, 'listTransactions')
+      invalidateByOperation(queryClient, 'getHouseholdPeriodSummary')
       invalidateByOperation(queryClient, 'listBudgets')
       invalidateByOperation(queryClient, 'getUnallocatedFunds')
       invalidateByOperation(queryClient, 'listAccounts')
@@ -158,6 +160,7 @@ export function useDeleteTransaction(
       })(),
     onSuccess: (data, variables) => {
       invalidateByOperation(queryClient, 'listTransactions')
+      invalidateByOperation(queryClient, 'getHouseholdPeriodSummary')
       invalidateByOperation(queryClient, 'listBudgets')
       invalidateByOperation(queryClient, 'getUnallocatedFunds')
       invalidateByOperation(queryClient, 'listAccounts')
@@ -196,6 +199,7 @@ export function useCloneTransaction(
       })(),
     onSuccess: (data, variables) => {
       invalidateByOperation(queryClient, 'listTransactions')
+      invalidateByOperation(queryClient, 'getHouseholdPeriodSummary')
       invalidateByOperation(queryClient, 'listBudgets')
       invalidateByOperation(queryClient, 'getUnallocatedFunds')
       invalidateByOperation(queryClient, 'listAccounts')
