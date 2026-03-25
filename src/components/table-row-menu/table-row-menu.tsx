@@ -1,11 +1,11 @@
-import { EllipsisVerticalIcon } from 'lucide-react'
-import type { ReactNode } from 'react'
+import { Fragment, type ReactNode } from 'react'
 
-import { IconButton } from '@/components/icon-button/icon-button'
+import { MoreMenuButton } from '@/components/more-menu-button/more-menu-button'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils'
@@ -16,6 +16,8 @@ export type TableRowMenuItem = {
   icon?: ReactNode
   onSelect: () => void
   destructive?: boolean
+  /** When true, a separator is rendered above this item */
+  separatorBefore?: boolean
 }
 
 export type TableRowMenuProps = {
@@ -33,32 +35,29 @@ export function TableRowMenu({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <IconButton
-          type="button"
-          variant="text"
-          color="subtle"
-          icon={<EllipsisVerticalIcon />}
-          onClick={() => void 0}
-          aria-label={ariaLabel}
-        />
+        <MoreMenuButton aria-label={ariaLabel} />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         {items.map((item) => (
-          <DropdownMenuItem
-            key={item.id}
-            onSelect={() => item.onSelect()}
-            className={cn(
-              'flex cursor-pointer flex-row items-center gap-2',
-              item.destructive ? 'text-red-600 focus:text-red-600' : undefined
-            )}
-          >
-            {item.icon ? (
-              <span className="inline-flex shrink-0 [&_svg]:size-4">
-                {item.icon}
-              </span>
-            ) : null}
-            <span>{item.label}</span>
-          </DropdownMenuItem>
+          <Fragment key={item.id}>
+            {item.separatorBefore ? <DropdownMenuSeparator /> : null}
+            <DropdownMenuItem
+              onSelect={() => item.onSelect()}
+              className={cn(
+                'flex cursor-pointer flex-row items-center gap-2',
+                item.destructive
+                  ? 'text-red-600 focus:text-red-600 [&_svg]:text-red-600'
+                  : undefined
+              )}
+            >
+              {item.icon ? (
+                <span className="inline-flex shrink-0 [&_svg]:size-4">
+                  {item.icon}
+                </span>
+              ) : null}
+              <span>{item.label}</span>
+            </DropdownMenuItem>
+          </Fragment>
         ))}
       </DropdownMenuContent>
     </DropdownMenu>
