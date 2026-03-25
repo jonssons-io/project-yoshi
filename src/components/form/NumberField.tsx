@@ -78,9 +78,7 @@ export function NumberField({
   const displayValue =
     raw === undefined || raw === null || Number.isNaN(raw)
       ? ''
-      : raw === 0
-        ? ''
-        : formatDisplayValue(raw)
+      : formatDisplayValue(raw)
 
   const clamp = (n: number): number => {
     let v = roundToTwoDecimals(n)
