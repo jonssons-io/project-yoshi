@@ -1,7 +1,7 @@
 import { useClerk, useUser } from '@clerk/clerk-react'
 import { useAuth } from '@clerk/tanstack-react-start'
 import { auth } from '@clerk/tanstack-react-start/server'
-import { createFileRoute, Outlet, redirect } from '@tanstack/react-router'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -14,8 +14,9 @@ import {
 } from '@/components/ui/sidebar'
 import { AuthProvider } from '@/contexts/auth-context'
 import { HouseholdProvider } from '@/contexts/household-context'
-import { DrawerProvider } from '@/drawers'
 import { useSelectedHousehold } from '@/hooks/use-selected-household'
+
+import { AuthenticatedOutlet } from './_authenticated/authenticated-outlet'
 
 const authStateFn = createServerFn().handler(async () => {
   const { userId } = await auth()
@@ -63,7 +64,7 @@ function AuthenticatedLayoutContent() {
 
   if (!isLoaded) {
     return (
-      <div className="flex min-h-[60vh] items-center justify-center">
+      <div className="flex flex-col items-center justify-center w-full h-full">
         <p className="text-muted-foreground">{t('common.loading')}</p>
       </div>
     )
@@ -99,33 +100,29 @@ function AuthenticatedLayoutContent() {
         isHouseholdsLoading
       }}
     >
-      <AuthProvider>
-        <SidebarProvider>
-          <SidebarTrigger className="fixed top-4 left-4 z-50" />
-          <AppSidebar
-            user={{
-              imageUrl: user.imageUrl,
-              fullName: user.fullName,
-              firstName: user.firstName,
-              email: user.primaryEmailAddress?.emailAddress
-            }}
-            households={households}
-            selectedHouseholdId={selectedHouseholdId}
-            onSelectHousehold={setSelectedHousehold}
-            onCreateHousehold={handleCreateHousehold}
-            onEditHousehold={handleEditHousehold}
-            onShowInvitations={handleShowInvitations}
-            onSignOut={handleSignOut}
-          />
-          <SidebarInset>
-            <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-              <DrawerProvider>
-                <Outlet />
-              </DrawerProvider>
-            </div>
-          </SidebarInset>
-        </SidebarProvider>
-      </AuthProvider>
+      <SidebarProvider>
+        <SidebarTrigger className="fixed top-4 left-4 z-50" />
+        <AppSidebar
+          user={{
+            imageUrl: user.imageUrl,
+            fullName: user.fullName,
+            firstName: user.firstName,
+            email: user.primaryEmailAddress?.emailAddress
+          }}
+          households={households}
+          selectedHouseholdId={selectedHouseholdId}
+          onSelectHousehold={setSelectedHousehold}
+          onCreateHousehold={handleCreateHousehold}
+          onEditHousehold={handleEditHousehold}
+          onShowInvitations={handleShowInvitations}
+          onSignOut={handleSignOut}
+        />
+        <SidebarInset>
+          <AuthProvider>
+            <AuthenticatedOutlet />
+          </AuthProvider>
+        </SidebarInset>
+      </SidebarProvider>
     </HouseholdProvider>
   )
 }

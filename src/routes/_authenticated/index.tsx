@@ -5,6 +5,7 @@ import { PageLayout } from '@/components/page-layout/page-layout'
 import { useAuth } from '@/contexts/auth-context'
 import { useDrawer } from '@/drawers'
 import { NoData } from '@/features/no-data/no-data'
+import { NoHouseholdOnboarding } from '@/features/no-data/no-household-onboarding'
 import {
   useAccountBalancesList,
   useAccountsList,
@@ -126,15 +127,23 @@ function Dashboard() {
   }
 
   if (!householdId) {
-    return withDashboardChrome(<NoData variant="no-household" />)
-  }
-
-  if (dashboardAccounts.length === 0) {
-    return withDashboardChrome(<NoData variant="no-account" />)
+    return withDashboardChrome(
+      <div className="flex min-h-0 flex-1 flex-col items-center justify-center">
+        <NoHouseholdOnboarding />
+      </div>
+    )
   }
 
   if (!(budgets?.length ?? 0)) {
-    return withDashboardChrome(<NoData variant="no-budget" />)
+    return withDashboardChrome(
+      <NoData
+        variant="no-budget"
+        illustrationSize="lg"
+        onAction={() => {
+          openDrawer('createBudget', {})
+        }}
+      />
+    )
   }
 
   return (

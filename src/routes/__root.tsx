@@ -61,11 +61,14 @@ function RootDocument({ children }: { children: React.ReactNode }) {
   const context = Route.useRouteContext()
 
   return (
-    <html lang="sv">
+    <html
+      lang="sv"
+      className="h-full w-full overflow-hidden"
+    >
       <head>
         <HeadContent />
       </head>
-      <body>
+      <body className="flex h-full w-full overflow-hidden">
         <MockProvider>
           <QueryClientProvider client={context.queryClient}>
             <ClerkProvider

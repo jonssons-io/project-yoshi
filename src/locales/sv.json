@@ -444,10 +444,10 @@
   },
   "setup": {
     "noHouseholdTitle": "Välkommen till Yoshi!",
-    "noHouseholdDescription": "Skapa ett hushåll för att komma igång.",
+    "noHouseholdDescription": "Här får du hjälp med att bygga en hållbar, långsiktig, och förutsägbar ekonomi. Fyll i ett namn för ditt nya hushåll, och klicka på skapa hushåll för att komma igång.",
     "noHouseholdButton": "Skapa hushåll",
     "noBudgetTitle": "Dags att skapa en budget",
-    "noBudgetDescription": "Skapa ditt första budgetkuvert när dina konton är på plats.",
+    "noBudgetDescription": "Nu när ditt första konto är på plats så behöver du skapa en budget. En budget ser till att du inte spenderar mer än vad du har tänkt.",
     "noBudgetButton": "Skapa budget",
     "noAccountTitle": "Lägg till ditt första konto",
     "noAccountDescription": "Lägg till ett konto först så att hushållet kan börja registrera transaktioner.",
