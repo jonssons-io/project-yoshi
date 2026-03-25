@@ -8,13 +8,9 @@ import { z } from 'zod'
 import { useAppForm } from '@/hooks/form'
 import { createZodValidator, safeValidateForm } from '@/lib/form-validation'
 
-const budgetSchema = z.object({
-  name: z.string().min(1, {
-    message: 'validation.budgetNameRequired'
-  })
-})
-
-type BudgetFormData = z.infer<typeof budgetSchema>
+type BudgetFormData = {
+  name: string
+}
 
 export interface BudgetFormProps {
   defaultValues?: Partial<BudgetFormData>
@@ -33,6 +29,11 @@ export function BudgetForm({
 }: BudgetFormProps) {
   const { t } = useTranslation()
   const effectiveSubmitLabel = submitLabel ?? t('common.save')
+  const budgetSchema = z.object({
+    name: z.string().min(1, {
+      message: t('validation.budgetNameRequired')
+    })
+  })
 
   const form = useAppForm({
     defaultValues: {

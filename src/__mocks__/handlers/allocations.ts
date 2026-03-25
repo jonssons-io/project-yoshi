@@ -50,13 +50,14 @@ export const allocationHandlers = [
             amount: number
           }>
         >(request)
+      const timestamp = nowIso()
       const allocation = {
         id: nextId('alloc'),
         budgetId: String(params.budgetId),
         categoryId: body.categoryId ?? categories[0]?.id ?? 'cat_1',
         amount: body.amount ?? 0,
-        date: nowIso().slice(0, 10),
-        createdAt: nowIso()
+        date: timestamp,
+        createdAt: timestamp
       }
       allocations.push(allocation)
       return HttpResponse.json(allocation, {
@@ -109,20 +110,23 @@ export const allocationHandlers = [
     }
 
     if (!to) {
+      const timestamp = nowIso()
       to = {
         id: nextId('alloc'),
         budgetId: toBudgetId,
         categoryId: categories[0]?.id ?? 'cat_1',
         amount: 0,
-        date: nowIso().slice(0, 10),
-        createdAt: nowIso()
+        date: timestamp,
+        createdAt: timestamp
       }
       allocations.push(to)
     }
 
+    const transferTimestamp = nowIso()
     from.amount -= amount
+    from.date = transferTimestamp
     to.amount += amount
-    to.date = nowIso().slice(0, 10)
+    to.date = transferTimestamp
 
     return HttpResponse.json([
       from,

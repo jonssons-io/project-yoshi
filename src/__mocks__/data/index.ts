@@ -597,7 +597,7 @@ export const allocations: Allocation[] = [
     budgetId: 'budget_1',
     categoryId: 'cat_1',
     amount: 600,
-    date: nowIso().slice(0, 10),
+    date: nowIso(),
     createdAt: nowIso()
   },
   {
@@ -605,7 +605,7 @@ export const allocations: Allocation[] = [
     budgetId: 'budget_2',
     categoryId: 'cat_1',
     amount: 1500,
-    date: nowIso().slice(0, 10),
+    date: nowIso(),
     createdAt: nowIso()
   },
   {
@@ -613,7 +613,7 @@ export const allocations: Allocation[] = [
     budgetId: 'budget_3',
     categoryId: 'cat_1',
     amount: 9000,
-    date: nowIso().slice(0, 10),
+    date: nowIso(),
     createdAt: nowIso()
   }
 ]
