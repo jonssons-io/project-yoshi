@@ -1,5 +1,5 @@
 import { PlusIcon } from 'lucide-react'
-import { useCallback, useId, useMemo, useState } from 'react'
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
@@ -12,6 +12,7 @@ import {
   useAccountsList,
   useBudgetsList,
   useCreateTransaction,
+  useIncomeList,
   useRecipientsList
 } from '@/hooks/api'
 import { getErrorMessage } from '@/lib/api-error'
@@ -29,12 +30,24 @@ import {
   newSplitRow
 } from './types'
 
+export type IncomeInstancePrefill = {
+  instanceId: string
+  name: string
+  amount: number
+  date: Date
+  accountId: string
+  categoryId: string | null
+  senderName: string
+}
+
 export type CreateTransactionDrawerProps = {
   onClose: () => void
+  incomeInstance?: IncomeInstancePrefill
 }
 
 export function CreateTransactionDrawer({
-  onClose
+  onClose,
+  incomeInstance
 }: CreateTransactionDrawerProps) {
   const { t } = useTranslation()
   const { userId, householdId } = useAuth()
@@ -43,6 +56,8 @@ export function CreateTransactionDrawer({
     Record<string, boolean>
   >({})
   const splitSwitchId = useId()
+
+  const isIncomeLinked = !!incomeInstance
 
   const { mutate: createTransaction, isPending } = useCreateTransaction()
 
@@ -65,9 +80,53 @@ export function CreateTransactionDrawer({
     enabled: !!householdId
   })
 
+  const { data: incomes = [] } = useIncomeList({
+    householdId,
+    userId,
+    enabled: !!householdId
+  })
+
+  const incomeSources = useMemo(() => {
+    const seen = new Set<string>()
+    const sources: { id: string; name: string }[] = []
+    for (const income of incomes) {
+      if (income.incomeSource && !income.archived && !seen.has(income.incomeSource.id)) {
+        seen.add(income.incomeSource.id)
+        sources.push({ id: income.incomeSource.id, name: income.incomeSource.name })
+      }
+    }
+    return sources
+  }, [incomes])
+
+  const senderOptions = useMemo(
+    () =>
+      incomeSources.map((s) => ({
+        value: s.id,
+        label: s.name
+      })),
+    [incomeSources]
+  )
+
+  const incomeSourceNameById = useMemo(
+    () => new Map(incomeSources.map((s) => [s.id, s.name])),
+    [incomeSources]
+  )
+
+  const defaultValues = useMemo<DrawerFormValues>(() => {
+    if (!incomeInstance) return DRAWER_DEFAULT_VALUES
+    return {
+      ...DRAWER_DEFAULT_VALUES,
+      transactionType: TransactionType.INCOME,
+      name: incomeInstance.name,
+      amount: incomeInstance.amount,
+      date: incomeInstance.date,
+      accountId: incomeInstance.accountId,
+      category: incomeInstance.categoryId
+    }
+  }, [incomeInstance])
+
   const form = useAppForm({
-    defaultValues: DRAWER_DEFAULT_VALUES,
-    /** Allow submit click to run validation and surface errors instead of disabling the button. */
+    defaultValues,
     canSubmitWhenInvalid: true,
     onSubmit: async ({ value }) => {
       const hasSplits =
@@ -78,6 +137,16 @@ export function CreateTransactionDrawer({
       const payload: DrawerFormValues = {
         ...value,
         splits: hasSplits ? value.splits : []
+      }
+
+      if (
+        value.transactionType === TransactionType.INCOME &&
+        typeof payload.recipient === 'string'
+      ) {
+        const sourceName = incomeSourceNameById.get(payload.recipient)
+        if (sourceName) {
+          payload.recipient = { isNew: true, name: sourceName }
+        }
       }
 
       const parsed = safeValidateForm(drawerFormSchema, payload)
@@ -91,7 +160,8 @@ export function CreateTransactionDrawer({
       const body = buildCreateTransactionBody({
         t,
         data,
-        hasSplits
+        hasSplits,
+        instanceId: incomeInstance?.instanceId
       })
 
       createTransaction(
@@ -111,6 +181,19 @@ export function CreateTransactionDrawer({
       )
     }
   })
+
+  const recipientPrefilled = useRef(false)
+  useEffect(() => {
+    if (!incomeInstance?.senderName || recipientPrefilled.current) return
+    if (incomeSources.length === 0) return
+    recipientPrefilled.current = true
+    const match = incomeSources.find(
+      (s) => s.name.toLowerCase() === incomeInstance.senderName.toLowerCase()
+    )
+    if (match) {
+      form.setFieldValue('recipient', match.id)
+    }
+  }, [incomeInstance, incomeSources, form])
 
   const typeOptions = useMemo(
     () => [
@@ -258,18 +341,20 @@ export function CreateTransactionDrawer({
       }}
     >
       <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto">
-        <form.AppField name="transactionType">
-          {(field) => (
-            <TransactionTypeSegmentedControl
-              value={field.state.value}
-              onChange={(v) => {
-                field.handleChange(v)
-                handleTypeChange(v)
-              }}
-              options={typeOptions}
-            />
-          )}
-        </form.AppField>
+        {!isIncomeLinked && (
+          <form.AppField name="transactionType">
+            {(field) => (
+              <TransactionTypeSegmentedControl
+                value={field.state.value}
+                onChange={(v) => {
+                  field.handleChange(v)
+                  handleTypeChange(v)
+                }}
+                options={typeOptions}
+              />
+            )}
+          </form.AppField>
+        )}
 
         <form.Subscribe
           selector={(s) => ({
@@ -292,6 +377,7 @@ export function CreateTransactionDrawer({
               accountOptions={accountOptions}
               budgetOptions={budgetOptions}
               recipientOptions={recipientOptions}
+              senderOptions={senderOptions}
               expandedSplitIds={expandedSplitIds}
               setExpandedSplitIds={setExpandedSplitIds}
               addSplit={addSplit}

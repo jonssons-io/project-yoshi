@@ -1,612 +1,513 @@
-/**
- * Income Page - List and manage recurring income
- */
-
+import { useQueries } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
-import { format } from 'date-fns'
+import { startOfDay } from 'date-fns'
 import {
-  AlertCircle,
-  Archive,
-  ArchiveRestore,
-  ChevronDown,
-  ChevronRight,
-  MoreVerticalIcon,
-  Pencil,
-  Plus,
-  ReceiptText,
-  Trash2
+  AlertTriangleIcon,
+  CalendarClockIcon,
+  CheckCircle2Icon,
+  ClockIcon,
+  Eye,
+  FileText,
+  PlusIcon
 } from 'lucide-react'
-import { Fragment, useMemo, useState } from 'react'
+import { type ReactNode, useCallback, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { toast } from 'sonner'
+
+import { listIncomeInstancesOptions } from '@/api/generated/@tanstack/react-query.gen'
+import type { IncomeInstance } from '@/api/generated/types.gen'
+import { DataTable, useDataTable } from '@/components/data-table'
 import {
-  type Income,
-  type IncomeInstance,
-  type IncomeSource,
-  InstanceStatus,
-  RecurrenceType
-} from '@/api/generated/types.gen'
-import { BaseButton } from '@/components/base-button/base-button'
-import { Button } from '@/components/button/button'
-import { IconButton } from '@/components/icon-button/icon-button'
-import { Badge } from '@/components/ui/badge'
-import { Card, CardContent } from '@/components/ui/card'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger
-} from '@/components/ui/dropdown-menu'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow
-} from '@/components/ui/table'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger
-} from '@/components/ui/tooltip'
+  PageLayout,
+  type PageLayoutProps
+} from '@/components/page-layout/page-layout'
+import { Tabs, TabsList, TabsTrigger } from '@/components/tabs/tabs'
 import { useAuth } from '@/contexts/auth-context'
+import { useDrawer } from '@/drawers'
 import { NoData } from '@/features/no-data/no-data'
+import { useAccountsList, useCategoriesList, useIncomeList } from '@/hooks/api'
+import { fromApiDate } from '@/hooks/api/date-normalization'
+
 import {
-  useAccountsList,
-  useArchiveIncome,
-  useCategoriesList,
-  useDeleteIncome,
-  useIncomeList
-} from '@/hooks/api'
-import { useIncomeInstancesList } from '@/hooks/api/queries/use-income-query'
-import { useConfirmDialog } from '@/hooks/use-confirm-dialog'
-import { getErrorMessage } from '@/lib/api-error'
-import { formatCurrency } from '@/lib/utils'
-
-type NormalizedIncome = Omit<Income, 'expectedDate' | 'endDate'> & {
-  expectedDate: Date
-  endDate?: Date | undefined
-}
-
-type NormalizedIncomeInstance = Omit<IncomeInstance, 'expectedDate'> & {
-  expectedDate: Date
-}
-
-type SelectableCategory = {
-  id: string
-  name: string
-  types: string[]
-  archived?: boolean
-}
-
-type SelectableAccount = {
-  id: string
-  name: string
-  archived?: boolean
-}
-
-type IncomeInstancesSectionProps = {
-  income: NormalizedIncome
-  expanded: boolean
-  userId?: string | null
-  accountsById: Map<string, SelectableAccount>
-  categoriesById: Map<string, SelectableCategory>
-  onEditInstance: (instanceId: string) => void
-  onRecordInstance: (
-    income: NormalizedIncome,
-    instance: NormalizedIncomeInstance
-  ) => void
-}
+  createIncomeOverviewColumns,
+  deriveIncomeOverviewStatus,
+  type IncomeOverviewRow,
+  type IncomeOverviewStatus,
+  type LabelLookup
+} from './-components/income-overview-table'
 
 export const Route = createFileRoute('/_authenticated/income/')({
   component: IncomePage
 })
 
-function getIncomeInstanceStatusClass(status: InstanceStatus): string {
-  switch (status) {
-    case InstanceStatus.HANDLED:
-      return 'border-green-200 bg-green-50 text-green-700'
-    case InstanceStatus.DUE:
-      return 'border-amber-200 bg-amber-50 text-amber-700'
-    default:
-      return 'border-muted-foreground/20 bg-muted text-muted-foreground'
-  }
-}
+type IncomeTab = 'overview' | 'sourceData'
 
-function IncomeInstancesSection({
-  income,
-  expanded,
-  userId,
-  accountsById,
-  categoriesById,
-  onEditInstance,
-  onRecordInstance
-}: IncomeInstancesSectionProps) {
-  const { t } = useTranslation()
-  const instancesQuery = useIncomeInstancesList({
-    incomeId: income.id,
-    userId,
-    enabled: expanded
-  })
-
-  if (!expanded) return null
-
-  if (instancesQuery.isLoading) {
-    return (
-      <div className="rounded-md border bg-muted/30 p-4 text-sm text-muted-foreground">
-        {t('income.instancesLoading')}
-      </div>
-    )
-  }
-
-  const instances = [
-    ...(instancesQuery.data ?? [])
-  ].sort(
-    (a: NormalizedIncomeInstance, b: NormalizedIncomeInstance) =>
-      a.expectedDate.getTime() - b.expectedDate.getTime()
-  )
-
-  if (instances.length === 0) {
-    return (
-      <div className="rounded-md border bg-muted/30 p-4 text-sm text-muted-foreground">
-        {t('income.noInstances')}
-      </div>
-    )
-  }
-
-  return (
-    <div className="rounded-md border bg-muted/20">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>{t('income.instanceName')}</TableHead>
-            <TableHead>{t('income.instanceExpectedDate')}</TableHead>
-            <TableHead>{t('common.amount')}</TableHead>
-            <TableHead>{t('common.account')}</TableHead>
-            <TableHead>{t('common.category')}</TableHead>
-            <TableHead>{t('income.instanceStatusLabel')}</TableHead>
-            <TableHead className="text-right">{t('common.actions')}</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {instances.map((instance) => (
-            <TableRow key={instance.id}>
-              <TableCell className="font-medium">{instance.name}</TableCell>
-              <TableCell>
-                {format(instance.expectedDate, 'MMM d, yyyy')}
-              </TableCell>
-              <TableCell>{formatCurrency(instance.amount)}</TableCell>
-              <TableCell>
-                {accountsById.get(instance.accountId)?.name ?? '-'}
-              </TableCell>
-              <TableCell>
-                {instance.categoryId
-                  ? (categoriesById.get(instance.categoryId)?.name ?? '-')
-                  : '-'}
-              </TableCell>
-              <TableCell>
-                <Badge
-                  variant="outline"
-                  className={getIncomeInstanceStatusClass(instance.status)}
-                >
-                  {t(`income.instanceStatus.${instance.status.toLowerCase()}`)}
-                </Badge>
-              </TableCell>
-              <TableCell className="text-right">
-                <div className="flex justify-end gap-2">
-                  <Button
-                    variant="outlined"
-                    color="subtle"
-                    onClick={() => onEditInstance(instance.id)}
-                    icon={<Pencil />}
-                    label={t('income.editInstance')}
-                  />
-                  <Button
-                    variant="filled"
-                    color="primary"
-                    onClick={() => onRecordInstance(income, instance)}
-                    disabled={instance.status === InstanceStatus.HANDLED}
-                    icon={<ReceiptText />}
-                    label={
-                      instance.status === InstanceStatus.HANDLED
-                        ? t('income.handled')
-                        : t('income.recordIncome')
-                    }
-                  />
-                </div>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
-  )
-}
+const EMPTY_ROWS: IncomeOverviewRow[] = []
 
 function IncomePage() {
-  const { t } = useTranslation()
   const { userId, householdId } = useAuth()
-  const { confirm, confirmDialog } = useConfirmDialog()
-  const [expandedIncomeIds, setExpandedIncomeIds] = useState<
-    Record<string, boolean>
-  >({})
+  const { t } = useTranslation()
 
-  const incomeQuery = useIncomeList({
+  const { data: incomes = [], isLoading: incomesLoading } = useIncomeList({
     householdId,
     userId,
-    includeArchived: true
+    enabled: !!householdId
   })
 
-  const accountsQuery = useAccountsList({
+  const { data: accounts = [] } = useAccountsList({
     householdId,
     userId,
+    enabled: !!householdId,
     excludeArchived: true
   })
 
-  const categoriesQuery = useCategoriesList({
+  const { data: categories = [] } = useCategoriesList({
     householdId,
     userId,
-    type: 'INCOME'
-  })
-  const deleteMutation = useDeleteIncome({
-    onSuccess: () => {
-      incomeQuery.refetch()
-      toast.success(t('income.deleteSuccess'))
-    },
-    onError: (error) => {
-      toast.error(getErrorMessage(error))
-    }
+    type: 'INCOME',
+    enabled: !!householdId
   })
 
-  const archiveMutation = useArchiveIncome({
-    onSuccess: (_data, variables) => {
-      incomeQuery.refetch()
-      toast.success(
-        variables.archived
-          ? t('income.archiveSuccess')
-          : t('income.unarchiveSuccess')
-      )
-    },
-    onError: (error) => {
-      toast.error(getErrorMessage(error))
-    }
-  })
-
-  const incomeSourcesById = useMemo(
-    () =>
-      (incomeQuery.data ?? []).reduce<Record<string, IncomeSource>>(
-        (accumulator, income) => {
-          if (income.incomeSource) {
-            accumulator[income.incomeSource.id] = income.incomeSource
-          }
-          return accumulator
-        },
-        {}
-      ),
-    [
-      incomeQuery.data
-    ]
-  )
-
-  const accountsById = useMemo(
-    () =>
-      new Map(
-        (accountsQuery.data ?? []).map((account) => [
-          account.id,
-          {
-            id: account.id,
-            name: account.name,
-            archived: account.archived
-          }
-        ])
-      ),
-    [
-      accountsQuery.data
-    ]
-  )
-  const categoriesById = useMemo(
-    () =>
-      new Map(
-        (categoriesQuery.data ?? []).map((category) => [
-          category.id,
-          {
-            id: category.id,
-            name: category.name,
-            types: category.types,
-            archived: category.archived
-          }
-        ])
-      ),
-    [
-      categoriesQuery.data
-    ]
-  )
-
-  const getIncomeSourceName = (income: NormalizedIncome): string => {
-    if (income.incomeSource?.name) return income.incomeSource.name
-    return incomeSourcesById[income.incomeSourceId]?.name ?? ''
-  }
-
-  const getRecurrenceLabel = (
-    type: RecurrenceType,
-    customDays?: number | null
-  ) => {
-    switch (type) {
-      case RecurrenceType.NONE:
-        return t('income.oneTime')
-      case RecurrenceType.WEEKLY:
-        return t('income.weekly')
-      case RecurrenceType.MONTHLY:
-        return t('income.monthly')
-      case RecurrenceType.QUARTERLY:
-        return t('income.quarterly')
-      case RecurrenceType.YEARLY:
-        return t('income.yearly')
-      case RecurrenceType.CUSTOM:
-        return t('income.custom', {
-          days: customDays
-        })
-      default:
-        return type
-    }
-  }
-
-  const toggleExpanded = (incomeId: string) => {
-    setExpandedIncomeIds((current) => ({
-      ...current,
-      [incomeId]: !current[incomeId]
-    }))
-  }
-
-  const handleCreate = () => {
-    void 0
-  }
-
-  const handleEdit = (_income: NormalizedIncome) => {
-    void 0
-  }
-
-  const handleEditInstance = (_instanceId: string) => {
-    void 0
-  }
-
-  const handleDelete = async (id: string) => {
-    const isConfirmed = await confirm({
-      description: t('income.deleteConfirm'),
-      confirmText: t('common.delete')
-    })
-    if (!isConfirmed) return
-    deleteMutation.mutate({
-      id,
-      userId
-    })
-  }
-
-  const handleArchive = (id: string, archived: boolean) => {
-    archiveMutation.mutate({
-      id,
-      archived,
-      userId
-    })
-  }
-
-  const handleRecordIncome = (
-    _income: NormalizedIncome,
-    _instance: NormalizedIncomeInstance
-  ) => {
-    void 0
+  if (incomesLoading) {
+    return (
+      <PageLayout
+        title={t('income.title')}
+        description={t('income.pageSubtitle')}
+      >
+        <div className="flex flex-1 items-center justify-center py-8">
+          <p className="text-muted-foreground">{t('common.loading')}</p>
+        </div>
+      </PageLayout>
+    )
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-      <div className="min-h-0 flex-1 space-y-6 overflow-auto px-4 pt-6 pb-6">
-        <div className="flex items-center justify-end gap-2">
-          <Button
-            onClick={handleCreate}
-            icon={<Plus />}
-            label={t('income.add')}
-          />
+    <IncomePageContent
+      householdId={householdId}
+      incomes={incomes}
+      accounts={accounts}
+      categories={categories}
+    />
+  )
+}
+
+interface IncomePageContentProps {
+  householdId: string | null | undefined
+  incomes: ReturnType<typeof useIncomeList>['data'] & {}
+  accounts: ReturnType<typeof useAccountsList>['data'] & {}
+  categories: ReturnType<typeof useCategoriesList>['data'] & {}
+}
+
+/**
+ * Renders the full income page once incomes have loaded.
+ * Separated from IncomePage so the single useQuery for instances
+ * only runs after incomes are available — keeping the data flow
+ * sequential and avoiding stale-closure issues.
+ */
+function IncomePageContent({
+  householdId,
+  incomes,
+  accounts,
+  categories
+}: IncomePageContentProps) {
+  const { t } = useTranslation()
+  const { openDrawer } = useDrawer()
+  const [tab, setTab] = useState<IncomeTab>('overview')
+
+  const accountById = useMemo(
+    () =>
+      new Map(
+        accounts.map((a) => [
+          a.id,
+          a.name
+        ])
+      ),
+    [
+      accounts
+    ]
+  )
+
+  const categoryById = useMemo(
+    () =>
+      new Map(
+        categories.map((c) => [
+          c.id,
+          c.name
+        ])
+      ),
+    [
+      categories
+    ]
+  )
+
+  const incomeSourceById = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const income of incomes) {
+      if (income.incomeSource) {
+        map.set(income.incomeSource.id, income.incomeSource.name)
+      }
+    }
+    return map
+  }, [
+    incomes
+  ])
+
+  const queryOptions = useMemo(
+    () =>
+      incomes.map((income) =>
+        listIncomeInstancesOptions({
+          path: {
+            incomeId: income.id
+          }
+        })
+      ),
+    [
+      incomes
+    ]
+  )
+
+  const {
+    instances: rawInstances,
+    isLoading: instancesLoading,
+    isError: instancesError
+  } = useQueries({
+    queries: queryOptions,
+    combine: (results) => ({
+      instances: results.flatMap(
+        (r) => (r.data?.data ?? []) as IncomeInstance[]
+      ),
+      isLoading: results.some((r) => r.isLoading),
+      isError: results.some((r) => r.isError)
+    })
+  })
+
+  const isOverviewLoading = incomes.length > 0 && instancesLoading
+  const hasOverviewError = incomes.length > 0 && instancesError
+
+  const overviewRows = useMemo(() => {
+    if (rawInstances.length === 0) return EMPTY_ROWS
+
+    const today = startOfDay(new Date())
+
+    return rawInstances.map((inst) => {
+      const expectedDate = fromApiDate(inst.expectedDate)
+      const hasTransaction = !!inst.transactionId
+      const datePassed = expectedDate <= today
+
+      return {
+        id: inst.id,
+        expectedDate,
+        incomeName: inst.name,
+        status: deriveIncomeOverviewStatus(hasTransaction, datePassed),
+        transactionConnected: hasTransaction,
+        amount: inst.amount,
+        accountId: inst.accountId,
+        accountName:
+          accountById.get(inst.accountId) ?? t('common.uncategorized'),
+        categoryId: inst.categoryId ?? null,
+        categoryName:
+          categoryById.get(inst.categoryId ?? '') ?? t('common.uncategorized'),
+        senderId: inst.incomeSourceId,
+        senderName: incomeSourceById.get(inst.incomeSourceId) ?? ''
+      } satisfies IncomeOverviewRow
+    })
+  }, [
+    rawInstances,
+    accountById,
+    categoryById,
+    incomeSourceById,
+    t
+  ])
+
+  const labelLookupRef = useRef<LabelLookup>({
+    accounts: new Map(),
+    categories: new Map(),
+    senders: new Map()
+  })
+  labelLookupRef.current = {
+    accounts: accountById,
+    categories: categoryById,
+    senders: incomeSourceById
+  }
+
+  const columns = useMemo(
+    () =>
+      createIncomeOverviewColumns({
+        t,
+        labelLookupRef,
+        onEditIncomeInstance: (instanceId) =>
+          openDrawer('editIncomeInstance', {
+            instanceId
+          }),
+        onCreateTransaction: (row) =>
+          openDrawer('createTransaction', {
+            incomeInstance: {
+              instanceId: row.id,
+              name: row.incomeName,
+              amount: row.amount,
+              date: row.expectedDate,
+              accountId: row.accountId,
+              categoryId: row.categoryId,
+              senderName: row.senderName
+            }
+          })
+      }),
+    [
+      t,
+      openDrawer
+    ]
+  )
+
+  const {
+    table,
+    globalFilter,
+    setGlobalFilter,
+    columnFilters,
+    setColumnFilters,
+    activeFilters
+  } = useDataTable({
+    data: overviewRows,
+    columns,
+    initialSorting: [
+      {
+        id: 'expectedDate',
+        desc: false
+      }
+    ]
+  })
+
+  const filteredRowCount = table.getRowModel().rows.length
+  const totalRowCount = overviewRows.length
+
+  const statusCounts = useMemo(() => {
+    const counts: Record<IncomeOverviewStatus, number> = {
+      handled: 0,
+      pending: 0,
+      overdue: 0,
+      upcoming: 0
+    }
+    for (const row of overviewRows) {
+      counts[row.status]++
+    }
+    return counts
+  }, [
+    overviewRows
+  ])
+
+  const filterOptions = useMemo(() => {
+    const accountsSeen = new Set<string>()
+    const categoriesSeen = new Set<string>()
+    const sendersSeen = new Set<string>()
+    const accounts: {
+      value: string
+      label: string
+    }[] = []
+    const categories: {
+      value: string
+      label: string
+    }[] = []
+    const senders: {
+      value: string
+      label: string
+    }[] = []
+
+    for (const row of overviewRows) {
+      if (!accountsSeen.has(row.accountId)) {
+        accountsSeen.add(row.accountId)
+        accounts.push({
+          value: row.accountId,
+          label: row.accountName
+        })
+      }
+      const catKey = row.categoryId ?? '__uncategorized__'
+      if (!categoriesSeen.has(catKey)) {
+        categoriesSeen.add(catKey)
+        categories.push({
+          value: catKey,
+          label: row.categoryName
+        })
+      }
+      if (!sendersSeen.has(row.senderId)) {
+        sendersSeen.add(row.senderId)
+        senders.push({
+          value: row.senderId,
+          label: row.senderName
+        })
+      }
+    }
+
+    return {
+      statuses: (
+        [
+          'handled',
+          'pending',
+          'overdue',
+          'upcoming'
+        ] as IncomeOverviewStatus[]
+      ).map((s) => ({
+        value: s,
+        label: t(`income.status.${s}`)
+      })),
+      accounts,
+      categories,
+      senders
+    }
+  }, [
+    overviewRows,
+    t
+  ])
+
+  const openCreateIncomeDrawer = useCallback(() => {
+    openDrawer('createIncome', {})
+  }, [
+    openDrawer
+  ])
+
+  const filterDisabled =
+    totalRowCount === 0 || isOverviewLoading || hasOverviewError
+
+  const emptyMessage = useMemo((): ReactNode | undefined => {
+    if (isOverviewLoading) return t('common.loading')
+    if (hasOverviewError) return t('common.error')
+    if (totalRowCount === 0) return undefined
+    if (filteredRowCount === 0) return t('common.noResultsFound')
+    return undefined
+  }, [
+    filteredRowCount,
+    hasOverviewError,
+    isOverviewLoading,
+    totalRowCount,
+    t
+  ])
+
+  const showNoData = !!householdId && incomes.length === 0
+  const infoCards: PageLayoutProps['infoCards'] =
+    isOverviewLoading || hasOverviewError
+      ? undefined
+      : [
+          {
+            id: 'upcoming',
+            color: 'gray',
+            icon: (
+              <CalendarClockIcon
+                className="stroke-[1.5]"
+                aria-hidden
+              />
+            ),
+            label: t('income.summary.upcoming'),
+            value: statusCounts.upcoming
+          },
+          {
+            id: 'overdue',
+            color: 'red',
+            icon: (
+              <AlertTriangleIcon
+                className="stroke-[1.5]"
+                aria-hidden
+              />
+            ),
+            label: t('income.summary.overdue'),
+            value: statusCounts.overdue
+          },
+          {
+            id: 'pending',
+            color: 'blue',
+            icon: (
+              <ClockIcon
+                className="stroke-[1.5]"
+                aria-hidden
+              />
+            ),
+            label: t('income.summary.pending'),
+            value: statusCounts.pending
+          },
+          {
+            id: 'handled',
+            color: 'green',
+            icon: (
+              <CheckCircle2Icon
+                className="stroke-[1.5]"
+                aria-hidden
+              />
+            ),
+            label: t('income.summary.handled'),
+            value: statusCounts.handled
+          }
+        ]
+
+  return (
+    <PageLayout
+      title={t('income.title')}
+      description={t('income.pageSubtitle')}
+      infoCards={infoCards}
+      tabs={
+        <Tabs
+          value={tab}
+          onValueChange={(v) => setTab(v as IncomeTab)}
+        >
+          <TabsList>
+            <TabsTrigger
+              value="overview"
+              icon={<Eye className="size-4 stroke-[1.5]" />}
+            >
+              {t('income.tabs.overview')}
+            </TabsTrigger>
+            <TabsTrigger
+              value="sourceData"
+              icon={<FileText className="size-4 stroke-[1.5]" />}
+            >
+              {t('income.tabs.sourceData')}
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+      }
+    >
+      {tab === 'overview' ? (
+        <div className="flex min-h-0 flex-1 flex-col">
+          {showNoData ? (
+            <NoData
+              variant="no-income"
+              onAction={openCreateIncomeDrawer}
+            />
+          ) : (
+            <DataTable
+              table={table}
+              columns={columns}
+              globalFilter={globalFilter}
+              onGlobalFilterChange={setGlobalFilter}
+              filterDisabled={filterDisabled}
+              onFilterClick={() =>
+                openDrawer('incomeTableFilterDrawer', {
+                  columnFilters,
+                  onApply: setColumnFilters,
+                  availableStatuses: filterOptions.statuses,
+                  availableAccounts: filterOptions.accounts,
+                  availableCategories: filterOptions.categories,
+                  availableSenders: filterOptions.senders
+                })
+              }
+              activeFilters={activeFilters}
+              actionButton={{
+                label: t('income.createCTA'),
+                icon: <PlusIcon />,
+                onClick: openCreateIncomeDrawer,
+                disabled: !householdId
+              }}
+              toolbarLabels={{
+                searchPlaceholder: t('common.search'),
+                filter: t('common.filter'),
+                pillRemoveAriaLabel: t('common.removeFilter')
+              }}
+              emptyMessage={emptyMessage}
+            />
+          )}
         </div>
-
-        {incomeQuery.isLoading ? (
-          <div className="flex items-center justify-center p-8">
-            <p className="text-muted-foreground">{t('income.loading')}</p>
-          </div>
-        ) : !(incomeQuery.data && incomeQuery.data.length > 0) ? (
-          <NoData
-            variant="no-income"
-            onAction={handleCreate}
-          />
-        ) : (
-          <Card>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-10" />
-                    <TableHead>{t('common.name')}</TableHead>
-                    <TableHead>{t('income.source')}</TableHead>
-                    <TableHead>{t('common.account')}</TableHead>
-                    <TableHead>{t('common.amount')}</TableHead>
-                    <TableHead>{t('recurrence.label')}</TableHead>
-                    <TableHead>{t('income.nextExpected')}</TableHead>
-                    <TableHead>{t('common.category')}</TableHead>
-                    <TableHead className="text-right">
-                      {t('common.actions')}
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {incomeQuery.data?.map((income) => {
-                    const isExpanded = !!expandedIncomeIds[income.id]
-
-                    return (
-                      <Fragment key={income.id}>
-                        <TableRow
-                          className={income.archived ? 'opacity-50' : ''}
-                        >
-                          <TableCell>
-                            <IconButton
-                              variant="text"
-                              color="subtle"
-                              icon={
-                                isExpanded ? (
-                                  <ChevronDown className="h-4 w-4" />
-                                ) : (
-                                  <ChevronRight className="h-4 w-4" />
-                                )
-                              }
-                              onClick={() => toggleExpanded(income.id)}
-                              aria-label={t('income.toggleInstances')}
-                            />
-                          </TableCell>
-                          <TableCell className="font-medium">
-                            {income.archived ? (
-                              <Badge
-                                variant="secondary"
-                                className="mr-2"
-                              >
-                                {t('income.archived')}
-                              </Badge>
-                            ) : null}
-                            {income.name}
-                          </TableCell>
-                          <TableCell>{getIncomeSourceName(income)}</TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              {income.account?.name ?? '-'}
-                              {income.account?.archived ? (
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <AlertCircle className="h-4 w-4 text-yellow-500" />
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      <p>
-                                        {t('income.archivedAccountWarning')}
-                                      </p>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
-                              ) : null}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            {formatCurrency(income.estimatedAmount)}
-                          </TableCell>
-                          <TableCell>
-                            {getRecurrenceLabel(
-                              income.recurrenceType,
-                              income.customIntervalDays
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            {format(income.expectedDate, 'MMM d, yyyy')}
-                          </TableCell>
-                          <TableCell>{income.category?.name ?? '-'}</TableCell>
-                          <TableCell className="text-right">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <BaseButton
-                                  variant="text"
-                                  color="subtle"
-                                  iconOnly
-                                >
-                                  <MoreVerticalIcon className="h-4 w-4" />
-                                </BaseButton>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem
-                                  onClick={() => toggleExpanded(income.id)}
-                                >
-                                  {isExpanded ? (
-                                    <ChevronDown className="mr-2 h-4 w-4" />
-                                  ) : (
-                                    <ChevronRight className="mr-2 h-4 w-4" />
-                                  )}
-                                  {t('income.viewInstances')}
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem
-                                  onClick={() => handleEdit(income)}
-                                >
-                                  <Pencil className="mr-2 h-4 w-4" />
-                                  {t('common.edit')}
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={() =>
-                                    income.archived
-                                      ? handleArchive(income.id, false)
-                                      : handleArchive(income.id, true)
-                                  }
-                                >
-                                  {income.archived ? (
-                                    <>
-                                      <ArchiveRestore className="mr-2 h-4 w-4" />
-                                      {t('common.unarchive')}
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Archive className="mr-2 h-4 w-4" />
-                                      {t('common.archive')}
-                                    </>
-                                  )}
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem
-                                  onClick={() => handleDelete(income.id)}
-                                  className="text-destructive"
-                                >
-                                  <Trash2 className="mr-2 h-4 w-4" />
-                                  {t('common.delete')}
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </TableCell>
-                        </TableRow>
-                        {isExpanded ? (
-                          <TableRow>
-                            <TableCell
-                              colSpan={9}
-                              className="bg-muted/10"
-                            >
-                              <div className="space-y-3 py-2">
-                                <div className="flex items-center justify-between">
-                                  <div>
-                                    <p className="font-medium">
-                                      {t('income.instancesSectionTitle')}
-                                    </p>
-                                    <p className="text-sm text-muted-foreground">
-                                      {t('income.instancesSectionDescription')}
-                                    </p>
-                                  </div>
-                                </div>
-                                <IncomeInstancesSection
-                                  income={income}
-                                  expanded={isExpanded}
-                                  userId={userId}
-                                  accountsById={accountsById}
-                                  categoriesById={categoriesById}
-                                  onEditInstance={handleEditInstance}
-                                  onRecordInstance={handleRecordIncome}
-                                />
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ) : null}
-                      </Fragment>
-                    )
-                  })}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        )}
-      </div>
-      {confirmDialog}
-    </div>
+      ) : (
+        <div className="flex flex-1 items-center justify-center py-12">
+          <p className="type-body-medium text-gray-600">
+            {`${t('income.tabs.sourceData')} — coming soon`}
+          </p>
+        </div>
+      )}
+    </PageLayout>
   )
 }

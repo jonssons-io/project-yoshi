@@ -97,6 +97,7 @@ export function useCreateIncome(
     onSuccess: (data, variables) => {
       invalidateByOperation(queryClient, 'listIncomes')
       invalidateByOperation(queryClient, 'listCategories')
+      invalidateByOperation(queryClient, 'getHouseholdPeriodSummary')
       callbacks?.onSuccess?.(data, variables)
     },
     onError: (error, variables) => {

@@ -1,12 +1,12 @@
 import { useContext } from 'react'
 
-import { DrawerContext } from './provider'
+import { DrawerActionsContext } from './provider'
 
 /**
- * Returns the typed drawer API. Must be used under {@link DrawerProvider}.
+ * Returns stable drawer actions. Must be used under {@link DrawerProvider}.
  */
 export function useDrawer() {
-  const ctx = useContext(DrawerContext)
+  const ctx = useContext(DrawerActionsContext)
   if (!ctx) {
     throw new Error('useDrawer must be used within DrawerProvider')
   }

@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { useAuth } from '@/contexts/auth-context'
-import { useDrawer } from '@/drawers'
+import { useDrawer, useDrawerState } from '@/drawers'
 import { NoData } from '@/features/no-data/no-data'
 import { useAccountsList } from '@/hooks/api'
 
@@ -15,7 +15,8 @@ import { useAccountsList } from '@/hooks/api'
 export function AuthenticatedOutlet() {
   const { t } = useTranslation()
   const { userId, householdId } = useAuth()
-  const { openDrawer, isDrawerSettled } = useDrawer()
+  const { openDrawer } = useDrawer()
+  const { isDrawerSettled } = useDrawerState()
 
   const { data: accounts, isLoading } = useAccountsList({
     householdId,

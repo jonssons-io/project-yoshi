@@ -25,6 +25,7 @@ export function ExpenseIncomeTransferFields({
   accountOptions,
   budgetOptions,
   recipientOptions,
+  senderOptions,
   expandedSplitIds,
   setExpandedSplitIds,
   addSplit,
@@ -49,6 +50,10 @@ export function ExpenseIncomeTransferFields({
     label: string
   }[]
   recipientOptions: {
+    value: string
+    label: string
+  }[]
+  senderOptions: {
     value: string
     label: string
   }[]
@@ -259,7 +264,7 @@ export function ExpenseIncomeTransferFields({
               placeholder={t('forms.sourcePlaceholder')}
               searchPlaceholder={t('forms.searchPlaceholder')}
               emptyText={t('forms.noMatches')}
-              options={recipientOptions}
+              options={senderOptions}
               allowCreate
               createLabel={t('forms.addSender')}
             />

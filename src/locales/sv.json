@@ -15,6 +15,7 @@
     "date": "Datum",
     "name": "Namn",
     "amount": "Belopp",
+    "currencyCode": "SEK",
     "notes": "Anteckningar",
     "category": "Kategori",
     "account": "Konto",
@@ -43,6 +44,8 @@
     "paginationPage": "Sida {{current}} av {{total}}",
     "previousPage": "Föregående sida",
     "nextPage": "Nästa sida",
+    "from": "Från",
+    "to": "Till",
     "budget": "Budget",
     "noResultsFound": "Inga resultat hittades.",
     "saving": "Sparar...",
@@ -143,7 +146,16 @@
     "mustBeSameHousehold": "Budgetar måste tillhöra samma hushåll",
     "createSuccess": "Budget skapad",
     "updateSuccess": "Budget uppdaterad",
-    "deleteSuccess": "Budget borttagen"
+    "deleteSuccess": "Budget borttagen",
+    "drawerAvailableToBudget": "Du har {{amount}} tillgängligt att budgetera",
+    "drawerInitialBudget": "Initial budget",
+    "drawerAvailableCategories": "Tillgängliga kategorier",
+    "drawerCategoriesPlaceholder": "Välj kategorier",
+    "drawerCategoriesHint": "Lämna tomt för att länka alla hushållets utgiftskategorier till budgeten.",
+    "editDrawerAllocatedNotice": "Budgeten har för närvarande {{amount}} budgeterat. För att ändra det budgeterade beloppet behöver du allokera eller avallokera pengar i budgetöversikten.",
+    "drawerSubmit": "Skapa budget",
+    "drawerAmountExceedsAvailable": "Beloppet får inte överstiga tillgängligt obudgeterat.",
+    "drawerInitialBudgetMin": "Belopp kan inte vara negativt."
   },
   "allocation": {
     "allocateFunds": "Fördela medel",
@@ -165,7 +177,12 @@
     "availableToDeallocate": "Tillgängligt att avfördela: {{amount}}",
     "availableToTransfer": "Tillgängligt att flytta: {{amount}}",
     "exceedsAvailable": "Beloppet kan inte överstiga tillgängliga medel.",
+    "exceedsCurrentAllocation": "Beloppet kan inte överstiga budgetens nuvarande fördelning.",
+    "exceedsSourceAllocation": "Beloppet kan inte överstiga vald källbudgets nuvarande fördelning.",
     "exceedsSourceRemaining": "Beloppet kan inte överstiga källbudgetens kvarvarande medel.",
+    "allocateSuccess": "Medel budgeterade",
+    "deallocateSuccess": "Medel avbudgeterade",
+    "transferSuccess": "Budgetering överförd",
     "drawer": {
       "allocateTitle": "Fördela medel",
       "allocateDescription": "Lägg till medel till en budget från den ofördelade poolen.",
@@ -173,6 +190,11 @@
       "deallocateDescription": "Flytta tillbaka outnyttjade medel från en budget till den ofördelade poolen.",
       "budget": "Budget",
       "selectBudget": "Välj en budget",
+      "availableToAllocate": "Du har {{amount}} tillgängligt att budgetera",
+      "currentBudget": "Nuvarande budget",
+      "newBudget": "Ny budget",
+      "addToBudget": "Lägg till i budget",
+      "removeFromBudget": "Ta bort från budget",
       "allocateAction": "Fördela",
       "deallocateAction": "Avfördela",
       "allocating": "Fördelar...",
@@ -185,6 +207,7 @@
       "selectSource": "Välj från-budget",
       "toBudget": "Till budget",
       "selectDest": "Välj till-budget",
+      "sameBudgetError": "Du kan inte överföra till samma budget.",
       "transferring": "Flyttar...",
       "transfer": "Flytta"
     }
@@ -215,7 +238,12 @@
     "updateSuccess": "Konto uppdaterat",
     "deleteSuccess": "Konto borttaget",
     "archiveSuccess": "Konto arkiverat",
-    "unarchiveSuccess": "Konto avarkiverat"
+    "unarchiveSuccess": "Konto avarkiverat",
+    "drawerInitialBalance": "Initialt saldo",
+    "drawerAvailableBudgets": "Tillgängliga budgetar",
+    "drawerBudgetsHint": "Lämna tomt för att länka kontot till alla budgetar i hushållet.",
+    "drawerSubmit": "Skapa konto",
+    "drawerNoBudgets": "Inga budgetar hittades"
   },
   "categories": {
     "title": "Kategorier",
@@ -273,11 +301,11 @@
     "total": "Totalt",
     "billAmount": "Räkningsbelopp",
     "addSection": "Lägg till sektion",
-    "senderOptional": "Avsändare (Valfritt)",
+    "senderOptional": "Utbetalare (Valfritt)",
     "recipientOptional": "Mottagare (Valfritt)",
-    "whoSent": "Vem skickade pengarna?",
+    "whoSent": "Vem betalar ut pengarna?",
     "whoReceives": "Vem tar emot pengarna?",
-    "addSender": "Lägg till ny avsändare",
+    "addSender": "Lägg till utbetalare",
     "addRecipient": "Lägg till ny mottagare",
     "selectOrCreateRecipient": "Välj eller skapa en mottagare",
     "searchRecipient": "Sök mottagare",
@@ -295,12 +323,13 @@
     "budgetName": "Budgetnamn",
     "budgetPlaceholder": "t.ex. Min hushållsbudget",
     "startDate": "Startdatum",
+    "incomeStartDateHelp": "När förväntas den första inbetalningen enligt denna plan?",
     "startDateDescription": "När börjar denna budgetperiod?",
     "endDateOptional": "Slutdatum (Valfritt)",
     "endDateDesc": "Om angivet skapas inga nya instanser efter detta datum.",
     "incomeName": "Inkomstnamn",
     "incomePlaceholder": "t.ex. Lön, Utdelning",
-    "source": "Källa / Utbetalare",
+    "source": "Lägg till utbetalare",
     "sourcePlaceholder": "t.ex. Arbetsgivare",
     "estimatedAmount": "Beräknat belopp",
     "nextExpectedDate": "Nästa förväntade datum",
@@ -322,7 +351,10 @@
     "linkToBudgetsDesc": "Välj vilka budgetar som ska ha tillgång till detta konto. Alla budgetar är valda som standard.",
     "categoryName": "Kategorinamn",
     "categoryNamePlaceholder": "t.ex. Matvaror, Lön, Räkningar",
+    "billNameLabel": "Räkningsnamn",
     "billNamePlaceholder": "Ex. Elräkning",
+    "splitThisBill": "Dela denna räkning",
+    "billStartDateHelp": "När förväntas första dragningen eller betalningen?",
     "splitBillNamePlaceholder": "Ex. Ränta",
     "splitBillDefaultName": "Huvudnamn",
     "disableSplitBill": "Att stänga av delning av denna räkning tar bort alla sektioner. Vill du fortsätta?",
@@ -371,7 +403,7 @@
     "dashboard": "Översikt",
     "transactions": "Transaktioner",
     "bills": "Räkningar",
-    "income": "Inkomst",
+    "income": "Inkomster",
     "budgets": "Budgetar",
     "allocation": "Allokering",
     "accounts": "Konton",
@@ -440,7 +472,18 @@
     "createBudgetCTA": "Skapa budget",
     "accountNameColumn": "Kontonamn",
     "balanceColumn": "Saldo",
-    "budgetRemainingStatus": "{{remaining}} av {{allocated}} kvar"
+    "budgetRemainingStatus": "{{remaining}} av {{allocated}} kvar",
+    "accountRowMenu": {
+      "edit": "Redigera konto",
+      "archive": "Arkivera konto"
+    },
+    "budgetRowMenu": {
+      "allocateMoney": "Allokera pengar",
+      "deallocateMoney": "Avallokera pengar",
+      "transferAllocation": "Överför allokering",
+      "edit": "Redigera budget",
+      "archive": "Arkivera budget"
+    }
   },
   "setup": {
     "noHouseholdTitle": "Välkommen till Yoshi!",
@@ -472,6 +515,7 @@
     "goToBudgets": "Gå till budgetar",
     "createBill": "Skapa ny räkning",
     "createBillDesc": "Lägg till en ny räkning för att spåra återkommande eller engångsbetalningar",
+    "drawerSubmit": "Skapa räkning",
     "editBill": "Redigera räkning",
     "editBillDesc": "Uppdatera inställningar för återkommande räkningar",
     "payBill": "Betala räkning",
@@ -535,7 +579,7 @@
     "minOneSection": "Minst en sektion krävs",
     "budgetNameRequired": "Budgetnamn krävs",
     "startDateRequired": "Startdatum krävs",
-    "sourceRequired": "Källa krävs",
+    "sourceRequired": "Utbetalare krävs",
     "sourceAccountRequired": "Källkonto krävs",
     "destAccountRequired": "Destinationskonto krävs",
     "customIntervalPositive": "Anpassat intervall måste vara positivt",
@@ -545,8 +589,10 @@
     "categoryOrNameRequired": "Kategori eller namn på ny kategori krävs"
   },
   "income": {
-    "title": "Inkomst",
+    "title": "Inkomster",
+    "pageSubtitle": "Översikt av hushållets planerade och hanterade inkomster.",
     "add": "Ny inkomst",
+    "createCTA": "Skapa inkomst",
     "create": "Lägg till ny inkomst",
     "createDesc": "Spåra återkommande inkomster som lön, utdelningar, etc.",
     "edit": "Redigera inkomst",
@@ -559,7 +605,8 @@
     "createTransactionDesc": "Registrera faktisk inkomst mottagen",
     "createTransactionAction": "Skapa transaktion",
     "name": "Namn",
-    "source": "Källa",
+    "source": "Utbetalare",
+    "sender": "Utbetalare",
     "nextExpected": "Nästa inbetalning",
     "archived": "Arkiverad",
     "oneTime": "Engångs",
@@ -574,6 +621,7 @@
     "instancesSectionDescription": "Hantera planerade inkomsttillfällen och länka dem till transaktioner.",
     "instancesLoading": "Laddar inkomstinstanser...",
     "noInstances": "Inga instanser hittades för denna inkomstkälla.",
+    "instanceLabel": "Inkomst",
     "instanceName": "Instans",
     "instanceExpectedDate": "Förväntat datum",
     "instanceStatusLabel": "Status",
@@ -583,6 +631,22 @@
     "editInstance": "Redigera instans",
     "instanceUpdateSuccess": "Inkomstinstans uppdaterad",
     "handled": "Hanterad",
+    "tabs": {
+      "overview": "Översikt",
+      "sourceData": "Underlag"
+    },
+    "summary": {
+      "upcoming": "Kommande",
+      "overdue": "Försenade",
+      "pending": "Väntande",
+      "handled": "Inkomna"
+    },
+    "status": {
+      "upcoming": "Kommande",
+      "overdue": "Försenad",
+      "pending": "Väntande",
+      "handled": "Inkommen"
+    },
     "instanceStatus": {
       "upcoming": "Kommande",
       "due": "Förfaller",
@@ -593,11 +657,24 @@
     "loading": "Laddar inkomst...",
     "loadingForm": "Laddar formulärdata...",
     "notFound": "Inkomst hittades inte",
+    "drawerCreateSubmit": "Skapa inkomst",
     "createSuccess": "Inkomst skapad",
     "updateSuccess": "Inkomst uppdaterad",
     "deleteSuccess": "Inkomst borttagen",
     "archiveSuccess": "Inkomst arkiverad",
-    "unarchiveSuccess": "Inkomst avarkiverad"
+    "unarchiveSuccess": "Inkomst avarkiverad",
+    "overviewRowMenu": {
+      "editIncome": "Editera inkomst",
+      "viewTransaction": "Visa transaktion",
+      "viewDocumentation": "Visa underlag",
+      "deleteIncome": "Ta bort inkomst"
+    },
+    "editInstanceDrawer": {
+      "sourceHelp": "Källa följer inkomstserien. Ändra den under fliken Underlag.",
+      "submit": "Editera inkomst",
+      "alertIntro": "Inkomster används för att hålla koll på att dina förväntade inbetalningar kommer in som dom ska.",
+      "alertScope": "Detta editerar endast denna förekomst. För att editera hela serien, gå till fliken Underlag och editera inkomsten därifrån istället."
+    }
   },
   "auth": {
     "clockSkewTitle": "Autentiseringsproblem upptäckt",
@@ -653,5 +730,56 @@
   "recipients": {
     "notFound": "Mottagare hittades inte",
     "alreadyExists": "En mottagare med detta namn finns redan"
+  },
+  "drawers": {
+    "shared": {
+      "budgetDescription": "Budgetar är ditt sätt att planera varje krona som kommer in på dina konton.",
+      "accountDescription": "Konton ger dig en överblick över dina totala tillgångar, så att det finns täckning på kontot när räkningarna ska dras.",
+      "incomeDescription": "Inkomster används för att hålla koll på att dina förväntade inbetalningar kommer in som dom ska."
+    },
+    "dashboardChartSettings": {
+      "title": "Diagraminställningar"
+    },
+    "transactionsTableFilterDrawer": {
+      "title": "Filtrera"
+    },
+    "incomeTableFilterDrawer": {
+      "title": "Inkomstfilter"
+    },
+    "createTransaction": {
+      "title": "Skapa transaktion",
+      "description": "En transaktion är en debitering eller kreditering på dina konton."
+    },
+    "createIncome": {
+      "title": "Skapa inkomst"
+    },
+    "createBill": {
+      "title": "Skapa räkning",
+      "description": "Räkningar används för att hålla koll på att dina förväntade betalningar debiteras när dom ska."
+    },
+    "createBudget": {
+      "title": "Skapa budget"
+    },
+    "createAccount": {
+      "title": "Skapa konto"
+    },
+    "allocateBudget": {
+      "title": "Budgetera till {{budgetName}}"
+    },
+    "deallocateBudget": {
+      "title": "Avbudgetera från {{budgetName}}"
+    },
+    "transferBudgetAllocation": {
+      "title": "Överför budgetering"
+    },
+    "editBudget": {
+      "title": "Editera budget"
+    },
+    "editAccount": {
+      "title": "Editera konto"
+    },
+    "editIncomeInstance": {
+      "title": "Editera inkomst"
+    }
   }
 }

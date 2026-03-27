@@ -27,6 +27,7 @@ import {
 } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { useAuth } from '@/contexts/auth-context'
+import { useDrawer } from '@/drawers'
 import { NoData } from '@/features/no-data/no-data'
 import { useBudgetsList, useDeleteBudget } from '@/hooks/api'
 import { useAllocationsQuery } from '@/hooks/api/use-allocations'
@@ -41,6 +42,7 @@ export const Route = createFileRoute('/_authenticated/budgets/')({
 function BudgetsPage() {
   const { t } = useTranslation()
   const { userId, householdId } = useAuth()
+  const { openDrawer } = useDrawer()
   const { confirm, confirmDialog } = useConfirmDialog()
   const allocationSummary = useAllocationsQuery({
     householdId: householdId ?? '',
@@ -138,7 +140,12 @@ function BudgetsPage() {
   if (budgets?.length === 0) {
     return (
       <div className="flex min-h-0 flex-1 overflow-auto px-4 pt-6 pb-6">
-        <NoData variant="no-budget" />
+        <NoData
+          variant="no-budget"
+          onAction={() => {
+            openDrawer('createBudget', {})
+          }}
+        />
       </div>
     )
   }

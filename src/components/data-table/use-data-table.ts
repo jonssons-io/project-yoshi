@@ -98,6 +98,7 @@ function formatFilterPillDisplay<TData>(
 export function useDataTable<TData>(
   options: UseDataTableOptions<TData>
 ): UseDataTableReturn<TData> {
+  'use no memo'
   const { data, columns, initialSorting, defaultPageSize } = options
 
   const [sorting, setSorting] = useState<SortingState>(initialSorting ?? [])
@@ -212,6 +213,7 @@ export function useDataTable<TData>(
   const table = useReactTable({
     data,
     columns: columnsWithSort,
+    autoResetPageIndex: false,
     state: {
       sorting,
       globalFilter,

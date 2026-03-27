@@ -82,8 +82,9 @@ export function buildCreateTransactionBody(params: {
   t: TFunction
   data: ParsedDrawerFormValues
   hasSplits: boolean
+  instanceId?: string
 }): CreateTransactionBody {
-  const { t, data, hasSplits } = params
+  const { t, data, hasSplits, instanceId } = params
   const transferName = t('common.transfer')
 
   if (data.transactionType === TransactionType.TRANSFER) {
@@ -149,6 +150,7 @@ export function buildCreateTransactionBody(params: {
     amount: data.amount,
     date: data.date,
     budgetId: null,
+    instanceId: instanceId ?? null,
     ...categoryToApi(data.category, CategoryType.INCOME),
     ...recipientToApi(data.recipient)
   }

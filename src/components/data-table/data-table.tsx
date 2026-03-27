@@ -61,6 +61,7 @@ export function DataTable<TData>({
   emptyMessage,
   getRowClassName
 }: DataTableProps<TData>) {
+  'use no memo'
   const visibleColumnCount = table.getVisibleLeafColumns().length
 
   return (

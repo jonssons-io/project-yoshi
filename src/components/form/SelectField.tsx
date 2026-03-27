@@ -22,7 +22,9 @@ export interface SelectFieldProps {
   options: Array<{
     value: string
     label: string
+    disabled?: boolean
   }>
+  onValueChange?: (value: string) => void
 }
 
 export function SelectField({
@@ -31,7 +33,8 @@ export function SelectField({
   description,
   placeholder,
   disabled,
-  options
+  options,
+  onValueChange
 }: SelectFieldProps) {
   const { t } = useTranslation()
   const field = useFieldContext<string>()
@@ -53,7 +56,10 @@ export function SelectField({
     >
       <Select
         value={field.state.value ?? ''}
-        onValueChange={(value) => field.handleChange(value)}
+        onValueChange={(value) => {
+          field.handleChange(value)
+          onValueChange?.(value)
+        }}
         disabled={disabled}
       >
         <SelectTrigger
@@ -67,6 +73,7 @@ export function SelectField({
             <SelectItem
               key={option.value}
               value={option.value}
+              disabled={option.disabled}
             >
               {option.label}
             </SelectItem>

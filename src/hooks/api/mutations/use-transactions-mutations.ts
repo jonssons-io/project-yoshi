@@ -72,6 +72,9 @@ export function useCreateTransaction(
       invalidateByOperation(queryClient, 'listBudgets')
       invalidateByOperation(queryClient, 'getUnallocatedFunds')
       invalidateByOperation(queryClient, 'listAccounts')
+      if (variables.instanceId) {
+        invalidateByOperation(queryClient, 'listIncomeInstances')
+      }
       callbacks?.onSuccess?.(data, variables)
     },
     onError: (error, variables) => callbacks?.onError?.(error, variables)

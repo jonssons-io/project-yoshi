@@ -1,4 +1,4 @@
-import { createContext, type ReactNode, useContext } from 'react'
+import { createContext, type ReactNode, useContext, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useHouseholdContext } from '@/contexts/household-context'
 import { DrawerProvider } from '@/drawers'
@@ -72,14 +72,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
     )
   }
 
+  const value = useMemo(
+    () => ({
+      userId,
+      householdId: selectedHouseholdId ?? '',
+      setSelectedHousehold
+    }),
+    [
+      userId,
+      selectedHouseholdId,
+      setSelectedHousehold
+    ]
+  )
+
   return (
-    <AuthContext.Provider
-      value={{
-        userId,
-        householdId: selectedHouseholdId ?? '',
-        setSelectedHousehold
-      }}
-    >
+    <AuthContext.Provider value={value}>
       <DrawerProvider>
         <div className="flex h-full min-h-0 w-full flex-1 overflow-hidden">
           {content}

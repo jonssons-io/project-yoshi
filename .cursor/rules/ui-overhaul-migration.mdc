@@ -153,6 +153,34 @@ When a migrated screen needs data or behavior that **`src/api`** (the generated 
 
 This complements the **generated API boundary** in **`.cursor/rules/general.mdc`**: contract mismatches and missing capabilities are backend or schema work, not local hacks.
 
+## TanStack Query usage
+
+### `select` and structural sharing
+
+TanStack Query's structural sharing (`replaceEqualDeep`) only works for **plain objects, arrays, and primitives**. `Date` instances (and any non-plain object) always compare as "different" because `isPlainObject(new Date())` is `false`. This means:
+
+- **Never create `Date` objects inside `select`.** If `select` returns data containing `new Date(...)`, structural sharing fails, the observer reports "new" data every evaluation, and the component re-renders — creating an **infinite re-render loop** when the `select` function reference is also unstable (e.g. inline arrow in `.map()`).
+- **Do Date normalization in a downstream `useMemo`**, not in the query layer. Keep query data as raw API responses (strings, numbers, plain objects) so structural sharing works correctly.
+
+### `useQueries` patterns
+
+When fetching N related queries (e.g. instances per income):
+
+- **Memoize the queries array** with `useMemo` so query options (and any `select` functions, if used) are referentially stable between renders.
+- **Use `combine`** to flatten results into a single derived object (`{ data, isLoading, isError }`). This replaces manual `.some(r => r.isLoading)` checks and intermediate memos over the raw results array.
+- **Do not depend on the `useQueries` result array** directly in `useMemo` deps — it is a new reference every render. Use `combine` to get a stable derived value instead.
+
+### QueryClient defaults
+
+The global `QueryClient` in **`src/integrations/tanstack-query/root-provider.tsx`** sets **`staleTime: 30_000`** (30 seconds). This prevents data from being immediately stale (TanStack Query's default is `0`), reducing refetch-on-mount and refetch-on-window-focus noise across the app. Individual hooks can override to shorter or longer values where needed.
+
+## Context providers
+
+- **Always memoize context `value` objects** with `useMemo`. An inline object literal as `value` creates a new reference every render, forcing all consumers to re-render even when no values actually changed.
+- **`HouseholdProvider`** (`src/contexts/household-context.tsx`) memoizes internally — the provider destructures `value` fields and wraps them in `useMemo`, so call sites do not need to memoize.
+- **`AuthProvider`** (`src/contexts/auth-context.tsx`) memoizes its `AuthContext.Provider` value with `useMemo` over `[userId, selectedHouseholdId, setSelectedHousehold]`.
+- When creating **new** context providers, follow the same pattern: memoize at the provider level so consumers are safe by default.
+
 ## Important rules
 
 - **NEVER use margin**: prefer flex layouts, gap, padding etc.

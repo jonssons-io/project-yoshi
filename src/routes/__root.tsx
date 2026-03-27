@@ -68,7 +68,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       <head>
         <HeadContent />
       </head>
-      <body className="flex h-full w-full overflow-hidden">
+      <body className="flex h-full w-full overflow-hidden justify-center items-center">
         <MockProvider>
           <QueryClientProvider client={context.queryClient}>
             <ClerkProvider

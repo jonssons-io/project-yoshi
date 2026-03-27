@@ -1,4 +1,4 @@
-import { createContext, type ReactNode, useContext } from 'react'
+import { createContext, type ReactNode, useContext, useMemo } from 'react'
 import type { Household } from '@/api/generated/types.gen'
 
 type NormalizedHousehold = Omit<Household, 'createdAt'> & {
@@ -25,8 +25,33 @@ interface HouseholdProviderProps {
 }
 
 export function HouseholdProvider({ value, children }: HouseholdProviderProps) {
+  const {
+    userId,
+    households,
+    selectedHouseholdId,
+    setSelectedHousehold,
+    isHouseholdsLoading
+  } = value
+
+  const stable = useMemo(
+    () => ({
+      userId,
+      households,
+      selectedHouseholdId,
+      setSelectedHousehold,
+      isHouseholdsLoading
+    }),
+    [
+      userId,
+      households,
+      selectedHouseholdId,
+      setSelectedHousehold,
+      isHouseholdsLoading
+    ]
+  )
+
   return (
-    <HouseholdContext.Provider value={value}>
+    <HouseholdContext.Provider value={stable}>
       {children}
     </HouseholdContext.Provider>
   )

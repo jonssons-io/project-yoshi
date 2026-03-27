@@ -123,6 +123,7 @@ export function MultiselectField({
                   <Pill
                     key={v}
                     onRemove={() => remove(v)}
+                    decorativeRemove
                     removeLabel={t('common.delete')}
                   >
                     {labelByValue(v)}

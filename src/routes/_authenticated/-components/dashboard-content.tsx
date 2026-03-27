@@ -1,8 +1,12 @@
 import {
-  EllipsisVerticalIcon,
+  Archive,
+  ArrowDownToLine,
+  ArrowUpDown,
+  ArrowUpFromLine,
   Plus,
   Scale,
   SettingsIcon,
+  SquarePen,
   TrendingDown,
   TrendingUp
 } from 'lucide-react'
@@ -13,6 +17,7 @@ import { Button } from '@/components/button/button'
 import { IconButton } from '@/components/icon-button/icon-button'
 import { PageLayout } from '@/components/page-layout/page-layout'
 import { Progress } from '@/components/progress/progress'
+import { TableRowMenu } from '@/components/table-row-menu/table-row-menu'
 import {
   Table,
   TableBody,
@@ -182,8 +187,52 @@ export function DashboardContent({
     endDate
   ])
 
-  const noop = () => {
-    void 0
+  const openCreateBudgetDrawer = () => {
+    openDrawer('createBudget', {})
+  }
+
+  const openCreateAccountDrawer = () => {
+    openDrawer('createAccount', {})
+  }
+
+  const openEditAccountDrawer = (accountId: string) => {
+    openDrawer('editAccount', {
+      id: accountId
+    })
+  }
+
+  const openEditBudgetDrawer = (budgetId: string) => {
+    openDrawer('editBudget', {
+      id: budgetId
+    })
+  }
+
+  const openAllocateBudgetDrawer = (budget: DashboardBudget) => {
+    openDrawer('allocateBudget', {
+      budgetId: budget.id,
+      budgetName: budget.name,
+      currentAllocation: budget.allocatedAmount ?? 0,
+      availableToAllocate: unallocatedAmount
+    })
+  }
+
+  const openDeallocateBudgetDrawer = (budget: DashboardBudget) => {
+    openDrawer('deallocateBudget', {
+      budgetId: budget.id,
+      budgetName: budget.name,
+      currentAllocation: budget.allocatedAmount ?? 0
+    })
+  }
+
+  const openTransferBudgetAllocationDrawer = (budget: DashboardBudget) => {
+    openDrawer('transferBudgetAllocation', {
+      budgets: budgets.map((item) => ({
+        id: item.id,
+        name: item.name,
+        allocatedAmount: item.allocatedAmount ?? 0
+      })),
+      initialFromBudgetId: budget.id
+    })
   }
 
   const formattedIncome = formatCurrency(totalIncome)
@@ -217,7 +266,9 @@ export function DashboardContent({
               aria-hidden={true}
             />
           ),
-          onClick: noop
+          onClick: () => {
+            openDrawer('createIncome', {})
+          }
         },
         {
           id: 'add-bill',
@@ -228,7 +279,9 @@ export function DashboardContent({
               aria-hidden={true}
             />
           ),
-          onClick: noop
+          onClick: () => {
+            openDrawer('createBill', {})
+          }
         }
       ]}
       infoCards={[
@@ -329,7 +382,7 @@ export function DashboardContent({
                     aria-hidden={true}
                   />
                 }
-                onClick={noop}
+                onClick={openCreateAccountDrawer}
               />
             </div>
             <div className="overflow-x-auto lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
@@ -363,17 +416,38 @@ export function DashboardContent({
                         {formatCurrency(currentBalances.get(account.id) ?? 0)}
                       </TableCell>
                       <TableCell className="py-2 pr-0 pl-0 text-end">
-                        <IconButton
-                          variant="text"
-                          color="subtle"
+                        <TableRowMenu
                           aria-label={t('common.more')}
-                          onClick={noop}
-                          icon={
-                            <EllipsisVerticalIcon
-                              className="size-4 stroke-[1.5]"
-                              aria-hidden={true}
-                            />
-                          }
+                          items={[
+                            {
+                              id: 'edit',
+                              label: t('dashboard.accountRowMenu.edit'),
+                              icon: (
+                                <SquarePen
+                                  className="stroke-[1.5]"
+                                  aria-hidden={true}
+                                />
+                              ),
+                              onSelect: () => {
+                                openEditAccountDrawer(account.id)
+                              }
+                            },
+                            {
+                              id: 'archive',
+                              label: t('dashboard.accountRowMenu.archive'),
+                              icon: (
+                                <Archive
+                                  className="stroke-[1.5]"
+                                  aria-hidden={true}
+                                />
+                              ),
+                              destructive: true,
+                              separatorBefore: true,
+                              onSelect: () => {
+                                void 0
+                              }
+                            }
+                          ]}
                         />
                       </TableCell>
                     </TableRow>
@@ -414,7 +488,7 @@ export function DashboardContent({
                     aria-hidden={true}
                   />
                 }
-                onClick={noop}
+                onClick={openCreateBudgetDrawer}
               />
             </div>
             <ul className="flex flex-col gap-6 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
@@ -434,17 +508,79 @@ export function DashboardContent({
                       <span className="type-body-medium text-black">
                         {budget.name}
                       </span>
-                      <IconButton
-                        variant="text"
-                        color="subtle"
+                      <TableRowMenu
                         aria-label={t('common.more')}
-                        onClick={noop}
-                        icon={
-                          <EllipsisVerticalIcon
-                            className="size-4 stroke-[1.5]"
-                            aria-hidden={true}
-                          />
-                        }
+                        items={[
+                          {
+                            id: 'allocate',
+                            label: t('dashboard.budgetRowMenu.allocateMoney'),
+                            icon: (
+                              <ArrowDownToLine
+                                className="stroke-[1.5]"
+                                aria-hidden={true}
+                              />
+                            ),
+                            onSelect: () => {
+                              openAllocateBudgetDrawer(budget)
+                            }
+                          },
+                          {
+                            id: 'deallocate',
+                            label: t('dashboard.budgetRowMenu.deallocateMoney'),
+                            icon: (
+                              <ArrowUpFromLine
+                                className="stroke-[1.5]"
+                                aria-hidden={true}
+                              />
+                            ),
+                            onSelect: () => {
+                              openDeallocateBudgetDrawer(budget)
+                            }
+                          },
+                          {
+                            id: 'transfer-allocation',
+                            label: t(
+                              'dashboard.budgetRowMenu.transferAllocation'
+                            ),
+                            icon: (
+                              <ArrowUpDown
+                                className="stroke-[1.5]"
+                                aria-hidden={true}
+                              />
+                            ),
+                            onSelect: () => {
+                              openTransferBudgetAllocationDrawer(budget)
+                            }
+                          },
+                          {
+                            id: 'edit',
+                            label: t('dashboard.budgetRowMenu.edit'),
+                            icon: (
+                              <SquarePen
+                                className="stroke-[1.5]"
+                                aria-hidden={true}
+                              />
+                            ),
+                            onSelect: () => {
+                              openEditBudgetDrawer(budget.id)
+                            }
+                          },
+                          {
+                            id: 'archive',
+                            label: t('dashboard.budgetRowMenu.archive'),
+                            icon: (
+                              <Archive
+                                className="stroke-[1.5]"
+                                aria-hidden={true}
+                              />
+                            ),
+                            destructive: true,
+                            separatorBefore: true,
+                            onSelect: () => {
+                              void 0
+                            }
+                          }
+                        ]}
                       />
                     </div>
                     <Progress
