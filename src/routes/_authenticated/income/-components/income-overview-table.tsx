@@ -285,6 +285,10 @@ export function createIncomeOverviewColumns(opts: {
                 id: 'edit',
                 label: t('income.overviewRowMenu.editIncome'),
                 icon: <SquarePen />,
+                disabled: connected,
+                disabledReason: connected
+                  ? 'Du kan inte editera denna inkomst då det finns en transaktion kopplad till den.'
+                  : undefined,
                 onSelect: () => {
                   onEditIncomeInstance(row.original.id)
                 }

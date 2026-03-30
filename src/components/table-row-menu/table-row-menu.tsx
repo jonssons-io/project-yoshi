@@ -16,6 +16,9 @@ export type TableRowMenuItem = {
   icon?: ReactNode
   onSelect: () => void
   destructive?: boolean
+  disabled?: boolean
+  /** Tooltip shown when the item is disabled */
+  disabledReason?: string
   /** When true, a separator is rendered above this item */
   separatorBefore?: boolean
 }
@@ -38,11 +41,11 @@ export function TableRowMenu({
         <MoreMenuButton aria-label={ariaLabel} />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        {items.map((item) => (
-          <Fragment key={item.id}>
-            {item.separatorBefore ? <DropdownMenuSeparator /> : null}
+        {items.map((item) => {
+          const menuItem = (
             <DropdownMenuItem
               onSelect={() => item.onSelect()}
+              disabled={item.disabled}
               className={cn(
                 'flex cursor-pointer flex-row items-center gap-2',
                 item.destructive
@@ -57,8 +60,19 @@ export function TableRowMenu({
               ) : null}
               <span>{item.label}</span>
             </DropdownMenuItem>
-          </Fragment>
-        ))}
+          )
+
+          return (
+            <Fragment key={item.id}>
+              {item.separatorBefore ? <DropdownMenuSeparator /> : null}
+              {item.disabled && item.disabledReason ? (
+                <div title={item.disabledReason}>{menuItem}</div>
+              ) : (
+                menuItem
+              )}
+            </Fragment>
+          )
+        })}
       </DropdownMenuContent>
     </DropdownMenu>
   )
