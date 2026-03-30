@@ -20,6 +20,7 @@
     "category": "Kategori",
     "account": "Konto",
     "recipient": "Mottagare",
+    "recipientSender": "Mott./Avs.",
     "splits": "Uppdelningar",
     "transfer": "Överföring",
     "uncategorized": "Okategoriserad",
@@ -635,6 +636,26 @@
       "overview": "Översikt",
       "sourceData": "Underlag"
     },
+    "sourceData": {
+      "columns": {
+        "revisions": "Revisioner",
+        "period": "Period"
+      },
+      "recurrence": {
+        "none": "En gång",
+        "weekly": "Veckovis",
+        "monthly": "Månatlig",
+        "quarterly": "Kvartalsvis",
+        "yearly": "Årlig",
+        "custom": "Var {{days}}:e dag"
+      },
+      "rowMenu": {
+        "editUpcoming": "Editera kommande inkomstförekomster",
+        "editAll": "Editera alla inkomstförekomster",
+        "viewRevisions": "Visa revisioner",
+        "delete": "Ta bort inkomst"
+      }
+    },
     "summary": {
       "upcoming": "Kommande",
       "overdue": "Försenade",
@@ -674,6 +695,11 @@
       "submit": "Editera inkomst",
       "alertIntro": "Inkomster används för att hålla koll på att dina förväntade inbetalningar kommer in som dom ska.",
       "alertScope": "Detta editerar endast denna förekomst. För att editera hela serien, gå till fliken Underlag och editera inkomsten därifrån istället."
+    },
+    "editBlueprintDrawer": {
+      "submit": "Editera inkomst",
+      "changeDateLabel": "Ändringsdatum",
+      "changeDateHelp": "Från och med detta datum gäller de nya uppgifterna."
     }
   },
   "auth": {
@@ -780,6 +806,17 @@
     },
     "editIncomeInstance": {
       "title": "Editera inkomst"
+    },
+    "editIncomeBlueprintUpcoming": {
+      "title": "Editera inkomst",
+      "description": "Detta editerar endast kommande förekomster för denna inkomst."
+    },
+    "editIncomeBlueprintAll": {
+      "title": "Editera inkomst",
+      "description": "Detta editerar samtliga förekomster för denna inkomst, även de som redan är hanterade."
+    },
+    "incomeSourceFilterDrawer": {
+      "title": "Inkomstfilter"
     }
   }
 }

@@ -36,6 +36,16 @@ export const drawerFormSchema = z
         z.null()
       ])
       .optional(),
+    sender: z
+      .union([
+        z.string().min(1),
+        z.object({
+          isNew: z.literal(true),
+          name: z.string().min(1)
+        }),
+        z.null()
+      ])
+      .optional(),
     budgetId: z.string().optional(),
     category: z
       .union([

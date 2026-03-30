@@ -1,7 +1,14 @@
 import { createColumnHelper, type Row } from '@tanstack/react-table'
 import { format } from 'date-fns'
 import type { TFunction } from 'i18next'
-import { CopyIcon, Layers, Link2, PencilIcon, TrashIcon } from 'lucide-react'
+import {
+  ArrowRight,
+  CopyIcon,
+  Layers,
+  Link2,
+  PencilIcon,
+  TrashIcon
+} from 'lucide-react'
 import type { ReactNode } from 'react'
 
 import { type Transaction, TransactionType } from '@/api/generated/types.gen'
@@ -78,13 +85,49 @@ function accountSortValue(transaction: TransactionListItem): string {
   return (transaction.account?.name ?? '').toLowerCase()
 }
 
-function accountDisplay(transaction: TransactionListItem): string {
+function accountCell(transaction: TransactionListItem): ReactNode {
   if (transaction.type === TransactionType.TRANSFER) {
     const from = transaction.account?.name ?? emptyCellDash
     const to = transaction.transferToAccount?.name ?? emptyCellDash
-    return `${from} → ${to}`
+    return (
+      <span className="inline-flex items-center gap-1">
+        <span className="truncate">{from}</span>
+        <ArrowRight
+          className="size-3.5 shrink-0 text-gray-600"
+          strokeWidth={1.5}
+          aria-hidden={true}
+        />
+        <span className="truncate">{to}</span>
+      </span>
+    )
   }
   return transaction.account?.name ?? emptyCellDash
+}
+
+function recipientSenderSortValue(transaction: TransactionListItem): string {
+  if (transaction.type === TransactionType.TRANSFER) return ''
+  if (transaction.type === TransactionType.INCOME) {
+    return (transaction.incomeSource?.name ?? '').toLowerCase()
+  }
+  return (transaction.recipient?.name ?? '').toLowerCase()
+}
+
+function recipientSenderSearchText(transaction: TransactionListItem): string {
+  if (transaction.type === TransactionType.TRANSFER) return ''
+  if (transaction.type === TransactionType.INCOME) {
+    return transaction.incomeSource?.name ?? ''
+  }
+  return transaction.recipient?.name ?? ''
+}
+
+function recipientSenderCell(transaction: TransactionListItem): ReactNode {
+  if (transaction.type === TransactionType.TRANSFER) {
+    return <span className="text-gray-600">{emptyCellDash}</span>
+  }
+  if (transaction.type === TransactionType.INCOME) {
+    return transaction.incomeSource?.name ?? emptyCellDash
+  }
+  return transaction.recipient?.name ?? emptyCellDash
 }
 
 function categorySortValue(transaction: TransactionListItem): string {
@@ -264,7 +307,7 @@ export function createTransactionTableColumns({
         globalSearchable: true,
         searchValue: (row: TransactionListItem) => accountSearchText(row)
       },
-      cell: (ctx) => accountDisplay(ctx.row.original)
+      cell: (ctx) => accountCell(ctx.row.original)
     }),
     columnHelper.accessor((row) => (row.budget?.name ?? '').toLowerCase(), {
       id: 'budget',
@@ -299,21 +342,21 @@ export function createTransactionTableColumns({
       },
       cell: (ctx) => categoryCell(ctx.row.original, t)
     }),
-    columnHelper.accessor((row) => (row.recipient?.name ?? '').toLowerCase(), {
-      id: 'recipient',
-      header: t('common.recipient'),
-      sortingFn: (rowA, rowB) => {
-        const a = (rowA.original.recipient?.name ?? '').toLowerCase()
-        const b = (rowB.original.recipient?.name ?? '').toLowerCase()
-        return a.localeCompare(b, undefined, {
-          numeric: true
-        })
-      },
+    columnHelper.accessor((row) => recipientSenderSortValue(row), {
+      id: 'recipientSender',
+      header: t('common.recipientSender'),
+      sortingFn: (rowA, rowB) =>
+        recipientSenderSortValue(rowA.original).localeCompare(
+          recipientSenderSortValue(rowB.original),
+          undefined,
+          { numeric: true }
+        ),
       meta: {
         globalSearchable: true,
-        searchValue: (row: TransactionListItem) => row.recipient?.name ?? ''
+        searchValue: (row: TransactionListItem) =>
+          recipientSenderSearchText(row)
       },
-      cell: (ctx) => ctx.row.original.recipient?.name ?? emptyCellDash
+      cell: (ctx) => recipientSenderCell(ctx.row.original)
     }),
     columnHelper.display({
       id: 'actions',

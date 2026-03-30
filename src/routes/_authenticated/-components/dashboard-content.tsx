@@ -29,13 +29,11 @@ import {
 import { useAuth } from '@/contexts/auth-context'
 import { useDrawer } from '@/drawers'
 import {
-  useHouseholdPeriodSummary,
-  useMultiAccountBalanceHistory
+  useAccountBalanceChart,
+  useHouseholdPeriodSummary
 } from '@/hooks/api'
-import {
-  generateChartDataFromSnapshots,
-  getDateRange
-} from '@/lib/dashboard-utils'
+import type { ChartDataPoint } from '@/lib/dashboard-utils'
+import { getDateRange } from '@/lib/dashboard-utils'
 import { formatCurrency } from '@/lib/utils'
 import type { UseDashboardSettingsResult } from './use-dashboard-settings'
 
@@ -91,7 +89,7 @@ export function DashboardContent({
   unallocatedAmount
 }: DashboardContentProps) {
   const { t } = useTranslation()
-  const { userId, householdId } = useAuth()
+  const { householdId } = useAuth()
   const { openDrawer } = useDrawer()
 
   const { quickSelection, customStartDate, customEndDate, selectedAccountIds } =
@@ -129,62 +127,48 @@ export function DashboardContent({
     ]
   )
 
-  const { data: multiHistory } = useMultiAccountBalanceHistory({
+  const { data: chartResponse } = useAccountBalanceChart({
+    householdId,
     accountIds: chartAccountIds,
-    userId,
     dateFrom: startDate,
     dateTo: endDate,
-    enabled: chartAccountIds.length > 0
+    enabled: chartAccountIds.length > 0 && !!householdId
   })
-
-  const currentBalances = useMemo(() => {
-    const balances = new Map<string, number>()
-
-    for (const account of accounts) {
-      balances.set(
-        account.id,
-        Number(account.currentBalance ?? account.initialBalance)
-      )
-    }
-
-    return balances
-  }, [
-    accounts
-  ])
 
   const totalAvailableFunds = useMemo(
     () =>
       accounts.reduce(
-        (sum, account) => sum + (currentBalances.get(account.id) ?? 0),
+        (sum, account) => sum + Number(account.currentBalance ?? account.initialBalance),
         0
       ),
     [
-      accounts,
-      currentBalances
+      accounts
     ]
   )
 
   const hasStaleHistory = useMemo(
-    () => (multiHistory ?? []).some((item) => item.staleHistory),
+    () => (chartResponse?.accounts ?? []).some((a) => a.staleHistory),
     [
-      multiHistory
+      chartResponse
     ]
   )
 
-  const chartData = useMemo(() => {
-    return generateChartDataFromSnapshots(
-      chartAccounts,
-      multiHistory ?? [],
-      currentBalances,
-      startDate,
-      endDate
-    )
+  const chartData = useMemo((): ChartDataPoint[] => {
+    if (!chartResponse) return []
+    const { dates, series } = chartResponse
+    return dates.map((isoDate, i) => {
+      const point: ChartDataPoint = {
+        date: isoDate,
+        originalDate: new Date(`${isoDate}T00:00:00`)
+      }
+      for (const account of chartAccounts) {
+        point[account.id] = series[account.id]?.[i] ?? 0
+      }
+      return point
+    })
   }, [
-    chartAccounts,
-    multiHistory,
-    currentBalances,
-    startDate,
-    endDate
+    chartResponse,
+    chartAccounts
   ])
 
   const openCreateBudgetDrawer = () => {
@@ -413,7 +397,7 @@ export function DashboardContent({
                         {account.externalIdentifier ?? '—'}
                       </TableCell>
                       <TableCell className="type-body-medium py-2 pr-2 pl-0 text-black">
-                        {formatCurrency(currentBalances.get(account.id) ?? 0)}
+                        {formatCurrency(account.currentBalance)}
                       </TableCell>
                       <TableCell className="py-2 pr-0 pl-0 text-end">
                         <TableRowMenu

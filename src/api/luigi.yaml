@@ -87,6 +87,12 @@ components:
       type: string
       enum: [UPCOMING, DUE, HANDLED]
 
+    BillPaymentHandling:
+      type: string
+      description: |
+        How the recurring bill is paid or delivered (Swedish UI “Hantering”): direct debit, e-invoice, mail, vendor portal, paper, etc.
+      enum: [AUTOGIRO, E_INVOICE, MAIL, PORTAL, PAPER]
+
     # ───────── Core Models ─────────
     Household:
       type: object
@@ -440,6 +446,8 @@ components:
           type: string
         category:
           $ref: '#/components/schemas/Category'
+        budget:
+          $ref: '#/components/schemas/NullableRelationRef'
       required: [id, transactionId, categoryId, amount, subtitle]
 
     TransactionGroupedByCategory:
@@ -489,6 +497,11 @@ components:
         lastPaymentDate:
           type: [string, "null"]
           format: date-time
+        paymentHandling:
+          anyOf:
+            - $ref: '#/components/schemas/BillPaymentHandling'
+            - type: "null"
+          description: How the bill is paid or received; null when unset (e.g. legacy bills).
         category:
           $ref: '#/components/schemas/NullableRelationRef'
         budget:
@@ -542,6 +555,11 @@ components:
           $ref: '#/components/schemas/RecurrenceType'
         customIntervalDays:
           type: [integer, "null"]
+        paymentHandling:
+          anyOf:
+            - $ref: '#/components/schemas/BillPaymentHandling'
+            - type: "null"
+          description: Copied from the parent recurring bill; null when the bill has no handling set or no parent bill.
         startDate:
           type: string
           format: date-time
@@ -560,6 +578,8 @@ components:
           type: [string, "null"]
         categoryId:
           type: string
+        budgetId:
+          type: [string, "null"]
         amount:
           type: number
           format: double
@@ -569,7 +589,30 @@ components:
           type: [string, "null"]
         category:
           $ref: '#/components/schemas/Category'
+        budget:
+          $ref: '#/components/schemas/NullableRelationRef'
       required: [id, categoryId, amount, subtitle]
+
+    BillSplitWrite:
+      type: object
+      description: |
+        Line item for bill splits. When `splits` is non-empty, top-level bill `budgetId` and top-level category fields
+        must be unset; each line carries its own category and may reference a household budget via `budgetId`.
+      properties:
+        categoryId:
+          type: string
+        newCategoryName:
+          type: string
+          minLength: 1
+        budgetId:
+          type: string
+        amount:
+          type: number
+          format: double
+          exclusiveMinimum: 0
+        subtitle:
+          type: string
+      required: [amount, subtitle]
 
     IncomeInstance:
       type: object
@@ -757,6 +800,64 @@ components:
           type: number
           format: double
       required: [householdId, dateFrom, dateTo, totalIncome, totalExpense, net]
+
+    HouseholdAccountBalanceChartAccountMeta:
+      type: object
+      description: Per-account chart metadata and live balance (same staleness semantics as balance history).
+      properties:
+        accountId:
+          type: string
+        staleHistory:
+          type: boolean
+        historyRecalcFrom:
+          type: [string, "null"]
+          format: date
+        currentBalance:
+          type: number
+          format: double
+      required: [accountId, staleHistory, currentBalance]
+
+    HouseholdAccountBalanceChartResponse:
+      type: object
+      description: |
+        **Daily** balance series for dashboard charts over inclusive calendar dates (`dateFrom` through `dateTo`).
+        `dates` has one ISO calendar date per day in that range (in order). `series` maps each account id to
+        an array of balances with the same length as `dates`.
+
+        For each account and day **D**, the value is the **latest snapshot balance** with `snapshot.date <= D`
+        (forward-filled across days with no snapshot row, producing flat chart segments). If there is no snapshot
+        on or before **D**, the value is **`initialBalance`** until a snapshot applies.
+
+        For the server's **current UTC calendar date** (`today`), values are **`currentBalance`** from live account
+        state (same as list account balances), so the chart matches real-time balances even when today's snapshot
+        row is missing. Days after `today` still appear when `dateTo` extends into the future; they forward-fill
+        from the last known balance as of each day (typically flat after the last in-range snapshot).
+      properties:
+        householdId:
+          type: string
+        dateFrom:
+          type: string
+          format: date
+        dateTo:
+          type: string
+          format: date
+        dates:
+          type: array
+          items:
+            type: string
+            format: date
+        series:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: number
+              format: double
+        accounts:
+          type: array
+          items:
+            $ref: '#/components/schemas/HouseholdAccountBalanceChartAccountMeta'
+      required: [householdId, dateFrom, dateTo, dates, series, accounts]
 
     SuccessResponse:
       type: object
@@ -1049,13 +1150,55 @@ components:
           format: double
           exclusiveMinimum: 0
       required: [fromBudgetId, toBudgetId, amount]
+    SplitInlineNewCategory:
+      type: object
+      description: |
+        Inline category for a transaction split. If `type` is omitted, the server uses the category kind implied by the
+        parent transaction (`EXPENSE` → expense category, `INCOME` → income category). If `type` is provided, it must
+        match that implied kind.
+      properties:
+        name:
+          type: string
+          minLength: 1
+        type:
+          $ref: '#/components/schemas/CategoryType'
+      required: [name]
+    TransactionSplitWrite:
+      type: object
+      description: |
+        Set exactly one of `categoryId`, `newCategoryName`, or `newCategory` to assign a category to the split line.
+        For effective `EXPENSE` transactions with splits, each line must include `budgetId` (envelope) for that split amount.
+      properties:
+        categoryId:
+          type: string
+        newCategoryName:
+          type: string
+          minLength: 1
+        newCategory:
+          $ref: '#/components/schemas/SplitInlineNewCategory'
+        budgetId:
+          type: string
+          description: Required for each split when the parent transaction is an effective expense with splits.
+        amount:
+          type: number
+          format: double
+          exclusiveMinimum: 0
+        subtitle:
+          type: string
+      required: [amount, subtitle]
     CreateTransactionRequest:
       type: object
+      description: |
+        `budgetId` and `splits` are mutually exclusive: if `splits` is non-empty, `budgetId` must be null and each split
+        line carries its own `budgetId` for effective expenses.
+        Top-level `categoryId` / `newCategory` and `splits` are mutually exclusive: if `splits` is non-empty, omit
+        top-level category fields; each split line carries its own category.
       properties:
         type:
           $ref: '#/components/schemas/TransactionType'
         budgetId:
           type: [string, "null"]
+          description: Used when there are no splits. Must be null when `splits` is non-empty.
         accountId:
           type: string
         categoryId:
@@ -1064,6 +1207,10 @@ components:
           type: [string, "null"]
         instanceId:
           type: [string, "null"]
+          description: |
+            When set, links this transaction to one occurrence: **bill instance** id if `type` is `EXPENSE`, **income instance**
+            id if `type` is `INCOME`. Must belong to the same household as `accountId`. Omit for `TRANSFER` and for unlinked
+            transactions. See operation description for validation and side effects (handled status on the instance).
         newCategory:
           type: object
           properties:
@@ -1090,28 +1237,28 @@ components:
         newRecipientName:
           type: string
           minLength: 1
+        incomeSourceId:
+          type: [string, "null"]
+          description: |
+            When `type` is `INCOME`, links the transaction to an existing income source (payer). Ignored for other types.
+        newIncomeSourceName:
+          type: string
+          minLength: 1
+          description: |
+            When `type` is `INCOME` and `incomeSourceId` is not set, get-or-create an income source by name in the household.
+            Ignored for other types.
         splits:
           type: array
+          description: When present and non-empty, top-level `budgetId` and top-level category fields must be unset.
           items:
-            type: object
-            properties:
-              categoryId:
-                type: string
-              newCategoryName:
-                type: string
-                minLength: 1
-              budgetId:
-                type: string
-              amount:
-                type: number
-                format: double
-                exclusiveMinimum: 0
-              subtitle:
-                type: string
-            required: [amount, subtitle]
+            $ref: '#/components/schemas/TransactionSplitWrite'
       required: [accountId, name, amount, date]
     UpdateTransactionRequest:
       type: object
+      description: |
+        `budgetId` and `splits` are mutually exclusive: if `splits` is non-empty, `budgetId` must be null.
+        Top-level `categoryId` and `splits` are mutually exclusive: if `splits` is non-empty (after the update),
+        `categoryId` must be null.
       properties:
         type:
           $ref: '#/components/schemas/TransactionType'
@@ -1119,12 +1266,18 @@ components:
           type: string
         budgetId:
           type: [string, "null"]
+          description: Must be null when `splits` is non-empty.
         categoryId:
           type: [string, "null"]
+          description: Must be null when the transaction has non-empty `splits` (after this update).
         transferToAccountId:
           type: [string, "null"]
         instanceId:
           type: [string, "null"]
+          description: |
+            Set or clear (`null`) the linked bill or income instance. Same rules as create: **bill instance** for `EXPENSE`,
+            **income instance** for `INCOME`; must match `type` and household. Changing `type` or clearing the link updates
+            prior instance state when applicable. Not valid when `type` is `TRANSFER`.
         name:
           type: string
           minLength: 1
@@ -1139,25 +1292,14 @@ components:
           type: [string, "null"]
         recipientId:
           type: [string, "null"]
+        incomeSourceId:
+          type: [string, "null"]
+          description: When `type` is `INCOME`, set or clear the linked income source. Ignored for other types.
         splits:
           type: array
+          description: When present and non-empty, top-level `budgetId` and top-level `categoryId` must be null.
           items:
-            type: object
-            properties:
-              categoryId:
-                type: string
-              newCategoryName:
-                type: string
-                minLength: 1
-              budgetId:
-                type: string
-              amount:
-                type: number
-                format: double
-                exclusiveMinimum: 0
-              subtitle:
-                type: string
-            required: [amount, subtitle]
+            $ref: '#/components/schemas/TransactionSplitWrite'
     CloneTransactionRequest:
       type: object
       properties:
@@ -1166,6 +1308,11 @@ components:
           format: date-time
     CreateBillRequest:
       type: object
+      description: |
+        `budgetId` and `splits` are mutually exclusive: if `splits` is non-empty, `budgetId` must be null and each split
+        may carry its own `budgetId`.
+        Top-level `categoryId` / `newCategoryName` and `splits` are mutually exclusive: if `splits` is non-empty, omit
+        top-level category fields; each split line carries its own category.
       properties:
         name:
           type: string
@@ -1179,6 +1326,7 @@ components:
           type: string
         budgetId:
           type: [string, "null"]
+          description: Used when there are no splits. Must be null when `splits` is non-empty.
         startDate:
           type: string
           format: date-time
@@ -1197,6 +1345,11 @@ components:
         lastPaymentDate:
           type: string
           format: date-time
+        paymentHandling:
+          anyOf:
+            - $ref: '#/components/schemas/BillPaymentHandling'
+            - type: "null"
+          description: Optional; omit to leave unset, or set to null explicitly to store no handling.
         categoryId:
           type: string
         newCategoryName:
@@ -1204,23 +1357,16 @@ components:
           minLength: 1
         splits:
           type: array
+          description: When present and non-empty, top-level `budgetId` and top-level category fields must be unset.
           items:
-            type: object
-            properties:
-              categoryId:
-                type: string
-              newCategoryName:
-                type: string
-              amount:
-                type: number
-                format: double
-                exclusiveMinimum: 0
-              subtitle:
-                type: string
-            required: [amount, subtitle]
+            $ref: '#/components/schemas/BillSplitWrite'
       required: [name, accountId, startDate, recurrenceType, estimatedAmount]
     UpdateBillRequest:
       type: object
+      description: |
+        `budgetId` and `splits` are mutually exclusive: if `splits` is non-empty, `budgetId` must be null.
+        Top-level `categoryId` and `splits` are mutually exclusive: if `splits` is non-empty (after the update),
+        `categoryId` must be null.
       properties:
         name:
           type: string
@@ -1233,6 +1379,7 @@ components:
           type: string
         budgetId:
           type: [string, "null"]
+          description: Must be null when `splits` is non-empty.
         startDate:
           type: string
           format: date-time
@@ -1251,26 +1398,21 @@ components:
         lastPaymentDate:
           type: [string, "null"]
           format: date-time
+        paymentHandling:
+          anyOf:
+            - $ref: '#/components/schemas/BillPaymentHandling'
+            - type: "null"
+          description: Set or clear payment handling; omit to leave unchanged.
         categoryId:
-          type: string
+          type: [string, "null"]
+          description: Must be null when the bill has non-empty `splits` (after this update).
         archived:
           type: boolean
         splits:
           type: array
+          description: When present and non-empty, top-level `budgetId` and top-level `categoryId` must be null.
           items:
-            type: object
-            properties:
-              categoryId:
-                type: string
-              newCategoryName:
-                type: string
-              amount:
-                type: number
-                format: double
-                exclusiveMinimum: 0
-              subtitle:
-                type: string
-            required: [amount, subtitle]
+            $ref: '#/components/schemas/BillSplitWrite'
     ArchiveBillRequest:
       type: object
       properties:
@@ -2198,7 +2340,7 @@ paths:
         - name: type
           in: query
           schema:
-            $ref: '#/components/schemas/TransactionType'
+            $ref: '#/components/schemas/CategoryType'
           description: Filter by category type
         - name: budgetId
           in: query
@@ -2450,6 +2592,69 @@ paths:
               schema:
                 $ref: '#/components/schemas/ProblemDetails'
 
+  /households/{householdId}/dashboard/account-balance-chart:
+    parameters:
+      - $ref: '#/components/parameters/householdId'
+    get:
+      operationId: getHouseholdAccountBalanceChart
+      summary: Daily account balance series for dashboard charts
+      description: |
+        Returns forward-filled **daily** balances for the requested accounts (see `HouseholdAccountBalanceChartResponse`).
+        When `accountIds` is omitted, all **non-archived** household accounts are included unless `includeArchived` is true.
+      tags: [Households]
+      parameters:
+        - name: dateFrom
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: dateTo
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: accountIds
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+          style: form
+          explode: true
+        - name: includeArchived
+          in: query
+          required: false
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Daily balance series for charting
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HouseholdAccountBalanceChartResponse'
+        '400':
+          description: Invalid date range
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '404':
+          description: Household or account not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+
   # ─────────────────────────
   # TRANSACTIONS
   # ─────────────────────────
@@ -2515,7 +2720,16 @@ paths:
       tags: [Transactions]
       description: |
         Supports inline category creation via `newCategory`, inline recipient creation via `newRecipientName`,
-        and transaction splits. When paying a bill (`billId`), automatically generates next bill instance.
+        and transaction splits (each split may use `categoryId`, `newCategoryName`, or split-level `newCategory` whose
+        category kind defaults to the transaction type).
+
+        Optional `instanceId` links the transaction to a single **occurrence**: for `EXPENSE` it must be a **bill instance**
+        id (from bill-instance APIs); for `INCOME` it must be an **income instance** id. The server stores the link on the
+        transaction and marks that instance as handled. Resolution uses the transaction `type` (wrong kind or other
+        household → 404; already linked elsewhere → 422). `TRANSFER` must not send `instanceId` (422).
+
+        This is not the recurring blueprint id (`billId` on bills, or income id on incomes). Additional forward instances
+        for recurring blueprints are created by scheduled jobs, not by this endpoint.
       requestBody:
         required: true
         content:
@@ -2890,6 +3104,45 @@ paths:
               schema:
                 $ref: '#/components/schemas/Income'
 
+  /households/{householdId}/income-sources:
+    parameters:
+      - $ref: '#/components/parameters/householdId'
+    get:
+      operationId: listIncomeSources
+      summary: List income sources for a household
+      tags: [IncomeSources]
+      parameters:
+        - name: includeArchived
+          in: query
+          schema:
+            type: boolean
+            default: false
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/offset'
+      responses:
+        '200':
+          description: List of income sources (empty list when no matches)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/IncomeSource'
+                  pagination:
+                    $ref: '#/components/schemas/PaginationMeta'
+        '404':
+          description: Household not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+
   /incomes/{incomeId}:
     parameters:
       - $ref: '#/components/parameters/incomeId'
@@ -2987,6 +3240,64 @@ paths:
       responses:
         '200':
           description: List of income instances
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/IncomeInstance'
+                  pagination:
+                    $ref: '#/components/schemas/PaginationMeta'
+
+  /income-instances:
+    get:
+      operationId: listIncomeInstancesFiltered
+      summary: List income instances with flexible filters
+      tags: [Income]
+      parameters:
+        - name: incomeId
+          in: query
+          schema:
+            type: string
+        - name: householdId
+          in: query
+          schema:
+            type: string
+        - name: transactionId
+          in: query
+          schema:
+            type: string
+        - name: dateFrom
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: dateTo
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: includeArchived
+          in: query
+          schema:
+            type: boolean
+            default: false
+        - name: accountId
+          in: query
+          schema:
+            type: string
+        - name: categoryId
+          in: query
+          schema:
+            type: string
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/offset'
+      responses:
+        '200':
+          description: List of income instances (empty list when no matches)
           content:
             application/json:
               schema:

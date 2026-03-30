@@ -3,12 +3,14 @@ import {
   getIncomeInstanceOptions,
   getIncomeOptions,
   listIncomeInstancesOptions,
+  listIncomeSourcesOptions,
   listIncomesOptions
 } from '@/api/generated/@tanstack/react-query.gen'
 import type {
   GetIncomeData,
   GetIncomeInstanceData,
   ListIncomeInstancesData,
+  ListIncomeSourcesData,
   ListIncomesData
 } from '@/api/generated/types.gen'
 import {
@@ -42,15 +44,6 @@ export function useIncomeList(params: {
     select: (response) =>
       (response.data ?? []).map((income) => ({
         ...income,
-        // Backward-compatible normalization if backend still returns `isArchived`.
-        archived:
-          income.archived ??
-          (
-            income as unknown as {
-              isArchived?: boolean
-            }
-          ).isArchived ??
-          false,
         expectedDate: fromApiDate(income.expectedDate),
         endDate: fromOptionalApiDate(income.endDate ?? undefined)
       }))
@@ -127,5 +120,34 @@ export function useIncomeInstanceById(params: {
       ...instance,
       expectedDate: fromApiDate(instance.expectedDate)
     })
+  })
+}
+
+type ListIncomeSourcesQuery = NonNullable<ListIncomeSourcesData['query']>
+
+/**
+ * Hook to fetch income sources (payers) for a household.
+ * Uses the dedicated `listIncomeSources` endpoint which includes sources
+ * created both via recurring incomes and via one-off transactions.
+ */
+export function useIncomeSourcesList(params: {
+  householdId?: ListIncomeSourcesData['path']['householdId'] | null
+  userId?: string | null
+  includeArchived?: ListIncomeSourcesQuery['includeArchived']
+  enabled?: boolean
+}) {
+  const { householdId, includeArchived, enabled = true } = params
+
+  return useQuery({
+    ...listIncomeSourcesOptions({
+      path: {
+        householdId: householdId ?? ''
+      },
+      query: {
+        includeArchived
+      }
+    }),
+    enabled: enabled && !!householdId,
+    select: (response) => response.data ?? []
   })
 }

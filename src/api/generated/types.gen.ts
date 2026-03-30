@@ -51,6 +51,24 @@ export const InstanceStatus = {
 
 export type InstanceStatus = typeof InstanceStatus[keyof typeof InstanceStatus];
 
+/**
+ * How the recurring bill is paid or delivered (Swedish UI “Hantering”): direct debit, e-invoice, mail, vendor portal, paper, etc.
+ *
+ */
+export const BillPaymentHandling = {
+    AUTOGIRO: 'AUTOGIRO',
+    E_INVOICE: 'E_INVOICE',
+    MAIL: 'MAIL',
+    PORTAL: 'PORTAL',
+    PAPER: 'PAPER'
+} as const;
+
+/**
+ * How the recurring bill is paid or delivered (Swedish UI “Hantering”): direct debit, e-invoice, mail, vendor portal, paper, etc.
+ *
+ */
+export type BillPaymentHandling = typeof BillPaymentHandling[keyof typeof BillPaymentHandling];
+
 export type Household = {
     id: string;
     name: string;
@@ -218,6 +236,7 @@ export type TransactionSplit = {
     amount: number;
     subtitle: string;
     category?: Category;
+    budget?: NullableRelationRef;
 };
 
 export type TransactionGroupedByCategory = {
@@ -246,6 +265,10 @@ export type Bill = {
     estimatedAmount: number;
     endDate?: string | null;
     lastPaymentDate?: string | null;
+    /**
+     * How the bill is paid or received; null when unset (e.g. legacy bills).
+     */
+    paymentHandling?: BillPaymentHandling | null;
     category?: NullableRelationRef;
     budget?: NullableRelationRef;
     household: RelationRef;
@@ -275,6 +298,10 @@ export type BillInstance = {
     splits?: Array<BillSplit>;
     recurrenceType: RecurrenceType;
     customIntervalDays?: number | null;
+    /**
+     * Copied from the parent recurring bill; null when the bill has no handling set or no parent bill.
+     */
+    paymentHandling?: BillPaymentHandling | null;
     startDate: string;
     archived: boolean;
 };
@@ -284,10 +311,25 @@ export type BillSplit = {
     billId?: string | null;
     billInstanceId?: string | null;
     categoryId: string;
+    budgetId?: string | null;
     amount: number;
     subtitle: string;
     categoryName?: string | null;
     category?: Category;
+    budget?: NullableRelationRef;
+};
+
+/**
+ * Line item for bill splits. When `splits` is non-empty, top-level bill `budgetId` and top-level category fields
+ * must be unset; each line carries its own category and may reference a household budget via `budgetId`.
+ *
+ */
+export type BillSplitWrite = {
+    categoryId?: string;
+    newCategoryName?: string;
+    budgetId?: string;
+    amount: number;
+    subtitle: string;
 };
 
 export type IncomeInstance = {
@@ -378,6 +420,42 @@ export type HouseholdPeriodSummary = {
     totalIncome: number;
     totalExpense: number;
     net: number;
+};
+
+/**
+ * Per-account chart metadata and live balance (same staleness semantics as balance history).
+ */
+export type HouseholdAccountBalanceChartAccountMeta = {
+    accountId: string;
+    staleHistory: boolean;
+    historyRecalcFrom?: string | null;
+    currentBalance: number;
+};
+
+/**
+ * **Daily** balance series for dashboard charts over inclusive calendar dates (`dateFrom` through `dateTo`).
+ * `dates` has one ISO calendar date per day in that range (in order). `series` maps each account id to
+ * an array of balances with the same length as `dates`.
+ *
+ * For each account and day **D**, the value is the **latest snapshot balance** with `snapshot.date <= D`
+ * (forward-filled across days with no snapshot row, producing flat chart segments). If there is no snapshot
+ * on or before **D**, the value is **`initialBalance`** until a snapshot applies.
+ *
+ * For the server's **current UTC calendar date** (`today`), values are **`currentBalance`** from live account
+ * state (same as list account balances), so the chart matches real-time balances even when today's snapshot
+ * row is missing. Days after `today` still appear when `dateTo` extends into the future; they forward-fill
+ * from the last known balance as of each day (typically flat after the last in-range snapshot).
+ *
+ */
+export type HouseholdAccountBalanceChartResponse = {
+    householdId: string;
+    dateFrom: string;
+    dateTo: string;
+    dates: Array<string>;
+    series: {
+        [key: string]: Array<number>;
+    };
+    accounts: Array<HouseholdAccountBalanceChartAccountMeta>;
 };
 
 export type SuccessResponse = {
@@ -534,8 +612,46 @@ export type TransferAllocationRequest = {
     amount: number;
 };
 
+/**
+ * Inline category for a transaction split. If `type` is omitted, the server uses the category kind implied by the
+ * parent transaction (`EXPENSE` → expense category, `INCOME` → income category). If `type` is provided, it must
+ * match that implied kind.
+ *
+ */
+export type SplitInlineNewCategory = {
+    name: string;
+    type?: CategoryType;
+};
+
+/**
+ * Set exactly one of `categoryId`, `newCategoryName`, or `newCategory` to assign a category to the split line.
+ * For effective `EXPENSE` transactions with splits, each line must include `budgetId` (envelope) for that split amount.
+ *
+ */
+export type TransactionSplitWrite = {
+    categoryId?: string;
+    newCategoryName?: string;
+    newCategory?: SplitInlineNewCategory;
+    /**
+     * Required for each split when the parent transaction is an effective expense with splits.
+     */
+    budgetId?: string;
+    amount: number;
+    subtitle: string;
+};
+
+/**
+ * `budgetId` and `splits` are mutually exclusive: if `splits` is non-empty, `budgetId` must be null and each split
+ * line carries its own `budgetId` for effective expenses.
+ * Top-level `categoryId` / `newCategory` and `splits` are mutually exclusive: if `splits` is non-empty, omit
+ * top-level category fields; each split line carries its own category.
+ *
+ */
 export type CreateTransactionRequest = {
     type?: TransactionType;
+    /**
+     * Used when there are no splits. Must be null when `splits` is non-empty.
+     */
     budgetId?: string | null;
     accountId: string;
     categoryId?: string | null;
@@ -551,19 +667,39 @@ export type CreateTransactionRequest = {
     notes?: string | null;
     recipientId?: string | null;
     newRecipientName?: string;
-    splits?: Array<{
-        categoryId?: string;
-        newCategoryName?: string;
-        budgetId?: string;
-        amount: number;
-        subtitle: string;
-    }>;
+    /**
+     * When `type` is `INCOME`, links the transaction to an existing income source (payer). Ignored for other types.
+     *
+     */
+    incomeSourceId?: string | null;
+    /**
+     * When `type` is `INCOME` and `incomeSourceId` is not set, get-or-create an income source by name in the household.
+     * Ignored for other types.
+     *
+     */
+    newIncomeSourceName?: string;
+    /**
+     * When present and non-empty, top-level `budgetId` and top-level category fields must be unset.
+     */
+    splits?: Array<TransactionSplitWrite>;
 };
 
+/**
+ * `budgetId` and `splits` are mutually exclusive: if `splits` is non-empty, `budgetId` must be null.
+ * Top-level `categoryId` and `splits` are mutually exclusive: if `splits` is non-empty (after the update),
+ * `categoryId` must be null.
+ *
+ */
 export type UpdateTransactionRequest = {
     type?: TransactionType;
     accountId?: string;
+    /**
+     * Must be null when `splits` is non-empty.
+     */
     budgetId?: string | null;
+    /**
+     * Must be null when the transaction has non-empty `splits` (after this update).
+     */
     categoryId?: string | null;
     transferToAccountId?: string | null;
     instanceId?: string | null;
@@ -572,24 +708,35 @@ export type UpdateTransactionRequest = {
     date?: string;
     notes?: string | null;
     recipientId?: string | null;
-    splits?: Array<{
-        categoryId?: string;
-        newCategoryName?: string;
-        budgetId?: string;
-        amount: number;
-        subtitle: string;
-    }>;
+    /**
+     * When `type` is `INCOME`, set or clear the linked income source. Ignored for other types.
+     */
+    incomeSourceId?: string | null;
+    /**
+     * When present and non-empty, top-level `budgetId` and top-level `categoryId` must be null.
+     */
+    splits?: Array<TransactionSplitWrite>;
 };
 
 export type CloneTransactionRequest = {
     date?: string;
 };
 
+/**
+ * `budgetId` and `splits` are mutually exclusive: if `splits` is non-empty, `budgetId` must be null and each split
+ * may carry its own `budgetId`.
+ * Top-level `categoryId` / `newCategoryName` and `splits` are mutually exclusive: if `splits` is non-empty, omit
+ * top-level category fields; each split line carries its own category.
+ *
+ */
 export type CreateBillRequest = {
     name: string;
     recipientId?: string;
     newRecipientName?: string;
     accountId: string;
+    /**
+     * Used when there are no splits. Must be null when `splits` is non-empty.
+     */
     budgetId?: string | null;
     startDate: string;
     recurrenceType: RecurrenceType;
@@ -597,21 +744,32 @@ export type CreateBillRequest = {
     estimatedAmount: number;
     endDate?: string | null;
     lastPaymentDate?: string;
+    /**
+     * Optional; omit to leave unset, or set to null explicitly to store no handling.
+     */
+    paymentHandling?: BillPaymentHandling | null;
     categoryId?: string;
     newCategoryName?: string;
-    splits?: Array<{
-        categoryId?: string;
-        newCategoryName?: string;
-        amount: number;
-        subtitle: string;
-    }>;
+    /**
+     * When present and non-empty, top-level `budgetId` and top-level category fields must be unset.
+     */
+    splits?: Array<BillSplitWrite>;
 };
 
+/**
+ * `budgetId` and `splits` are mutually exclusive: if `splits` is non-empty, `budgetId` must be null.
+ * Top-level `categoryId` and `splits` are mutually exclusive: if `splits` is non-empty (after the update),
+ * `categoryId` must be null.
+ *
+ */
 export type UpdateBillRequest = {
     name?: string;
     recipientId?: string;
     newRecipientName?: string;
     accountId?: string;
+    /**
+     * Must be null when `splits` is non-empty.
+     */
     budgetId?: string | null;
     startDate?: string;
     recurrenceType?: RecurrenceType;
@@ -619,14 +777,19 @@ export type UpdateBillRequest = {
     estimatedAmount?: number;
     endDate?: string | null;
     lastPaymentDate?: string | null;
-    categoryId?: string;
+    /**
+     * Set or clear payment handling; omit to leave unchanged.
+     */
+    paymentHandling?: BillPaymentHandling | null;
+    /**
+     * Must be null when the bill has non-empty `splits` (after this update).
+     */
+    categoryId?: string | null;
     archived?: boolean;
-    splits?: Array<{
-        categoryId?: string;
-        newCategoryName?: string;
-        amount: number;
-        subtitle: string;
-    }>;
+    /**
+     * When present and non-empty, top-level `budgetId` and top-level `categoryId` must be null.
+     */
+    splits?: Array<BillSplitWrite>;
 };
 
 export type ArchiveBillRequest = {
@@ -1709,6 +1872,42 @@ export type GetHouseholdPeriodSummaryResponses = {
 
 export type GetHouseholdPeriodSummaryResponse = GetHouseholdPeriodSummaryResponses[keyof GetHouseholdPeriodSummaryResponses];
 
+export type GetHouseholdAccountBalanceChartData = {
+    body?: never;
+    path: {
+        householdId: string;
+    };
+    query: {
+        dateFrom: string;
+        dateTo: string;
+        accountIds?: Array<string>;
+        includeArchived?: boolean;
+    };
+    url: '/households/{householdId}/dashboard/account-balance-chart';
+};
+
+export type GetHouseholdAccountBalanceChartErrors = {
+    /**
+     * Invalid date range
+     */
+    400: ProblemDetails;
+    /**
+     * Household or account not found
+     */
+    404: ProblemDetails;
+};
+
+export type GetHouseholdAccountBalanceChartError = GetHouseholdAccountBalanceChartErrors[keyof GetHouseholdAccountBalanceChartErrors];
+
+export type GetHouseholdAccountBalanceChartResponses = {
+    /**
+     * Daily balance series for charting
+     */
+    200: HouseholdAccountBalanceChartResponse;
+};
+
+export type GetHouseholdAccountBalanceChartResponse = GetHouseholdAccountBalanceChartResponses[keyof GetHouseholdAccountBalanceChartResponses];
+
 export type ListTransactionsData = {
     body?: never;
     path?: never;
@@ -2094,6 +2293,46 @@ export type CreateIncomeResponses = {
 };
 
 export type CreateIncomeResponse = CreateIncomeResponses[keyof CreateIncomeResponses];
+
+export type ListIncomeSourcesData = {
+    body?: never;
+    path: {
+        householdId: string;
+    };
+    query?: {
+        includeArchived?: boolean;
+        /**
+         * Maximum number of items to return. Omit to return all items. Set to 0 to return only the pagination count metadata (no data items).
+         */
+        limit?: number;
+        /**
+         * Number of items to skip
+         */
+        offset?: number;
+    };
+    url: '/households/{householdId}/income-sources';
+};
+
+export type ListIncomeSourcesErrors = {
+    /**
+     * Household not found
+     */
+    404: ProblemDetails;
+};
+
+export type ListIncomeSourcesError = ListIncomeSourcesErrors[keyof ListIncomeSourcesErrors];
+
+export type ListIncomeSourcesResponses = {
+    /**
+     * List of income sources (empty list when no matches)
+     */
+    200: {
+        data?: Array<IncomeSource>;
+        pagination?: PaginationMeta;
+    };
+};
+
+export type ListIncomeSourcesResponse = ListIncomeSourcesResponses[keyof ListIncomeSourcesResponses];
 
 export type DeleteIncomeData = {
     body?: never;

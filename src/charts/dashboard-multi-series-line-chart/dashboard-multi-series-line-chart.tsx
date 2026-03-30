@@ -1,3 +1,5 @@
+import { format } from 'date-fns'
+import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { LineChartMultiSeries } from '@/components/charts/line-chart-multi-series/line-chart-multi-series'
 import type { ChartDataPoint } from '@/lib/dashboard-utils'
@@ -23,9 +25,20 @@ export function DashboardMultiSeriesLineChart({
 }: DashboardMultiSeriesLineChartProps) {
   const { t } = useTranslation()
 
+  const formattedData = useMemo(
+    () =>
+      data.map((point) => ({
+        ...point,
+        date: point.originalDate
+          ? format(point.originalDate instanceof Date ? point.originalDate : new Date(point.originalDate), 'MMM d')
+          : point.date
+      })),
+    [data]
+  )
+
   return (
     <LineChartMultiSeries
-      data={data}
+      data={formattedData}
       series={series}
       emptyMessage={t('common.noDataForSelectedPeriod')}
       totalLabel={t('common.total')}

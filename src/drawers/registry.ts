@@ -1,7 +1,7 @@
 import type { ColumnFiltersState } from '@tanstack/react-table'
 import type { ComponentType } from 'react'
 
-import type { TransactionType } from '@/api/generated/types.gen'
+import type { RecurrenceType, TransactionType } from '@/api/generated/types.gen'
 import type { IncomeOverviewStatus } from '@/routes/_authenticated/income/-components/income-overview-table'
 import { AllocateBudgetDrawer } from './drawers/allocate-budget-drawer'
 import { CreateAccountDrawer } from './drawers/create-account-drawer'
@@ -13,7 +13,9 @@ import { DashboardChartSettingsDrawer } from './drawers/dashboard-chart-settings
 import { DeallocateBudgetDrawer } from './drawers/deallocate-budget-drawer'
 import { EditAccountDrawer } from './drawers/edit-account-drawer'
 import { EditBudgetDrawer } from './drawers/edit-budget-drawer'
+import { EditIncomeBlueprintDrawer } from './drawers/edit-income-blueprint-drawer'
 import { EditIncomeInstanceDrawer } from './drawers/edit-income-instance-drawer'
+import { IncomeSourceFilterDrawer } from './drawers/income-source-filter-drawer'
 import { IncomeTableFilterDrawer } from './drawers/income-table-filter-drawer'
 import { TransactionsTableFilterDrawer } from './drawers/transactions-table-filter-drawer'
 import { TransferBudgetAllocationDrawer } from './drawers/transfer-budget-allocation-drawer'
@@ -102,6 +104,22 @@ export type DrawerPropsMap = {
   editIncomeInstance: {
     instanceId: string
   }
+  editIncomeBlueprintUpcoming: {
+    incomeId: string
+    mode: 'upcoming'
+  }
+  editIncomeBlueprintAll: {
+    incomeId: string
+    mode: 'all'
+  }
+  incomeSourceFilterDrawer: {
+    columnFilters: ColumnFiltersState
+    onApply: (filters: ColumnFiltersState) => void
+    availableRecurrences: Array<{ value: RecurrenceType; label: string }>
+    availableAccounts: Array<{ value: string; label: string }>
+    availableCategories: Array<{ value: string; label: string }>
+    availableSenders: Array<{ value: string; label: string }>
+  }
 }
 
 export type DrawerName = keyof DrawerPropsMap
@@ -172,6 +190,17 @@ export const drawerMeta = {
   editIncomeInstance: {
     titleKey: 'drawers.editIncomeInstance.title',
     descriptionKey: 'drawers.shared.incomeDescription'
+  },
+  editIncomeBlueprintUpcoming: {
+    titleKey: 'drawers.editIncomeBlueprintUpcoming.title',
+    descriptionKey: 'drawers.editIncomeBlueprintUpcoming.description'
+  },
+  editIncomeBlueprintAll: {
+    titleKey: 'drawers.editIncomeBlueprintAll.title',
+    descriptionKey: 'drawers.editIncomeBlueprintAll.description'
+  },
+  incomeSourceFilterDrawer: {
+    titleKey: 'drawers.incomeSourceFilterDrawer.title'
   }
 } satisfies DrawerMeta
 
@@ -189,7 +218,10 @@ export const drawerComponents = {
   transferBudgetAllocation: TransferBudgetAllocationDrawer,
   editBudget: EditBudgetDrawer,
   editAccount: EditAccountDrawer,
-  editIncomeInstance: EditIncomeInstanceDrawer
+  editIncomeInstance: EditIncomeInstanceDrawer,
+  editIncomeBlueprintUpcoming: EditIncomeBlueprintDrawer,
+  editIncomeBlueprintAll: EditIncomeBlueprintDrawer,
+  incomeSourceFilterDrawer: IncomeSourceFilterDrawer
 } satisfies {
   [K in keyof DrawerPropsMap]: ComponentType<
     DrawerPropsMap[K] & {

@@ -74,6 +74,25 @@ export function recipientToApi(
   }
 }
 
+/**
+ * Maps a sender combobox value to `incomeSourceId` / `newIncomeSourceName`.
+ */
+function incomeSourceToApi(
+  s: ComboboxValue | null | undefined
+): Pick<CreateTransactionRequest, 'incomeSourceId' | 'newIncomeSourceName'> {
+  if (!s) return {}
+  if (typeof s === 'string')
+    return {
+      incomeSourceId: s
+    }
+  if (typeof s === 'object' && s !== null && 'isNew' in s && s.isNew) {
+    return {
+      newIncomeSourceName: s.name
+    }
+  }
+  return {}
+}
+
 export type CreateTransactionBody = Omit<CreateTransactionRequest, 'date'> & {
   date: Date
 }
@@ -152,6 +171,6 @@ export function buildCreateTransactionBody(params: {
     budgetId: null,
     instanceId: instanceId ?? null,
     ...categoryToApi(data.category, CategoryType.INCOME),
-    ...recipientToApi(data.recipient)
+    ...incomeSourceToApi(data.sender)
   }
 }

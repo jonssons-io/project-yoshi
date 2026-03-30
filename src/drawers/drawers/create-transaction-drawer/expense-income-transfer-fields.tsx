@@ -257,7 +257,7 @@ export function ExpenseIncomeTransferFields({
           )}
         </form.AppField>
       ) : (
-        <form.AppField name="recipient">
+        <form.AppField name="sender">
           {(field) => (
             <field.ComboboxField
               label={t('income.source')}

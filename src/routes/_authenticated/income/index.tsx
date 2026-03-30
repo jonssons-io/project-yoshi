@@ -14,7 +14,7 @@ import { type ReactNode, useCallback, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { listIncomeInstancesOptions } from '@/api/generated/@tanstack/react-query.gen'
-import type { IncomeInstance } from '@/api/generated/types.gen'
+import { RecurrenceType, type IncomeInstance } from '@/api/generated/types.gen'
 import { DataTable, useDataTable } from '@/components/data-table'
 import {
   PageLayout,
@@ -34,6 +34,10 @@ import {
   type IncomeOverviewStatus,
   type LabelLookup
 } from './-components/income-overview-table'
+import {
+  createIncomeSourceDataColumns,
+  type IncomeSourceDataRow
+} from './-components/income-source-data-table'
 
 export const Route = createFileRoute('/_authenticated/income/')({
   component: IncomePage
@@ -42,6 +46,7 @@ export const Route = createFileRoute('/_authenticated/income/')({
 type IncomeTab = 'overview' | 'sourceData'
 
 const EMPTY_ROWS: IncomeOverviewRow[] = []
+const EMPTY_SOURCE_DATA_ROWS: IncomeSourceDataRow[] = []
 
 function IncomePage() {
   const { userId, householdId } = useAuth()
@@ -379,6 +384,114 @@ function IncomePageContent({
     t
   ])
 
+  const sourceDataRows = useMemo(() => {
+    if (incomes.length === 0) return EMPTY_SOURCE_DATA_ROWS
+
+    return incomes.map(
+      (income) =>
+        ({
+          id: income.id,
+          name: income.name,
+          recurrenceType: income.recurrenceType,
+          customIntervalDays: income.customIntervalDays ?? null,
+          startDate: income.expectedDate,
+          endDate: income.endDate,
+          amount: income.estimatedAmount,
+          accountId: income.accountId,
+          accountName:
+            accountById.get(income.accountId) ?? t('common.uncategorized'),
+          categoryId: income.categoryId,
+          categoryName:
+            categoryById.get(income.categoryId) ?? t('common.uncategorized'),
+          senderId: income.incomeSourceId,
+          senderName: incomeSourceById.get(income.incomeSourceId) ?? '',
+          hasRevisions: false
+        }) satisfies IncomeSourceDataRow
+    )
+  }, [incomes, accountById, categoryById, incomeSourceById, t])
+
+  const sourceDataColumns = useMemo(
+    () =>
+      createIncomeSourceDataColumns({
+        t,
+        onViewRevisions: () => void 0,
+        onEditUpcoming: (incomeId) =>
+          openDrawer('editIncomeBlueprintUpcoming', { incomeId, mode: 'upcoming' }),
+        onEditAll: (incomeId) =>
+          openDrawer('editIncomeBlueprintAll', { incomeId, mode: 'all' }),
+        onDeleteIncome: () => void 0
+      }),
+    [t, openDrawer]
+  )
+
+  const {
+    table: sourceDataTable,
+    globalFilter: sourceDataGlobalFilter,
+    setGlobalFilter: setSourceDataGlobalFilter,
+    columnFilters: sourceDataColumnFilters,
+    setColumnFilters: setSourceDataColumnFilters,
+    activeFilters: sourceDataActiveFilters
+  } = useDataTable({
+    data: sourceDataRows,
+    columns: sourceDataColumns,
+    initialSorting: [{ id: 'name', desc: false }]
+  })
+
+  const sourceDataFilteredCount = sourceDataTable.getRowModel().rows.length
+
+  const sourceDataFilterOptions = useMemo(() => {
+    const accountsSeen = new Set<string>()
+    const categoriesSeen = new Set<string>()
+    const sendersSeen = new Set<string>()
+    const recurrencesSeen = new Set<RecurrenceType>()
+    const accountOpts: { value: string; label: string }[] = []
+    const categoryOpts: { value: string; label: string }[] = []
+    const senderOpts: { value: string; label: string }[] = []
+
+    for (const row of sourceDataRows) {
+      if (!accountsSeen.has(row.accountId)) {
+        accountsSeen.add(row.accountId)
+        accountOpts.push({ value: row.accountId, label: row.accountName })
+      }
+      if (!categoriesSeen.has(row.categoryId)) {
+        categoriesSeen.add(row.categoryId)
+        categoryOpts.push({ value: row.categoryId, label: row.categoryName })
+      }
+      if (!sendersSeen.has(row.senderId)) {
+        sendersSeen.add(row.senderId)
+        senderOpts.push({ value: row.senderId, label: row.senderName })
+      }
+      recurrencesSeen.add(row.recurrenceType)
+    }
+
+    const recurrenceOrder: RecurrenceType[] = [
+      RecurrenceType.NONE,
+      RecurrenceType.WEEKLY,
+      RecurrenceType.MONTHLY,
+      RecurrenceType.QUARTERLY,
+      RecurrenceType.YEARLY,
+      RecurrenceType.CUSTOM
+    ]
+
+    const recurrenceLabels: Record<RecurrenceType, string> = {
+      [RecurrenceType.NONE]: t('income.sourceData.recurrence.none'),
+      [RecurrenceType.WEEKLY]: t('income.sourceData.recurrence.weekly'),
+      [RecurrenceType.MONTHLY]: t('income.sourceData.recurrence.monthly'),
+      [RecurrenceType.QUARTERLY]: t('income.sourceData.recurrence.quarterly'),
+      [RecurrenceType.YEARLY]: t('income.sourceData.recurrence.yearly'),
+      [RecurrenceType.CUSTOM]: t('income.sourceData.recurrence.custom', { days: '?' })
+    }
+
+    return {
+      recurrences: recurrenceOrder
+        .filter((r) => recurrencesSeen.has(r))
+        .map((r) => ({ value: r, label: recurrenceLabels[r] })),
+      accounts: accountOpts,
+      categories: categoryOpts,
+      senders: senderOpts
+    }
+  }, [sourceDataRows, t])
+
   const showNoData = !!householdId && incomes.length === 0
   const infoCards: PageLayoutProps['infoCards'] =
     isOverviewLoading || hasOverviewError
@@ -502,10 +615,48 @@ function IncomePageContent({
           )}
         </div>
       ) : (
-        <div className="flex flex-1 items-center justify-center py-12">
-          <p className="type-body-medium text-gray-600">
-            {`${t('income.tabs.sourceData')} — coming soon`}
-          </p>
+        <div className="flex min-h-0 flex-1 flex-col">
+          {showNoData ? (
+            <NoData
+              variant="no-income"
+              onAction={openCreateIncomeDrawer}
+            />
+          ) : (
+            <DataTable
+              table={sourceDataTable}
+              columns={sourceDataColumns}
+              globalFilter={sourceDataGlobalFilter}
+              onGlobalFilterChange={setSourceDataGlobalFilter}
+              filterDisabled={sourceDataRows.length === 0}
+              onFilterClick={() =>
+                openDrawer('incomeSourceFilterDrawer', {
+                  columnFilters: sourceDataColumnFilters,
+                  onApply: setSourceDataColumnFilters,
+                  availableRecurrences: sourceDataFilterOptions.recurrences,
+                  availableAccounts: sourceDataFilterOptions.accounts,
+                  availableCategories: sourceDataFilterOptions.categories,
+                  availableSenders: sourceDataFilterOptions.senders
+                })
+              }
+              activeFilters={sourceDataActiveFilters}
+              actionButton={{
+                label: t('income.createCTA'),
+                icon: <PlusIcon />,
+                onClick: openCreateIncomeDrawer,
+                disabled: !householdId
+              }}
+              toolbarLabels={{
+                searchPlaceholder: t('common.search'),
+                filter: t('common.filter'),
+                pillRemoveAriaLabel: t('common.removeFilter')
+              }}
+              emptyMessage={
+                sourceDataFilteredCount === 0 && sourceDataRows.length > 0
+                  ? t('common.noResultsFound')
+                  : undefined
+              }
+            />
+          )}
         </div>
       )}
     </PageLayout>

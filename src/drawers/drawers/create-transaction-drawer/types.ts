@@ -17,6 +17,7 @@ export type DrawerFormValues = {
   accountId: string
   transferToAccountId: string
   recipient: ComboboxValue | null
+  sender: ComboboxValue | null
   budgetId: string
   category: ComboboxValue | null
   splits: SplitRowValue[]
@@ -40,6 +41,7 @@ export const DRAWER_DEFAULT_VALUES: DrawerFormValues = {
   accountId: '',
   transferToAccountId: '',
   recipient: null,
+  sender: null,
   budgetId: '',
   category: null,
   splits: []

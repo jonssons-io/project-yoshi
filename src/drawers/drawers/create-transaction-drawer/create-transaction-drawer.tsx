@@ -12,7 +12,7 @@ import {
   useAccountsList,
   useBudgetsList,
   useCreateTransaction,
-  useIncomeList,
+  useIncomeSourcesList,
   useRecipientsList
 } from '@/hooks/api'
 import { getErrorMessage } from '@/lib/api-error'
@@ -80,35 +80,20 @@ export function CreateTransactionDrawer({
     enabled: !!householdId
   })
 
-  const { data: incomes = [] } = useIncomeList({
+  const { data: incomeSources = [] } = useIncomeSourcesList({
     householdId,
     userId,
     enabled: !!householdId
   })
 
-  const incomeSources = useMemo(() => {
-    const seen = new Set<string>()
-    const sources: { id: string; name: string }[] = []
-    for (const income of incomes) {
-      if (income.incomeSource && !income.archived && !seen.has(income.incomeSource.id)) {
-        seen.add(income.incomeSource.id)
-        sources.push({ id: income.incomeSource.id, name: income.incomeSource.name })
-      }
-    }
-    return sources
-  }, [incomes])
-
   const senderOptions = useMemo(
     () =>
-      incomeSources.map((s) => ({
-        value: s.id,
-        label: s.name
-      })),
-    [incomeSources]
-  )
-
-  const incomeSourceNameById = useMemo(
-    () => new Map(incomeSources.map((s) => [s.id, s.name])),
+      incomeSources
+        .filter((s) => !s.archived)
+        .map((s) => ({
+          value: s.id,
+          label: s.name
+        })),
     [incomeSources]
   )
 
@@ -137,16 +122,6 @@ export function CreateTransactionDrawer({
       const payload: DrawerFormValues = {
         ...value,
         splits: hasSplits ? value.splits : []
-      }
-
-      if (
-        value.transactionType === TransactionType.INCOME &&
-        typeof payload.recipient === 'string'
-      ) {
-        const sourceName = incomeSourceNameById.get(payload.recipient)
-        if (sourceName) {
-          payload.recipient = { isNew: true, name: sourceName }
-        }
       }
 
       const parsed = safeValidateForm(drawerFormSchema, payload)
@@ -182,16 +157,16 @@ export function CreateTransactionDrawer({
     }
   })
 
-  const recipientPrefilled = useRef(false)
+  const senderPrefilled = useRef(false)
   useEffect(() => {
-    if (!incomeInstance?.senderName || recipientPrefilled.current) return
+    if (!incomeInstance?.senderName || senderPrefilled.current) return
     if (incomeSources.length === 0) return
-    recipientPrefilled.current = true
+    senderPrefilled.current = true
     const match = incomeSources.find(
       (s) => s.name.toLowerCase() === incomeInstance.senderName.toLowerCase()
     )
     if (match) {
-      form.setFieldValue('recipient', match.id)
+      form.setFieldValue('sender', match.id)
     }
   }, [incomeInstance, incomeSources, form])
 
@@ -258,6 +233,13 @@ export function CreateTransactionDrawer({
         form.setFieldValue('budgetId', '')
       }
       if (next === TransactionType.TRANSFER) {
+        form.setFieldValue('recipient', null)
+        form.setFieldValue('sender', null)
+      }
+      if (next === TransactionType.EXPENSE) {
+        form.setFieldValue('sender', null)
+      }
+      if (next === TransactionType.INCOME) {
         form.setFieldValue('recipient', null)
       }
     },

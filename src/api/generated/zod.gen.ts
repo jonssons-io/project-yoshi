@@ -35,6 +35,18 @@ export const zInstanceStatus = z.enum([
     'HANDLED'
 ]);
 
+/**
+ * How the recurring bill is paid or delivered (Swedish UI “Hantering”): direct debit, e-invoice, mail, vendor portal, paper, etc.
+ *
+ */
+export const zBillPaymentHandling = z.enum([
+    'AUTOGIRO',
+    'E_INVOICE',
+    'MAIL',
+    'PORTAL',
+    'PAPER'
+]);
+
 export const zHousehold = z.object({
     id: z.string(),
     name: z.string(),
@@ -207,7 +219,8 @@ export const zTransactionSplit = z.object({
     ])),
     amount: z.number(),
     subtitle: z.string(),
-    category: z.optional(zCategory)
+    category: z.optional(zCategory),
+    budget: z.optional(zNullableRelationRef)
 });
 
 export const zTransaction = z.object({
@@ -269,6 +282,10 @@ export const zBill = z.object({
         z.iso.datetime(),
         z.null()
     ])),
+    paymentHandling: z.optional(z.union([
+        zBillPaymentHandling,
+        z.null()
+    ])),
     category: z.optional(zNullableRelationRef),
     budget: z.optional(zNullableRelationRef),
     household: zRelationRef,
@@ -287,13 +304,18 @@ export const zBillSplit = z.object({
         z.null()
     ])),
     categoryId: z.string(),
+    budgetId: z.optional(z.union([
+        z.string(),
+        z.null()
+    ])),
     amount: z.number(),
     subtitle: z.string(),
     categoryName: z.optional(z.union([
         z.string(),
         z.null()
     ])),
-    category: z.optional(zCategory)
+    category: z.optional(zCategory),
+    budget: z.optional(zNullableRelationRef)
 });
 
 /**
@@ -321,8 +343,25 @@ export const zBillInstance = z.object({
         z.int(),
         z.null()
     ])),
+    paymentHandling: z.optional(z.union([
+        zBillPaymentHandling,
+        z.null()
+    ])),
     startDate: z.iso.datetime(),
     archived: z.boolean()
+});
+
+/**
+ * Line item for bill splits. When `splits` is non-empty, top-level bill `budgetId` and top-level category fields
+ * must be unset; each line carries its own category and may reference a household budget via `budgetId`.
+ *
+ */
+export const zBillSplitWrite = z.object({
+    categoryId: z.optional(z.string()),
+    newCategoryName: z.optional(z.string().min(1)),
+    budgetId: z.optional(z.string()),
+    amount: z.number().gt(0),
+    subtitle: z.string()
 });
 
 export const zIncomeInstance = z.object({
@@ -428,6 +467,43 @@ export const zHouseholdPeriodSummary = z.object({
     totalIncome: z.number(),
     totalExpense: z.number(),
     net: z.number()
+});
+
+/**
+ * Per-account chart metadata and live balance (same staleness semantics as balance history).
+ */
+export const zHouseholdAccountBalanceChartAccountMeta = z.object({
+    accountId: z.string(),
+    staleHistory: z.boolean(),
+    historyRecalcFrom: z.optional(z.union([
+        z.iso.date(),
+        z.null()
+    ])),
+    currentBalance: z.number()
+});
+
+/**
+ * **Daily** balance series for dashboard charts over inclusive calendar dates (`dateFrom` through `dateTo`).
+ * `dates` has one ISO calendar date per day in that range (in order). `series` maps each account id to
+ * an array of balances with the same length as `dates`.
+ *
+ * For each account and day **D**, the value is the **latest snapshot balance** with `snapshot.date <= D`
+ * (forward-filled across days with no snapshot row, producing flat chart segments). If there is no snapshot
+ * on or before **D**, the value is **`initialBalance`** until a snapshot applies.
+ *
+ * For the server's **current UTC calendar date** (`today`), values are **`currentBalance`** from live account
+ * state (same as list account balances), so the chart matches real-time balances even when today's snapshot
+ * row is missing. Days after `today` still appear when `dateTo` extends into the future; they forward-fill
+ * from the last known balance as of each day (typically flat after the last in-range snapshot).
+ *
+ */
+export const zHouseholdAccountBalanceChartResponse = z.object({
+    householdId: z.string(),
+    dateFrom: z.iso.date(),
+    dateTo: z.iso.date(),
+    dates: z.array(z.iso.date()),
+    series: z.record(z.string(), z.array(z.number())),
+    accounts: z.array(zHouseholdAccountBalanceChartAccountMeta)
 });
 
 export const zSuccessResponse = z.object({
@@ -588,6 +664,38 @@ export const zTransferAllocationRequest = z.object({
     amount: z.number().gt(0)
 });
 
+/**
+ * Inline category for a transaction split. If `type` is omitted, the server uses the category kind implied by the
+ * parent transaction (`EXPENSE` → expense category, `INCOME` → income category). If `type` is provided, it must
+ * match that implied kind.
+ *
+ */
+export const zSplitInlineNewCategory = z.object({
+    name: z.string().min(1),
+    type: z.optional(zCategoryType)
+});
+
+/**
+ * Set exactly one of `categoryId`, `newCategoryName`, or `newCategory` to assign a category to the split line.
+ * For effective `EXPENSE` transactions with splits, each line must include `budgetId` (envelope) for that split amount.
+ *
+ */
+export const zTransactionSplitWrite = z.object({
+    categoryId: z.optional(z.string()),
+    newCategoryName: z.optional(z.string().min(1)),
+    newCategory: z.optional(zSplitInlineNewCategory),
+    budgetId: z.optional(z.string()),
+    amount: z.number().gt(0),
+    subtitle: z.string()
+});
+
+/**
+ * `budgetId` and `splits` are mutually exclusive: if `splits` is non-empty, `budgetId` must be null and each split
+ * line carries its own `budgetId` for effective expenses.
+ * Top-level `categoryId` / `newCategory` and `splits` are mutually exclusive: if `splits` is non-empty, omit
+ * top-level category fields; each split line carries its own category.
+ *
+ */
 export const zCreateTransactionRequest = z.object({
     type: z.optional(zTransactionType),
     budgetId: z.optional(z.union([
@@ -623,15 +731,20 @@ export const zCreateTransactionRequest = z.object({
         z.null()
     ])),
     newRecipientName: z.optional(z.string().min(1)),
-    splits: z.optional(z.array(z.object({
-        categoryId: z.optional(z.string()),
-        newCategoryName: z.optional(z.string().min(1)),
-        budgetId: z.optional(z.string()),
-        amount: z.number().gt(0),
-        subtitle: z.string()
-    })))
+    incomeSourceId: z.optional(z.union([
+        z.string(),
+        z.null()
+    ])),
+    newIncomeSourceName: z.optional(z.string().min(1)),
+    splits: z.optional(z.array(zTransactionSplitWrite))
 });
 
+/**
+ * `budgetId` and `splits` are mutually exclusive: if `splits` is non-empty, `budgetId` must be null.
+ * Top-level `categoryId` and `splits` are mutually exclusive: if `splits` is non-empty (after the update),
+ * `categoryId` must be null.
+ *
+ */
 export const zUpdateTransactionRequest = z.object({
     type: z.optional(zTransactionType),
     accountId: z.optional(z.string()),
@@ -662,19 +775,24 @@ export const zUpdateTransactionRequest = z.object({
         z.string(),
         z.null()
     ])),
-    splits: z.optional(z.array(z.object({
-        categoryId: z.optional(z.string()),
-        newCategoryName: z.optional(z.string().min(1)),
-        budgetId: z.optional(z.string()),
-        amount: z.number().gt(0),
-        subtitle: z.string()
-    })))
+    incomeSourceId: z.optional(z.union([
+        z.string(),
+        z.null()
+    ])),
+    splits: z.optional(z.array(zTransactionSplitWrite))
 });
 
 export const zCloneTransactionRequest = z.object({
     date: z.optional(z.iso.datetime())
 });
 
+/**
+ * `budgetId` and `splits` are mutually exclusive: if `splits` is non-empty, `budgetId` must be null and each split
+ * may carry its own `budgetId`.
+ * Top-level `categoryId` / `newCategoryName` and `splits` are mutually exclusive: if `splits` is non-empty, omit
+ * top-level category fields; each split line carries its own category.
+ *
+ */
 export const zCreateBillRequest = z.object({
     name: z.string().min(1),
     recipientId: z.optional(z.string()),
@@ -693,16 +811,21 @@ export const zCreateBillRequest = z.object({
         z.null()
     ])),
     lastPaymentDate: z.optional(z.iso.datetime()),
+    paymentHandling: z.optional(z.union([
+        zBillPaymentHandling,
+        z.null()
+    ])),
     categoryId: z.optional(z.string()),
     newCategoryName: z.optional(z.string().min(1)),
-    splits: z.optional(z.array(z.object({
-        categoryId: z.optional(z.string()),
-        newCategoryName: z.optional(z.string()),
-        amount: z.number().gt(0),
-        subtitle: z.string()
-    })))
+    splits: z.optional(z.array(zBillSplitWrite))
 });
 
+/**
+ * `budgetId` and `splits` are mutually exclusive: if `splits` is non-empty, `budgetId` must be null.
+ * Top-level `categoryId` and `splits` are mutually exclusive: if `splits` is non-empty (after the update),
+ * `categoryId` must be null.
+ *
+ */
 export const zUpdateBillRequest = z.object({
     name: z.optional(z.string()),
     recipientId: z.optional(z.string()),
@@ -724,14 +847,16 @@ export const zUpdateBillRequest = z.object({
         z.iso.datetime(),
         z.null()
     ])),
-    categoryId: z.optional(z.string()),
+    paymentHandling: z.optional(z.union([
+        zBillPaymentHandling,
+        z.null()
+    ])),
+    categoryId: z.optional(z.union([
+        z.string(),
+        z.null()
+    ])),
     archived: z.optional(z.boolean()),
-    splits: z.optional(z.array(z.object({
-        categoryId: z.optional(z.string()),
-        newCategoryName: z.optional(z.string()),
-        amount: z.number().gt(0),
-        subtitle: z.string()
-    })))
+    splits: z.optional(z.array(zBillSplitWrite))
 });
 
 export const zArchiveBillRequest = z.object({
@@ -1440,6 +1565,24 @@ export const zGetHouseholdPeriodSummaryData = z.object({
  */
 export const zGetHouseholdPeriodSummaryResponse = zHouseholdPeriodSummary;
 
+export const zGetHouseholdAccountBalanceChartData = z.object({
+    body: z.optional(z.never()),
+    path: z.object({
+        householdId: z.string()
+    }),
+    query: z.object({
+        dateFrom: z.iso.date(),
+        dateTo: z.iso.date(),
+        accountIds: z.optional(z.array(z.string())),
+        includeArchived: z.optional(z.boolean())
+    })
+});
+
+/**
+ * Daily balance series for charting
+ */
+export const zGetHouseholdAccountBalanceChartResponse = zHouseholdAccountBalanceChartResponse;
+
 export const zListTransactionsData = z.object({
     body: z.optional(z.never()),
     path: z.optional(z.never()),
@@ -1698,6 +1841,26 @@ export const zCreateIncomeData = z.object({
  * Created income
  */
 export const zCreateIncomeResponse = zIncome;
+
+export const zListIncomeSourcesData = z.object({
+    body: z.optional(z.never()),
+    path: z.object({
+        householdId: z.string()
+    }),
+    query: z.optional(z.object({
+        includeArchived: z.optional(z.boolean()).default(false),
+        limit: z.optional(z.int().gte(0).lte(100)),
+        offset: z.optional(z.int().gte(0))
+    }))
+});
+
+/**
+ * List of income sources (empty list when no matches)
+ */
+export const zListIncomeSourcesResponse = z.object({
+    data: z.optional(z.array(zIncomeSource)),
+    pagination: z.optional(zPaginationMeta)
+});
 
 export const zDeleteIncomeData = z.object({
     body: z.optional(z.never()),

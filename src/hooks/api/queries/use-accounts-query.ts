@@ -1,15 +1,16 @@
 import { useQuery } from '@tanstack/react-query'
+import { format } from 'date-fns'
 import {
   getAccountBalanceOptions,
   getAccountOptions,
-  getMultiAccountBalanceHistoryOptions,
+  getHouseholdAccountBalanceChartOptions,
   listAccountBalancesOptions,
   listAccountsOptions
 } from '@/api/generated/@tanstack/react-query.gen'
 import type {
   GetAccountBalanceData,
   GetAccountData,
-  GetMultiAccountBalanceHistoryData,
+  GetHouseholdAccountBalanceChartData,
   ListAccountBalancesData,
   ListAccountsData
 } from '@/api/generated/types.gen'
@@ -145,42 +146,39 @@ export function useAccountBalancesList(params: {
 }
 
 /**
- * Hook to fetch balance history snapshots for multiple accounts.
+ * Hook to fetch the server-side forward-filled daily balance chart data.
+ * Replaces client-side snapshot stitching with the dedicated chart endpoint
+ * that returns a shared date axis and per-account series.
  */
-export function useMultiAccountBalanceHistory(params: {
-  accountIds?: GetMultiAccountBalanceHistoryData['query']['accountIds']
-  userId?: string | null
+export function useAccountBalanceChart(params: {
+  householdId?: GetHouseholdAccountBalanceChartData['path']['householdId'] | null
+  accountIds?: string[]
   dateFrom?: Date
   dateTo?: Date
+  includeArchived?: boolean
   enabled?: boolean
 }) {
-  const { accountIds, dateFrom, dateTo, enabled = true } = params
+  const { householdId, accountIds, dateFrom, dateTo, includeArchived, enabled = true } = params
+  const dateFromStr = dateFrom ? format(dateFrom, 'yyyy-MM-dd') : undefined
+  const dateToStr = dateTo ? format(dateTo, 'yyyy-MM-dd') : undefined
 
   return useQuery({
-    ...getMultiAccountBalanceHistoryOptions({
+    ...getHouseholdAccountBalanceChartOptions({
+      path: {
+        householdId: householdId ?? ''
+      },
       query: {
-        accountIds: accountIds ?? [],
-        dateFrom: dateFrom ? dateFrom.toISOString().slice(0, 10) : undefined,
-        dateTo: dateTo ? dateTo.toISOString().slice(0, 10) : undefined
+        dateFrom: dateFromStr ?? '',
+        dateTo: dateToStr ?? '',
+        accountIds: accountIds && accountIds.length > 0 ? accountIds : undefined,
+        includeArchived
       }
     }),
-    enabled: enabled && !!accountIds && accountIds.length > 0,
+    enabled: Boolean(enabled && householdId && dateFromStr && dateToStr),
     retry: false,
     staleTime: 60_000,
     refetchOnMount: false,
     refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
-    select: (response) =>
-      (response.data ?? []).map((item) => ({
-        ...item,
-        historyRecalcFrom: item.historyRecalcFrom
-          ? fromApiDate(item.historyRecalcFrom)
-          : undefined,
-        snapshots: item.snapshots.map((snapshot) => ({
-          ...snapshot,
-          date: fromApiDate(snapshot.date),
-          createdAt: fromApiDate(snapshot.createdAt)
-        }))
-      }))
+    refetchOnReconnect: false
   })
 }

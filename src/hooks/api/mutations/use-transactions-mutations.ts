@@ -75,6 +75,9 @@ export function useCreateTransaction(
       if (variables.instanceId) {
         invalidateByOperation(queryClient, 'listIncomeInstances')
       }
+      if (variables.newIncomeSourceName) {
+        invalidateByOperation(queryClient, 'listIncomeSources')
+      }
       callbacks?.onSuccess?.(data, variables)
     },
     onError: (error, variables) => callbacks?.onError?.(error, variables)
