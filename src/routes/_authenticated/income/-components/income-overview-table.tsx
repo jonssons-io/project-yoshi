@@ -31,7 +31,7 @@ export type IncomeOverviewRow = {
   expectedDate: Date
   incomeName: string
   status: IncomeOverviewStatus
-  /** True when this instance is linked to a transaction (`transactionId` set). */
+  /** True when this instance is linked to a transaction (`transaction` relation set). */
   transactionConnected: boolean
   amount: number
   accountId: string

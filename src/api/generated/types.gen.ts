@@ -343,6 +343,7 @@ export type IncomeInstance = {
     categoryId?: string | null;
     status: InstanceStatus;
     transactionId?: string | null;
+    transaction?: NullableRelationRef;
     householdId: string;
 };
 
@@ -656,6 +657,12 @@ export type CreateTransactionRequest = {
     accountId: string;
     categoryId?: string | null;
     transferToAccountId?: string | null;
+    /**
+     * When set, links this transaction to one occurrence: **bill instance** id if `type` is `EXPENSE`, **income instance**
+     * id if `type` is `INCOME`. Must belong to the same household as `accountId`. Omit for `TRANSFER` and for unlinked
+     * transactions. See operation description for validation and side effects (handled status on the instance).
+     *
+     */
     instanceId?: string | null;
     newCategory?: {
         name: string;
@@ -702,6 +709,12 @@ export type UpdateTransactionRequest = {
      */
     categoryId?: string | null;
     transferToAccountId?: string | null;
+    /**
+     * Set or clear (`null`) the linked bill or income instance. Same rules as create: **bill instance** for `EXPENSE`,
+     * **income instance** for `INCOME`; must match `type` and household. Changing `type` or clearing the link updates
+     * prior instance state when applicable. Not valid when `type` is `TRANSFER`.
+     *
+     */
     instanceId?: string | null;
     name?: string;
     amount?: number;
@@ -1614,7 +1627,7 @@ export type ListCategoriesData = {
         /**
          * Filter by category type
          */
-        type?: TransactionType;
+        type?: CategoryType;
         /**
          * Filter by budget linkage
          */
@@ -2453,6 +2466,42 @@ export type ListIncomeInstancesResponses = {
 };
 
 export type ListIncomeInstancesResponse = ListIncomeInstancesResponses[keyof ListIncomeInstancesResponses];
+
+export type ListIncomeInstancesFilteredData = {
+    body?: never;
+    path?: never;
+    query?: {
+        incomeId?: string;
+        householdId?: string;
+        transactionId?: string;
+        dateFrom?: string;
+        dateTo?: string;
+        includeArchived?: boolean;
+        accountId?: string;
+        categoryId?: string;
+        /**
+         * Maximum number of items to return. Omit to return all items. Set to 0 to return only the pagination count metadata (no data items).
+         */
+        limit?: number;
+        /**
+         * Number of items to skip
+         */
+        offset?: number;
+    };
+    url: '/income-instances';
+};
+
+export type ListIncomeInstancesFilteredResponses = {
+    /**
+     * List of income instances (empty list when no matches)
+     */
+    200: {
+        data?: Array<IncomeInstance>;
+        pagination?: PaginationMeta;
+    };
+};
+
+export type ListIncomeInstancesFilteredResponse = ListIncomeInstancesFilteredResponses[keyof ListIncomeInstancesFilteredResponses];
 
 export type GetIncomeInstanceData = {
     body?: never;

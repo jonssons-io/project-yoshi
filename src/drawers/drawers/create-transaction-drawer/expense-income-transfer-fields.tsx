@@ -111,7 +111,7 @@ export function ExpenseIncomeTransferFields({
     householdId,
     userId,
     budgetId: budgetId || undefined,
-    type: TransactionType.EXPENSE,
+    type: CategoryType.EXPENSE,
     enabled:
       !!householdId &&
       !!budgetId &&
@@ -122,7 +122,7 @@ export function ExpenseIncomeTransferFields({
   const { data: incomeCategories = [] } = useCategoriesList({
     householdId,
     userId,
-    type: TransactionType.INCOME,
+    type: CategoryType.INCOME,
     enabled: !!householdId && transactionType === TransactionType.INCOME
   })
 

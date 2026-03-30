@@ -106,35 +106,6 @@ export function useBillInstancesList(params: {
 }
 
 /**
- * Hook to fetch a single bill by ID
- * Query is auto-disabled when billId is undefined/null
- */
-export function useBillById(params: {
-  billId?: GetBillInstanceData['path']['instanceId'] | null
-  enabled?: boolean
-}) {
-  const { billId, enabled = true } = params
-  return useQuery({
-    ...getBillInstanceOptions({
-      path: {
-        instanceId: billId ?? ''
-      }
-    }),
-    enabled: enabled && !!billId,
-    select: (bill) => {
-      const syntheticSplit = getSyntheticSingleSplit(bill.splits)
-      return {
-        ...bill,
-        category: bill.category ?? syntheticSplit?.category,
-        splits: normalizeBackendSplits(bill.splits),
-        dueDate: fromApiDate(bill.dueDate),
-        startDate: fromApiDate(bill.startDate)
-      }
-    }
-  })
-}
-
-/**
  * Hook to fetch a single bill instance by ID.
  */
 export function useBillInstanceById(params: {

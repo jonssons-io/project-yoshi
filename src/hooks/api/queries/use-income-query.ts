@@ -2,14 +2,14 @@ import { useQuery } from '@tanstack/react-query'
 import {
   getIncomeInstanceOptions,
   getIncomeOptions,
-  listIncomeInstancesOptions,
+  listIncomeInstancesFilteredOptions,
   listIncomeSourcesOptions,
   listIncomesOptions
 } from '@/api/generated/@tanstack/react-query.gen'
 import type {
   GetIncomeData,
   GetIncomeInstanceData,
-  ListIncomeInstancesData,
+  ListIncomeInstancesFilteredData,
   ListIncomeSourcesData,
   ListIncomesData
 } from '@/api/generated/types.gen'
@@ -74,28 +74,53 @@ export function useIncomeById(params: {
   })
 }
 
+type ListIncomeInstancesFilteredQuery = NonNullable<
+  ListIncomeInstancesFilteredData['query']
+>
+
 /**
- * Hook to fetch instances for a specific income blueprint.
+ * Hook to fetch income instances with flexible household-level filters.
+ * Uses the top-level `GET /income-instances` endpoint.
  */
-export function useIncomeInstancesList(params: {
-  incomeId?: ListIncomeInstancesData['path']['incomeId'] | null
-  userId?: string | null
+export function useIncomeInstancesFilteredList(params: {
+  householdId?: ListIncomeInstancesFilteredQuery['householdId'] | null
+  incomeId?: ListIncomeInstancesFilteredQuery['incomeId'] | null
+  transactionId?: ListIncomeInstancesFilteredQuery['transactionId'] | null
+  includeArchived?: ListIncomeInstancesFilteredQuery['includeArchived']
+  accountId?: ListIncomeInstancesFilteredQuery['accountId'] | null
+  categoryId?: ListIncomeInstancesFilteredQuery['categoryId'] | null
+  dateFrom?: Date
+  dateTo?: Date
   enabled?: boolean
 }) {
-  const { incomeId, enabled = true } = params
+  const {
+    householdId,
+    incomeId,
+    transactionId,
+    includeArchived,
+    accountId,
+    categoryId,
+    dateFrom,
+    dateTo,
+    enabled = true
+  } = params
 
   return useQuery({
-    ...listIncomeInstancesOptions({
-      path: {
-        incomeId: incomeId ?? ''
+    ...listIncomeInstancesFilteredOptions({
+      query: {
+        householdId: householdId ?? undefined,
+        incomeId: incomeId ?? undefined,
+        transactionId: transactionId ?? undefined,
+        dateFrom: dateFrom?.toISOString(),
+        dateTo: dateTo?.toISOString(),
+        includeArchived,
+        accountId: accountId ?? undefined,
+        categoryId: categoryId ?? undefined
       }
     }),
-    enabled: enabled && !!incomeId,
+    enabled: enabled && !!householdId,
     select: (response) =>
-      (response.data ?? []).map((instance) => ({
-        ...instance,
-        expectedDate: fromApiDate(instance.expectedDate)
-      }))
+      (response.data ?? []) as import('@/api/generated/types.gen').IncomeInstance[]
   })
 }
 

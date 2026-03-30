@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { z } from 'zod'
 
-import { CategoryType, TransactionType } from '@/api/generated/types.gen'
+import { CategoryType } from '@/api/generated/types.gen'
 import { Alert } from '@/components/alert'
 import { Button } from '@/components/button/button'
 import { createTranslatedZodValidator, useAppForm } from '@/components/form'
@@ -50,7 +50,7 @@ export function CreateBudgetDrawer({ onClose }: CreateBudgetDrawerProps) {
   const { data: categories = [] } = useCategoriesList({
     householdId,
     userId,
-    type: TransactionType.EXPENSE,
+    type: CategoryType.EXPENSE,
     enabled: Boolean(householdId)
   })
 

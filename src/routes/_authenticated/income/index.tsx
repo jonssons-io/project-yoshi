@@ -1,4 +1,3 @@
-import { useQueries } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { startOfDay } from 'date-fns'
 import {
@@ -13,8 +12,7 @@ import {
 import { type ReactNode, useCallback, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { listIncomeInstancesOptions } from '@/api/generated/@tanstack/react-query.gen'
-import { RecurrenceType, type IncomeInstance } from '@/api/generated/types.gen'
+import { CategoryType, RecurrenceType } from '@/api/generated/types.gen'
 import { DataTable, useDataTable } from '@/components/data-table'
 import {
   PageLayout,
@@ -24,7 +22,12 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/tabs/tabs'
 import { useAuth } from '@/contexts/auth-context'
 import { useDrawer } from '@/drawers'
 import { NoData } from '@/features/no-data/no-data'
-import { useAccountsList, useCategoriesList, useIncomeList } from '@/hooks/api'
+import {
+  useAccountsList,
+  useCategoriesList,
+  useIncomeInstancesFilteredList,
+  useIncomeList
+} from '@/hooks/api'
 import { fromApiDate } from '@/hooks/api/date-normalization'
 
 import {
@@ -68,7 +71,7 @@ function IncomePage() {
   const { data: categories = [] } = useCategoriesList({
     householdId,
     userId,
-    type: 'INCOME',
+    type: CategoryType.INCOME,
     enabled: !!householdId
   })
 
@@ -102,12 +105,6 @@ interface IncomePageContentProps {
   categories: ReturnType<typeof useCategoriesList>['data'] & {}
 }
 
-/**
- * Renders the full income page once incomes have loaded.
- * Separated from IncomePage so the single useQuery for instances
- * only runs after incomes are available — keeping the data flow
- * sequential and avoiding stale-closure issues.
- */
 function IncomePageContent({
   householdId,
   incomes,
@@ -156,33 +153,13 @@ function IncomePageContent({
     incomes
   ])
 
-  const queryOptions = useMemo(
-    () =>
-      incomes.map((income) =>
-        listIncomeInstancesOptions({
-          path: {
-            incomeId: income.id
-          }
-        })
-      ),
-    [
-      incomes
-    ]
-  )
-
   const {
-    instances: rawInstances,
+    data: rawInstances = [],
     isLoading: instancesLoading,
     isError: instancesError
-  } = useQueries({
-    queries: queryOptions,
-    combine: (results) => ({
-      instances: results.flatMap(
-        (r) => (r.data?.data ?? []) as IncomeInstance[]
-      ),
-      isLoading: results.some((r) => r.isLoading),
-      isError: results.some((r) => r.isError)
-    })
+  } = useIncomeInstancesFilteredList({
+    householdId,
+    enabled: !!householdId && incomes.length > 0
   })
 
   const isOverviewLoading = incomes.length > 0 && instancesLoading
@@ -195,7 +172,7 @@ function IncomePageContent({
 
     return rawInstances.map((inst) => {
       const expectedDate = fromApiDate(inst.expectedDate)
-      const hasTransaction = !!inst.transactionId
+      const hasTransaction = !!inst.transaction
       const datePassed = expectedDate <= today
 
       return {

@@ -384,6 +384,7 @@ export const zIncomeInstance = z.object({
         z.string(),
         z.null()
     ])),
+    transaction: z.optional(zNullableRelationRef),
     householdId: z.string()
 });
 
@@ -1413,7 +1414,7 @@ export const zListCategoriesData = z.object({
         householdId: z.string()
     }),
     query: z.optional(z.object({
-        type: z.optional(zTransactionType),
+        type: z.optional(zCategoryType),
         budgetId: z.optional(z.string()),
         limit: z.optional(z.int().gte(0).lte(100)),
         offset: z.optional(z.int().gte(0))
@@ -1942,6 +1943,31 @@ export const zListIncomeInstancesData = z.object({
  * List of income instances
  */
 export const zListIncomeInstancesResponse = z.object({
+    data: z.optional(z.array(zIncomeInstance)),
+    pagination: z.optional(zPaginationMeta)
+});
+
+export const zListIncomeInstancesFilteredData = z.object({
+    body: z.optional(z.never()),
+    path: z.optional(z.never()),
+    query: z.optional(z.object({
+        incomeId: z.optional(z.string()),
+        householdId: z.optional(z.string()),
+        transactionId: z.optional(z.string()),
+        dateFrom: z.optional(z.iso.datetime()),
+        dateTo: z.optional(z.iso.datetime()),
+        includeArchived: z.optional(z.boolean()).default(false),
+        accountId: z.optional(z.string()),
+        categoryId: z.optional(z.string()),
+        limit: z.optional(z.int().gte(0).lte(100)),
+        offset: z.optional(z.int().gte(0))
+    }))
+});
+
+/**
+ * List of income instances (empty list when no matches)
+ */
+export const zListIncomeInstancesFilteredResponse = z.object({
     data: z.optional(z.array(zIncomeInstance)),
     pagination: z.optional(zPaginationMeta)
 });

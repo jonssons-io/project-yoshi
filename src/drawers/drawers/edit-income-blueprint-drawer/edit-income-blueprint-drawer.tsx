@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
-import { RecurrenceType } from '@/api/generated/types.gen'
+import { CategoryType, RecurrenceType } from '@/api/generated/types.gen'
 import { Button } from '@/components/button/button'
 import {
   createTranslatedZodValidator,
@@ -74,7 +74,7 @@ export function EditIncomeBlueprintDrawer({
   const { data: categories = [] } = useCategoriesList({
     householdId,
     userId,
-    type: 'INCOME',
+    type: CategoryType.INCOME,
     enabled: Boolean(householdId)
   })
 

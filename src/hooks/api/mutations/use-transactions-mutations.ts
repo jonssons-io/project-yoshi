@@ -74,6 +74,7 @@ export function useCreateTransaction(
       invalidateByOperation(queryClient, 'listAccounts')
       if (variables.instanceId) {
         invalidateByOperation(queryClient, 'listIncomeInstances')
+        invalidateByOperation(queryClient, 'listIncomeInstancesFiltered')
       }
       if (variables.newIncomeSourceName) {
         invalidateByOperation(queryClient, 'listIncomeSources')

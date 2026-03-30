@@ -8,12 +8,29 @@ import {
   nextId,
   nowIso,
   paginate,
-  readJson
+  readJson,
+  transactions
 } from '../data'
 
 const BASE = '/api/v1'
 
-// Mock the generated response shape by including linked resources.
+function toRelationRef(
+  entity?: { id: string; name?: string | null } | null
+) {
+  return entity ? { id: entity.id, name: entity.name ?? null } : null
+}
+
+function enrichIncomeInstance(instance: (typeof incomeInstances)[number]) {
+  const transaction = instance.transactionId
+    ? transactions.find((item) => item.id === instance.transactionId)
+    : null
+
+  return {
+    ...instance,
+    transaction: toRelationRef(transaction)
+  }
+}
+
 const enrichIncome = (income: (typeof incomes)[number]) => ({
   ...income,
   account: accounts.find((item) => item.id === income.accountId),
@@ -93,6 +110,49 @@ export const incomeHandlers = [
     }
   ),
 
+  http.get(`${BASE}/income-instances`, ({ request }) => {
+    const url = new URL(request.url)
+    const householdId = url.searchParams.get('householdId')
+    const incomeId = url.searchParams.get('incomeId')
+    const transactionId = url.searchParams.get('transactionId')
+    const includeArchived = url.searchParams.get('includeArchived') === 'true'
+    const dateFrom = url.searchParams.get('dateFrom')
+    const dateTo = url.searchParams.get('dateTo')
+    const accountId = url.searchParams.get('accountId')
+    const categoryId = url.searchParams.get('categoryId')
+
+    const filtered = incomeInstances.filter((item) => {
+      const parentIncome = incomes.find((i) => i.id === item.incomeId)
+      if (!includeArchived && parentIncome?.archived) return false
+      if (householdId && item.householdId !== householdId) return false
+      if (incomeId && item.incomeId !== incomeId) return false
+      if (transactionId && item.transactionId !== transactionId) return false
+      if (accountId && item.accountId !== accountId) return false
+      if (categoryId && item.categoryId !== categoryId) return false
+      if (
+        dateFrom &&
+        new Date(item.expectedDate).getTime() < new Date(dateFrom).getTime()
+      ) {
+        return false
+      }
+      if (
+        dateTo &&
+        new Date(item.expectedDate).getTime() > new Date(dateTo).getTime()
+      ) {
+        return false
+      }
+      return true
+    })
+
+    return HttpResponse.json(
+      paginate(
+        filtered.map(enrichIncomeInstance),
+        url.searchParams.get('limit'),
+        url.searchParams.get('offset')
+      )
+    )
+  }),
+
   http.get(`${BASE}/incomes/:incomeId/instances`, ({ request, params }) => {
     const url = new URL(request.url)
     const filtered = incomeInstances.filter(
@@ -100,7 +160,7 @@ export const incomeHandlers = [
     )
     return HttpResponse.json(
       paginate(
-        filtered,
+        filtered.map(enrichIncomeInstance),
         url.searchParams.get('limit'),
         url.searchParams.get('offset')
       )
@@ -142,7 +202,7 @@ export const incomeHandlers = [
         }
       )
     }
-    return HttpResponse.json(instance)
+    return HttpResponse.json(enrichIncomeInstance(instance))
   }),
 
   http.patch(`${BASE}/incomes/:incomeId`, async ({ params, request }) => {
@@ -215,7 +275,7 @@ export const incomeHandlers = [
         ...incomeInstances[index],
         ...body
       }
-      return HttpResponse.json(incomeInstances[index])
+      return HttpResponse.json(enrichIncomeInstance(incomeInstances[index]))
     }
   ),
 

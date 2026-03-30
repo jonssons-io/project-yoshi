@@ -4,11 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { z } from 'zod'
 
-import {
-  CategoryType,
-  RecurrenceType,
-  TransactionType
-} from '@/api/generated/types.gen'
+import { CategoryType, RecurrenceType } from '@/api/generated/types.gen'
 import { Button } from '@/components/button/button'
 import {
   type ComboboxValue,
@@ -541,7 +537,7 @@ function BillCategoryField({
     householdId,
     userId,
     budgetId: budgetId || undefined,
-    type: TransactionType.EXPENSE,
+    type: CategoryType.EXPENSE,
     enabled: Boolean(householdId && budgetId)
   })
 

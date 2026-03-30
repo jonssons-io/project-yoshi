@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
+import { CategoryType } from '@/api/generated/types.gen'
 import { Alert } from '@/components/alert/alert'
 import { Button } from '@/components/button/button'
 import {
@@ -69,7 +70,7 @@ export function EditIncomeInstanceDrawer({
   const { data: categories = [] } = useCategoriesList({
     householdId,
     userId,
-    type: 'INCOME',
+    type: CategoryType.INCOME,
     enabled: Boolean(householdId)
   })
 

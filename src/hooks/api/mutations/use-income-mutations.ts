@@ -96,6 +96,8 @@ export function useCreateIncome(
     },
     onSuccess: (data, variables) => {
       invalidateByOperation(queryClient, 'listIncomes')
+      invalidateByOperation(queryClient, 'listIncomeInstances')
+      invalidateByOperation(queryClient, 'listIncomeInstancesFiltered')
       invalidateByOperation(queryClient, 'listCategories')
       invalidateByOperation(queryClient, 'getHouseholdPeriodSummary')
       callbacks?.onSuccess?.(data, variables)
@@ -136,6 +138,8 @@ export function useUpdateIncome(
     },
     onSuccess: (data, variables) => {
       invalidateByOperation(queryClient, 'listIncomes')
+      invalidateByOperation(queryClient, 'listIncomeInstances')
+      invalidateByOperation(queryClient, 'listIncomeInstancesFiltered')
       invalidateByOperation(queryClient, 'listCategories')
       callbacks?.onSuccess?.(data, variables)
     },
@@ -170,6 +174,8 @@ export function useDeleteIncome(
       })(),
     onSuccess: (data, variables) => {
       invalidateByOperation(queryClient, 'listIncomes')
+      invalidateByOperation(queryClient, 'listIncomeInstances')
+      invalidateByOperation(queryClient, 'listIncomeInstancesFiltered')
       callbacks?.onSuccess?.(data, variables)
     },
     onError: (error, variables) => {
@@ -206,6 +212,8 @@ export function useArchiveIncome(
       })(),
     onSuccess: (data, variables) => {
       invalidateByOperation(queryClient, 'listIncomes')
+      invalidateByOperation(queryClient, 'listIncomeInstances')
+      invalidateByOperation(queryClient, 'listIncomeInstancesFiltered')
       callbacks?.onSuccess?.(data, variables)
     },
     onError: (error, variables) => {
@@ -296,6 +304,7 @@ export function useUpdateIncomeInstance(
     },
     onSuccess: (data, variables) => {
       invalidateByOperation(queryClient, 'listIncomeInstances')
+      invalidateByOperation(queryClient, 'listIncomeInstancesFiltered')
       queryClient.invalidateQueries({
         queryKey: getIncomeInstanceQueryKey({
           path: {

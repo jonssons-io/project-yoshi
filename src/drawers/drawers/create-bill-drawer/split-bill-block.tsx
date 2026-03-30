@@ -8,7 +8,7 @@ import {
 import { type Dispatch, type SetStateAction, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { CategoryType, TransactionType } from '@/api/generated/types.gen'
+import { CategoryType } from '@/api/generated/types.gen'
 import { Button } from '@/components/button/button'
 import type { ComboboxValue } from '@/components/form'
 import { createTranslatedZodValidator } from '@/components/form'
@@ -247,7 +247,7 @@ function CreateBillSplitSectionFields({
   const { data: categories = [] } = useCategoriesList({
     householdId,
     userId,
-    type: TransactionType.EXPENSE,
+    type: CategoryType.EXPENSE,
     enabled: Boolean(householdId)
   })
 

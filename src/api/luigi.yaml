@@ -639,6 +639,8 @@ components:
           $ref: '#/components/schemas/InstanceStatus'
         transactionId:
           type: [string, "null"]
+        transaction:
+          $ref: '#/components/schemas/NullableRelationRef'
         householdId:
           type: string
       required: [id, name, incomeSourceId, amount, expectedDate, accountId, status, householdId]
