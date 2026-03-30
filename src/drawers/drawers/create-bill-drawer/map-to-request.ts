@@ -1,6 +1,7 @@
 import type { TFunction } from 'i18next'
 
 import {
+  type BillPaymentHandling,
   type CreateBillRequest,
   RecurrenceType
 } from '@/api/generated/types.gen'
@@ -72,12 +73,17 @@ export function buildCreateBillBody(params: BuildBodyParams): Omit<
           recurrenceType: data.recurrenceType
         }
 
+  const rawHandling = data.paymentHandling as string | undefined
+  const paymentHandling: BillPaymentHandling | undefined =
+    rawHandling ? (rawHandling as BillPaymentHandling) : undefined
+
   const base = {
     name: data.name,
     ...billRecipientFields(data.recipient),
     accountId: data.accountId,
     startDate: data.startDate,
     endDate: data.endDate ?? null,
+    paymentHandling,
     ...recurrenceExtras
   }
 

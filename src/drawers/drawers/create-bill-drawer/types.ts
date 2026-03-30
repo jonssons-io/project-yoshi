@@ -14,6 +14,7 @@ export type CreateBillDrawerFormValues = {
   accountId: string
   recurrenceType: RecurrenceType
   customIntervalDays?: number
+  paymentHandling: string
   startDate: Date
   endDate: Date | null
   amount: number
@@ -37,6 +38,7 @@ export const CREATE_BILL_DRAWER_DEFAULTS: CreateBillDrawerFormValues = {
   accountId: '',
   recurrenceType: RecurrenceType.MONTHLY,
   customIntervalDays: undefined,
+  paymentHandling: '',
   startDate: new Date(),
   endDate: null,
   amount: 0,

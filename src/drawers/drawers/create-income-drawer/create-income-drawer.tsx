@@ -208,8 +208,8 @@ export function CreateIncomeDrawer({ onClose }: CreateIncomeDrawerProps) {
         >
           {(field) => (
             <field.ComboboxField
-              label={t('income.source')}
-              placeholder={t('forms.sourcePlaceholder')}
+              label={t('income.sender')}
+              placeholder={t('forms.senderPlaceholder')}
               searchPlaceholder={t('forms.searchPlaceholder')}
               emptyText={t('forms.noMatches')}
               options={incomeSources.map((incomeSource) => ({
@@ -217,7 +217,7 @@ export function CreateIncomeDrawer({ onClose }: CreateIncomeDrawerProps) {
                 label: incomeSource.name
               }))}
               allowCreate
-              createLabel={t('forms.source')}
+              createLabel={t('forms.addSender')}
             />
           )}
         </form.AppField>

@@ -157,6 +157,7 @@ export function buildCreateTransactionBody(params: {
       amount: data.amount,
       date: data.date,
       budgetId: data.budgetId || null,
+      instanceId: instanceId ?? null,
       ...categoryToApi(data.category, CategoryType.EXPENSE),
       ...recipientToApi(data.recipient)
     }

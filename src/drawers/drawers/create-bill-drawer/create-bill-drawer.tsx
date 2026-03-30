@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { z } from 'zod'
 
-import { CategoryType, RecurrenceType } from '@/api/generated/types.gen'
+import { BillPaymentHandling, CategoryType, RecurrenceType } from '@/api/generated/types.gen'
 import { Button } from '@/components/button/button'
 import {
   type ComboboxValue,
@@ -181,6 +181,32 @@ export function CreateBillDrawer({ onClose }: CreateBillDrawerProps) {
     [
       t
     ]
+  )
+
+  const paymentHandlingOptions = useMemo(
+    () => [
+      {
+        value: BillPaymentHandling.AUTOGIRO,
+        label: t('bills.paymentHandling.AUTOGIRO')
+      },
+      {
+        value: BillPaymentHandling.E_INVOICE,
+        label: t('bills.paymentHandling.E_INVOICE')
+      },
+      {
+        value: BillPaymentHandling.MAIL,
+        label: t('bills.paymentHandling.MAIL')
+      },
+      {
+        value: BillPaymentHandling.PORTAL,
+        label: t('bills.paymentHandling.PORTAL')
+      },
+      {
+        value: BillPaymentHandling.PAPER,
+        label: t('bills.paymentHandling.PAPER')
+      }
+    ],
+    [t]
   )
 
   const nameValidator = useMemo(
@@ -394,6 +420,16 @@ export function CreateBillDrawer({ onClose }: CreateBillDrawerProps) {
             ) : null
           }
         </form.Subscribe>
+
+        <form.AppField name="paymentHandling">
+          {(field) => (
+            <field.SelectField
+              label={t('common.handling')}
+              placeholder={t('forms.selectHandling')}
+              options={paymentHandlingOptions}
+            />
+          )}
+        </form.AppField>
 
         <form.AppField
           name="startDate"

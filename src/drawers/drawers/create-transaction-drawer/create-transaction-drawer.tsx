@@ -40,14 +40,27 @@ export type IncomeInstancePrefill = {
   senderName: string
 }
 
+export type BillInstancePrefill = {
+  instanceId: string
+  name: string
+  amount: number
+  date: Date
+  accountId: string | null
+  categoryId: string | null
+  budgetId: string | null
+  recipientId: string
+}
+
 export type CreateTransactionDrawerProps = {
   onClose: () => void
   incomeInstance?: IncomeInstancePrefill
+  billInstance?: BillInstancePrefill
 }
 
 export function CreateTransactionDrawer({
   onClose,
-  incomeInstance
+  incomeInstance,
+  billInstance
 }: CreateTransactionDrawerProps) {
   const { t } = useTranslation()
   const { userId, householdId } = useAuth()
@@ -57,7 +70,7 @@ export function CreateTransactionDrawer({
   >({})
   const splitSwitchId = useId()
 
-  const isIncomeLinked = !!incomeInstance
+  const isInstanceLinked = !!incomeInstance || !!billInstance
 
   const { mutate: createTransaction, isPending } = useCreateTransaction()
 
@@ -98,17 +111,32 @@ export function CreateTransactionDrawer({
   )
 
   const defaultValues = useMemo<DrawerFormValues>(() => {
-    if (!incomeInstance) return DRAWER_DEFAULT_VALUES
-    return {
-      ...DRAWER_DEFAULT_VALUES,
-      transactionType: TransactionType.INCOME,
-      name: incomeInstance.name,
-      amount: incomeInstance.amount,
-      date: incomeInstance.date,
-      accountId: incomeInstance.accountId,
-      category: incomeInstance.categoryId
+    if (incomeInstance) {
+      return {
+        ...DRAWER_DEFAULT_VALUES,
+        transactionType: TransactionType.INCOME,
+        name: incomeInstance.name,
+        amount: incomeInstance.amount,
+        date: incomeInstance.date,
+        accountId: incomeInstance.accountId,
+        category: incomeInstance.categoryId
+      }
     }
-  }, [incomeInstance])
+    if (billInstance) {
+      return {
+        ...DRAWER_DEFAULT_VALUES,
+        transactionType: TransactionType.EXPENSE,
+        name: billInstance.name,
+        amount: billInstance.amount,
+        date: billInstance.date,
+        accountId: billInstance.accountId ?? '',
+        category: billInstance.categoryId,
+        budgetId: billInstance.budgetId ?? '',
+        recipient: billInstance.recipientId
+      }
+    }
+    return DRAWER_DEFAULT_VALUES
+  }, [incomeInstance, billInstance])
 
   const form = useAppForm({
     defaultValues,
@@ -136,7 +164,7 @@ export function CreateTransactionDrawer({
         t,
         data,
         hasSplits,
-        instanceId: incomeInstance?.instanceId
+        instanceId: incomeInstance?.instanceId ?? billInstance?.instanceId
       })
 
       createTransaction(
@@ -323,7 +351,7 @@ export function CreateTransactionDrawer({
       }}
     >
       <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto">
-        {!isIncomeLinked && (
+        {!isInstanceLinked && (
           <form.AppField name="transactionType">
             {(field) => (
               <TransactionTypeSegmentedControl

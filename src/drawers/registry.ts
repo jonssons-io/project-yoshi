@@ -71,6 +71,16 @@ export type DrawerPropsMap = {
       categoryId: string | null
       senderName: string
     }
+    billInstance?: {
+      instanceId: string
+      name: string
+      amount: number
+      date: Date
+      accountId: string | null
+      categoryId: string | null
+      budgetId: string | null
+      recipientId: string
+    }
   }
   createIncome: Record<string, never>
   createBill: Record<string, never>

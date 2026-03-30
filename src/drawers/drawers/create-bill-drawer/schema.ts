@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-import { RecurrenceType } from '@/api/generated/types.gen'
+import { BillPaymentHandling, RecurrenceType } from '@/api/generated/types.gen'
 
 export const billSplitRowSchema = z.object({
   id: z.string(),
@@ -29,8 +29,9 @@ export const createBillDrawerSchema = z
       ])
       .optional(),
     accountId: z.string().min(1, 'validation.accountRequired'),
-    recurrenceType: z.nativeEnum(RecurrenceType),
+    recurrenceType: z.enum(RecurrenceType),
     customIntervalDays: z.number().int().positive().optional(),
+    paymentHandling: z.enum(BillPaymentHandling).optional().or(z.literal('')),
     startDate: z.date({
       message: 'validation.dateRequired'
     }),

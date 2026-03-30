@@ -230,8 +230,8 @@ export function EditIncomeBlueprintDrawer({
         >
           {(field) => (
             <field.ComboboxField
-              label={t('income.source')}
-              placeholder={t('forms.sourcePlaceholder')}
+              label={t('income.sender')}
+              placeholder={t('forms.senderPlaceholder')}
               searchPlaceholder={t('forms.searchPlaceholder')}
               emptyText={t('forms.noMatches')}
               options={sourceOptions}

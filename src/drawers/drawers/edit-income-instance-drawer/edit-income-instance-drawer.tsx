@@ -269,13 +269,13 @@ export function EditIncomeInstanceDrawer({
         >
           {(field) => (
             <field.ComboboxField
-              label={t('income.source')}
-              placeholder={t('forms.sourcePlaceholder')}
+              label={t('income.sender')}
+              placeholder={t('forms.senderPlaceholder')}
               searchPlaceholder={t('forms.searchPlaceholder')}
               emptyText={t('forms.noMatches')}
               options={sourceOptions}
               disabled
-              labelHelpText={t('income.editInstanceDrawer.sourceHelp')}
+              labelHelpText={t('income.editInstanceDrawer.senderHelp')}
             />
           )}
         </form.AppField>

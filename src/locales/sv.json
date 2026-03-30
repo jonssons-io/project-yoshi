@@ -48,6 +48,9 @@
     "from": "Från",
     "to": "Till",
     "budget": "Budget",
+    "handling": "Hantering",
+    "dueDate": "Förfallodag",
+    "bill": "Räkning",
     "noResultsFound": "Inga resultat hittades.",
     "saving": "Sparar...",
     "more": "Mer",
@@ -330,8 +333,7 @@
     "endDateDesc": "Om angivet skapas inga nya instanser efter detta datum.",
     "incomeName": "Inkomstnamn",
     "incomePlaceholder": "t.ex. Lön, Utdelning",
-    "source": "Lägg till utbetalare",
-    "sourcePlaceholder": "t.ex. Arbetsgivare",
+    "senderPlaceholder": "t.ex. Arbetsgivare",
     "estimatedAmount": "Beräknat belopp",
     "nextExpectedDate": "Nästa förväntade datum",
     "depositAccount": "Insättningskonto",
@@ -365,6 +367,7 @@
     "splitBillAddSection": "Lägg till sektion",
     "startDateFirstPayment": "Startdatum (Första betalning)",
     "selectRecurrence": "Välj upprepning",
+    "selectHandling": "Välj hantering",
     "daysBetweenPayments": "Dagar mellan betalningar",
     "daysExample": "t.ex. 30",
     "lastPaymentDateOptional": "Sista betalningsdatum (Valfritt)",
@@ -511,6 +514,8 @@
   },
   "bills": {
     "title": "Räkningar",
+    "pageSubtitle": "Lorem ipsum dolor",
+    "createCTA": "Skapa räkning",
     "noBudgetSelected": "Ingen budget vald",
     "selectBudget": "Vänligen välj en budget för att hantera räkningar",
     "goToBudgets": "Gå till budgetar",
@@ -542,6 +547,30 @@
       "due": "Förfaller",
       "handled": "Hanterad"
     },
+    "status_": {
+      "upcoming": "Kommande",
+      "overdue": "Försenad",
+      "pending": "Väntande",
+      "handled": "Inkomnen"
+    },
+    "summary": {
+      "upcoming": "Kommande",
+      "overdue": "Försenade",
+      "pending": "Väntande",
+      "handled": "Inkomna"
+    },
+    "tabs": {
+      "overview": "Översikt",
+      "basis": "Underlag"
+    },
+    "paymentHandling": {
+      "AUTOGIRO": "Autogiro",
+      "E_INVOICE": "E-faktura",
+      "MAIL": "E-post",
+      "PORTAL": "Portal",
+      "PAPER": "Papper",
+      "E_MAILBOX": "E-brevlåda"
+    },
     "noBills": "Inga räkningar hittades. Skapa din första räkning för att komma igång.",
     "sections": "Sektioner",
     "thisMonth": "Denna månad",
@@ -557,7 +586,35 @@
     "updateSuccess": "Räkning uppdaterad",
     "deleteSuccess": "Räkning borttagen",
     "archiveSuccess": "Räkning arkiverad",
-    "unarchiveSuccess": "Räkning avarkiverad"
+    "unarchiveSuccess": "Räkning avarkiverad",
+    "basisData": {
+      "columns": {
+        "revisions": "Revisioner",
+        "period": "Period"
+      },
+      "recurrence": {
+        "none": "En gång",
+        "weekly": "Veckovis",
+        "monthly": "Månatlig",
+        "quarterly": "Kvartalsvis",
+        "yearly": "Årlig",
+        "custom": "Var {{days}}:e dag"
+      },
+      "rowMenu": {
+        "editUpcoming": "Editera kommande räkningsförekomster",
+        "editAll": "Editera alla räkningsförekomster",
+        "viewRevisions": "Visa revisioner",
+        "delete": "Ta bort räkning"
+      }
+    },
+    "overviewRowMenu": {
+      "createTransaction": "Skapa transaktion",
+      "viewTransaction": "Visa transaktion",
+      "editBill": "Editera räkning",
+      "editDisabledTooltip": "Du kan inte editera denna räkning då det finns en transaktion kopplad till den.",
+      "viewBasis": "Visa underlag",
+      "deleteBill": "Ta bort räkning"
+    }
   },
   "validation": {
     "required": "Obligatorisk",
@@ -606,7 +663,6 @@
     "createTransactionDesc": "Registrera faktisk inkomst mottagen",
     "createTransactionAction": "Skapa transaktion",
     "name": "Namn",
-    "source": "Utbetalare",
     "sender": "Utbetalare",
     "nextExpected": "Nästa inbetalning",
     "archived": "Arkiverad",
@@ -691,7 +747,7 @@
       "deleteIncome": "Ta bort inkomst"
     },
     "editInstanceDrawer": {
-      "sourceHelp": "Källa följer inkomstserien. Ändra den under fliken Underlag.",
+      "senderHelp": "Utbetalare följer inkomstserien. Ändra den under fliken Underlag.",
       "submit": "Editera inkomst",
       "alertIntro": "Inkomster används för att hålla koll på att dina förväntade inbetalningar kommer in som dom ska.",
       "alertScope": "Detta editerar endast denna förekomst. För att editera hela serien, gå till fliken Underlag och editera inkomsten därifrån istället."
