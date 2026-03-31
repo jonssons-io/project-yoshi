@@ -39,6 +39,7 @@ import {
 } from './-components/income-overview-table'
 import {
   createIncomeSourceDataColumns,
+  type IncomeSourceLabelLookup,
   type IncomeSourceDataRow
 } from './-components/income-source-data-table'
 
@@ -50,6 +51,26 @@ type IncomeTab = 'overview' | 'sourceData'
 
 const EMPTY_ROWS: IncomeOverviewRow[] = []
 const EMPTY_SOURCE_DATA_ROWS: IncomeSourceDataRow[] = []
+
+type AmountBounds = {
+  min?: number
+  max?: number
+}
+
+function getAmountBounds<T extends { amount: number }>(rows: T[]): AmountBounds {
+  if (rows.length === 0) return {}
+
+  let min = rows[0].amount
+  let max = rows[0].amount
+
+  for (let index = 1; index < rows.length; index += 1) {
+    const amount = rows[index].amount
+    if (amount < min) min = amount
+    if (amount > max) max = amount
+  }
+
+  return { min, max }
+}
 
 function IncomePage() {
   const { userId, householdId } = useAuth()
@@ -153,6 +174,19 @@ function IncomePageContent({
     incomes
   ])
 
+  const incomeById = useMemo(
+    () =>
+      new Map(
+        incomes.map((income) => [
+          income.id,
+          income.name
+        ])
+      ),
+    [
+      incomes
+    ]
+  )
+
   const {
     data: rawInstances = [],
     isLoading: instancesLoading,
@@ -179,6 +213,9 @@ function IncomePageContent({
         id: inst.id,
         expectedDate,
         incomeName: inst.name,
+        incomeSeriesName: inst.incomeId
+          ? (incomeById.get(inst.incomeId) ?? null)
+          : null,
         status: deriveIncomeOverviewStatus(hasTransaction, datePassed),
         transactionConnected: hasTransaction,
         amount: inst.amount,
@@ -196,6 +233,7 @@ function IncomePageContent({
     rawInstances,
     accountById,
     categoryById,
+    incomeById,
     incomeSourceById,
     t
   ])
@@ -346,6 +384,10 @@ function IncomePageContent({
 
   const filterDisabled =
     totalRowCount === 0 || isOverviewLoading || hasOverviewError
+  const overviewAmountBounds = useMemo(
+    () => getAmountBounds(overviewRows),
+    [overviewRows]
+  )
 
   const emptyMessage = useMemo((): ReactNode | undefined => {
     if (isOverviewLoading) return t('common.loading')
@@ -387,10 +429,22 @@ function IncomePageContent({
     )
   }, [incomes, accountById, categoryById, incomeSourceById, t])
 
+  const sourceDataLabelLookupRef = useRef<IncomeSourceLabelLookup>({
+    accounts: new Map(),
+    categories: new Map(),
+    senders: new Map()
+  })
+  sourceDataLabelLookupRef.current = {
+    accounts: accountById,
+    categories: categoryById,
+    senders: incomeSourceById
+  }
+
   const sourceDataColumns = useMemo(
     () =>
       createIncomeSourceDataColumns({
         t,
+        labelLookupRef: sourceDataLabelLookupRef,
         onViewRevisions: () => void 0,
         onEditUpcoming: (incomeId) =>
           openDrawer('editIncomeBlueprintUpcoming', { incomeId, mode: 'upcoming' }),
@@ -415,6 +469,10 @@ function IncomePageContent({
   })
 
   const sourceDataFilteredCount = sourceDataTable.getRowModel().rows.length
+  const sourceDataAmountBounds = useMemo(
+    () => getAmountBounds(sourceDataRows),
+    [sourceDataRows]
+  )
 
   const sourceDataFilterOptions = useMemo(() => {
     const accountsSeen = new Set<string>()
@@ -572,7 +630,8 @@ function IncomePageContent({
                   availableStatuses: filterOptions.statuses,
                   availableAccounts: filterOptions.accounts,
                   availableCategories: filterOptions.categories,
-                  availableSenders: filterOptions.senders
+                  availableSenders: filterOptions.senders,
+                  amountBounds: overviewAmountBounds
                 })
               }
               activeFilters={activeFilters}
@@ -612,7 +671,8 @@ function IncomePageContent({
                   availableRecurrences: sourceDataFilterOptions.recurrences,
                   availableAccounts: sourceDataFilterOptions.accounts,
                   availableCategories: sourceDataFilterOptions.categories,
-                  availableSenders: sourceDataFilterOptions.senders
+                  availableSenders: sourceDataFilterOptions.senders,
+                  amountBounds: sourceDataAmountBounds
                 })
               }
               activeFilters={sourceDataActiveFilters}

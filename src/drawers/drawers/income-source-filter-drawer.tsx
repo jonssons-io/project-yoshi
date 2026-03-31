@@ -1,21 +1,26 @@
 import type { ColumnFiltersState } from '@tanstack/react-table'
-import { endOfDay, startOfDay } from 'date-fns'
-import { CheckIcon, Undo2Icon } from 'lucide-react'
-import { useEffect, useId, useMemo, useState } from 'react'
+import { useEffect, useId, useState } from 'react'
 import type { DateRange } from 'react-day-picker'
 import { useTranslation } from 'react-i18next'
 
 import type { RecurrenceType } from '@/api/generated/types.gen'
-import { Button } from '@/components/button/button'
 import { Checkbox } from '@/components/checkbox/checkbox'
 import { DateRangePicker } from '@/components/date-range-picker/date-range-picker'
 import { FilterMultiselect } from '@/components/filter-multiselect/filter-multiselect'
+import { NumericInput } from '@/components/numeric-input/numeric-input'
+import { FilterDrawerFooter } from '@/drawers/filter-drawer-footer'
 import {
-  InputShell,
-  inputInnerClassName
-} from '@/components/input-shell/input-shell'
+  normalizeDateRange,
+  readAmountRangeFilter,
+  readArrayFilter,
+  readDateRangeFilter,
+  stripDrawerFilters,
+  toggleFilterValue
+} from '@/drawers/filter-drawer-helpers'
 
 type SelectOption = { value: string; label: string }
+
+type PresenceFilterValue = Array<'has' | 'doesNotHave'>
 
 export type IncomeSourceDateFilterValue = {
   from?: string
@@ -34,49 +39,22 @@ export type IncomeSourceFilterDrawerProps = {
   availableAccounts: SelectOption[]
   availableCategories: SelectOption[]
   availableSenders: SelectOption[]
+  amountBounds: {
+    min?: number
+    max?: number
+  }
   onClose: () => void
 }
 
-function readArrayFilter<T extends string>(
-  columnFilters: ColumnFiltersState,
-  columnId: string,
-  fallback: T[]
-): T[] {
-  const match = columnFilters.find((filter) => filter.id === columnId)?.value
-  if (!Array.isArray(match)) return fallback
-  return match as T[]
-}
-
-function readDateFilter(
-  columnFilters: ColumnFiltersState
-): DateRange | undefined {
-  const match = columnFilters.find((filter) => filter.id === 'period')
-    ?.value as IncomeSourceDateFilterValue | undefined
-  if (!match?.from && !match?.to) return undefined
-  return {
-    from: match?.from ? new Date(match.from) : undefined,
-    to: match?.to ? new Date(match.to) : undefined
-  }
-}
-
-function readAmountFilter(
-  columnFilters: ColumnFiltersState
-): IncomeSourceAmountFilterValue {
-  const match = columnFilters.find((filter) => filter.id === 'amount')?.value
-  if (!match || typeof match !== 'object') return {}
-  return match as IncomeSourceAmountFilterValue
-}
-
-function toggleValue<T extends string>(
-  current: T[],
-  nextValue: T,
-  checked: boolean
-): T[] {
-  if (checked) {
-    return current.includes(nextValue) ? current : [...current, nextValue]
-  }
-  return current.filter((value) => value !== nextValue)
-}
+const FILTER_IDS = [
+  'period',
+  'recurrence',
+  'revisions',
+  'amount',
+  'account',
+  'category',
+  'sender'
+] as const
 
 export function IncomeSourceFilterDrawer({
   columnFilters,
@@ -85,6 +63,7 @@ export function IncomeSourceFilterDrawer({
   availableAccounts,
   availableCategories,
   availableSenders,
+  amountBounds,
   onClose
 }: IncomeSourceFilterDrawerProps) {
   const { t } = useTranslation()
@@ -93,107 +72,50 @@ export function IncomeSourceFilterDrawer({
   const maxAmountInputId = `${idPrefix}-income-source-filter-max-amount`
 
   const [dateRange, setDateRange] = useState<DateRange | undefined>(() =>
-    readDateFilter(columnFilters)
+    readDateRangeFilter(columnFilters, 'period')
   )
   const [selectedRecurrences, setSelectedRecurrences] = useState<
     RecurrenceType[]
-  >(() =>
-    readArrayFilter(
-      columnFilters,
-      'recurrence',
-      availableRecurrences.map((r) => r.value)
-    )
-  )
+  >(() => readArrayFilter(columnFilters, 'recurrence', []))
+  const [selectedRevisionStates, setSelectedRevisionStates] =
+    useState<PresenceFilterValue>(() => readArrayFilter(columnFilters, 'revisions', []))
   const [selectedAccounts, setSelectedAccounts] = useState<string[]>(() =>
-    readArrayFilter(
-      columnFilters,
-      'account',
-      availableAccounts.map((item) => item.value)
-    )
+    readArrayFilter(columnFilters, 'account', [])
   )
   const [selectedCategories, setSelectedCategories] = useState<string[]>(() =>
-    readArrayFilter(
-      columnFilters,
-      'category',
-      availableCategories.map((item) => item.value)
-    )
+    readArrayFilter(columnFilters, 'category', [])
   )
   const [selectedSenders, setSelectedSenders] = useState<string[]>(() =>
-    readArrayFilter(
-      columnFilters,
-      'sender',
-      availableSenders.map((item) => item.value)
-    )
+    readArrayFilter(columnFilters, 'sender', [])
   )
   const [amountRange, setAmountRange] =
     useState<IncomeSourceAmountFilterValue>(() =>
-      readAmountFilter(columnFilters)
+      readAmountRangeFilter<IncomeSourceAmountFilterValue>(
+        columnFilters,
+        'amount'
+      )
     )
 
   useEffect(() => {
-    setDateRange(readDateFilter(columnFilters))
-    setSelectedRecurrences(
-      readArrayFilter(
+    setDateRange(readDateRangeFilter(columnFilters, 'period'))
+    setSelectedRecurrences(readArrayFilter(columnFilters, 'recurrence', []))
+    setSelectedRevisionStates(readArrayFilter(columnFilters, 'revisions', []))
+    setSelectedAccounts(readArrayFilter(columnFilters, 'account', []))
+    setSelectedCategories(readArrayFilter(columnFilters, 'category', []))
+    setSelectedSenders(readArrayFilter(columnFilters, 'sender', []))
+    setAmountRange(
+      readAmountRangeFilter<IncomeSourceAmountFilterValue>(
         columnFilters,
-        'recurrence',
-        availableRecurrences.map((r) => r.value)
+        'amount'
       )
     )
-    setSelectedAccounts(
-      readArrayFilter(
-        columnFilters,
-        'account',
-        availableAccounts.map((item) => item.value)
-      )
-    )
-    setSelectedCategories(
-      readArrayFilter(
-        columnFilters,
-        'category',
-        availableCategories.map((item) => item.value)
-      )
-    )
-    setSelectedSenders(
-      readArrayFilter(
-        columnFilters,
-        'sender',
-        availableSenders.map((item) => item.value)
-      )
-    )
-    setAmountRange(readAmountFilter(columnFilters))
-  }, [
-    availableAccounts,
-    availableCategories,
-    availableSenders,
-    availableRecurrences,
-    columnFilters
-  ])
-
-  const orderedRecurrences = useMemo(
-    () => availableRecurrences,
-    [availableRecurrences]
-  )
+  }, [columnFilters])
 
   const handleApply = () => {
-    const nextFilters = columnFilters.filter(
-      (filter) =>
-        filter.id !== 'period' &&
-        filter.id !== 'recurrence' &&
-        filter.id !== 'amount' &&
-        filter.id !== 'account' &&
-        filter.id !== 'category' &&
-        filter.id !== 'sender'
-    )
+    const nextFilters = stripDrawerFilters(columnFilters, FILTER_IDS)
 
-    const normalizedDateRange: IncomeSourceDateFilterValue | undefined =
-      dateRange?.from || dateRange?.to
-        ? {
-            from: dateRange?.from
-              ? startOfDay(dateRange.from).toISOString()
-              : undefined,
-            to: dateRange?.to ? endOfDay(dateRange.to).toISOString() : undefined
-          }
-        : undefined
+    const normalizedDateRange = normalizeDateRange(dateRange) satisfies
+      IncomeSourceDateFilterValue | undefined
 
     const normalizedAmountRange: IncomeSourceAmountFilterValue = {
       min: amountRange.min,
@@ -204,31 +126,23 @@ export function IncomeSourceFilterDrawer({
       nextFilters.push({ id: 'period', value: normalizedDateRange })
     }
 
-    if (
-      selectedRecurrences.length > 0 &&
-      selectedRecurrences.length < availableRecurrences.length
-    ) {
+    if (selectedRecurrences.length > 0) {
       nextFilters.push({ id: 'recurrence', value: selectedRecurrences })
     }
 
-    if (
-      selectedAccounts.length > 0 &&
-      selectedAccounts.length < availableAccounts.length
-    ) {
+    if (selectedRevisionStates.length === 1) {
+      nextFilters.push({ id: 'revisions', value: selectedRevisionStates })
+    }
+
+    if (selectedAccounts.length > 0) {
       nextFilters.push({ id: 'account', value: selectedAccounts })
     }
 
-    if (
-      selectedCategories.length > 0 &&
-      selectedCategories.length < availableCategories.length
-    ) {
+    if (selectedCategories.length > 0) {
       nextFilters.push({ id: 'category', value: selectedCategories })
     }
 
-    if (
-      selectedSenders.length > 0 &&
-      selectedSenders.length < availableSenders.length
-    ) {
+    if (selectedSenders.length > 0) {
       nextFilters.push({ id: 'sender', value: selectedSenders })
     }
 
@@ -244,17 +158,7 @@ export function IncomeSourceFilterDrawer({
   }
 
   const handleReset = () => {
-    onApply(
-      columnFilters.filter(
-        (filter) =>
-          filter.id !== 'period' &&
-          filter.id !== 'recurrence' &&
-          filter.id !== 'amount' &&
-          filter.id !== 'account' &&
-          filter.id !== 'category' &&
-          filter.id !== 'sender'
-      )
-    )
+    onApply(stripDrawerFilters(columnFilters, FILTER_IDS))
     onClose()
   }
 
@@ -272,98 +176,100 @@ export function IncomeSourceFilterDrawer({
 
         <div className="flex flex-col gap-2">
           <p className="type-label text-gray-600">{t('recurrence.label')}</p>
+          <FilterMultiselect
+            value={selectedRecurrences}
+            onChange={(values) => setSelectedRecurrences(values as RecurrenceType[])}
+            options={availableRecurrences}
+            placeholder={t('common.selectAnOption')}
+            searchPlaceholder={t('common.search')}
+          />
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <p className="type-label text-gray-600">
+            {t('income.sourceData.columns.revisions')}
+          </p>
           <div className="flex flex-col gap-3">
-            {orderedRecurrences.map((recurrence) => (
-              <Checkbox
-                key={recurrence.value}
-                id={`income-source-filter-recurrence-${recurrence.value}`}
-                checked={selectedRecurrences.includes(recurrence.value)}
-                onCheckedChange={(checked) => {
-                  setSelectedRecurrences((current) =>
-                    toggleValue(current, recurrence.value, checked)
-                  )
-                }}
-                label={recurrence.label}
-              />
-            ))}
+            <Checkbox
+              id={`${idPrefix}-income-source-filter-revisions-has`}
+              checked={selectedRevisionStates.includes('has')}
+              onCheckedChange={(checked) => {
+                setSelectedRevisionStates((current) =>
+                    toggleFilterValue(current, 'has', checked)
+                )
+              }}
+              label={t('common.has')}
+            />
+            <Checkbox
+              id={`${idPrefix}-income-source-filter-revisions-does-not-have`}
+              checked={selectedRevisionStates.includes('doesNotHave')}
+              onCheckedChange={(checked) => {
+                setSelectedRevisionStates((current) =>
+                    toggleFilterValue(current, 'doesNotHave', checked)
+                )
+              }}
+              label={t('common.doesNotHave')}
+            />
           </div>
         </div>
 
         <div className="flex flex-col gap-2">
           <p className="type-label text-gray-600">{t('common.amount')}</p>
-          <div className="flex flex-col gap-2">
-            <label
-              className="type-label text-gray-600"
-              htmlFor={minAmountInputId}
-            >
-              {t('common.from')}
-            </label>
-            <InputShell>
-              <span className="type-label shrink-0 text-gray-500">
-                {t('common.currencyCode')}
-              </span>
-              <input
+          <div className="flex flex-row gap-3">
+            <div className="flex min-w-0 flex-1 flex-col gap-2">
+              <label
+                className="type-label text-gray-600"
+                htmlFor={minAmountInputId}
+              >
+                {t('common.from')}
+              </label>
+              <NumericInput
                 id={minAmountInputId}
-                type="number"
-                inputMode="decimal"
-                min={0}
-                value={amountRange.min ?? ''}
-                onChange={(event) => {
-                  const nextValue = event.target.value
+                unit={t('common.currencyCode')}
+                min={amountBounds.min}
+                max={amountRange.max ?? amountBounds.max}
+                value={amountRange.min}
+                onValueChange={(value) => {
                   setAmountRange((current) => ({
                     ...current,
-                    min: nextValue === '' ? undefined : Number(nextValue)
+                    min: value
                   }))
                 }}
-                className={inputInnerClassName}
               />
-            </InputShell>
-            <label
-              className="type-label text-gray-600"
-              htmlFor={maxAmountInputId}
-            >
-              {t('common.to')}
-            </label>
-            <InputShell>
-              <span className="type-label shrink-0 text-gray-500">
-                {t('common.currencyCode')}
-              </span>
-              <input
+            </div>
+            <div className="flex min-w-0 flex-1 flex-col gap-2">
+              <label
+                className="type-label text-gray-600"
+                htmlFor={maxAmountInputId}
+              >
+                {t('common.to')}
+              </label>
+              <NumericInput
                 id={maxAmountInputId}
-                type="number"
-                inputMode="decimal"
-                min={0}
-                value={amountRange.max ?? ''}
-                onChange={(event) => {
-                  const nextValue = event.target.value
+                unit={t('common.currencyCode')}
+                min={amountRange.min ?? amountBounds.min}
+                max={amountBounds.max}
+                value={amountRange.max}
+                onValueChange={(value) => {
                   setAmountRange((current) => ({
                     ...current,
-                    max: nextValue === '' ? undefined : Number(nextValue)
+                    max: value
                   }))
                 }}
-                className={inputInnerClassName}
               />
-            </InputShell>
+            </div>
           </div>
         </div>
 
         <div className="flex flex-col gap-2">
           <p className="type-label text-gray-600">{t('common.account')}</p>
-          <div className="flex flex-col gap-3">
-            {availableAccounts.map((account) => (
-              <Checkbox
-                key={account.value}
-                id={`income-source-filter-account-${account.value}`}
-                checked={selectedAccounts.includes(account.value)}
-                onCheckedChange={(checked) => {
-                  setSelectedAccounts((current) =>
-                    toggleValue(current, account.value, checked)
-                  )
-                }}
-                label={account.label}
-              />
-            ))}
-          </div>
+          <FilterMultiselect
+            value={selectedAccounts}
+            onChange={setSelectedAccounts}
+            options={availableAccounts}
+            placeholder={t('common.selectAnOption')}
+            searchPlaceholder={t('common.search')}
+          />
         </div>
 
         <div className="flex flex-col gap-2">
@@ -389,34 +295,10 @@ export function IncomeSourceFilterDrawer({
         </div>
       </div>
 
-      <div className="flex shrink-0 flex-row flex-wrap justify-end gap-2 border-t border-gray-300 pt-4">
-        <Button
-          type="button"
-          variant="outlined"
-          color="primary"
-          label={t('common.clearAllFilters')}
-          icon={
-            <Undo2Icon
-              className="size-4 stroke-[1.5]"
-              aria-hidden={true}
-            />
-          }
-          onClick={handleReset}
-        />
-        <Button
-          type="button"
-          variant="filled"
-          color="primary"
-          label={t('transactions.applyFilters')}
-          icon={
-            <CheckIcon
-              className="size-4 stroke-[1.5]"
-              aria-hidden={true}
-            />
-          }
-          onClick={handleApply}
-        />
-      </div>
+      <FilterDrawerFooter
+        onReset={handleReset}
+        onApply={handleApply}
+      />
     </div>
   )
 }

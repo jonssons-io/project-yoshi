@@ -14,7 +14,8 @@ import { useTranslation } from 'react-i18next'
 
 import {
   type BillPaymentHandling,
-  InstanceStatus
+  InstanceStatus,
+  RecurrenceType
 } from '@/api/generated/types.gen'
 import { DataTable, useDataTable } from '@/components/data-table'
 import {
@@ -34,7 +35,11 @@ import {
 import { formatCurrency } from '@/lib/utils'
 
 import {
+  BILL_BASIS_NO_ACCOUNT_FILTER_VALUE,
+  BILL_BASIS_NO_BUDGET_FILTER_VALUE,
+  BILL_BASIS_NO_CATEGORY_FILTER_VALUE,
   type BillBasisRow,
+  type BillBasisLabelLookup,
   createBillBasisColumns
 } from './-components/bill-basis-table'
 import {
@@ -52,6 +57,26 @@ type BillTab = 'overview' | 'basis'
 
 const EMPTY_OVERVIEW_ROWS: BillOverviewRow[] = []
 const EMPTY_BASIS_ROWS: BillBasisRow[] = []
+
+type AmountBounds = {
+  min?: number
+  max?: number
+}
+
+function getAmountBounds<T extends { amount: number }>(rows: T[]): AmountBounds {
+  if (rows.length === 0) return {}
+
+  let min = rows[0].amount
+  let max = rows[0].amount
+
+  for (let index = 1; index < rows.length; index += 1) {
+    const amount = rows[index].amount
+    if (amount < min) min = amount
+    if (amount > max) max = amount
+  }
+
+  return { min, max }
+}
 
 function BillsPage() {
   const { userId, householdId } = useAuth()
@@ -192,6 +217,7 @@ function BillsPageContent({
         billId: inst.bill?.id ?? null,
         dueDate,
         billName: inst.name,
+        billSeriesName: inst.bill?.name ?? null,
         status,
         transactionConnected: hasTransaction,
         amount: inst.amount,
@@ -269,8 +295,8 @@ function BillsPageContent({
     table: overviewTable,
     globalFilter: overviewGlobalFilter,
     setGlobalFilter: setOverviewGlobalFilter,
-    columnFilters: _overviewColumnFilters,
-    setColumnFilters: _setOverviewColumnFilters,
+    columnFilters: overviewColumnFilters,
+    setColumnFilters: setOverviewColumnFilters,
     activeFilters: overviewActiveFilters
   } = useDataTable({
     data: overviewRows,
@@ -313,6 +339,95 @@ function BillsPageContent({
 
   const overviewFilterDisabled =
     overviewTotalRowCount === 0 || isOverviewLoading || hasOverviewError
+
+  const availableOverviewStatuses = useMemo(
+    () =>
+      (
+        ['overdue', 'pending', 'upcoming', 'handled'] as const
+      ).map((s) => ({ value: s, label: t(`bills.status_.${s}`) })),
+    [t]
+  )
+
+  const availableHandlings = useMemo(() => {
+    const seen = new Set<BillPaymentHandling>()
+    for (const row of overviewRows) {
+      if (row.paymentHandling) seen.add(row.paymentHandling)
+    }
+    return [...seen].map((h) => ({
+      value: h,
+      label: t(`bills.paymentHandling.${h}`)
+    }))
+  }, [overviewRows, t])
+
+  const availableOverviewAccounts = useMemo(() => {
+    const seen = new Map<string, string>()
+    for (const row of overviewRows) {
+      if (row.accountId && !seen.has(row.accountId)) {
+        seen.set(row.accountId, row.accountName)
+      }
+    }
+    return [...seen].map(([value, label]) => ({ value, label }))
+  }, [overviewRows])
+
+  const availableOverviewBudgets = useMemo(() => {
+    const seen = new Map<string, string>()
+    for (const row of overviewRows) {
+      if (row.budgetId && !seen.has(row.budgetId)) {
+        seen.set(row.budgetId, row.budgetName)
+      }
+    }
+    return [...seen].map(([value, label]) => ({ value, label }))
+  }, [overviewRows])
+
+  const availableOverviewCategories = useMemo(() => {
+    const seen = new Map<string, string>()
+    for (const row of overviewRows) {
+      if (row.categoryId && !seen.has(row.categoryId)) {
+        seen.set(row.categoryId, row.categoryName)
+      }
+    }
+    return [...seen].map(([value, label]) => ({ value, label }))
+  }, [overviewRows])
+
+  const availableOverviewRecipients = useMemo(() => {
+    const seen = new Map<string, string>()
+    for (const row of overviewRows) {
+      if (!seen.has(row.recipientId)) {
+        seen.set(row.recipientId, row.recipientName)
+      }
+    }
+    return [...seen].map(([value, label]) => ({ value, label }))
+  }, [overviewRows])
+
+  const overviewAmountBounds = useMemo(
+    () => getAmountBounds(overviewRows),
+    [overviewRows]
+  )
+
+  const handleOverviewFilterClick = useCallback(() => {
+    openDrawer('billOverviewFilterDrawer', {
+      columnFilters: overviewColumnFilters,
+      onApply: setOverviewColumnFilters,
+      availableStatuses: availableOverviewStatuses,
+      availableHandlings,
+      availableAccounts: availableOverviewAccounts,
+      availableBudgets: availableOverviewBudgets,
+      availableCategories: availableOverviewCategories,
+      availableRecipients: availableOverviewRecipients,
+      amountBounds: overviewAmountBounds
+    })
+  }, [
+    openDrawer,
+    overviewColumnFilters,
+    setOverviewColumnFilters,
+    availableOverviewStatuses,
+    availableHandlings,
+    availableOverviewAccounts,
+    availableOverviewBudgets,
+    availableOverviewCategories,
+    availableOverviewRecipients,
+    overviewAmountBounds
+  ])
 
   const overviewEmptyMessage = useMemo((): ReactNode | undefined => {
     if (isOverviewLoading) return t('common.loading')
@@ -366,10 +481,41 @@ function BillsPageContent({
     t
   ])
 
+  const basisLabelLookupRef = useRef<BillBasisLabelLookup>({
+    accounts: new Map(),
+    budgets: new Map(),
+    categories: new Map(),
+    recipients: new Map()
+  })
+  basisLabelLookupRef.current = {
+    accounts: new Map([
+      ...accountById,
+      [
+        BILL_BASIS_NO_ACCOUNT_FILTER_VALUE,
+        t('common.uncategorized')
+      ]
+    ]),
+    budgets: new Map([
+      ...budgetById,
+      [
+        BILL_BASIS_NO_BUDGET_FILTER_VALUE,
+        t('common.uncategorized')
+      ]
+    ]),
+    categories: new Map(
+      basisRows.map((row) => [
+        row.categoryId ?? BILL_BASIS_NO_CATEGORY_FILTER_VALUE,
+        row.categoryName
+      ])
+    ),
+    recipients: recipientMap
+  }
+
   const basisColumns = useMemo(
     () =>
       createBillBasisColumns({
         t,
+        labelLookupRef: basisLabelLookupRef,
         onViewRevisions: () => void 0,
         onEditUpcoming: () => void 0,
         onEditAll: () => void 0,
@@ -384,8 +530,8 @@ function BillsPageContent({
     table: basisTable,
     globalFilter: basisGlobalFilter,
     setGlobalFilter: setBasisGlobalFilter,
-    columnFilters: _basisColumnFilters,
-    setColumnFilters: _setBasisColumnFilters,
+    columnFilters: basisColumnFilters,
+    setColumnFilters: setBasisColumnFilters,
     activeFilters: basisActiveFilters
   } = useDataTable({
     data: basisRows,
@@ -399,6 +545,99 @@ function BillsPageContent({
   })
 
   const basisFilteredCount = basisTable.getRowModel().rows.length
+  const basisAmountBounds = useMemo(
+    () => getAmountBounds(basisRows),
+    [basisRows]
+  )
+
+  const basisFilterOptions = useMemo(() => {
+    const recurrencesSeen = new Set<RecurrenceType>()
+    const handlingsSeen = new Set<BillPaymentHandling>()
+    const accountsSeen = new Map<string, string>()
+    const budgetsSeen = new Map<string, string>()
+    const categoriesSeen = new Map<string, string>()
+    const recipientsSeen = new Map<string, string>()
+
+    for (const row of basisRows) {
+      recurrencesSeen.add(row.recurrenceType)
+      if (row.paymentHandling) {
+        handlingsSeen.add(row.paymentHandling)
+      }
+
+      const accountValue = row.accountId ?? BILL_BASIS_NO_ACCOUNT_FILTER_VALUE
+      if (!accountsSeen.has(accountValue)) {
+        accountsSeen.set(accountValue, row.accountName)
+      }
+
+      const budgetValue = row.budgetId ?? BILL_BASIS_NO_BUDGET_FILTER_VALUE
+      if (!budgetsSeen.has(budgetValue)) {
+        budgetsSeen.set(budgetValue, row.budgetName)
+      }
+
+      const categoryValue = row.categoryId ?? BILL_BASIS_NO_CATEGORY_FILTER_VALUE
+      if (!categoriesSeen.has(categoryValue)) {
+        categoriesSeen.set(categoryValue, row.categoryName)
+      }
+
+      if (!recipientsSeen.has(row.recipientId)) {
+        recipientsSeen.set(row.recipientId, row.recipientName)
+      }
+    }
+
+    const recurrenceOrder: RecurrenceType[] = [
+      RecurrenceType.NONE,
+      RecurrenceType.WEEKLY,
+      RecurrenceType.MONTHLY,
+      RecurrenceType.QUARTERLY,
+      RecurrenceType.YEARLY,
+      RecurrenceType.CUSTOM
+    ]
+
+    const recurrenceLabels: Record<RecurrenceType, string> = {
+      [RecurrenceType.NONE]: t('bills.basisData.recurrence.none'),
+      [RecurrenceType.WEEKLY]: t('bills.basisData.recurrence.weekly'),
+      [RecurrenceType.MONTHLY]: t('bills.basisData.recurrence.monthly'),
+      [RecurrenceType.QUARTERLY]: t('bills.basisData.recurrence.quarterly'),
+      [RecurrenceType.YEARLY]: t('bills.basisData.recurrence.yearly'),
+      [RecurrenceType.CUSTOM]: t('bills.basisData.recurrence.custom', {
+        days: '?'
+      })
+    }
+
+    return {
+      recurrences: recurrenceOrder
+        .filter((value) => recurrencesSeen.has(value))
+        .map((value) => ({ value, label: recurrenceLabels[value] })),
+      handlings: [...handlingsSeen].map((value) => ({
+        value,
+        label: t(`bills.paymentHandling.${value}`)
+      })),
+      accounts: [...accountsSeen].map(([value, label]) => ({ value, label })),
+      budgets: [...budgetsSeen].map(([value, label]) => ({ value, label })),
+      categories: [...categoriesSeen].map(([value, label]) => ({ value, label })),
+      recipients: [...recipientsSeen].map(([value, label]) => ({ value, label }))
+    }
+  }, [basisRows, t])
+
+  const handleBasisFilterClick = useCallback(() => {
+    openDrawer('billBasisFilterDrawer', {
+      columnFilters: basisColumnFilters,
+      onApply: setBasisColumnFilters,
+      availableRecurrences: basisFilterOptions.recurrences,
+      availableHandlings: basisFilterOptions.handlings,
+      availableAccounts: basisFilterOptions.accounts,
+      availableBudgets: basisFilterOptions.budgets,
+      availableCategories: basisFilterOptions.categories,
+      availableRecipients: basisFilterOptions.recipients,
+      amountBounds: basisAmountBounds
+    })
+  }, [
+    openDrawer,
+    basisColumnFilters,
+    setBasisColumnFilters,
+    basisFilterOptions,
+    basisAmountBounds
+  ])
 
   const openCreateBillDrawer = useCallback(() => {
     openDrawer('createBill', {})
@@ -505,7 +744,7 @@ function BillsPageContent({
               globalFilter={overviewGlobalFilter}
               onGlobalFilterChange={setOverviewGlobalFilter}
               filterDisabled={overviewFilterDisabled}
-              onFilterClick={() => void 0}
+              onFilterClick={handleOverviewFilterClick}
               activeFilters={overviewActiveFilters}
               actionButton={{
                 label: t('bills.createCTA'),
@@ -538,7 +777,7 @@ function BillsPageContent({
               globalFilter={basisGlobalFilter}
               onGlobalFilterChange={setBasisGlobalFilter}
               filterDisabled={basisRows.length === 0}
-              onFilterClick={() => void 0}
+              onFilterClick={handleBasisFilterClick}
               activeFilters={basisActiveFilters}
               actionButton={{
                 label: t('bills.createCTA'),

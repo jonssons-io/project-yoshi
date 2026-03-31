@@ -1,9 +1,16 @@
 import type { ColumnFiltersState } from '@tanstack/react-table'
 import type { ComponentType } from 'react'
 
-import type { RecurrenceType, TransactionType } from '@/api/generated/types.gen'
+import type {
+  BillPaymentHandling,
+  RecurrenceType,
+  TransactionType
+} from '@/api/generated/types.gen'
+import type { BillOverviewStatus } from '@/routes/_authenticated/bills/-components/bill-overview-table'
 import type { IncomeOverviewStatus } from '@/routes/_authenticated/income/-components/income-overview-table'
 import { AllocateBudgetDrawer } from './drawers/allocate-budget-drawer'
+import { BillBasisFilterDrawer } from './drawers/bill-basis-filter-drawer'
+import { BillOverviewFilterDrawer } from './drawers/bill-overview-filter-drawer'
 import { CreateAccountDrawer } from './drawers/create-account-drawer'
 import { CreateBillDrawer } from './drawers/create-bill-drawer'
 import { CreateBudgetDrawer } from './drawers/create-budget-drawer'
@@ -38,8 +45,27 @@ export type DrawerPropsMap = {
   transactionsTableFilterDrawer: {
     columnFilters: ColumnFiltersState
     onApply: (filters: ColumnFiltersState) => void
-    /** Transaction types that exist in the current dataset (controls which checkboxes appear). */
     availableTransactionTypes: TransactionType[]
+    availableAccounts: Array<{
+      value: string
+      label: string
+    }>
+    availableBudgets: Array<{
+      value: string
+      label: string
+    }>
+    availableCategories: Array<{
+      value: string
+      label: string
+    }>
+    availableRecipientsSenders: Array<{
+      value: string
+      label: string
+    }>
+    amountBounds: {
+      min?: number
+      max?: number
+    }
   }
   incomeTableFilterDrawer: {
     columnFilters: ColumnFiltersState
@@ -60,6 +86,10 @@ export type DrawerPropsMap = {
       value: string
       label: string
     }>
+    amountBounds: {
+      min?: number
+      max?: number
+    }
   }
   createTransaction: {
     incomeInstance?: {
@@ -125,16 +155,98 @@ export type DrawerPropsMap = {
   incomeSourceFilterDrawer: {
     columnFilters: ColumnFiltersState
     onApply: (filters: ColumnFiltersState) => void
-    availableRecurrences: Array<{ value: RecurrenceType; label: string }>
-    availableAccounts: Array<{ value: string; label: string }>
-    availableCategories: Array<{ value: string; label: string }>
-    availableSenders: Array<{ value: string; label: string }>
+    availableRecurrences: Array<{
+      value: RecurrenceType
+      label: string
+    }>
+    availableAccounts: Array<{
+      value: string
+      label: string
+    }>
+    availableCategories: Array<{
+      value: string
+      label: string
+    }>
+    availableSenders: Array<{
+      value: string
+      label: string
+    }>
+    amountBounds: {
+      min?: number
+      max?: number
+    }
+  }
+  billOverviewFilterDrawer: {
+    columnFilters: ColumnFiltersState
+    onApply: (filters: ColumnFiltersState) => void
+    availableStatuses: Array<{
+      value: BillOverviewStatus
+      label: string
+    }>
+    availableHandlings: Array<{
+      value: BillPaymentHandling
+      label: string
+    }>
+    availableAccounts: Array<{
+      value: string
+      label: string
+    }>
+    availableBudgets: Array<{
+      value: string
+      label: string
+    }>
+    availableCategories: Array<{
+      value: string
+      label: string
+    }>
+    availableRecipients: Array<{
+      value: string
+      label: string
+    }>
+    amountBounds: {
+      min?: number
+      max?: number
+    }
+  }
+  billBasisFilterDrawer: {
+    columnFilters: ColumnFiltersState
+    onApply: (filters: ColumnFiltersState) => void
+    availableRecurrences: Array<{
+      value: RecurrenceType
+      label: string
+    }>
+    availableHandlings: Array<{
+      value: BillPaymentHandling
+      label: string
+    }>
+    availableAccounts: Array<{
+      value: string
+      label: string
+    }>
+    availableBudgets: Array<{
+      value: string
+      label: string
+    }>
+    availableCategories: Array<{
+      value: string
+      label: string
+    }>
+    availableRecipients: Array<{
+      value: string
+      label: string
+    }>
+    amountBounds: {
+      min?: number
+      max?: number
+    }
   }
 }
 
 export type DrawerName = keyof DrawerPropsMap
 
-export type DrawerMetaEntry<K extends keyof DrawerPropsMap = keyof DrawerPropsMap> = {
+export type DrawerMetaEntry<
+  K extends keyof DrawerPropsMap = keyof DrawerPropsMap
+> = {
   titleKey: string
   descriptionKey?: string
   titleParams?: (props: DrawerPropsMap[K]) => Record<string, unknown>
@@ -178,12 +290,16 @@ export const drawerMeta = {
   allocateBudget: {
     titleKey: 'drawers.allocateBudget.title',
     descriptionKey: 'drawers.shared.budgetDescription',
-    titleParams: ({ budgetName }) => ({ budgetName })
+    titleParams: ({ budgetName }) => ({
+      budgetName
+    })
   },
   deallocateBudget: {
     titleKey: 'drawers.deallocateBudget.title',
     descriptionKey: 'drawers.shared.budgetDescription',
-    titleParams: ({ budgetName }) => ({ budgetName })
+    titleParams: ({ budgetName }) => ({
+      budgetName
+    })
   },
   transferBudgetAllocation: {
     titleKey: 'drawers.transferBudgetAllocation.title',
@@ -211,6 +327,12 @@ export const drawerMeta = {
   },
   incomeSourceFilterDrawer: {
     titleKey: 'drawers.incomeSourceFilterDrawer.title'
+  },
+  billOverviewFilterDrawer: {
+    titleKey: 'drawers.billOverviewFilterDrawer.title'
+  },
+  billBasisFilterDrawer: {
+    titleKey: 'drawers.billBasisFilterDrawer.title'
   }
 } satisfies DrawerMeta
 
@@ -231,7 +353,9 @@ export const drawerComponents = {
   editIncomeInstance: EditIncomeInstanceDrawer,
   editIncomeBlueprintUpcoming: EditIncomeBlueprintDrawer,
   editIncomeBlueprintAll: EditIncomeBlueprintDrawer,
-  incomeSourceFilterDrawer: IncomeSourceFilterDrawer
+  incomeSourceFilterDrawer: IncomeSourceFilterDrawer,
+  billOverviewFilterDrawer: BillOverviewFilterDrawer,
+  billBasisFilterDrawer: BillBasisFilterDrawer
 } satisfies {
   [K in keyof DrawerPropsMap]: ComponentType<
     DrawerPropsMap[K] & {

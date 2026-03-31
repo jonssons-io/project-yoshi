@@ -1,5 +1,6 @@
 import { createColumnHelper, type Row } from '@tanstack/react-table'
 import { format } from 'date-fns'
+import { sv } from 'date-fns/locale'
 import type { TFunction } from 'i18next'
 import {
   ArrowRight,
@@ -9,7 +10,7 @@ import {
   PencilIcon,
   TrashIcon
 } from 'lucide-react'
-import type { ReactNode } from 'react'
+import type { ReactNode, RefObject } from 'react'
 
 import { type Transaction, TransactionType } from '@/api/generated/types.gen'
 import { Badge } from '@/components/badge/badge'
@@ -22,8 +23,28 @@ export type TransactionListItem = Omit<Transaction, 'date'> & {
   date: Date
 }
 
+export type TransactionDateFilterValue = {
+  from?: string
+  to?: string
+}
+
+export type TransactionAmountFilterValue = {
+  min?: number
+  max?: number
+}
+
+export type TransactionLabelLookup = {
+  accounts: Map<string, string>
+  budgets: Map<string, string>
+  categories: Map<string, string>
+  recipientsSenders: Map<string, string>
+}
+
+type PresenceFilterValue = Array<'has' | 'doesNotHave'>
+
 export type CreateTransactionTableColumnsParams = {
   t: TFunction
+  labelLookupRef: RefObject<TransactionLabelLookup>
   onEditTransaction: (transaction: TransactionListItem) => void
   onEditTransfer: (transfer: {
     id: string
@@ -74,6 +95,34 @@ function isLinkedToScheduledInstance(
   transaction: TransactionListItem
 ): boolean {
   return Boolean(transaction.billInstance?.id || transaction.incomeInstance?.id)
+}
+
+function transactionNameSearchText(transaction: TransactionListItem): string {
+  return [
+    transaction.name,
+    transaction.bill?.name,
+    transaction.billInstance?.name,
+    transaction.income?.name,
+    transaction.incomeInstance?.name
+  ]
+    .filter(Boolean)
+    .join(' ')
+}
+
+function presenceFilterPillValue(
+  value: unknown,
+  t: TFunction
+): string {
+  if (!Array.isArray(value) || value.length !== 1) return ''
+  return value[0] === 'has' ? t('common.has') : t('common.doesNotHave')
+}
+
+function matchesPresenceFilter(
+  value: boolean,
+  filterValue: unknown
+): boolean {
+  if (!Array.isArray(filterValue) || filterValue.length !== 1) return true
+  return filterValue[0] === 'has' ? value : !value
 }
 
 function accountSortValue(transaction: TransactionListItem): string {
@@ -196,6 +245,7 @@ function typeFilterPillValue(value: unknown, t: TFunction): string {
  */
 export function createTransactionTableColumns({
   t,
+  labelLookupRef,
   onEditTransaction,
   onEditTransfer,
   onClone,
@@ -208,10 +258,31 @@ export function createTransactionTableColumns({
       header: t('common.date'),
       sortingFn: (rowA, rowB) =>
         rowA.original.date.getTime() - rowB.original.date.getTime(),
+      filterFn: (
+        row: Row<TransactionListItem>,
+        _columnId: string,
+        filterValue: TransactionDateFilterValue
+      ) => {
+        const time = row.original.date.getTime()
+        if (filterValue.from && time < new Date(filterValue.from).getTime())
+          return false
+        if (filterValue.to && time > new Date(filterValue.to).getTime())
+          return false
+        return true
+      },
       meta: {
         globalSearchable: true,
         searchValue: (row: TransactionListItem) =>
-          format(row.date, 'yyyy-MM-dd')
+          format(row.date, 'yyyy-MM-dd'),
+        filterable: true,
+        filterLabel: t('common.date'),
+        filterPillValue: (value: unknown) => {
+          const v = value as TransactionDateFilterValue
+          const parts: string[] = []
+          if (v.from) parts.push(format(new Date(v.from), 'P', { locale: sv }))
+          if (v.to) parts.push(format(new Date(v.to), 'P', { locale: sv }))
+          return parts.join(' – ')
+        }
       },
       cell: (ctx) => format(ctx.row.original.date, 'yyyy-MM-dd')
     }),
@@ -223,9 +294,17 @@ export function createTransactionTableColumns({
           sensitivity: 'base',
           numeric: true
         }),
+      filterFn: (
+        row: Row<TransactionListItem>,
+        _columnId: string,
+        filterValue: PresenceFilterValue
+      ) => matchesPresenceFilter(isLinkedToScheduledInstance(row.original), filterValue),
       meta: {
         globalSearchable: true,
-        searchValue: (row: TransactionListItem) => row.name
+        searchValue: (row: TransactionListItem) => transactionNameSearchText(row),
+        filterable: true,
+        filterLabel: t('transactions.scheduledLink'),
+        filterPillValue: (value: unknown) => presenceFilterPillValue(value, t)
       },
       cell: (ctx) => {
         const tx = ctx.row.original
@@ -285,10 +364,31 @@ export function createTransactionTableColumns({
       id: 'amount',
       header: t('common.amount'),
       sortingFn: (rowA, rowB) => rowA.original.amount - rowB.original.amount,
+      filterFn: (
+        row: Row<TransactionListItem>,
+        _columnId: string,
+        filterValue: TransactionAmountFilterValue
+      ) => {
+        const amount = row.original.amount
+        if (filterValue.min !== undefined && amount < filterValue.min)
+          return false
+        if (filterValue.max !== undefined && amount > filterValue.max)
+          return false
+        return true
+      },
       meta: {
         globalSearchable: true,
         searchValue: (row: TransactionListItem) =>
-          `${String(row.amount)} ${formatCurrency(row.amount)}`
+          `${String(row.amount)} ${formatCurrency(row.amount)}`,
+        filterable: true,
+        filterLabel: t('common.amount'),
+        filterPillValue: (value: unknown) => {
+          const v = value as TransactionAmountFilterValue
+          const parts: string[] = []
+          if (v.min !== undefined) parts.push(formatCurrency(v.min))
+          if (v.max !== undefined) parts.push(formatCurrency(v.max))
+          return parts.join(' – ')
+        }
       },
       cell: (ctx) => formatCurrency(ctx.row.original.amount)
     }),
@@ -303,9 +403,31 @@ export function createTransactionTableColumns({
             numeric: true
           }
         ),
+      filterFn: (
+        row: Row<TransactionListItem>,
+        _columnId: string,
+        filterValue: string[]
+      ) => {
+        if (filterValue.includes(row.original.account.id)) return true
+        if (
+          row.original.transferToAccount?.id &&
+          filterValue.includes(row.original.transferToAccount.id)
+        )
+          return true
+        return false
+      },
       meta: {
         globalSearchable: true,
-        searchValue: (row: TransactionListItem) => accountSearchText(row)
+        searchValue: (row: TransactionListItem) => accountSearchText(row),
+        filterable: true,
+        filterLabel: t('common.account'),
+        filterPillValue: (value: unknown) => {
+          if (!Array.isArray(value)) return ''
+          const lookup = labelLookupRef.current.accounts
+          return (value as string[])
+            .map((id) => lookup.get(id) ?? id)
+            .join(', ')
+        }
       },
       cell: (ctx) => accountCell(ctx.row.original)
     }),
@@ -319,9 +441,25 @@ export function createTransactionTableColumns({
           numeric: true
         })
       },
+      filterFn: (
+        row: Row<TransactionListItem>,
+        _columnId: string,
+        filterValue: string[]
+      ) => {
+        return filterValue.includes(row.original.budget?.id ?? '')
+      },
       meta: {
         globalSearchable: true,
-        searchValue: (row: TransactionListItem) => row.budget?.name ?? ''
+        searchValue: (row: TransactionListItem) => row.budget?.name ?? '',
+        filterable: true,
+        filterLabel: t('common.budget'),
+        filterPillValue: (value: unknown) => {
+          if (!Array.isArray(value)) return ''
+          const lookup = labelLookupRef.current.budgets
+          return (value as string[])
+            .map((id) => lookup.get(id) ?? id)
+            .join(', ')
+        }
       },
       cell: (ctx) => ctx.row.original.budget?.name ?? emptyCellDash
     }),
@@ -336,9 +474,25 @@ export function createTransactionTableColumns({
             numeric: true
           }
         ),
+      filterFn: (
+        row: Row<TransactionListItem>,
+        _columnId: string,
+        filterValue: string[]
+      ) => {
+        return filterValue.includes(row.original.category?.id ?? '')
+      },
       meta: {
         globalSearchable: true,
-        searchValue: (row: TransactionListItem) => categorySearchText(row, t)
+        searchValue: (row: TransactionListItem) => categorySearchText(row, t),
+        filterable: true,
+        filterLabel: t('common.category'),
+        filterPillValue: (value: unknown) => {
+          if (!Array.isArray(value)) return ''
+          const lookup = labelLookupRef.current.categories
+          return (value as string[])
+            .map((id) => lookup.get(id) ?? id)
+            .join(', ')
+        }
       },
       cell: (ctx) => categoryCell(ctx.row.original, t)
     }),
@@ -351,10 +505,31 @@ export function createTransactionTableColumns({
           undefined,
           { numeric: true }
         ),
+      filterFn: (
+        row: Row<TransactionListItem>,
+        _columnId: string,
+        filterValue: string[]
+      ) => {
+        const tx = row.original
+        if (tx.type === TransactionType.TRANSFER) return false
+        if (tx.type === TransactionType.INCOME) {
+          return filterValue.includes(tx.incomeSource?.id ?? '')
+        }
+        return filterValue.includes(tx.recipient?.id ?? '')
+      },
       meta: {
         globalSearchable: true,
         searchValue: (row: TransactionListItem) =>
-          recipientSenderSearchText(row)
+          recipientSenderSearchText(row),
+        filterable: true,
+        filterLabel: t('common.recipientSender'),
+        filterPillValue: (value: unknown) => {
+          if (!Array.isArray(value)) return ''
+          const lookup = labelLookupRef.current.recipientsSenders
+          return (value as string[])
+            .map((id) => lookup.get(id) ?? id)
+            .join(', ')
+        }
       },
       cell: (ctx) => recipientSenderCell(ctx.row.original)
     }),

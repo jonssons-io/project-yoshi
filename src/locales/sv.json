@@ -62,7 +62,10 @@
     "close": "Stäng",
     "confirm": "Bekräfta",
     "confirmAction": "Bekräfta åtgärd",
-    "cancelled": "Åtgärden avbröts"
+    "cancelled": "Åtgärden avbröts",
+    "has": "Har",
+    "doesNotHave": "Har inte",
+    "linkedTransaction": "Kopplad transaktion"
   },
   "transactions": {
     "title": "Transaktioner",
@@ -873,6 +876,12 @@
     },
     "incomeSourceFilterDrawer": {
       "title": "Inkomstfilter"
+    },
+    "billOverviewFilterDrawer": {
+      "title": "Räkningsfilter"
+    },
+    "billBasisFilterDrawer": {
+      "title": "Underlagsfilter"
     }
   }
 }

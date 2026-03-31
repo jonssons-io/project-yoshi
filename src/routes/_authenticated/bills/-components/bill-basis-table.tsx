@@ -1,6 +1,7 @@
 import { format } from 'date-fns'
 import type { TFunction } from 'i18next'
 import { ArrowRight, History, SquarePen, Trash2 } from 'lucide-react'
+import type { MutableRefObject } from 'react'
 
 import { BillPaymentHandling, RecurrenceType } from '@/api/generated/types.gen'
 import type { BadgeColor } from '@/components/badge/badge'
@@ -29,6 +30,29 @@ export type BillBasisRow = {
   recipientName: string
   hasRevisions: boolean
 }
+
+export const BILL_BASIS_NO_ACCOUNT_FILTER_VALUE = '__no_account__'
+export const BILL_BASIS_NO_BUDGET_FILTER_VALUE = '__no_budget__'
+export const BILL_BASIS_NO_CATEGORY_FILTER_VALUE = '__no_category__'
+
+export type BillBasisLabelLookup = {
+  accounts: Map<string, string>
+  budgets: Map<string, string>
+  categories: Map<string, string>
+  recipients: Map<string, string>
+}
+
+type BillBasisDateFilterValue = {
+  from?: string
+  to?: string
+}
+
+type BillBasisAmountFilterValue = {
+  min?: number
+  max?: number
+}
+
+type PresenceFilterValue = Array<'has' | 'doesNotHave'>
 
 function recurrenceLabel(
   type: RecurrenceType,
@@ -74,14 +98,43 @@ const HANDLING_BADGE_COLOR: Record<BillPaymentHandling, BadgeColor> = {
 
 export type CreateBillBasisColumnsParams = {
   t: TFunction
+  labelLookupRef: MutableRefObject<BillBasisLabelLookup>
   onViewRevisions: (billId: string) => void
   onEditUpcoming: (billId: string) => void
   onEditAll: (billId: string) => void
   onDeleteBill: (billId: string) => void
 }
 
+function recurrenceFilterPillValue(
+  value: unknown,
+  t: TFunction
+): string {
+  if (!Array.isArray(value)) return ''
+  return (value as RecurrenceType[])
+    .map((item) =>
+      item === RecurrenceType.CUSTOM
+        ? t('bills.basisData.recurrence.custom', { days: '?' })
+        : recurrenceLabel(item, null, t)
+    )
+    .join(', ')
+}
+
+function presenceFilterPillValue(value: unknown, t: TFunction): string {
+  if (!Array.isArray(value) || value.length !== 1) return ''
+  return value[0] === 'has' ? t('common.has') : t('common.doesNotHave')
+}
+
+function matchesPresenceFilter(
+  value: boolean,
+  filterValue: unknown
+): boolean {
+  if (!Array.isArray(filterValue) || filterValue.length !== 1) return true
+  return filterValue[0] === 'has' ? value : !value
+}
+
 export function createBillBasisColumns({
   t,
+  labelLookupRef,
   onViewRevisions,
   onEditUpcoming,
   onEditAll,
@@ -94,6 +147,8 @@ export function createBillBasisColumns({
       id: 'revisions',
       enableSorting: false,
       header: t('bills.basisData.columns.revisions'),
+      filterFn: (row, _columnId, filterValue: PresenceFilterValue) =>
+        matchesPresenceFilter(row.original.hasRevisions, filterValue),
       cell: ({ row }) => {
         if (!row.original.hasRevisions) return null
         return (
@@ -108,7 +163,12 @@ export function createBillBasisColumns({
           />
         )
       },
-      meta: { globalSearchable: false }
+      meta: {
+        globalSearchable: false,
+        filterable: true,
+        filterLabel: t('bills.basisData.columns.revisions'),
+        filterPillValue: (value: unknown) => presenceFilterPillValue(value, t)
+      }
     },
     {
       id: 'name',
@@ -122,10 +182,28 @@ export function createBillBasisColumns({
       header: t('common.amount'),
       cell: ({ row }) => formatCurrency(row.original.amount),
       sortingFn: 'basic',
+      filterFn: (row, _columnId, filterValue: BillBasisAmountFilterValue) => {
+        const amount = row.original.amount
+        if (filterValue.min !== undefined && amount < filterValue.min) return false
+        if (filterValue.max !== undefined && amount > filterValue.max) return false
+        return true
+      },
       meta: {
         globalSearchable: true,
         searchValue: (row: BillBasisRow) =>
-          `${String(row.amount)} ${formatCurrency(row.amount)}`
+          `${String(row.amount)} ${formatCurrency(row.amount)}`,
+        filterable: true,
+        filterLabel: t('common.amount'),
+        filterPillValue: (value: unknown) => {
+          const filter = value as BillBasisAmountFilterValue | undefined
+          if (!filter) return ''
+          const parts: string[] = []
+          if (filter.min !== undefined)
+            parts.push(`${t('common.from')}: ${formatCurrency(filter.min)}`)
+          if (filter.max !== undefined)
+            parts.push(`${t('common.to')}: ${formatCurrency(filter.max)}`)
+          return parts.join(' – ')
+        }
       }
     },
     {
@@ -141,10 +219,17 @@ export function createBillBasisColumns({
       sortingFn: (rowA, rowB) =>
         RECURRENCE_ORDER.indexOf(rowA.original.recurrenceType) -
         RECURRENCE_ORDER.indexOf(rowB.original.recurrenceType),
+      filterFn: (row, _columnId, filterValue: RecurrenceType[]) => {
+        if (!Array.isArray(filterValue) || filterValue.length === 0) return true
+        return filterValue.includes(row.original.recurrenceType)
+      },
       meta: {
         globalSearchable: true,
         searchValue: (row: BillBasisRow) =>
-          recurrenceLabel(row.recurrenceType, row.customIntervalDays, t)
+          recurrenceLabel(row.recurrenceType, row.customIntervalDays, t),
+        filterable: true,
+        filterLabel: t('recurrence.label'),
+        filterPillValue: (value: unknown) => recurrenceFilterPillValue(value, t)
       }
     },
     {
@@ -172,7 +257,30 @@ export function createBillBasisColumns({
         )
       },
       sortingFn: 'basic',
-      meta: { globalSearchable: false }
+      filterFn: (row, _columnId, filterValue: BillBasisDateFilterValue) => {
+        const start = row.original.startDate.getTime()
+        const end = (row.original.endDate ?? row.original.startDate).getTime()
+        if (filterValue.from && end < new Date(filterValue.from).getTime()) {
+          return false
+        }
+        if (filterValue.to && start > new Date(filterValue.to).getTime()) {
+          return false
+        }
+        return true
+      },
+      meta: {
+        globalSearchable: false,
+        filterable: true,
+        filterLabel: t('common.date'),
+        filterPillValue: (value: unknown) => {
+          const filter = value as BillBasisDateFilterValue | undefined
+          if (!filter) return ''
+          const parts: string[] = []
+          if (filter.from) parts.push(format(new Date(filter.from), 'yyyy-MM-dd'))
+          if (filter.to) parts.push(format(new Date(filter.to), 'yyyy-MM-dd'))
+          return parts.join(' – ')
+        }
+      }
     },
     {
       id: 'paymentHandling',
@@ -193,35 +301,107 @@ export function createBillBasisColumns({
         const b = rowB.original.paymentHandling ?? ''
         return a.localeCompare(b)
       },
+      filterFn: (row, _columnId, filterValue: BillPaymentHandling[]) => {
+        if (!Array.isArray(filterValue) || filterValue.length === 0) return true
+        const handling = row.original.paymentHandling
+        if (!handling) return false
+        return filterValue.includes(handling)
+      },
       meta: {
         globalSearchable: false,
         searchValue: (row: BillBasisRow) =>
-          row.paymentHandling ? handlingLabel(row.paymentHandling) : ''
+          row.paymentHandling ? handlingLabel(row.paymentHandling) : '',
+        filterable: true,
+        filterLabel: t('common.handling'),
+        filterPillValue: (value: unknown) => {
+          if (!Array.isArray(value)) return ''
+          return (value as BillPaymentHandling[])
+            .map((item) => handlingLabel(item))
+            .join(', ')
+        }
       }
     },
     {
       id: 'account',
       accessorKey: 'accountName',
       header: t('transfers.fromAccount'),
-      meta: { globalSearchable: true }
+      filterFn: (row, _columnId, filterValue: string[]) => {
+        if (!Array.isArray(filterValue) || filterValue.length === 0) return true
+        return filterValue.includes(
+          row.original.accountId ?? BILL_BASIS_NO_ACCOUNT_FILTER_VALUE
+        )
+      },
+      meta: {
+        globalSearchable: true,
+        filterable: true,
+        filterLabel: t('common.account'),
+        filterPillValue: (value: unknown) => {
+          if (!Array.isArray(value)) return ''
+          const lookup = labelLookupRef.current.accounts
+          return (value as string[]).map((id) => lookup.get(id) ?? id).join(', ')
+        }
+      }
     },
     {
       id: 'budget',
       accessorKey: 'budgetName',
       header: t('common.budget'),
-      meta: { globalSearchable: true }
+      filterFn: (row, _columnId, filterValue: string[]) => {
+        if (!Array.isArray(filterValue) || filterValue.length === 0) return true
+        return filterValue.includes(
+          row.original.budgetId ?? BILL_BASIS_NO_BUDGET_FILTER_VALUE
+        )
+      },
+      meta: {
+        globalSearchable: true,
+        filterable: true,
+        filterLabel: t('common.budget'),
+        filterPillValue: (value: unknown) => {
+          if (!Array.isArray(value)) return ''
+          const lookup = labelLookupRef.current.budgets
+          return (value as string[]).map((id) => lookup.get(id) ?? id).join(', ')
+        }
+      }
     },
     {
       id: 'category',
       accessorKey: 'categoryName',
       header: t('common.category'),
-      meta: { globalSearchable: true }
+      filterFn: (row, _columnId, filterValue: string[]) => {
+        if (!Array.isArray(filterValue) || filterValue.length === 0) return true
+        return filterValue.includes(
+          row.original.categoryId ?? BILL_BASIS_NO_CATEGORY_FILTER_VALUE
+        )
+      },
+      meta: {
+        globalSearchable: true,
+        filterable: true,
+        filterLabel: t('common.category'),
+        filterPillValue: (value: unknown) => {
+          if (!Array.isArray(value)) return ''
+          const lookup = labelLookupRef.current.categories
+          return (value as string[]).map((id) => lookup.get(id) ?? id).join(', ')
+        }
+      }
     },
     {
       id: 'recipient',
       accessorKey: 'recipientName',
       header: t('common.recipient'),
-      meta: { globalSearchable: true }
+      filterFn: (row, _columnId, filterValue: string[]) => {
+        if (!Array.isArray(filterValue) || filterValue.length === 0) return true
+        return filterValue.includes(row.original.recipientId)
+      },
+      meta: {
+        globalSearchable: true,
+        filterable: true,
+        filterLabel: t('common.recipient'),
+        filterPillValue: (value: unknown) => {
+          if (!Array.isArray(value)) return ''
+          const lookup = labelLookupRef.current.recipients
+          return (value as string[]).map((id) => lookup.get(id) ?? id).join(', ')
+        }
+      }
     },
     {
       id: 'actions',

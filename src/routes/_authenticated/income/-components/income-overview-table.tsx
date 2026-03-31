@@ -1,12 +1,20 @@
 import { format } from 'date-fns'
 import { sv } from 'date-fns/locale'
 import type { TFunction } from 'i18next'
-import { ArrowLeftRight, BookUp, Link, SquarePen, Trash2 } from 'lucide-react'
+import {
+  ArrowLeftRight,
+  BookUp,
+  Link,
+  Link2,
+  SquarePen,
+  Trash2
+} from 'lucide-react'
 import type { MutableRefObject } from 'react'
 
 import type { BadgeColor } from '@/components/badge/badge'
 import { Badge } from '@/components/badge/badge'
 import type { DataTableColumnDef } from '@/components/data-table'
+import { IconButton } from '@/components/icon-button/icon-button'
 import { TableRowMenu } from '@/components/table-row-menu/table-row-menu'
 import { formatCurrency } from '@/lib/utils'
 
@@ -30,6 +38,7 @@ export type IncomeOverviewRow = {
   id: string
   expectedDate: Date
   incomeName: string
+  incomeSeriesName: string | null
   status: IncomeOverviewStatus
   /** True when this instance is linked to a transaction (`transaction` relation set). */
   transactionConnected: boolean
@@ -63,6 +72,25 @@ export type LabelLookup = {
   accounts: Map<string, string>
   categories: Map<string, string>
   senders: Map<string, string>
+}
+
+type PresenceFilterValue = Array<'has' | 'doesNotHave'>
+
+function presenceFilterPillValue(value: unknown, t: TFunction): string {
+  if (!Array.isArray(value) || value.length !== 1) return ''
+  return value[0] === 'has' ? t('common.has') : t('common.doesNotHave')
+}
+
+function matchesPresenceFilter(
+  value: boolean,
+  filterValue: unknown
+): boolean {
+  if (!Array.isArray(filterValue) || filterValue.length !== 1) return true
+  return filterValue[0] === 'has' ? value : !value
+}
+
+function incomeNameSearchText(row: IncomeOverviewRow): string {
+  return [row.incomeName, row.incomeSeriesName].filter(Boolean).join(' ')
 }
 
 /**
@@ -125,9 +153,30 @@ export function createIncomeOverviewColumns(opts: {
       id: 'incomeName',
       accessorKey: 'incomeName',
       header: t('income.name'),
-      cell: ({ row }) => row.original.incomeName,
+      cell: ({ row }) => (
+        <span className="inline-flex max-w-full min-w-0 items-center gap-1">
+          <span className="min-w-0 truncate">{row.original.incomeName}</span>
+          {row.original.transactionConnected ? (
+            <IconButton
+              type="button"
+              variant="text"
+              color="primary"
+              icon={<Link2 />}
+              onClick={() => void 0}
+              title={t('common.linkedTransaction')}
+              aria-label={t('common.linkedTransaction')}
+            />
+          ) : null}
+        </span>
+      ),
+      filterFn: (row, _columnId, filterValue: PresenceFilterValue) =>
+        matchesPresenceFilter(row.original.transactionConnected, filterValue),
       meta: {
-        globalSearchable: true
+        globalSearchable: true,
+        searchValue: (row) => incomeNameSearchText(row),
+        filterable: true,
+        filterLabel: t('common.linkedTransaction'),
+        filterPillValue: (value: unknown) => presenceFilterPillValue(value, t)
       }
     },
     {
