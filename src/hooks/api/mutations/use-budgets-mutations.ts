@@ -1,7 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   createBudgetMutation,
-  deleteBudgetMutation,
   getBudgetQueryKey,
   linkAccountToBudgetMutation,
   linkCategoryToBudgetMutation,
@@ -13,7 +12,6 @@ import {
 import type {
   CreateBudgetRequest,
   CreateBudgetResponse,
-  DeleteBudgetResponse,
   SetDefaultBudgetResponse,
   UpdateBudgetRequest,
   UpdateBudgetResponse
@@ -36,10 +34,6 @@ type UpdateBudgetVariables = {
     startDate?: string | Date
   }
 
-type DeleteBudgetVariables = {
-  id: string
-  userId?: string | null
-}
 type BudgetCategoryVariables = {
   budgetId: string
   categoryId: string
@@ -125,41 +119,6 @@ export function useUpdateBudget(
           }
         })
       })
-      callbacks?.onSuccess?.(data, variables)
-    },
-    onError: (error, variables) => callbacks?.onError?.(error, variables)
-  })
-}
-
-/**
- * Hook to delete a budget
- * Invalidates budgets, unallocated funds, accounts, transactions, and bills
- * since budget deletion affects household summaries and linked account counts.
- */
-export function useDeleteBudget(
-  callbacks?: MutationCallbacks<DeleteBudgetResponse, DeleteBudgetVariables>
-) {
-  const queryClient = useQueryClient()
-  const mutationOptions = deleteBudgetMutation()
-  return useMutation<DeleteBudgetResponse, Error, DeleteBudgetVariables>({
-    mutationFn: async (variables: DeleteBudgetVariables) => {
-      const mutationFn = mutationOptions.mutationFn
-      if (!mutationFn) throw new Error('Missing deleteBudget mutation function')
-      return mutationFn(
-        {
-          path: {
-            budgetId: variables.id
-          }
-        },
-        {} as never
-      )
-    },
-    onSuccess: (data, variables) => {
-      invalidateByOperation(queryClient, 'listBudgets')
-      invalidateByOperation(queryClient, 'getUnallocatedFunds')
-      invalidateByOperation(queryClient, 'listAccounts')
-      invalidateByOperation(queryClient, 'listTransactions')
-      invalidateByOperation(queryClient, 'listBills')
       callbacks?.onSuccess?.(data, variables)
     },
     onError: (error, variables) => callbacks?.onError?.(error, variables)

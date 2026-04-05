@@ -39,6 +39,7 @@ export type Category = {
   householdId: string
   name: string
   types: string[]
+  archived: boolean
   createdAt: string
 }
 
@@ -75,6 +76,7 @@ export type Income = {
   endDate: string | null
   archived: boolean
   createdAt: string
+  hasRevisions?: boolean
 }
 
 export type IncomeSource = {
@@ -93,7 +95,8 @@ export type IncomeInstance = {
   expectedDate: string
   accountId: string
   categoryId?: string | null
-  status: 'UPCOMING' | 'DUE' | 'HANDLED'
+  /** Stored for fixtures only; API status is derived in handlers. */
+  status: 'UPCOMING' | 'HANDLED' | 'OVERDUE' | 'RECEIVED'
   transactionId?: string | null
   householdId: string
 }
@@ -142,6 +145,13 @@ export type Bill = {
   estimatedAmount: number
   endDate?: string | null
   lastPaymentDate?: string | null
+  paymentHandling?:
+    | 'AUTOGIRO'
+    | 'E_INVOICE'
+    | 'MAIL'
+    | 'PORTAL'
+    | 'PAPER'
+    | null
   categoryId?: string | null
   splits?: Array<{
     subtitle: string
@@ -150,7 +160,73 @@ export type Bill = {
   }>
   archived: boolean
   createdAt: string
+  /** Blueprint revision flag; echoed on API `Bill`. */
+  hasRevisions?: boolean
 }
+
+/** MSW-only rows for `GET /bills/{billId}/revisions` (newest-first in handler). */
+export type MockBillRevision = {
+  id: string
+  billId: string
+  userId: string
+  createdAt: string
+  effectiveFrom?: string | null
+  scope?: 'INSTANCE' | 'FUTURE' | 'ALL' | null
+  changes: Array<{
+    field: string
+    previousValue: unknown
+    newValue: unknown
+  }>
+}
+
+/** MSW-only rows for `GET /incomes/{incomeId}/revisions`. */
+export type MockIncomeRevision = {
+  id: string
+  incomeId: string
+  userId: string
+  createdAt: string
+  effectiveFrom?: string | null
+  scope?: 'INSTANCE' | 'FUTURE' | 'ALL' | null
+  changes: Array<{
+    field: string
+    previousValue: unknown
+    newValue: unknown
+  }>
+}
+
+export const mockBillRevisions: MockBillRevision[] = [
+  {
+    id: 'brev_seed_1',
+    billId: 'bill_1',
+    userId: 'user_dev',
+    createdAt: '2026-01-10T12:00:00.000Z',
+    scope: 'ALL',
+    changes: [
+      {
+        field: 'estimatedAmount',
+        previousValue: 100,
+        newValue: 120
+      }
+    ]
+  }
+]
+
+export const mockIncomeRevisions: MockIncomeRevision[] = [
+  {
+    id: 'irev_seed_1',
+    incomeId: 'income_1',
+    userId: 'user_dev',
+    createdAt: '2026-01-05T12:00:00.000Z',
+    scope: 'ALL',
+    changes: [
+      {
+        field: 'estimatedAmount',
+        previousValue: 3000,
+        newValue: 3200
+      }
+    ]
+  }
+]
 
 export type BillInstance = {
   id: string
@@ -160,7 +236,8 @@ export type BillInstance = {
   amount: number
   dueDate: string
   budgetId: string
-  status: 'UPCOMING' | 'DUE' | 'HANDLED'
+  /** Stored for fixtures only; API status is derived in handlers. */
+  status: 'UPCOMING' | 'HANDLED' | 'OVERDUE' | 'PAID'
   transactionId?: string | null
   accountId: string
   categoryId?: string | null
@@ -193,6 +270,17 @@ export function nextId(prefix: string): string {
 
 export function nowIso(): string {
   return new Date().toISOString()
+}
+
+/**
+ * Normalizes calendar-day strings from mock storage to UTC instants so generated
+ * client Zod validators (`z.iso.datetime()`) accept MSW responses.
+ */
+export function toUtcIsoDateTime(value: string): string {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return `${value}T00:00:00.000Z`
+  }
+  return value
 }
 
 export async function readJson<T>(request: Request): Promise<T> {
@@ -275,8 +363,9 @@ export const categories: Category[] = [
     householdId: 'hh_1',
     name: 'Groceries',
     types: [
-      'expense'
+      'EXPENSE'
     ],
+    archived: false,
     createdAt: nowIso()
   },
   {
@@ -284,8 +373,9 @@ export const categories: Category[] = [
     householdId: 'hh_1',
     name: 'Salary',
     types: [
-      'income'
+      'INCOME'
     ],
+    archived: false,
     createdAt: nowIso()
   }
 ]
@@ -371,7 +461,8 @@ export const incomes: Income[] = [
     recurrenceType: 'MONTHLY',
     endDate: null,
     archived: false,
-    createdAt: nowIso()
+    createdAt: nowIso(),
+    hasRevisions: true
   }
 ]
 
@@ -398,7 +489,7 @@ export const incomeInstances: IncomeInstance[] = [
     expectedDate: '2026-02-01',
     accountId: 'acc_1',
     categoryId: 'cat_2',
-    status: 'DUE',
+    status: 'OVERDUE',
     transactionId: null,
     householdId: 'hh_1'
   },
@@ -503,6 +594,7 @@ export const bills: Bill[] = [
     estimatedAmount: 120,
     endDate: null,
     lastPaymentDate: null,
+    paymentHandling: 'E_INVOICE',
     categoryId: 'cat_1',
     splits: [
       {
@@ -512,7 +604,8 @@ export const bills: Bill[] = [
       }
     ],
     archived: false,
-    createdAt: nowIso()
+    createdAt: nowIso(),
+    hasRevisions: true
   }
 ]
 
@@ -549,7 +642,7 @@ export const billInstances: BillInstance[] = [
     amount: 120,
     budgetId: 'budget_1',
     dueDate: '2026-02-15',
-    status: 'DUE',
+    status: 'OVERDUE',
     transactionId: null,
     accountId: 'acc_1',
     categoryId: 'cat_1',

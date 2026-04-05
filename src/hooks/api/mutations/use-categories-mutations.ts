@@ -14,6 +14,7 @@ import type {
   UpdateCategoryRequest,
   UpdateCategoryResponse
 } from '@/api/generated/types.gen'
+import { titleCaseCategoryName } from '@/lib/category-name-normalize'
 import { invalidateByOperation } from '../invalidate-by-operation'
 import type { MutationCallbacks } from '../types'
 
@@ -56,6 +57,7 @@ export function useCreateCategory(
           },
           body: {
             ...body,
+            name: titleCaseCategoryName(body.name),
             types: body.types ?? [
               'EXPENSE'
             ]
@@ -86,12 +88,19 @@ export function useUpdateCategory(
       const mutationFn = mutationOptions.mutationFn
       if (!mutationFn)
         throw new Error('Missing updateCategory mutation function')
+      const bodyWithName =
+        body.name !== undefined
+          ? {
+              ...body,
+              name: titleCaseCategoryName(body.name)
+            }
+          : body
       return mutationFn(
         {
           path: {
             categoryId: id
           },
-          body
+          body: bodyWithName
         },
         {} as never
       )

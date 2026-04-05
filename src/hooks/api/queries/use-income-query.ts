@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import {
+  getIncomeInstancesSummaryOptions,
   getIncomeInstanceOptions,
   getIncomeOptions,
   listIncomeInstancesFilteredOptions,
@@ -7,6 +8,7 @@ import {
   listIncomesOptions
 } from '@/api/generated/@tanstack/react-query.gen'
 import type {
+  GetIncomeInstancesSummaryData,
   GetIncomeData,
   GetIncomeInstanceData,
   ListIncomeInstancesFilteredData,
@@ -19,6 +21,7 @@ import {
 } from '@/hooks/api/date-normalization'
 
 type ListIncomesQuery = NonNullable<ListIncomesData['query']>
+type GetIncomeInstancesSummaryQuery = GetIncomeInstancesSummaryData['query']
 
 /**
  * Hook to fetch list of incomes for a budget
@@ -121,6 +124,76 @@ export function useIncomeInstancesFilteredList(params: {
     enabled: enabled && !!householdId,
     select: (response) =>
       (response.data ?? []) as import('@/api/generated/types.gen').IncomeInstance[]
+  })
+}
+
+/**
+ * Hook to fetch derived income instance status counts for the overview cards.
+ */
+export function useIncomeInstancesSummary(params: {
+  householdId?: GetIncomeInstancesSummaryQuery extends infer T
+    ? T extends {
+        householdId?: infer V
+      }
+      ? V | null
+      : never
+    : never
+  incomeId?: GetIncomeInstancesSummaryQuery extends infer T
+    ? T extends {
+        incomeId?: infer V
+      }
+      ? V | null
+      : never
+    : never
+  accountId?: GetIncomeInstancesSummaryQuery extends infer T
+    ? T extends {
+        accountId?: infer V
+      }
+      ? V | null
+      : never
+    : never
+  categoryId?: GetIncomeInstancesSummaryQuery extends infer T
+    ? T extends {
+        categoryId?: infer V
+      }
+      ? V | null
+      : never
+    : never
+  includeArchived?: GetIncomeInstancesSummaryQuery extends infer T
+    ? T extends {
+        includeArchived?: infer V
+      }
+      ? V
+      : never
+    : never
+  dateFrom?: Date
+  dateTo?: Date
+  enabled?: boolean
+}) {
+  const {
+    householdId,
+    incomeId,
+    accountId,
+    categoryId,
+    includeArchived,
+    dateFrom,
+    dateTo,
+    enabled = true
+  } = params
+
+  return useQuery({
+    ...getIncomeInstancesSummaryOptions({
+      query: {
+        householdId: householdId ?? undefined,
+        incomeId: incomeId ?? undefined,
+        accountId: accountId ?? undefined,
+        categoryId: categoryId ?? undefined,
+        includeArchived,
+        dateFrom: dateFrom?.toISOString(),
+        dateTo: dateTo?.toISOString()
+      }
+    }),
+    enabled: Boolean(enabled && (householdId || incomeId))
   })
 }
 

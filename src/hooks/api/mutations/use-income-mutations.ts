@@ -22,6 +22,7 @@ import type {
   UpdateIncomeResponse
 } from '@/api/generated/types.gen'
 import { toApiDate, toApiDateRequired } from '@/hooks/api/date-normalization'
+import { withTitleCasedNewCategoryNameForIncomeBody } from '@/lib/category-name-normalize'
 import { invalidateByOperation } from '../invalidate-by-operation'
 import type { MutationCallbacks } from '../types'
 
@@ -77,11 +78,11 @@ export function useCreateIncome(
         endDate,
         ...rest
       } = variables
-      const body = {
+      const body = withTitleCasedNewCategoryNameForIncomeBody({
         ...rest,
         expectedDate: toApiDateRequired(expectedDate),
         endDate: toApiDate(endDate)
-      }
+      })
       const mutationFn = mutationOptions.mutationFn
       if (!mutationFn) throw new Error('Missing createIncome mutation function')
       return mutationFn(
@@ -98,6 +99,7 @@ export function useCreateIncome(
       invalidateByOperation(queryClient, 'listIncomes')
       invalidateByOperation(queryClient, 'listIncomeInstances')
       invalidateByOperation(queryClient, 'listIncomeInstancesFiltered')
+      invalidateByOperation(queryClient, 'getIncomeInstancesSummary')
       invalidateByOperation(queryClient, 'listCategories')
       invalidateByOperation(queryClient, 'getHouseholdPeriodSummary')
       callbacks?.onSuccess?.(data, variables)
@@ -119,11 +121,11 @@ export function useUpdateIncome(
   return useMutation<UpdateIncomeResponse, Error, IncomeUpdateVariables>({
     mutationFn: async (variables: IncomeUpdateVariables) => {
       const { id, userId: _userId, expectedDate, endDate, ...rest } = variables
-      const body = {
+      const body = withTitleCasedNewCategoryNameForIncomeBody({
         ...rest,
         expectedDate: toApiDate(expectedDate),
         endDate: toApiDate(endDate)
-      }
+      })
       const mutationFn = mutationOptions.mutationFn
       if (!mutationFn) throw new Error('Missing updateIncome mutation function')
       return mutationFn(
@@ -140,6 +142,7 @@ export function useUpdateIncome(
       invalidateByOperation(queryClient, 'listIncomes')
       invalidateByOperation(queryClient, 'listIncomeInstances')
       invalidateByOperation(queryClient, 'listIncomeInstancesFiltered')
+      invalidateByOperation(queryClient, 'getIncomeInstancesSummary')
       invalidateByOperation(queryClient, 'listCategories')
       callbacks?.onSuccess?.(data, variables)
     },
@@ -176,6 +179,7 @@ export function useDeleteIncome(
       invalidateByOperation(queryClient, 'listIncomes')
       invalidateByOperation(queryClient, 'listIncomeInstances')
       invalidateByOperation(queryClient, 'listIncomeInstancesFiltered')
+      invalidateByOperation(queryClient, 'getIncomeInstancesSummary')
       callbacks?.onSuccess?.(data, variables)
     },
     onError: (error, variables) => {
@@ -214,6 +218,7 @@ export function useArchiveIncome(
       invalidateByOperation(queryClient, 'listIncomes')
       invalidateByOperation(queryClient, 'listIncomeInstances')
       invalidateByOperation(queryClient, 'listIncomeInstancesFiltered')
+      invalidateByOperation(queryClient, 'getIncomeInstancesSummary')
       callbacks?.onSuccess?.(data, variables)
     },
     onError: (error, variables) => {
@@ -305,6 +310,7 @@ export function useUpdateIncomeInstance(
     onSuccess: (data, variables) => {
       invalidateByOperation(queryClient, 'listIncomeInstances')
       invalidateByOperation(queryClient, 'listIncomeInstancesFiltered')
+      invalidateByOperation(queryClient, 'getIncomeInstancesSummary')
       queryClient.invalidateQueries({
         queryKey: getIncomeInstanceQueryKey({
           path: {

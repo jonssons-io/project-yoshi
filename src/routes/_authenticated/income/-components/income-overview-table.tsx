@@ -1,15 +1,9 @@
 import { format } from 'date-fns'
 import { sv } from 'date-fns/locale'
 import type { TFunction } from 'i18next'
-import {
-  ArrowLeftRight,
-  BookUp,
-  Link,
-  Link2,
-  SquarePen,
-  Trash2
-} from 'lucide-react'
-import type { MutableRefObject } from 'react'
+import { ArrowLeftRight, BookUp, Link, Link2, SquarePen } from 'lucide-react'
+import type { RefObject } from 'react'
+import { IncomeInstanceStatus } from '@/api/generated/types.gen'
 
 import type { BadgeColor } from '@/components/badge/badge'
 import { Badge } from '@/components/badge/badge'
@@ -20,7 +14,7 @@ import { formatCurrency } from '@/lib/utils'
 
 export type IncomeOverviewStatus =
   | 'handled'
-  | 'pending'
+  | 'received'
   | 'overdue'
   | 'upcoming'
 
@@ -39,7 +33,7 @@ export type IncomeOverviewRow = {
   expectedDate: Date
   incomeName: string
   incomeSeriesName: string | null
-  status: IncomeOverviewStatus
+  status: IncomeInstanceStatus
   /** True when this instance is linked to a transaction (`transaction` relation set). */
   transactionConnected: boolean
   amount: number
@@ -51,21 +45,26 @@ export type IncomeOverviewRow = {
   senderName: string
 }
 
-export function deriveIncomeOverviewStatus(
-  hasTransaction: boolean,
-  datePassed: boolean
+export function mapIncomeOverviewStatus(
+  apiStatus: IncomeInstanceStatus
 ): IncomeOverviewStatus {
-  if (hasTransaction && datePassed) return 'handled'
-  if (hasTransaction) return 'pending'
-  if (datePassed) return 'overdue'
-  return 'upcoming'
+  switch (apiStatus) {
+    case IncomeInstanceStatus.HANDLED:
+      return 'handled'
+    case IncomeInstanceStatus.RECEIVED:
+      return 'received'
+    case IncomeInstanceStatus.OVERDUE:
+      return 'overdue'
+    default:
+      return 'upcoming'
+  }
 }
 
-const STATUS_BADGE_COLOR: Record<IncomeOverviewStatus, BadgeColor> = {
-  upcoming: 'gray',
-  overdue: 'red',
-  pending: 'blue',
-  handled: 'green'
+const STATUS_BADGE_COLOR: Record<IncomeInstanceStatus, BadgeColor> = {
+  [IncomeInstanceStatus.UPCOMING]: 'gray',
+  [IncomeInstanceStatus.OVERDUE]: 'red',
+  [IncomeInstanceStatus.HANDLED]: 'blue',
+  [IncomeInstanceStatus.RECEIVED]: 'green'
 }
 
 export type LabelLookup = {
@@ -81,16 +80,18 @@ function presenceFilterPillValue(value: unknown, t: TFunction): string {
   return value[0] === 'has' ? t('common.has') : t('common.doesNotHave')
 }
 
-function matchesPresenceFilter(
-  value: boolean,
-  filterValue: unknown
-): boolean {
+function matchesPresenceFilter(value: boolean, filterValue: unknown): boolean {
   if (!Array.isArray(filterValue) || filterValue.length !== 1) return true
   return filterValue[0] === 'has' ? value : !value
 }
 
 function incomeNameSearchText(row: IncomeOverviewRow): string {
-  return [row.incomeName, row.incomeSeriesName].filter(Boolean).join(' ')
+  return [
+    row.incomeName,
+    row.incomeSeriesName
+  ]
+    .filter(Boolean)
+    .join(' ')
 }
 
 /**
@@ -100,12 +101,13 @@ function incomeNameSearchText(row: IncomeOverviewRow): string {
  */
 export function createIncomeOverviewColumns(opts: {
   t: TFunction
-  labelLookupRef: MutableRefObject<LabelLookup>
+  labelLookupRef: RefObject<LabelLookup>
   onEditIncomeInstance: (instanceId: string) => void
   onCreateTransaction: (row: IncomeOverviewRow) => void
 }): DataTableColumnDef<IncomeOverviewRow>[] {
   const { t, labelLookupRef, onEditIncomeInstance, onCreateTransaction } = opts
-  const statusLabel = (s: IncomeOverviewStatus) => t(`income.status.${s}`)
+  const statusLabel = (s: IncomeInstanceStatus) => t(`income.status.${s}`)
+  const comingSoonTitle = t('common.comingSoonTooltip')
 
   return [
     {
@@ -190,11 +192,11 @@ export function createIncomeOverviewColumns(opts: {
         />
       ),
       sortingFn: (rowA, rowB) => {
-        const order: IncomeOverviewStatus[] = [
-          'handled',
-          'pending',
-          'overdue',
-          'upcoming'
+        const order: IncomeInstanceStatus[] = [
+          IncomeInstanceStatus.OVERDUE,
+          IncomeInstanceStatus.UPCOMING,
+          IncomeInstanceStatus.HANDLED,
+          IncomeInstanceStatus.RECEIVED
         ]
         return (
           order.indexOf(rowA.original.status) -
@@ -208,10 +210,10 @@ export function createIncomeOverviewColumns(opts: {
         filterLabel: t('transactions.status'),
         filterPillValue: (value: unknown) => {
           if (!Array.isArray(value)) return ''
-          return (value as IncomeOverviewStatus[]).map(statusLabel).join(', ')
+          return (value as IncomeInstanceStatus[]).map(statusLabel).join(', ')
         }
       },
-      filterFn: (row, _columnId, filterValue: IncomeOverviewStatus[]) => {
+      filterFn: (row, _columnId, filterValue: IncomeInstanceStatus[]) => {
         return filterValue.includes(row.original.status)
       }
     },
@@ -326,9 +328,15 @@ export function createIncomeOverviewColumns(opts: {
                   ? t('income.overviewRowMenu.viewTransaction')
                   : t('income.createTransaction'),
                 icon: connected ? <Link /> : <ArrowLeftRight />,
-                onSelect: connected
-                  ? () => void 0
-                  : () => onCreateTransaction(row.original)
+                ...(connected
+                  ? {
+                      comingSoon: true as const,
+                      disabledReason: comingSoonTitle,
+                      onSelect: () => void 0
+                    }
+                  : {
+                      onSelect: () => onCreateTransaction(row.original)
+                    })
               },
               {
                 id: 'edit',
@@ -346,15 +354,9 @@ export function createIncomeOverviewColumns(opts: {
                 id: 'documentation',
                 label: t('income.overviewRowMenu.viewDocumentation'),
                 icon: <BookUp />,
+                comingSoon: true,
+                disabledReason: comingSoonTitle,
                 onSelect: () => void 0
-              },
-              {
-                id: 'delete',
-                label: t('income.overviewRowMenu.deleteIncome'),
-                icon: <Trash2 className="text-red-500" />,
-                onSelect: () => void 0,
-                destructive: true,
-                separatorBefore: true
               }
             ]}
           />

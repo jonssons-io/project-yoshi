@@ -1,5 +1,4 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { startOfDay } from 'date-fns'
 import {
   AlertTriangleIcon,
   CalendarClockIcon,
@@ -11,10 +10,10 @@ import {
 } from 'lucide-react'
 import { type ReactNode, useCallback, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
 
 import {
   type BillPaymentHandling,
-  InstanceStatus,
   RecurrenceType
 } from '@/api/generated/types.gen'
 import { DataTable, useDataTable } from '@/components/data-table'
@@ -29,24 +28,34 @@ import { NoData } from '@/features/no-data/no-data'
 import {
   useAccountsList,
   useBillInstancesList,
+  useBillInstancesSummary,
   useBillsList,
-  useBudgetsList
+  useBudgetsList,
+  useDeleteBill
 } from '@/hooks/api'
-import { formatCurrency } from '@/lib/utils'
+import { useDateRange } from '@/hooks/use-date-range'
+import { accountsById } from '@/lib/accounts'
+import { getErrorMessage } from '@/lib/api-error'
+import {
+  getAmountBounds,
+  readDateRangeFilter,
+  readSingleSelectFilter
+} from '@/lib/column-filter-utils'
 
 import {
   BILL_BASIS_NO_ACCOUNT_FILTER_VALUE,
   BILL_BASIS_NO_BUDGET_FILTER_VALUE,
   BILL_BASIS_NO_CATEGORY_FILTER_VALUE,
-  type BillBasisRow,
   type BillBasisLabelLookup,
+  type BillBasisRow,
   createBillBasisColumns
 } from './-components/bill-basis-table'
 import {
   type BillOverviewRow,
   type BillOverviewStatus,
   createBillOverviewColumns,
-  type LabelLookup
+  type LabelLookup,
+  mapBillOverviewStatus
 } from './-components/bill-overview-table'
 
 export const Route = createFileRoute('/_authenticated/bills/')({
@@ -58,29 +67,8 @@ type BillTab = 'overview' | 'basis'
 const EMPTY_OVERVIEW_ROWS: BillOverviewRow[] = []
 const EMPTY_BASIS_ROWS: BillBasisRow[] = []
 
-type AmountBounds = {
-  min?: number
-  max?: number
-}
-
-function getAmountBounds<T extends { amount: number }>(rows: T[]): AmountBounds {
-  if (rows.length === 0) return {}
-
-  let min = rows[0].amount
-  let max = rows[0].amount
-
-  for (let index = 1; index < rows.length; index += 1) {
-    const amount = rows[index].amount
-    if (amount < min) min = amount
-    if (amount > max) max = amount
-  }
-
-  return { min, max }
-}
-
 function BillsPage() {
   const { userId, householdId } = useAuth()
-  const { t } = useTranslation()
 
   const { data: bills = [], isLoading: billsLoading } = useBillsList({
     householdId,
@@ -101,25 +89,13 @@ function BillsPage() {
     enabled: !!householdId
   })
 
-  if (billsLoading) {
-    return (
-      <PageLayout
-        title={t('bills.title')}
-        description={t('bills.pageSubtitle')}
-      >
-        <div className="flex flex-1 items-center justify-center py-8">
-          <p className="text-muted-foreground">{t('common.loading')}</p>
-        </div>
-      </PageLayout>
-    )
-  }
-
   return (
     <BillsPageContent
       householdId={householdId}
       bills={bills}
       accounts={accounts}
       budgets={budgets}
+      billsLoading={billsLoading}
     />
   )
 }
@@ -129,26 +105,25 @@ interface BillsPageContentProps {
   bills: ReturnType<typeof useBillsList>['data'] & {}
   accounts: ReturnType<typeof useAccountsList>['data'] & {}
   budgets: ReturnType<typeof useBudgetsList>['data'] & {}
+  billsLoading: boolean
 }
 
 function BillsPageContent({
   householdId,
   bills,
   accounts,
-  budgets
+  budgets,
+  billsLoading
 }: BillsPageContentProps) {
   const { t } = useTranslation()
+  const { userId } = useAuth()
   const { openDrawer } = useDrawer()
+  const { mutate: deleteBill } = useDeleteBill()
+  const { dateFrom, dateTo } = useDateRange()
   const [tab, setTab] = useState<BillTab>('overview')
 
   const accountById = useMemo(
-    () =>
-      new Map(
-        accounts.map((a) => [
-          a.id,
-          a.name
-        ])
-      ),
+    () => accountsById(accounts),
     [
       accounts
     ]
@@ -185,40 +160,26 @@ function BillsPageContent({
     isError: instancesError
   } = useBillInstancesList({
     householdId,
+    dateFrom,
+    dateTo,
     enabled: !!householdId && bills.length > 0
   })
-
   const isOverviewLoading = bills.length > 0 && instancesLoading
   const hasOverviewError = bills.length > 0 && instancesError
 
   const overviewRows = useMemo(() => {
     if (rawInstances.length === 0) return EMPTY_OVERVIEW_ROWS
 
-    const today = startOfDay(new Date())
-
     return rawInstances.map((inst) => {
-      const dueDate = inst.dueDate
       const hasTransaction = !!inst.transaction?.id
-      const datePassed = dueDate <= today
-
-      let status: BillOverviewStatus
-      if (inst.status === InstanceStatus.HANDLED) {
-        status = 'handled'
-      } else if (datePassed && !hasTransaction) {
-        status = 'overdue'
-      } else if (inst.status === InstanceStatus.DUE) {
-        status = 'pending'
-      } else {
-        status = 'upcoming'
-      }
 
       return {
         id: inst.id,
         billId: inst.bill?.id ?? null,
-        dueDate,
+        dueDate: inst.dueDate,
         billName: inst.name,
         billSeriesName: inst.bill?.name ?? null,
-        status,
+        status: mapBillOverviewStatus(inst.status),
         transactionConnected: hasTransaction,
         amount: inst.amount,
         paymentHandling: inst.paymentHandling as
@@ -244,6 +205,27 @@ function BillsPageContent({
     t
   ])
 
+  const handleDeleteBasisBill = useCallback(
+    (billId: string) => {
+      if (!window.confirm(t('bills.basisData.rowMenu.deleteConfirm'))) return
+      deleteBill(
+        {
+          id: billId,
+          userId
+        },
+        {
+          onSuccess: () => toast.success(t('bills.deleteSuccess')),
+          onError: (err) => toast.error(getErrorMessage(err))
+        }
+      )
+    },
+    [
+      deleteBill,
+      t,
+      userId
+    ]
+  )
+
   const labelLookupRef = useRef<LabelLookup>({
     accounts: new Map(),
     budgets: new Map(),
@@ -267,7 +249,10 @@ function BillsPageContent({
       createBillOverviewColumns({
         t,
         labelLookupRef,
-        onEditBillInstance: () => void 0,
+        onEditBillInstance: (instanceId) =>
+          openDrawer('editBillInstance', {
+            instanceId
+          }),
         onCreateTransaction: (row) =>
           openDrawer('createTransaction', {
             billInstance: {
@@ -280,10 +265,7 @@ function BillsPageContent({
               budgetId: row.budgetId,
               recipientId: row.recipientId
             }
-          }),
-        onViewTransaction: () => void 0,
-        onViewBasis: () => void 0,
-        onDeleteBill: () => void 0
+          })
       }),
     [
       t,
@@ -309,43 +291,105 @@ function BillsPageContent({
     ]
   })
 
-  const overviewFilteredRowCount = overviewTable.getRowModel().rows.length
+  const overviewFilteredRowCount =
+    overviewTable.getFilteredRowModel().rows.length
   const overviewTotalRowCount = overviewRows.length
-
-  const statusCounts = useMemo(() => {
-    const counts: Record<BillOverviewStatus, number> = {
-      upcoming: 0,
-      overdue: 0,
-      pending: 0,
-      handled: 0
-    }
-    const sums: Record<BillOverviewStatus, number> = {
-      upcoming: 0,
-      overdue: 0,
-      pending: 0,
-      handled: 0
-    }
-    for (const row of overviewRows) {
-      counts[row.status]++
-      sums[row.status] += row.amount
-    }
-    return {
-      counts,
-      sums
-    }
-  }, [
-    overviewRows
-  ])
+  const overviewDateRangeFilter = useMemo(
+    () => readDateRangeFilter(overviewColumnFilters, 'dueDate'),
+    [
+      overviewColumnFilters
+    ]
+  )
+  const overviewAccountFilter = useMemo(
+    () => readSingleSelectFilter(overviewColumnFilters, 'account'),
+    [
+      overviewColumnFilters
+    ]
+  )
+  const overviewBudgetFilter = useMemo(
+    () => readSingleSelectFilter(overviewColumnFilters, 'budget'),
+    [
+      overviewColumnFilters
+    ]
+  )
+  const canUseOverviewSummary = useMemo(
+    () =>
+      overviewColumnFilters.every((filter) =>
+        [
+          'dueDate',
+          'account',
+          'budget'
+        ].includes(filter.id)
+      ),
+    [
+      overviewColumnFilters
+    ]
+  )
+  const {
+    data: overviewSummary,
+    isLoading: summaryLoading,
+    isError: summaryError
+  } = useBillInstancesSummary({
+    householdId,
+    accountId: overviewAccountFilter,
+    budgetId: overviewBudgetFilter,
+    dateFrom: overviewDateRangeFilter?.from ?? dateFrom,
+    dateTo: overviewDateRangeFilter?.to ?? dateTo,
+    enabled: !!householdId && canUseOverviewSummary
+  })
+  const effectiveOverviewLoading =
+    isOverviewLoading || (overviewTotalRowCount > 0 && summaryLoading)
+  const effectiveOverviewError =
+    hasOverviewError || (overviewTotalRowCount > 0 && summaryError)
+  const fallbackOverviewCounts = useMemo(
+    () =>
+      overviewTable.getFilteredRowModel().rows.reduce(
+        (counts, row) => {
+          counts[row.original.status] += 1
+          return counts
+        },
+        {
+          upcoming: 0,
+          overdue: 0,
+          handled: 0,
+          paid: 0
+        } satisfies Record<BillOverviewStatus, number>
+      ),
+    [
+      overviewTable
+    ]
+  )
+  const summaryCounts =
+    canUseOverviewSummary && overviewSummary
+      ? {
+          upcoming: overviewSummary.upcomingCount,
+          overdue: overviewSummary.overdueCount,
+          handled: overviewSummary.handledCount,
+          paid: overviewSummary.paidCount
+        }
+      : fallbackOverviewCounts
 
   const overviewFilterDisabled =
-    overviewTotalRowCount === 0 || isOverviewLoading || hasOverviewError
+    overviewTotalRowCount === 0 ||
+    effectiveOverviewLoading ||
+    effectiveOverviewError
 
   const availableOverviewStatuses = useMemo(
     () =>
       (
-        ['overdue', 'pending', 'upcoming', 'handled'] as const
-      ).map((s) => ({ value: s, label: t(`bills.status_.${s}`) })),
-    [t]
+        [
+          'overdue',
+          'upcoming',
+          'handled',
+          'paid'
+        ] as const
+      ).map((s) => ({
+        value: s,
+        label: t(`bills.status_.${s}`)
+      })),
+    [
+      t
+    ]
   )
 
   const availableHandlings = useMemo(() => {
@@ -353,11 +397,16 @@ function BillsPageContent({
     for (const row of overviewRows) {
       if (row.paymentHandling) seen.add(row.paymentHandling)
     }
-    return [...seen].map((h) => ({
+    return [
+      ...seen
+    ].map((h) => ({
       value: h,
       label: t(`bills.paymentHandling.${h}`)
     }))
-  }, [overviewRows, t])
+  }, [
+    overviewRows,
+    t
+  ])
 
   const availableOverviewAccounts = useMemo(() => {
     const seen = new Map<string, string>()
@@ -366,8 +415,15 @@ function BillsPageContent({
         seen.set(row.accountId, row.accountName)
       }
     }
-    return [...seen].map(([value, label]) => ({ value, label }))
-  }, [overviewRows])
+    return [
+      ...seen
+    ].map(([value, label]) => ({
+      value,
+      label
+    }))
+  }, [
+    overviewRows
+  ])
 
   const availableOverviewBudgets = useMemo(() => {
     const seen = new Map<string, string>()
@@ -376,8 +432,15 @@ function BillsPageContent({
         seen.set(row.budgetId, row.budgetName)
       }
     }
-    return [...seen].map(([value, label]) => ({ value, label }))
-  }, [overviewRows])
+    return [
+      ...seen
+    ].map(([value, label]) => ({
+      value,
+      label
+    }))
+  }, [
+    overviewRows
+  ])
 
   const availableOverviewCategories = useMemo(() => {
     const seen = new Map<string, string>()
@@ -386,8 +449,15 @@ function BillsPageContent({
         seen.set(row.categoryId, row.categoryName)
       }
     }
-    return [...seen].map(([value, label]) => ({ value, label }))
-  }, [overviewRows])
+    return [
+      ...seen
+    ].map(([value, label]) => ({
+      value,
+      label
+    }))
+  }, [
+    overviewRows
+  ])
 
   const availableOverviewRecipients = useMemo(() => {
     const seen = new Map<string, string>()
@@ -396,12 +466,21 @@ function BillsPageContent({
         seen.set(row.recipientId, row.recipientName)
       }
     }
-    return [...seen].map(([value, label]) => ({ value, label }))
-  }, [overviewRows])
+    return [
+      ...seen
+    ].map(([value, label]) => ({
+      value,
+      label
+    }))
+  }, [
+    overviewRows
+  ])
 
   const overviewAmountBounds = useMemo(
     () => getAmountBounds(overviewRows),
-    [overviewRows]
+    [
+      overviewRows
+    ]
   )
 
   const handleOverviewFilterClick = useCallback(() => {
@@ -430,15 +509,15 @@ function BillsPageContent({
   ])
 
   const overviewEmptyMessage = useMemo((): ReactNode | undefined => {
-    if (isOverviewLoading) return t('common.loading')
-    if (hasOverviewError) return t('common.error')
+    if (effectiveOverviewLoading) return t('common.loading')
+    if (effectiveOverviewError) return t('common.error')
     if (overviewTotalRowCount === 0) return undefined
     if (overviewFilteredRowCount === 0) return t('common.noResultsFound')
     return undefined
   }, [
+    effectiveOverviewError,
+    effectiveOverviewLoading,
     overviewFilteredRowCount,
-    hasOverviewError,
-    isOverviewLoading,
     overviewTotalRowCount,
     t
   ])
@@ -471,7 +550,7 @@ function BillsPageContent({
           categoryName: bill.category?.name ?? t('common.uncategorized'),
           recipientId: bill.recipient.id,
           recipientName: bill.recipient.name ?? '',
-          hasRevisions: false
+          hasRevisions: bill.hasRevisions
         }) satisfies BillBasisRow
     )
   }, [
@@ -517,12 +596,20 @@ function BillsPageContent({
         t,
         labelLookupRef: basisLabelLookupRef,
         onViewRevisions: () => void 0,
-        onEditUpcoming: () => void 0,
-        onEditAll: () => void 0,
-        onDeleteBill: () => void 0
+        onEditUpcoming: (billId) =>
+          openDrawer('editBillBlueprintUpcoming', {
+            billId
+          }),
+        onEditAll: (billId) =>
+          openDrawer('editBillBlueprintAll', {
+            billId
+          }),
+        onDeleteBill: handleDeleteBasisBill
       }),
     [
-      t
+      t,
+      openDrawer,
+      handleDeleteBasisBill
     ]
   )
 
@@ -547,7 +634,9 @@ function BillsPageContent({
   const basisFilteredCount = basisTable.getRowModel().rows.length
   const basisAmountBounds = useMemo(
     () => getAmountBounds(basisRows),
-    [basisRows]
+    [
+      basisRows
+    ]
   )
 
   const basisFilterOptions = useMemo(() => {
@@ -574,7 +663,8 @@ function BillsPageContent({
         budgetsSeen.set(budgetValue, row.budgetName)
       }
 
-      const categoryValue = row.categoryId ?? BILL_BASIS_NO_CATEGORY_FILTER_VALUE
+      const categoryValue =
+        row.categoryId ?? BILL_BASIS_NO_CATEGORY_FILTER_VALUE
       if (!categoriesSeen.has(categoryValue)) {
         categoriesSeen.set(categoryValue, row.categoryName)
       }
@@ -607,17 +697,45 @@ function BillsPageContent({
     return {
       recurrences: recurrenceOrder
         .filter((value) => recurrencesSeen.has(value))
-        .map((value) => ({ value, label: recurrenceLabels[value] })),
-      handlings: [...handlingsSeen].map((value) => ({
+        .map((value) => ({
+          value,
+          label: recurrenceLabels[value]
+        })),
+      handlings: [
+        ...handlingsSeen
+      ].map((value) => ({
         value,
         label: t(`bills.paymentHandling.${value}`)
       })),
-      accounts: [...accountsSeen].map(([value, label]) => ({ value, label })),
-      budgets: [...budgetsSeen].map(([value, label]) => ({ value, label })),
-      categories: [...categoriesSeen].map(([value, label]) => ({ value, label })),
-      recipients: [...recipientsSeen].map(([value, label]) => ({ value, label }))
+      accounts: [
+        ...accountsSeen
+      ].map(([value, label]) => ({
+        value,
+        label
+      })),
+      budgets: [
+        ...budgetsSeen
+      ].map(([value, label]) => ({
+        value,
+        label
+      })),
+      categories: [
+        ...categoriesSeen
+      ].map(([value, label]) => ({
+        value,
+        label
+      })),
+      recipients: [
+        ...recipientsSeen
+      ].map(([value, label]) => ({
+        value,
+        label
+      }))
     }
-  }, [basisRows, t])
+  }, [
+    basisRows,
+    t
+  ])
 
   const handleBasisFilterClick = useCallback(() => {
     openDrawer('billBasisFilterDrawer', {
@@ -646,9 +764,14 @@ function BillsPageContent({
   ])
 
   const showNoData = !!householdId && bills.length === 0
+  const loadingHeader =
+    billsLoading ||
+    (bills.length > 0 && effectiveOverviewLoading && !effectiveOverviewError)
+  const loadingContent =
+    billsLoading || (tab === 'overview' && !showNoData && isOverviewLoading)
 
   const infoCards: PageLayoutProps['infoCards'] =
-    isOverviewLoading || hasOverviewError
+    effectiveOverviewLoading || effectiveOverviewError
       ? undefined
       : [
           {
@@ -661,7 +784,7 @@ function BillsPageContent({
               />
             ),
             label: t('bills.summary.upcoming'),
-            value: formatCurrency(statusCounts.sums.upcoming)
+            value: summaryCounts.upcoming
           },
           {
             id: 'overdue',
@@ -673,10 +796,10 @@ function BillsPageContent({
               />
             ),
             label: t('bills.summary.overdue'),
-            value: formatCurrency(statusCounts.sums.overdue)
+            value: summaryCounts.overdue
           },
           {
-            id: 'pending',
+            id: 'handled',
             color: 'blue',
             icon: (
               <ClockIcon
@@ -684,11 +807,11 @@ function BillsPageContent({
                 aria-hidden
               />
             ),
-            label: t('bills.summary.pending'),
-            value: formatCurrency(statusCounts.sums.pending)
+            label: t('bills.summary.handled'),
+            value: summaryCounts.handled
           },
           {
-            id: 'handled',
+            id: 'paid',
             color: 'green',
             icon: (
               <CheckCircle2Icon
@@ -696,8 +819,8 @@ function BillsPageContent({
                 aria-hidden
               />
             ),
-            label: t('bills.summary.handled'),
-            value: formatCurrency(statusCounts.sums.handled)
+            label: t('bills.summary.paid'),
+            value: summaryCounts.paid
           }
         ]
 
@@ -705,6 +828,8 @@ function BillsPageContent({
     <PageLayout
       title={t('bills.title')}
       description={t('bills.pageSubtitle')}
+      loadingHeader={loadingHeader}
+      loadingContent={loadingContent}
       infoCards={infoCards}
       tabs={
         <Tabs

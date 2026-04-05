@@ -10,6 +10,9 @@ export const editIncomeBlueprintObjectSchema = z.object({
   recurrenceType: z.nativeEnum(RecurrenceType),
   customIntervalDays: z.number().optional().nullable(),
   changeDate: z.date().optional().nullable(),
+  expectedDate: z.date({
+    message: 'validation.dateRequired'
+  }),
   endDate: z.date().optional().nullable(),
   categoryId: z.string().optional()
 })
@@ -22,7 +25,9 @@ export const editIncomeBlueprintSchema =
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: 'validation.customIntervalRequired',
-        path: ['customIntervalDays']
+        path: [
+          'customIntervalDays'
+        ]
       })
     }
   })

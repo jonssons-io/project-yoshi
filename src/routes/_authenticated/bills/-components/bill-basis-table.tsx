@@ -8,7 +8,10 @@ import type { BadgeColor } from '@/components/badge/badge'
 import { Badge } from '@/components/badge/badge'
 import type { DataTableColumnDef } from '@/components/data-table'
 import { IconButton } from '@/components/icon-button/icon-button'
-import { TableRowMenu, type TableRowMenuItem } from '@/components/table-row-menu/table-row-menu'
+import {
+  TableRowMenu,
+  type TableRowMenuItem
+} from '@/components/table-row-menu/table-row-menu'
 import { formatCurrency } from '@/lib/utils'
 
 export type BillBasisRow = {
@@ -105,15 +108,14 @@ export type CreateBillBasisColumnsParams = {
   onDeleteBill: (billId: string) => void
 }
 
-function recurrenceFilterPillValue(
-  value: unknown,
-  t: TFunction
-): string {
+function recurrenceFilterPillValue(value: unknown, t: TFunction): string {
   if (!Array.isArray(value)) return ''
   return (value as RecurrenceType[])
     .map((item) =>
       item === RecurrenceType.CUSTOM
-        ? t('bills.basisData.recurrence.custom', { days: '?' })
+        ? t('bills.basisData.recurrence.custom', {
+            days: '?'
+          })
         : recurrenceLabel(item, null, t)
     )
     .join(', ')
@@ -124,10 +126,7 @@ function presenceFilterPillValue(value: unknown, t: TFunction): string {
   return value[0] === 'has' ? t('common.has') : t('common.doesNotHave')
 }
 
-function matchesPresenceFilter(
-  value: boolean,
-  filterValue: unknown
-): boolean {
+function matchesPresenceFilter(value: boolean, filterValue: unknown): boolean {
   if (!Array.isArray(filterValue) || filterValue.length !== 1) return true
   return filterValue[0] === 'has' ? value : !value
 }
@@ -140,7 +139,8 @@ export function createBillBasisColumns({
   onEditAll,
   onDeleteBill
 }: CreateBillBasisColumnsParams): DataTableColumnDef<BillBasisRow>[] {
-  const handlingLabel = (h: BillPaymentHandling) => t(`bills.paymentHandling.${h}`)
+  const handlingLabel = (h: BillPaymentHandling) =>
+    t(`bills.paymentHandling.${h}`)
 
   return [
     {
@@ -174,7 +174,9 @@ export function createBillBasisColumns({
       id: 'name',
       accessorKey: 'name',
       header: t('common.bill'),
-      meta: { globalSearchable: true }
+      meta: {
+        globalSearchable: true
+      }
     },
     {
       id: 'amount',
@@ -184,8 +186,10 @@ export function createBillBasisColumns({
       sortingFn: 'basic',
       filterFn: (row, _columnId, filterValue: BillBasisAmountFilterValue) => {
         const amount = row.original.amount
-        if (filterValue.min !== undefined && amount < filterValue.min) return false
-        if (filterValue.max !== undefined && amount > filterValue.max) return false
+        if (filterValue.min !== undefined && amount < filterValue.min)
+          return false
+        if (filterValue.max !== undefined && amount > filterValue.max)
+          return false
         return true
       },
       meta: {
@@ -276,7 +280,8 @@ export function createBillBasisColumns({
           const filter = value as BillBasisDateFilterValue | undefined
           if (!filter) return ''
           const parts: string[] = []
-          if (filter.from) parts.push(format(new Date(filter.from), 'yyyy-MM-dd'))
+          if (filter.from)
+            parts.push(format(new Date(filter.from), 'yyyy-MM-dd'))
           if (filter.to) parts.push(format(new Date(filter.to), 'yyyy-MM-dd'))
           return parts.join(' – ')
         }
@@ -338,7 +343,9 @@ export function createBillBasisColumns({
         filterPillValue: (value: unknown) => {
           if (!Array.isArray(value)) return ''
           const lookup = labelLookupRef.current.accounts
-          return (value as string[]).map((id) => lookup.get(id) ?? id).join(', ')
+          return (value as string[])
+            .map((id) => lookup.get(id) ?? id)
+            .join(', ')
         }
       }
     },
@@ -359,7 +366,9 @@ export function createBillBasisColumns({
         filterPillValue: (value: unknown) => {
           if (!Array.isArray(value)) return ''
           const lookup = labelLookupRef.current.budgets
-          return (value as string[]).map((id) => lookup.get(id) ?? id).join(', ')
+          return (value as string[])
+            .map((id) => lookup.get(id) ?? id)
+            .join(', ')
         }
       }
     },
@@ -380,7 +389,9 @@ export function createBillBasisColumns({
         filterPillValue: (value: unknown) => {
           if (!Array.isArray(value)) return ''
           const lookup = labelLookupRef.current.categories
-          return (value as string[]).map((id) => lookup.get(id) ?? id).join(', ')
+          return (value as string[])
+            .map((id) => lookup.get(id) ?? id)
+            .join(', ')
         }
       }
     },
@@ -399,7 +410,9 @@ export function createBillBasisColumns({
         filterPillValue: (value: unknown) => {
           if (!Array.isArray(value)) return ''
           const lookup = labelLookupRef.current.recipients
-          return (value as string[]).map((id) => lookup.get(id) ?? id).join(', ')
+          return (value as string[])
+            .map((id) => lookup.get(id) ?? id)
+            .join(', ')
         }
       }
     },
@@ -448,7 +461,9 @@ export function createBillBasisColumns({
           />
         )
       },
-      meta: { globalSearchable: false }
+      meta: {
+        globalSearchable: false
+      }
     }
   ]
 }

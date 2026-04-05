@@ -32,8 +32,7 @@ import { CancelButton } from '@/components/form/CancelButton'
 import { CheckboxField } from '@/components/form/CheckboxField'
 import { CheckboxGroupField } from '@/components/form/CheckboxGroupField'
 import { ComboboxField } from '@/components/form/ComboboxField'
-import { DateField } from '@/components/form/DateField'
-import { DateRangeField } from '@/components/form/DateRangeField'
+import { DatePickerField as DateField } from '@/components/form/DatePickerField'
 import { DeleteButton } from '@/components/form/DeleteButton'
 import { FormButtonGroup } from '@/components/form/FormButtonGroup'
 import { MultiselectField } from '@/components/form/MultiselectField'
@@ -56,7 +55,6 @@ export const { useAppForm, withForm } = createFormHook({
   fieldComponents: {
     TextField,
     DateField,
-    DateRangeField,
     SelectField,
     NumberField,
     ComboboxField,

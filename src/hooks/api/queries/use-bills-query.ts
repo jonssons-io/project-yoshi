@@ -1,11 +1,15 @@
 import { useQuery } from '@tanstack/react-query'
 import {
   getBillInstanceOptions,
+  getBillInstancesSummaryOptions,
   listBillInstancesOptions,
   listBillsOptions
 } from '@/api/generated/@tanstack/react-query.gen'
 import type {
+  Bill,
+  BillSplit,
   GetBillInstanceData,
+  GetBillInstancesSummaryData,
   ListBillInstancesData,
   ListBillsData
 } from '@/api/generated/types.gen'
@@ -20,6 +24,7 @@ import {
 
 type ListBillsQuery = NonNullable<ListBillsData['query']>
 type ListBillInstancesQuery = NonNullable<ListBillInstancesData['query']>
+type GetBillInstancesSummaryQuery = GetBillInstancesSummaryData['query']
 
 /**
  * Hook to fetch list of recurring bills for a household.
@@ -44,12 +49,20 @@ export function useBillsList(params: {
     }),
     enabled: enabled && !!householdId,
     select: (response) =>
-      (response.data ?? []).map((bill) => ({
-        ...bill,
-        startDate: fromApiDate(bill.startDate),
-        endDate: fromOptionalApiDate(bill.endDate ?? undefined),
-        lastPaymentDate: fromOptionalApiDate(bill.lastPaymentDate ?? undefined)
-      }))
+      (response.data ?? []).map((bill) => {
+        const blueprint = bill as Bill & {
+          splits?: BillSplit[] | null
+        }
+        return {
+          ...bill,
+          startDate: fromApiDate(bill.startDate),
+          endDate: fromOptionalApiDate(bill.endDate ?? undefined),
+          lastPaymentDate: fromOptionalApiDate(
+            bill.lastPaymentDate ?? undefined
+          ),
+          splits: normalizeBackendSplits(blueprint.splits)
+        }
+      })
   })
 }
 
@@ -102,6 +115,76 @@ export function useBillInstancesList(params: {
           }
         })
         .filter((bill) => (budgetId ? bill.budget?.id === budgetId : true))
+  })
+}
+
+/**
+ * Hook to fetch derived bill instance status counts for the overview cards.
+ */
+export function useBillInstancesSummary(params: {
+  householdId?: GetBillInstancesSummaryQuery extends infer T
+    ? T extends {
+        householdId?: infer V
+      }
+      ? V | null
+      : never
+    : never
+  billId?: GetBillInstancesSummaryQuery extends infer T
+    ? T extends {
+        billId?: infer V
+      }
+      ? V | null
+      : never
+    : never
+  accountId?: GetBillInstancesSummaryQuery extends infer T
+    ? T extends {
+        accountId?: infer V
+      }
+      ? V | null
+      : never
+    : never
+  budgetId?: GetBillInstancesSummaryQuery extends infer T
+    ? T extends {
+        budgetId?: infer V
+      }
+      ? V | null
+      : never
+    : never
+  includeArchived?: GetBillInstancesSummaryQuery extends infer T
+    ? T extends {
+        includeArchived?: infer V
+      }
+      ? V
+      : never
+    : never
+  dateFrom?: Date
+  dateTo?: Date
+  enabled?: boolean
+}) {
+  const {
+    householdId,
+    billId,
+    accountId,
+    budgetId,
+    includeArchived,
+    dateFrom,
+    dateTo,
+    enabled = true
+  } = params
+
+  return useQuery({
+    ...getBillInstancesSummaryOptions({
+      query: {
+        householdId: householdId ?? undefined,
+        billId: billId ?? undefined,
+        accountId: accountId ?? undefined,
+        budgetId: budgetId ?? undefined,
+        includeArchived,
+        dateFrom: dateFrom?.toISOString(),
+        dateTo: dateTo?.toISOString()
+      }
+    }),
+    enabled: Boolean(enabled && (householdId || billId))
   })
 }
 

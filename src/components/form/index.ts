@@ -19,10 +19,8 @@ export type {
   ComboboxValue
 } from '@/components/form/ComboboxField'
 export { ComboboxField } from '@/components/form/ComboboxField'
-export type { DateFieldProps } from '@/components/form/DateField'
-export { DateField } from '@/components/form/DateField'
-export type { DateRangeFieldProps } from '@/components/form/DateRangeField'
-export { DateRangeField } from '@/components/form/DateRangeField'
+export type { DatePickerFieldProps } from '@/components/form/DatePickerField'
+export { DatePickerField } from '@/components/form/DatePickerField'
 export type { DeleteButtonProps } from '@/components/form/DeleteButton'
 export { DeleteButton } from '@/components/form/DeleteButton'
 export type { FormButtonGroupProps } from '@/components/form/FormButtonGroup'

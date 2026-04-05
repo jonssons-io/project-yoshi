@@ -3,6 +3,7 @@
  */
 
 import { createFileRoute } from '@tanstack/react-router'
+import type { ColumnFiltersState } from '@tanstack/react-table'
 import { PlusIcon, Scale, TrendingDown, TrendingUp } from 'lucide-react'
 import { type ReactNode, useCallback, useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -16,16 +17,19 @@ import { useAuth } from '@/contexts/auth-context'
 import { useDrawer } from '@/drawers'
 import { NoData } from '@/features/no-data/no-data'
 import {
-  useAccountsList,
   useCloneTransaction,
   useDeleteTransaction,
-  useTransactionsList
+  useTransactionsList,
+  useTransactionsSummary
 } from '@/hooks/api'
 import { useConfirmDialog } from '@/hooks/use-confirm-dialog'
+import { useDateRange } from '@/hooks/use-date-range'
 import { getErrorMessage } from '@/lib/api-error'
+import { getAmountBounds } from '@/lib/column-filter-utils'
 import { formatCurrency } from '@/lib/utils'
 import {
   createTransactionTableColumns,
+  type TransactionDateFilterValue,
   type TransactionLabelLookup,
   type TransactionListItem
 } from './-components/transactions-table'
@@ -48,35 +52,33 @@ const TRANSACTION_TYPE_ORDER: TransactionType[] = [
   TransactionType.TRANSFER
 ]
 
-type AmountBounds = {
-  min?: number
-  max?: number
-}
-
 function getTransactionType(
   transaction: Pick<TransactionListItem, 'type'>
 ): TransactionType {
   return transaction.type
 }
 
-function getAmountBounds<T extends { amount: number }>(rows: T[]): AmountBounds {
-  if (rows.length === 0) return {}
+function readTransactionsDateRangeFilter(columnFilters: ColumnFiltersState):
+  | {
+      from?: Date
+      to?: Date
+    }
+  | undefined {
+  const filter = columnFilters.find((item) => item.id === 'date')
+  if (!filter || typeof filter.value !== 'object' || !filter.value)
+    return undefined
 
-  let min = rows[0].amount
-  let max = rows[0].amount
-
-  for (let index = 1; index < rows.length; index += 1) {
-    const amount = rows[index].amount
-    if (amount < min) min = amount
-    if (amount > max) max = amount
+  const value = filter.value as TransactionDateFilterValue
+  return {
+    from: value.from ? new Date(value.from) : undefined,
+    to: value.to ? new Date(value.to) : undefined
   }
-
-  return { min, max }
 }
 
 function TransactionsPage() {
   const { budgetId: urlBudgetId } = Route.useSearch()
   const { userId, householdId } = useAuth()
+  const { dateFrom, dateTo } = useDateRange()
   const { confirm, confirmDialog } = useConfirmDialog()
   const { t } = useTranslation()
   const { openDrawer } = useDrawer()
@@ -91,21 +93,15 @@ function TransactionsPage() {
 
   const {
     data: transactions,
-    isLoading,
+    isLoading: transactionsIsLoading,
     refetch
   } = useTransactionsList({
     householdId,
     budgetId,
     userId,
+    dateFrom,
+    dateTo,
     enabled: !!householdId
-  })
-
-  const { data: accounts } = useAccountsList({
-    householdId,
-    userId,
-    budgetId,
-    enabled: !!householdId,
-    excludeArchived: true
   })
 
   const { mutate: deleteTransaction } = useDeleteTransaction({
@@ -246,8 +242,29 @@ function TransactionsPage() {
     defaultPageSize: 15
   })
 
-  const filteredRowCount = table.getRowModel().rows.length
+  const filteredRowCount = table.getFilteredRowModel().rows.length
   const totalTransactionCount = transactions?.length ?? 0
+  const dateRangeFilter = useMemo(
+    () => readTransactionsDateRangeFilter(columnFilters),
+    [
+      columnFilters
+    ]
+  )
+  const canUseSummary = useMemo(
+    () => columnFilters.every((filter) => filter.id === 'date'),
+    [
+      columnFilters
+    ]
+  )
+  const { data: summary, isLoading: summaryIsLoading } = useTransactionsSummary(
+    {
+      householdId,
+      budgetId,
+      dateFrom: dateRangeFilter?.from ?? dateFrom,
+      dateTo: dateRangeFilter?.to ?? dateTo,
+      enabled: !!householdId && canUseSummary
+    }
+  )
 
   const availableTransactionTypes = useMemo(() => {
     const present = new Set<TransactionType>()
@@ -273,8 +290,15 @@ function TransactionsPage() {
       }
     }
     labelLookupRef.current.accounts = seen
-    return [...seen].map(([value, label]) => ({ value, label }))
-  }, [tableData])
+    return [
+      ...seen
+    ].map(([value, label]) => ({
+      value,
+      label
+    }))
+  }, [
+    tableData
+  ])
 
   const availableBudgets = useMemo(() => {
     const seen = new Map<string, string>()
@@ -284,8 +308,15 @@ function TransactionsPage() {
       }
     }
     labelLookupRef.current.budgets = seen
-    return [...seen].map(([value, label]) => ({ value, label }))
-  }, [tableData])
+    return [
+      ...seen
+    ].map(([value, label]) => ({
+      value,
+      label
+    }))
+  }, [
+    tableData
+  ])
 
   const availableCategories = useMemo(() => {
     const seen = new Map<string, string>()
@@ -295,8 +326,15 @@ function TransactionsPage() {
       }
     }
     labelLookupRef.current.categories = seen
-    return [...seen].map(([value, label]) => ({ value, label }))
-  }, [tableData])
+    return [
+      ...seen
+    ].map(([value, label]) => ({
+      value,
+      label
+    }))
+  }, [
+    tableData
+  ])
 
   const availableRecipientsSenders = useMemo(() => {
     const seen = new Map<string, string>()
@@ -317,45 +355,50 @@ function TransactionsPage() {
       }
     }
     labelLookupRef.current.recipientsSenders = seen
-    return [...seen].map(([value, label]) => ({ value, label }))
-  }, [tableData])
+    return [
+      ...seen
+    ].map(([value, label]) => ({
+      value,
+      label
+    }))
+  }, [
+    tableData
+  ])
 
-  const amountBounds = useMemo(() => getAmountBounds(tableData), [tableData])
+  const amountBounds = useMemo(
+    () => getAmountBounds(tableData),
+    [
+      tableData
+    ]
+  )
 
   const filterDisabled = totalTransactionCount === 0
 
-  const incomeTransactions = useMemo(
-    () =>
-      transactions?.filter(
-        (transaction) =>
-          getTransactionType(transaction) === TransactionType.INCOME
-      ) ?? [],
-    [
-      transactions
-    ]
-  )
+  const filteredTransactions = table
+    .getFilteredRowModel()
+    .rows.map((row) => row.original)
 
-  const expenseTransactions = useMemo(
-    () =>
-      transactions?.filter(
-        (transaction) =>
-          getTransactionType(transaction) === TransactionType.EXPENSE
-      ) ?? [],
-    [
-      transactions
-    ]
-  )
-
-  const totalInitialBalance =
-    accounts?.reduce((sum, a) => sum + a.initialBalance, 0) ?? 0
-  const totalIncome =
-    incomeTransactions.reduce((sum, tx) => sum + tx.amount, 0) +
-    totalInitialBalance
-  const totalExpense = expenseTransactions.reduce(
-    (sum, tx) => sum + tx.amount,
+  const fallbackTotalIncome = filteredTransactions.reduce(
+    (sum, transaction) => {
+      if (getTransactionType(transaction) !== TransactionType.INCOME) return sum
+      return sum + transaction.amount
+    },
     0
   )
-  const net = totalIncome - totalExpense
+  const fallbackTotalExpense = filteredTransactions.reduce(
+    (sum, transaction) => {
+      if (getTransactionType(transaction) !== TransactionType.EXPENSE)
+        return sum
+      return sum + transaction.amount
+    },
+    0
+  )
+  const totalIncome =
+    canUseSummary && summary ? summary.totalIncome : fallbackTotalIncome
+  const totalExpense =
+    canUseSummary && summary ? summary.totalExpense : fallbackTotalExpense
+  const net =
+    canUseSummary && summary ? summary.net : totalIncome - totalExpense
 
   const formattedIncome = formatCurrency(totalIncome)
   const formattedExpense = formatCurrency(totalExpense)
@@ -400,24 +443,13 @@ function TransactionsPage() {
     totalTransactionCount
   ])
 
-  if (isLoading) {
-    return (
-      <PageLayout
-        title={t('transactions.title')}
-        description={t('transactions.pageSubtitle')}
-      >
-        <div className="flex flex-1 items-center justify-center py-8">
-          <p className="text-muted-foreground">{t('common.loading')}</p>
-        </div>
-      </PageLayout>
-    )
-  }
-
   return (
     <>
       <PageLayout
         title={t('transactions.title')}
         description={t('transactions.pageSubtitle')}
+        loadingHeader={summaryIsLoading}
+        loadingContent={transactionsIsLoading}
         infoCards={[
           {
             id: 'net',
@@ -498,7 +530,7 @@ function TransactionsPage() {
               emptyMessage={tableEmptyMessage}
               getRowClassName={(row) =>
                 row.status === TransactionStatus.PENDING
-                  ? 'opacity-60'
+                  ? 'bg-sky-50'
                   : undefined
               }
             />

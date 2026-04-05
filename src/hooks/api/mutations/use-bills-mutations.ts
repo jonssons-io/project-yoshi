@@ -18,6 +18,7 @@ import type {
   UpdateBillResponse
 } from '@/api/generated/types.gen'
 import { toApiDate, toApiDateRequired } from '@/hooks/api/date-normalization'
+import { withTitleCasedCategoryFieldsForBillBody } from '@/lib/category-name-normalize'
 import { invalidateByOperation } from '../invalidate-by-operation'
 import type { MutationCallbacks } from '../types'
 
@@ -71,12 +72,12 @@ export function useCreateBill(
         lastPaymentDate,
         ...rest
       } = variables
-      const body = {
+      const body = withTitleCasedCategoryFieldsForBillBody({
         ...rest,
         startDate: toApiDateRequired(startDate),
         endDate: toApiDate(endDate),
         lastPaymentDate: toApiDate(lastPaymentDate)
-      }
+      })
       const mutationFn = mutationOptions.mutationFn
       if (!mutationFn) throw new Error('Missing createBill mutation function')
       return mutationFn(
@@ -92,6 +93,7 @@ export function useCreateBill(
     onSuccess: (data, variables) => {
       invalidateByOperation(queryClient, 'listBills')
       invalidateByOperation(queryClient, 'listBillInstances')
+      invalidateByOperation(queryClient, 'getBillInstancesSummary')
       callbacks?.onSuccess?.(data, variables)
     },
     onError: (error, variables) => callbacks?.onError?.(error, variables)
@@ -116,12 +118,12 @@ export function useUpdateBill(
         lastPaymentDate,
         ...rest
       } = variables
-      const body = {
+      const body = withTitleCasedCategoryFieldsForBillBody({
         ...rest,
         startDate: toApiDate(startDate),
         endDate: toApiDate(endDate),
         lastPaymentDate: toApiDate(lastPaymentDate)
-      }
+      })
       const mutationFn = mutationOptions.mutationFn
       if (!mutationFn) throw new Error('Missing updateBill mutation function')
       return mutationFn(
@@ -137,13 +139,7 @@ export function useUpdateBill(
     onSuccess: (data, variables) => {
       invalidateByOperation(queryClient, 'listBills')
       invalidateByOperation(queryClient, 'listBillInstances')
-      queryClient.invalidateQueries({
-        queryKey: getBillInstanceQueryKey({
-          path: {
-            instanceId: variables.id
-          }
-        })
-      })
+      invalidateByOperation(queryClient, 'getBillInstancesSummary')
       callbacks?.onSuccess?.(data, variables)
     },
     onError: (error, variables) => callbacks?.onError?.(error, variables)
@@ -175,6 +171,7 @@ export function useDeleteBill(
     onSuccess: (data, variables) => {
       invalidateByOperation(queryClient, 'listBills')
       invalidateByOperation(queryClient, 'listBillInstances')
+      invalidateByOperation(queryClient, 'getBillInstancesSummary')
       callbacks?.onSuccess?.(data, variables)
     },
     onError: (error, variables) => callbacks?.onError?.(error, variables)
@@ -210,6 +207,7 @@ export function useArchiveBill(
     onSuccess: (data, variables) => {
       invalidateByOperation(queryClient, 'listBills')
       invalidateByOperation(queryClient, 'listBillInstances')
+      invalidateByOperation(queryClient, 'getBillInstancesSummary')
       queryClient.invalidateQueries({
         queryKey: getBillInstanceQueryKey({
           path: {
@@ -263,6 +261,7 @@ export function useUpdateBillInstance(
     onSuccess: (data, variables) => {
       invalidateByOperation(queryClient, 'listBills')
       invalidateByOperation(queryClient, 'listBillInstances')
+      invalidateByOperation(queryClient, 'getBillInstancesSummary')
       queryClient.invalidateQueries({
         queryKey: getBillInstanceQueryKey({
           path: {

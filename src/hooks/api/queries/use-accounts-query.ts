@@ -1,5 +1,4 @@
 import { useQuery } from '@tanstack/react-query'
-import { format } from 'date-fns'
 import {
   getAccountBalanceOptions,
   getAccountOptions,
@@ -159,8 +158,8 @@ export function useAccountBalanceChart(params: {
   enabled?: boolean
 }) {
   const { householdId, accountIds, dateFrom, dateTo, includeArchived, enabled = true } = params
-  const dateFromStr = dateFrom ? format(dateFrom, 'yyyy-MM-dd') : undefined
-  const dateToStr = dateTo ? format(dateTo, 'yyyy-MM-dd') : undefined
+  const dateFromIso = dateFrom?.toISOString()
+  const dateToIso = dateTo?.toISOString()
 
   return useQuery({
     ...getHouseholdAccountBalanceChartOptions({
@@ -168,13 +167,13 @@ export function useAccountBalanceChart(params: {
         householdId: householdId ?? ''
       },
       query: {
-        dateFrom: dateFromStr ?? '',
-        dateTo: dateToStr ?? '',
+        dateFrom: dateFromIso ?? '',
+        dateTo: dateToIso ?? '',
         accountIds: accountIds && accountIds.length > 0 ? accountIds : undefined,
         includeArchived
       }
     }),
-    enabled: Boolean(enabled && householdId && dateFromStr && dateToStr),
+    enabled: Boolean(enabled && householdId && dateFromIso && dateToIso),
     retry: false,
     staleTime: 60_000,
     refetchOnMount: false,

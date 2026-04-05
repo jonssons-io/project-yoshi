@@ -18,10 +18,7 @@ import { Route as SignInSsoCallbackRouteImport } from './routes/sign-in/sso-call
 import { Route as AuthenticatedTransactionsIndexRouteImport } from './routes/_authenticated/transactions/index'
 import { Route as AuthenticatedIncomeIndexRouteImport } from './routes/_authenticated/income/index'
 import { Route as AuthenticatedCategoriesIndexRouteImport } from './routes/_authenticated/categories/index'
-import { Route as AuthenticatedBudgetsIndexRouteImport } from './routes/_authenticated/budgets/index'
 import { Route as AuthenticatedBillsIndexRouteImport } from './routes/_authenticated/bills/index'
-import { Route as AuthenticatedAccountsIndexRouteImport } from './routes/_authenticated/accounts/index'
-import { Route as AuthenticatedBudgetsBudgetIdRouteImport } from './routes/_authenticated/budgets/$budgetId'
 
 const SignUpRoute = SignUpRouteImport.update({
   id: '/sign-up',
@@ -70,29 +67,11 @@ const AuthenticatedCategoriesIndexRoute =
     path: '/categories/',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
-const AuthenticatedBudgetsIndexRoute =
-  AuthenticatedBudgetsIndexRouteImport.update({
-    id: '/budgets/',
-    path: '/budgets/',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
 const AuthenticatedBillsIndexRoute = AuthenticatedBillsIndexRouteImport.update({
   id: '/bills/',
   path: '/bills/',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
-const AuthenticatedAccountsIndexRoute =
-  AuthenticatedAccountsIndexRouteImport.update({
-    id: '/accounts/',
-    path: '/accounts/',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedBudgetsBudgetIdRoute =
-  AuthenticatedBudgetsBudgetIdRouteImport.update({
-    id: '/budgets/$budgetId',
-    path: '/budgets/$budgetId',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
@@ -100,10 +79,7 @@ export interface FileRoutesByFullPath {
   '/sign-up': typeof SignUpRouteWithChildren
   '/sign-in/sso-callback': typeof SignInSsoCallbackRoute
   '/sign-up/sso-callback': typeof SignUpSsoCallbackRoute
-  '/budgets/$budgetId': typeof AuthenticatedBudgetsBudgetIdRoute
-  '/accounts/': typeof AuthenticatedAccountsIndexRoute
   '/bills/': typeof AuthenticatedBillsIndexRoute
-  '/budgets/': typeof AuthenticatedBudgetsIndexRoute
   '/categories/': typeof AuthenticatedCategoriesIndexRoute
   '/income/': typeof AuthenticatedIncomeIndexRoute
   '/transactions/': typeof AuthenticatedTransactionsIndexRoute
@@ -114,10 +90,7 @@ export interface FileRoutesByTo {
   '/sign-in/sso-callback': typeof SignInSsoCallbackRoute
   '/sign-up/sso-callback': typeof SignUpSsoCallbackRoute
   '/': typeof AuthenticatedIndexRoute
-  '/budgets/$budgetId': typeof AuthenticatedBudgetsBudgetIdRoute
-  '/accounts': typeof AuthenticatedAccountsIndexRoute
   '/bills': typeof AuthenticatedBillsIndexRoute
-  '/budgets': typeof AuthenticatedBudgetsIndexRoute
   '/categories': typeof AuthenticatedCategoriesIndexRoute
   '/income': typeof AuthenticatedIncomeIndexRoute
   '/transactions': typeof AuthenticatedTransactionsIndexRoute
@@ -130,10 +103,7 @@ export interface FileRoutesById {
   '/sign-in/sso-callback': typeof SignInSsoCallbackRoute
   '/sign-up/sso-callback': typeof SignUpSsoCallbackRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
-  '/_authenticated/budgets/$budgetId': typeof AuthenticatedBudgetsBudgetIdRoute
-  '/_authenticated/accounts/': typeof AuthenticatedAccountsIndexRoute
   '/_authenticated/bills/': typeof AuthenticatedBillsIndexRoute
-  '/_authenticated/budgets/': typeof AuthenticatedBudgetsIndexRoute
   '/_authenticated/categories/': typeof AuthenticatedCategoriesIndexRoute
   '/_authenticated/income/': typeof AuthenticatedIncomeIndexRoute
   '/_authenticated/transactions/': typeof AuthenticatedTransactionsIndexRoute
@@ -146,10 +116,7 @@ export interface FileRouteTypes {
     | '/sign-up'
     | '/sign-in/sso-callback'
     | '/sign-up/sso-callback'
-    | '/budgets/$budgetId'
-    | '/accounts/'
     | '/bills/'
-    | '/budgets/'
     | '/categories/'
     | '/income/'
     | '/transactions/'
@@ -160,10 +127,7 @@ export interface FileRouteTypes {
     | '/sign-in/sso-callback'
     | '/sign-up/sso-callback'
     | '/'
-    | '/budgets/$budgetId'
-    | '/accounts'
     | '/bills'
-    | '/budgets'
     | '/categories'
     | '/income'
     | '/transactions'
@@ -175,10 +139,7 @@ export interface FileRouteTypes {
     | '/sign-in/sso-callback'
     | '/sign-up/sso-callback'
     | '/_authenticated/'
-    | '/_authenticated/budgets/$budgetId'
-    | '/_authenticated/accounts/'
     | '/_authenticated/bills/'
-    | '/_authenticated/budgets/'
     | '/_authenticated/categories/'
     | '/_authenticated/income/'
     | '/_authenticated/transactions/'
@@ -255,13 +216,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCategoriesIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/budgets/': {
-      id: '/_authenticated/budgets/'
-      path: '/budgets'
-      fullPath: '/budgets/'
-      preLoaderRoute: typeof AuthenticatedBudgetsIndexRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
     '/_authenticated/bills/': {
       id: '/_authenticated/bills/'
       path: '/bills'
@@ -269,29 +223,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedBillsIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/accounts/': {
-      id: '/_authenticated/accounts/'
-      path: '/accounts'
-      fullPath: '/accounts/'
-      preLoaderRoute: typeof AuthenticatedAccountsIndexRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/budgets/$budgetId': {
-      id: '/_authenticated/budgets/$budgetId'
-      path: '/budgets/$budgetId'
-      fullPath: '/budgets/$budgetId'
-      preLoaderRoute: typeof AuthenticatedBudgetsBudgetIdRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
   }
 }
 
 interface AuthenticatedRouteChildren {
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
-  AuthenticatedBudgetsBudgetIdRoute: typeof AuthenticatedBudgetsBudgetIdRoute
-  AuthenticatedAccountsIndexRoute: typeof AuthenticatedAccountsIndexRoute
   AuthenticatedBillsIndexRoute: typeof AuthenticatedBillsIndexRoute
-  AuthenticatedBudgetsIndexRoute: typeof AuthenticatedBudgetsIndexRoute
   AuthenticatedCategoriesIndexRoute: typeof AuthenticatedCategoriesIndexRoute
   AuthenticatedIncomeIndexRoute: typeof AuthenticatedIncomeIndexRoute
   AuthenticatedTransactionsIndexRoute: typeof AuthenticatedTransactionsIndexRoute
@@ -299,10 +236,7 @@ interface AuthenticatedRouteChildren {
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
-  AuthenticatedBudgetsBudgetIdRoute: AuthenticatedBudgetsBudgetIdRoute,
-  AuthenticatedAccountsIndexRoute: AuthenticatedAccountsIndexRoute,
   AuthenticatedBillsIndexRoute: AuthenticatedBillsIndexRoute,
-  AuthenticatedBudgetsIndexRoute: AuthenticatedBudgetsIndexRoute,
   AuthenticatedCategoriesIndexRoute: AuthenticatedCategoriesIndexRoute,
   AuthenticatedIncomeIndexRoute: AuthenticatedIncomeIndexRoute,
   AuthenticatedTransactionsIndexRoute: AuthenticatedTransactionsIndexRoute,

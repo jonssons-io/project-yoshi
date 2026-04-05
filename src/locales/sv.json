@@ -27,6 +27,8 @@
     "clone": "Klona",
     "update": "Uppdatera",
     "archived": "Arkiverad",
+    "yes": "Ja",
+    "no": "Nej",
     "unarchive": "Avarkivera",
     "archive": "Arkivera",
     "pickDate": "Välj ett datum",
@@ -39,6 +41,8 @@
     "selectAnOption": "Välj ett alternativ",
     "search": "Sök...",
     "filter": "Filtrera",
+    "comingSoon": "Kommer snart",
+    "comingSoonTooltip": "Funktionen är inte tillgänglig ännu.",
     "clearAllFilters": "Rensa alla",
     "removeFilter": "Ta bort filter",
     "activeFiltersCount": "{{count}} aktiva filter",
@@ -254,6 +258,9 @@
   },
   "categories": {
     "title": "Kategorier",
+    "pageDescription": "Hantera inkomst- och utgiftskategorier och se vilka budgetar som använder dem.",
+    "budgets": "Budgetar",
+    "byBudget": "Per budget",
     "type": "Typ",
     "transactions": "Transaktioner",
     "add": "Lägg till kategori",
@@ -413,7 +420,6 @@
     "income": "Inkomster",
     "budgets": "Budgetar",
     "allocation": "Allokering",
-    "accounts": "Konton",
     "categories": "Kategorier",
     "activeBudget": "Aktiv budget",
     "selectBudget": "Välj budget",
@@ -553,14 +559,14 @@
     "status_": {
       "upcoming": "Kommande",
       "overdue": "Försenad",
-      "pending": "Väntande",
-      "handled": "Inkomnen"
+      "handled": "Hanterad",
+      "paid": "Betald"
     },
     "summary": {
       "upcoming": "Kommande",
       "overdue": "Försenade",
-      "pending": "Väntande",
-      "handled": "Inkomna"
+      "handled": "Hanterade",
+      "paid": "Betalda"
     },
     "tabs": {
       "overview": "Översikt",
@@ -604,10 +610,11 @@
         "custom": "Var {{days}}:e dag"
       },
       "rowMenu": {
-        "editUpcoming": "Editera kommande räkningsförekomster",
-        "editAll": "Editera alla räkningsförekomster",
+        "editUpcoming": "Editera kommande förekomster",
+        "editAll": "Editera alla förekomster",
         "viewRevisions": "Visa revisioner",
-        "delete": "Ta bort räkning"
+        "delete": "Ta bort räkning",
+        "deleteConfirm": "Räkningen och alla instanser tas bort permanent. Fortsätta?"
       }
     },
     "overviewRowMenu": {
@@ -616,7 +623,24 @@
       "editBill": "Editera räkning",
       "editDisabledTooltip": "Du kan inte editera denna räkning då det finns en transaktion kopplad till den.",
       "viewBasis": "Visa underlag",
-      "deleteBill": "Ta bort räkning"
+      "deleteBill": "Ta bort hela serien",
+      "deleteBillConfirm": "Hela räkningsserien och alla instanser tas bort permanent. Fortsätta?",
+      "deleteSeriesUnavailable": "Serien saknar mall-id — kan inte tas bort här."
+    },
+    "editInstanceDrawer": {
+      "submit": "Editera räkning",
+      "scopeNotice": "Detta editerar endast denna förekomst. För att editera hela serien, gå till fliken Underlag och editera räkningen därifrån istället.",
+      "splitNotice": "Denna förekomst har flera sektioner. Belopp och kategori uppdateras för helheten.",
+      "dueDateHelp": "Förfallodatum för just denna förekomst.",
+      "handlingWithValue": "Hantering: {{value}}",
+      "budgetReadOnlyHelp": "Budget följer mallen. Ändra den under Underlag."
+    },
+    "editBlueprintDrawer": {
+      "submit": "Editera räkning",
+      "changeDateLabel": "Ändringsdatum",
+      "changeDateHelp": "Från och med detta datum ska ändringarna på räkningsmallen gälla.",
+      "debitDateHelpUpcoming": "När du ändrar från ett datum påverkar detta även vilket datum som visas som debitering i planeringen.",
+      "splitsNotOnBlueprint": "Uppdelningar på mallen stöds inte i denna vy."
     }
   },
   "validation": {
@@ -709,23 +733,18 @@
         "custom": "Var {{days}}:e dag"
       },
       "rowMenu": {
-        "editUpcoming": "Editera kommande inkomstförekomster",
-        "editAll": "Editera alla inkomstförekomster",
+        "editUpcoming": "Editera kommande förekomster",
+        "editAll": "Editera alla förekomster",
         "viewRevisions": "Visa revisioner",
-        "delete": "Ta bort inkomst"
+        "delete": "Ta bort inkomst",
+        "deleteConfirm": "Inkomstkällan och alla instanser tas bort permanent. Fortsätta?"
       }
     },
-    "summary": {
-      "upcoming": "Kommande",
-      "overdue": "Försenade",
-      "pending": "Väntande",
-      "handled": "Inkomna"
-    },
     "status": {
-      "upcoming": "Kommande",
-      "overdue": "Försenad",
-      "pending": "Väntande",
-      "handled": "Inkommen"
+      "UPCOMING": "Kommande",
+      "OVERDUE": "Försenad",
+      "HANDLED": "Hanterad",
+      "RECEIVED": "Mottagen"
     },
     "instanceStatus": {
       "upcoming": "Kommande",
@@ -747,7 +766,9 @@
       "editIncome": "Editera inkomst",
       "viewTransaction": "Visa transaktion",
       "viewDocumentation": "Visa underlag",
-      "deleteIncome": "Ta bort inkomst"
+      "deleteIncome": "Ta bort hela serien",
+      "deleteIncomeConfirm": "Hela inkomstserien och alla instanser tas bort permanent. Fortsätta?",
+      "deleteSeriesUnavailable": "Inkomstmallen saknas — kan inte tas bort här."
     },
     "editInstanceDrawer": {
       "senderHelp": "Utbetalare följer inkomstserien. Ändra den under fliken Underlag.",
@@ -758,7 +779,10 @@
     "editBlueprintDrawer": {
       "submit": "Editera inkomst",
       "changeDateLabel": "Ändringsdatum",
-      "changeDateHelp": "Från och med detta datum gäller de nya uppgifterna."
+      "changeDateHelp": "Från och med detta datum ska ändringarna gälla för kommande förekomster.",
+      "changeDateContractNote": "Obs: API:t skickar ännu inget separat ändringsdatum — sparade ändringar gäller hela inkomstmallen tills backend stödjer avgränsat ikraftträdande.",
+      "expectedDateLabel": "Förfallodatum",
+      "expectedDateHelp": "Ungefär när inkomsten förväntas betalas in på kontot."
     }
   },
   "auth": {
@@ -874,6 +898,18 @@
       "title": "Editera inkomst",
       "description": "Detta editerar samtliga förekomster för denna inkomst, även de som redan är hanterade."
     },
+    "editBillInstance": {
+      "title": "Editera räkning",
+      "description": "Detta editerar endast denna förekomst."
+    },
+    "editBillBlueprintUpcoming": {
+      "title": "Editera räkning",
+      "description": "Detta editerar endast kommande förekomster för denna räkning."
+    },
+    "editBillBlueprintAll": {
+      "title": "Editera räkning",
+      "description": "Detta editerar samtliga förekomster av denna räkning, även de som redan är hanterade."
+    },
     "incomeSourceFilterDrawer": {
       "title": "Inkomstfilter"
     },
@@ -882,6 +918,9 @@
     },
     "billBasisFilterDrawer": {
       "title": "Underlagsfilter"
+    },
+    "categoriesTableFilterDrawer": {
+      "title": "Kategorifilter"
     }
   }
 }

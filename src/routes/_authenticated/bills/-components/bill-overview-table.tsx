@@ -1,17 +1,13 @@
 import { format } from 'date-fns'
 import { sv } from 'date-fns/locale'
 import type { TFunction } from 'i18next'
-import {
-  ArrowLeftRight,
-  BookUp,
-  Link,
-  Link2,
-  SquarePen,
-  Trash2
-} from 'lucide-react'
+import { ArrowLeftRight, BookUp, Link, Link2, SquarePen } from 'lucide-react'
 import type { MutableRefObject } from 'react'
 
-import { BillPaymentHandling, InstanceStatus } from '@/api/generated/types.gen'
+import {
+  BillInstanceStatus,
+  BillPaymentHandling
+} from '@/api/generated/types.gen'
 import type { BadgeColor } from '@/components/badge/badge'
 import { Badge } from '@/components/badge/badge'
 import type { DataTableColumnDef } from '@/components/data-table'
@@ -19,11 +15,7 @@ import { IconButton } from '@/components/icon-button/icon-button'
 import { TableRowMenu } from '@/components/table-row-menu/table-row-menu'
 import { formatCurrency } from '@/lib/utils'
 
-export type BillOverviewStatus =
-  | 'handled'
-  | 'pending'
-  | 'overdue'
-  | 'upcoming'
+export type BillOverviewStatus = 'handled' | 'paid' | 'overdue' | 'upcoming'
 
 export type BillOverviewDateFilterValue = {
   from?: string
@@ -55,24 +47,26 @@ export type BillOverviewRow = {
   recipientName: string
 }
 
-export function deriveBillOverviewStatus(
-  apiStatus: InstanceStatus,
-  dueDate: Date
+export function mapBillOverviewStatus(
+  apiStatus: BillInstanceStatus
 ): BillOverviewStatus {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-
-  if (apiStatus === InstanceStatus.HANDLED) return 'handled'
-  if (apiStatus === InstanceStatus.DUE) return 'pending'
-  if (apiStatus === InstanceStatus.UPCOMING && dueDate < today) return 'overdue'
-  return 'upcoming'
+  switch (apiStatus) {
+    case BillInstanceStatus.HANDLED:
+      return 'handled'
+    case BillInstanceStatus.PAID:
+      return 'paid'
+    case BillInstanceStatus.OVERDUE:
+      return 'overdue'
+    default:
+      return 'upcoming'
+  }
 }
 
 const STATUS_BADGE_COLOR: Record<BillOverviewStatus, BadgeColor> = {
   upcoming: 'gray',
   overdue: 'red',
-  pending: 'blue',
-  handled: 'green'
+  handled: 'blue',
+  paid: 'green'
 }
 
 const HANDLING_BADGE_COLOR: Record<BillPaymentHandling, BadgeColor> = {
@@ -97,16 +91,18 @@ function presenceFilterPillValue(value: unknown, t: TFunction): string {
   return value[0] === 'has' ? t('common.has') : t('common.doesNotHave')
 }
 
-function matchesPresenceFilter(
-  value: boolean,
-  filterValue: unknown
-): boolean {
+function matchesPresenceFilter(value: boolean, filterValue: unknown): boolean {
   if (!Array.isArray(filterValue) || filterValue.length !== 1) return true
   return filterValue[0] === 'has' ? value : !value
 }
 
 function billNameSearchText(row: BillOverviewRow): string {
-  return [row.billName, row.billSeriesName].filter(Boolean).join(' ')
+  return [
+    row.billName,
+    row.billSeriesName
+  ]
+    .filter(Boolean)
+    .join(' ')
 }
 
 export function createBillOverviewColumns(opts: {
@@ -114,13 +110,12 @@ export function createBillOverviewColumns(opts: {
   labelLookupRef: MutableRefObject<LabelLookup>
   onEditBillInstance: (instanceId: string) => void
   onCreateTransaction: (row: BillOverviewRow) => void
-  onViewTransaction: (instanceId: string) => void
-  onViewBasis: (billId: string) => void
-  onDeleteBill: (instanceId: string) => void
 }): DataTableColumnDef<BillOverviewRow>[] {
-  const { t, labelLookupRef, onEditBillInstance, onCreateTransaction, onViewTransaction, onViewBasis, onDeleteBill } = opts
+  const { t, labelLookupRef, onEditBillInstance, onCreateTransaction } = opts
+  const comingSoonTitle = t('common.comingSoonTooltip')
   const statusLabel = (s: BillOverviewStatus) => t(`bills.status_.${s}`)
-  const handlingLabel = (h: BillPaymentHandling) => t(`bills.paymentHandling.${h}`)
+  const handlingLabel = (h: BillPaymentHandling) =>
+    t(`bills.paymentHandling.${h}`)
 
   return [
     {
@@ -128,12 +123,16 @@ export function createBillOverviewColumns(opts: {
       accessorFn: (row) => row.dueDate.getTime(),
       header: t('common.dueDate'),
       cell: ({ row }) =>
-        format(row.original.dueDate, 'P', { locale: sv }),
+        format(row.original.dueDate, 'P', {
+          locale: sv
+        }),
       sortingFn: 'basic',
       filterFn: (row, _columnId, filterValue: BillOverviewDateFilterValue) => {
         const time = row.original.dueDate.getTime()
-        if (filterValue.from && time < new Date(filterValue.from).getTime()) return false
-        if (filterValue.to && time > new Date(filterValue.to).getTime()) return false
+        if (filterValue.from && time < new Date(filterValue.from).getTime())
+          return false
+        if (filterValue.to && time > new Date(filterValue.to).getTime())
+          return false
         return true
       },
       meta: {
@@ -143,8 +142,18 @@ export function createBillOverviewColumns(opts: {
         filterPillValue: (value: unknown) => {
           const v = value as BillOverviewDateFilterValue
           const parts: string[] = []
-          if (v.from) parts.push(format(new Date(v.from), 'P', { locale: sv }))
-          if (v.to) parts.push(format(new Date(v.to), 'P', { locale: sv }))
+          if (v.from)
+            parts.push(
+              format(new Date(v.from), 'P', {
+                locale: sv
+              })
+            )
+          if (v.to)
+            parts.push(
+              format(new Date(v.to), 'P', {
+                locale: sv
+              })
+            )
           return parts.join(' – ')
         }
       }
@@ -191,10 +200,10 @@ export function createBillOverviewColumns(opts: {
       ),
       sortingFn: (rowA, rowB) => {
         const order: BillOverviewStatus[] = [
-          'handled',
-          'pending',
           'overdue',
-          'upcoming'
+          'upcoming',
+          'handled',
+          'paid'
         ]
         return (
           order.indexOf(rowA.original.status) -
@@ -221,10 +230,16 @@ export function createBillOverviewColumns(opts: {
       header: t('common.amount'),
       cell: ({ row }) => formatCurrency(row.original.amount),
       sortingFn: 'basic',
-      filterFn: (row, _columnId, filterValue: BillOverviewAmountFilterValue) => {
+      filterFn: (
+        row,
+        _columnId,
+        filterValue: BillOverviewAmountFilterValue
+      ) => {
         const amount = row.original.amount
-        if (filterValue.min !== undefined && amount < filterValue.min) return false
-        if (filterValue.max !== undefined && amount > filterValue.max) return false
+        if (filterValue.min !== undefined && amount < filterValue.min)
+          return false
+        if (filterValue.max !== undefined && amount > filterValue.max)
+          return false
         return true
       },
       meta: {
@@ -293,7 +308,9 @@ export function createBillOverviewColumns(opts: {
         filterPillValue: (value: unknown) => {
           if (!Array.isArray(value)) return ''
           const lookup = labelLookupRef.current.accounts
-          return (value as string[]).map((id) => lookup.get(id) ?? id).join(', ')
+          return (value as string[])
+            .map((id) => lookup.get(id) ?? id)
+            .join(', ')
         }
       }
     },
@@ -312,7 +329,9 @@ export function createBillOverviewColumns(opts: {
         filterPillValue: (value: unknown) => {
           if (!Array.isArray(value)) return ''
           const lookup = labelLookupRef.current.budgets
-          return (value as string[]).map((id) => lookup.get(id) ?? id).join(', ')
+          return (value as string[])
+            .map((id) => lookup.get(id) ?? id)
+            .join(', ')
         }
       }
     },
@@ -331,7 +350,9 @@ export function createBillOverviewColumns(opts: {
         filterPillValue: (value: unknown) => {
           if (!Array.isArray(value)) return ''
           const lookup = labelLookupRef.current.categories
-          return (value as string[]).map((id) => lookup.get(id) ?? id).join(', ')
+          return (value as string[])
+            .map((id) => lookup.get(id) ?? id)
+            .join(', ')
         }
       }
     },
@@ -373,30 +394,26 @@ export function createBillOverviewColumns(opts: {
                       label: t('bills.overviewRowMenu.editBill'),
                       icon: <SquarePen />,
                       disabled: true,
-                      disabledReason: t('bills.overviewRowMenu.editDisabledTooltip'),
+                      disabledReason: t(
+                        'bills.overviewRowMenu.editDisabledTooltip'
+                      ),
                       onSelect: () => onEditBillInstance(row.original.id)
                     },
                     {
                       id: 'viewTransaction',
                       label: t('bills.overviewRowMenu.viewTransaction'),
                       icon: <Link />,
-                      onSelect: () => onViewTransaction(row.original.id)
+                      comingSoon: true,
+                      disabledReason: comingSoonTitle,
+                      onSelect: () => void 0
                     },
                     {
                       id: 'viewBasis',
                       label: t('bills.overviewRowMenu.viewBasis'),
                       icon: <BookUp />,
-                      onSelect: () => {
-                        if (row.original.billId) onViewBasis(row.original.billId)
-                      }
-                    },
-                    {
-                      id: 'delete',
-                      label: t('bills.overviewRowMenu.deleteBill'),
-                      icon: <Trash2 />,
-                      onSelect: () => onDeleteBill(row.original.id),
-                      destructive: true,
-                      separatorBefore: true
+                      comingSoon: true,
+                      disabledReason: comingSoonTitle,
+                      onSelect: () => void 0
                     }
                   ]
                 : [
@@ -416,17 +433,9 @@ export function createBillOverviewColumns(opts: {
                       id: 'viewBasis',
                       label: t('bills.overviewRowMenu.viewBasis'),
                       icon: <BookUp />,
-                      onSelect: () => {
-                        if (row.original.billId) onViewBasis(row.original.billId)
-                      }
-                    },
-                    {
-                      id: 'delete',
-                      label: t('bills.overviewRowMenu.deleteBill'),
-                      icon: <Trash2 />,
-                      onSelect: () => onDeleteBill(row.original.id),
-                      destructive: true,
-                      separatorBefore: true
+                      comingSoon: true,
+                      disabledReason: comingSoonTitle,
+                      onSelect: () => void 0
                     }
                   ]
             }

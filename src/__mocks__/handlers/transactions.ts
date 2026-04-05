@@ -14,6 +14,7 @@ import {
   paginate,
   readJson,
   recipients,
+  toUtcIsoDateTime,
   transactions
 } from '../data'
 
@@ -76,7 +77,7 @@ const enrichTransaction = (transaction: (typeof transactions)[number]) => {
     id: transaction.id,
     name: transaction.name,
     amount: transaction.amount,
-    date: transaction.date,
+    date: toUtcIsoDateTime(transaction.date),
     type: transaction.type,
     status: transaction.status,
     notes: transaction.notes ?? null,
@@ -110,22 +111,42 @@ const enrichTransaction = (transaction: (typeof transactions)[number]) => {
   }
 }
 
+function listFilteredTransactions(url: URL) {
+  const householdId = url.searchParams.get('householdId')
+  const budgetId = url.searchParams.get('budgetId')
+  const accountId = url.searchParams.get('accountId')
+  const categoryId = url.searchParams.get('categoryId')
+  const type = url.searchParams.get('type')
+  const billInstanceId = url.searchParams.get('billInstanceId')
+  const incomeInstanceId = url.searchParams.get('incomeInstanceId')
+  const dateFrom = url.searchParams.get('dateFrom')
+  const dateTo = url.searchParams.get('dateTo')
+
+  return transactions.filter((item) => {
+    if (householdId && item.householdId !== householdId) return false
+    if (budgetId && item.budgetId !== budgetId) return false
+    if (accountId && item.accountId !== accountId) return false
+    if (categoryId && item.categoryId !== categoryId) return false
+    if (type && item.type !== type) return false
+    if (billInstanceId && item.instanceId !== billInstanceId) return false
+    if (incomeInstanceId) {
+      const inst = incomeInstances.find((row) => row.id === incomeInstanceId)
+      if (!inst?.transactionId || item.id !== inst.transactionId) return false
+    }
+    if (dateFrom && new Date(item.date).getTime() < new Date(dateFrom).getTime()) {
+      return false
+    }
+    if (dateTo && new Date(item.date).getTime() > new Date(dateTo).getTime()) {
+      return false
+    }
+    return true
+  })
+}
+
 export const transactionHandlers = [
   http.get(`${BASE}/transactions`, ({ request }) => {
     const url = new URL(request.url)
-    const householdId = url.searchParams.get('householdId')
-    const budgetId = url.searchParams.get('budgetId')
-    const accountId = url.searchParams.get('accountId')
-    const type = url.searchParams.get('type')
-    const billInstanceId = url.searchParams.get('billInstanceId')
-    const filtered = transactions.filter((item) => {
-      if (householdId && item.householdId !== householdId) return false
-      if (budgetId && item.budgetId !== budgetId) return false
-      if (accountId && item.accountId !== accountId) return false
-      if (type && item.type !== type) return false
-      if (billInstanceId && item.instanceId !== billInstanceId) return false
-      return true
-    })
+    const filtered = listFilteredTransactions(url)
     return HttpResponse.json(
       paginate(
         filtered.map(enrichTransaction),
@@ -133,6 +154,30 @@ export const transactionHandlers = [
         url.searchParams.get('offset')
       )
     )
+  }),
+
+  http.get(`${BASE}/transactions/summary`, ({ request }) => {
+    const url = new URL(request.url)
+    const filtered = listFilteredTransactions(url)
+    const summary = filtered.reduce(
+      (acc, item) => {
+        if (item.type === 'INCOME') acc.totalIncome += item.amount
+        if (item.type === 'EXPENSE') acc.totalExpense += item.amount
+        acc.transactionCount += 1
+        return acc
+      },
+      {
+        dateFrom: url.searchParams.get('dateFrom') ?? '',
+        dateTo: url.searchParams.get('dateTo') ?? '',
+        totalIncome: 0,
+        totalExpense: 0,
+        net: 0,
+        transactionCount: 0
+      }
+    )
+    summary.net = summary.totalIncome - summary.totalExpense
+
+    return HttpResponse.json(summary)
   }),
 
   http.get(`${BASE}/transactions/grouped-by-category`, ({ request }) => {
@@ -192,8 +237,9 @@ export const transactionHandlers = [
             householdId: account?.householdId ?? 'hh_1',
             name: body.newCategory.name,
             types: [
-              body.newCategory.type.toLowerCase()
+              body.newCategory.type
             ],
+            archived: false,
             createdAt: nowIso()
           }
         : null

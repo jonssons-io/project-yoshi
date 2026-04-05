@@ -1,16 +1,19 @@
 import { HttpResponse, http } from 'msw'
 import {
   accounts,
+  type Bill,
   billInstances,
   bills,
   budgets,
   categories,
   households,
+  mockBillRevisions,
   nextId,
   nowIso,
   paginate,
   readJson,
   recipients,
+  toUtcIsoDateTime,
   transactions
 } from '../data'
 
@@ -36,6 +39,7 @@ type BillRequestBody = Partial<{
   estimatedAmount: number
   endDate: string | null
   lastPaymentDate: string | null
+  paymentHandling: string | null
   categoryId: string | null
   newCategoryName: string
   splits: Array<{
@@ -62,6 +66,23 @@ function normalizeRecurrenceType(value?: string): string {
   return RECURRENCE_TYPES.has(normalized) ? normalized : 'MONTHLY'
 }
 
+function normalizeBillPaymentHandling(
+  value: string | null | undefined
+): Bill['paymentHandling'] {
+  if (value == null || typeof value !== 'string') return null
+  const v = value.toUpperCase()
+  switch (v) {
+    case 'AUTOGIRO':
+    case 'E_INVOICE':
+    case 'MAIL':
+    case 'PORTAL':
+    case 'PAPER':
+      return v
+    default:
+      return null
+  }
+}
+
 function toBillResponse(
   bill: Record<string, unknown>,
   budgetIdFallback?: string
@@ -72,12 +93,13 @@ function toBillResponse(
       : typeof bill.amount === 'number'
         ? bill.amount
         : 0
-  const startDate =
+  const startDateRaw =
     typeof bill.startDate === 'string'
       ? bill.startDate
       : typeof bill.createdAt === 'string'
         ? bill.createdAt.slice(0, 10)
         : nowIso().slice(0, 10)
+  const startDate = toUtcIsoDateTime(startDateRaw)
   const recipient = recipients.find((item) => item.id === bill.recipientId)
   const account = accounts.find((item) => item.id === bill.accountId)
   const category =
@@ -123,15 +145,27 @@ function toBillResponse(
         ? bill.customIntervalDays
         : null,
     estimatedAmount,
-    endDate: typeof bill.endDate === 'string' ? bill.endDate : null,
+    endDate:
+      typeof bill.endDate === 'string' ? toUtcIsoDateTime(bill.endDate) : null,
     lastPaymentDate:
-      typeof bill.lastPaymentDate === 'string' ? bill.lastPaymentDate : null,
+      typeof bill.lastPaymentDate === 'string'
+        ? toUtcIsoDateTime(bill.lastPaymentDate)
+        : null,
+    paymentHandling:
+      typeof bill.paymentHandling === 'string' ? bill.paymentHandling : null,
     category: toRelationRef(category),
     budget: toRelationRef(budget),
     household: toRelationRef(household),
     splits: Array.isArray(bill.splits) ? bill.splits : [],
     archived: Boolean(bill.archived),
-    createdAt: String(bill.createdAt ?? nowIso())
+    createdAt: String(bill.createdAt ?? nowIso()),
+    hasRevisions: Boolean(
+      (
+        bill as {
+          hasRevisions?: boolean
+        }
+      ).hasRevisions ?? false
+    )
   }
 }
 
@@ -150,8 +184,55 @@ function enrichSplits(
   }))
 }
 
+function deriveBillInstanceStatus(
+  instance: (typeof billInstances)[number]
+): 'UPCOMING' | 'HANDLED' | 'OVERDUE' | 'PAID' {
+  const hasTransaction = !!instance.transactionId
+  const isPastOrPresent = new Date(instance.dueDate).getTime() <= Date.now()
+
+  if (hasTransaction && isPastOrPresent) return 'PAID'
+  if (hasTransaction) return 'HANDLED'
+  if (isPastOrPresent) return 'OVERDUE'
+  return 'UPCOMING'
+}
+
+function listFilteredBillInstances(url: URL) {
+  const householdId = url.searchParams.get('householdId')
+  const billId = url.searchParams.get('billId')
+  const transactionId = url.searchParams.get('transactionId')
+  const accountId = url.searchParams.get('accountId')
+  const budgetId = url.searchParams.get('budgetId')
+  const includeArchived = url.searchParams.get('includeArchived') === 'true'
+  const dateFrom = url.searchParams.get('dateFrom')
+  const dateTo = url.searchParams.get('dateTo')
+
+  return billInstances.filter((item) => {
+    if (!includeArchived && item.archived) return false
+    if (householdId && getBillInstanceHouseholdId(item) !== householdId)
+      return false
+    if (billId && item.billId !== billId) return false
+    if (transactionId && item.transactionId !== transactionId) return false
+    if (accountId && item.accountId !== accountId) return false
+    if (budgetId && item.budgetId !== budgetId) return false
+    if (
+      dateFrom &&
+      new Date(item.dueDate).getTime() < new Date(dateFrom).getTime()
+    ) {
+      return false
+    }
+    if (
+      dateTo &&
+      new Date(item.dueDate).getTime() > new Date(dateTo).getTime()
+    ) {
+      return false
+    }
+    return true
+  })
+}
+
 function enrichBillInstance(instance: (typeof billInstances)[number]) {
   const bill = bills.find((item) => item.id === instance.billId)
+  const paymentHandling = bill?.paymentHandling ?? null
   const budget = instance.budgetId
     ? budgets.find((item) => item.id === instance.budgetId)
     : null
@@ -180,9 +261,9 @@ function enrichBillInstance(instance: (typeof billInstances)[number]) {
     ),
     amount: instance.amount,
     paidAmount: null,
-    dueDate: instance.dueDate,
+    dueDate: toUtcIsoDateTime(instance.dueDate),
     budget: toRelationRef(budget),
-    status: instance.status,
+    status: deriveBillInstanceStatus(instance),
     transaction: toRelationRef(transaction),
     account: toRelationRef(
       accounts.find((item) => item.id === instance.accountId)
@@ -203,7 +284,8 @@ function enrichBillInstance(instance: (typeof billInstances)[number]) {
     })),
     recurrenceType: instance.recurrenceType,
     customIntervalDays: instance.customIntervalDays ?? null,
-    startDate: instance.startDate,
+    paymentHandling,
+    startDate: toUtcIsoDateTime(instance.startDate),
     archived: instance.archived
   }
 }
@@ -231,35 +313,51 @@ function getBillInstanceHouseholdId(
 }
 
 export const billHandlers = [
+  http.get(`${BASE}/bills/:billId/revisions`, ({ params }) => {
+    const bill = bills.find((item) => item.id === params.billId)
+    if (!bill) {
+      return HttpResponse.json(
+        {
+          error: {
+            code: 'NOT_FOUND',
+            message: 'Bill not found'
+          }
+        },
+        {
+          status: 404
+        }
+      )
+    }
+    const data = mockBillRevisions
+      .filter((row) => row.billId === params.billId)
+      .slice()
+      .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))
+    return HttpResponse.json({
+      data
+    })
+  }),
+
+  http.get(`${BASE}/bills/:billId`, ({ params }) => {
+    const bill = bills.find((item) => item.id === params.billId)
+    if (!bill) {
+      return HttpResponse.json(
+        {
+          error: {
+            code: 'NOT_FOUND',
+            message: 'Bill not found'
+          }
+        },
+        {
+          status: 404
+        }
+      )
+    }
+    return HttpResponse.json(toBillResponse(bill))
+  }),
+
   http.get(`${BASE}/bill-instances`, ({ request }) => {
     const url = new URL(request.url)
-    const householdId = url.searchParams.get('householdId')
-    const billId = url.searchParams.get('billId')
-    const transactionId = url.searchParams.get('transactionId')
-    const includeArchived = url.searchParams.get('includeArchived') === 'true'
-    const dateFrom = url.searchParams.get('dateFrom')
-    const dateTo = url.searchParams.get('dateTo')
-
-    const filtered = billInstances.filter((item) => {
-      if (!includeArchived && item.archived) return false
-      if (householdId && getBillInstanceHouseholdId(item) !== householdId)
-        return false
-      if (billId && item.billId !== billId) return false
-      if (transactionId && item.transactionId !== transactionId) return false
-      if (
-        dateFrom &&
-        new Date(item.dueDate).getTime() < new Date(dateFrom).getTime()
-      ) {
-        return false
-      }
-      if (
-        dateTo &&
-        new Date(item.dueDate).getTime() > new Date(dateTo).getTime()
-      ) {
-        return false
-      }
-      return true
-    })
+    const filtered = listFilteredBillInstances(url)
 
     return HttpResponse.json(
       paginate(
@@ -268,6 +366,28 @@ export const billHandlers = [
         url.searchParams.get('offset')
       )
     )
+  }),
+
+  http.get(`${BASE}/bill-instances/summary`, ({ request }) => {
+    const url = new URL(request.url)
+    const summary = listFilteredBillInstances(url).reduce(
+      (acc, item) => {
+        const status = deriveBillInstanceStatus(item)
+        if (status === 'UPCOMING') acc.upcomingCount += 1
+        if (status === 'HANDLED') acc.handledCount += 1
+        if (status === 'OVERDUE') acc.overdueCount += 1
+        if (status === 'PAID') acc.paidCount += 1
+        return acc
+      },
+      {
+        upcomingCount: 0,
+        handledCount: 0,
+        overdueCount: 0,
+        paidCount: 0
+      }
+    )
+
+    return HttpResponse.json(summary)
   }),
 
   http.get(`${BASE}/households/:householdId/bills`, ({ request, params }) => {
@@ -326,6 +446,7 @@ export const billHandlers = [
         estimatedAmount,
         endDate: body.endDate ?? null,
         lastPaymentDate: body.lastPaymentDate ?? null,
+        paymentHandling: normalizeBillPaymentHandling(body.paymentHandling),
         categoryId: body.categoryId ?? null,
         splits: body.splits?.map((split) => ({
           subtitle: split.subtitle,
@@ -333,7 +454,8 @@ export const billHandlers = [
           categoryId: split.categoryId ?? null
         })),
         archived: false,
-        createdAt: nowIso()
+        createdAt: nowIso(),
+        hasRevisions: false
       }
       bills.push(bill)
       const instance = {
@@ -380,7 +502,8 @@ export const billHandlers = [
     const body = await readJson<Record<string, unknown>>(request)
     bills[index] = {
       ...bills[index],
-      ...body
+      ...body,
+      hasRevisions: true
     }
     return HttpResponse.json(toBillResponse(bills[index]))
   }),
@@ -440,7 +563,8 @@ export const billHandlers = [
         : !bills[index].archived
     bills[index] = {
       ...bills[index],
-      archived
+      archived,
+      hasRevisions: true
     }
     return HttpResponse.json(toBillResponse(bills[index]))
   }),

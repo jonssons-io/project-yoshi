@@ -3,15 +3,9 @@ import {
   createAllocationMutation,
   getBudgetQueryKey,
   getUnallocatedFundsOptions,
-  listAllocationsOptions,
   transferAllocationMutation
 } from '@/api/generated/@tanstack/react-query.gen'
-import type {
-  CreateAllocationResponse,
-  ListAllocationsData,
-  TransferAllocationResponse
-} from '@/api/generated/types.gen'
-import { fromApiDate } from '@/hooks/api/date-normalization'
+import type { CreateAllocationResponse, TransferAllocationResponse } from '@/api/generated/types.gen'
 import { invalidateByOperation } from './invalidate-by-operation'
 import type { MutationCallbacks } from './types'
 
@@ -42,29 +36,6 @@ export function useAllocationsQuery(params: {
       }
     }),
     enabled: enabled && !!householdId
-  })
-}
-
-export function useListAllocations(params: {
-  budgetId?: ListAllocationsData['path']['budgetId'] | null
-  userId?: string | null
-  enabled?: boolean
-}) {
-  const { budgetId, enabled = true } = params
-
-  return useQuery({
-    ...listAllocationsOptions({
-      path: {
-        budgetId: budgetId ?? ''
-      }
-    }),
-    enabled: enabled && !!budgetId,
-    select: (response) =>
-      (response.data ?? []).map((allocation) => ({
-        ...allocation,
-        date: fromApiDate(allocation.date),
-        createdAt: fromApiDate(allocation.createdAt)
-      }))
   })
 }
 

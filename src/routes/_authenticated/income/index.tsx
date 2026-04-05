@@ -1,5 +1,4 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { startOfDay } from 'date-fns'
 import {
   AlertTriangleIcon,
   CalendarClockIcon,
@@ -11,6 +10,7 @@ import {
 } from 'lucide-react'
 import { type ReactNode, useCallback, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
 
 import { CategoryType, RecurrenceType } from '@/api/generated/types.gen'
 import { DataTable, useDataTable } from '@/components/data-table'
@@ -25,22 +25,31 @@ import { NoData } from '@/features/no-data/no-data'
 import {
   useAccountsList,
   useCategoriesList,
+  useDeleteIncome,
   useIncomeInstancesFilteredList,
+  useIncomeInstancesSummary,
   useIncomeList
 } from '@/hooks/api'
 import { fromApiDate } from '@/hooks/api/date-normalization'
+import { useDateRange } from '@/hooks/use-date-range'
+import { accountsById } from '@/lib/accounts'
+import { getErrorMessage } from '@/lib/api-error'
+import {
+  getAmountBounds,
+  readDateRangeFilter,
+  readSingleSelectFilter
+} from '@/lib/column-filter-utils'
 
 import {
   createIncomeOverviewColumns,
-  deriveIncomeOverviewStatus,
   type IncomeOverviewRow,
   type IncomeOverviewStatus,
   type LabelLookup
 } from './-components/income-overview-table'
 import {
   createIncomeSourceDataColumns,
-  type IncomeSourceLabelLookup,
-  type IncomeSourceDataRow
+  type IncomeSourceDataRow,
+  type IncomeSourceLabelLookup
 } from './-components/income-source-data-table'
 
 export const Route = createFileRoute('/_authenticated/income/')({
@@ -52,29 +61,8 @@ type IncomeTab = 'overview' | 'sourceData'
 const EMPTY_ROWS: IncomeOverviewRow[] = []
 const EMPTY_SOURCE_DATA_ROWS: IncomeSourceDataRow[] = []
 
-type AmountBounds = {
-  min?: number
-  max?: number
-}
-
-function getAmountBounds<T extends { amount: number }>(rows: T[]): AmountBounds {
-  if (rows.length === 0) return {}
-
-  let min = rows[0].amount
-  let max = rows[0].amount
-
-  for (let index = 1; index < rows.length; index += 1) {
-    const amount = rows[index].amount
-    if (amount < min) min = amount
-    if (amount > max) max = amount
-  }
-
-  return { min, max }
-}
-
 function IncomePage() {
   const { userId, householdId } = useAuth()
-  const { t } = useTranslation()
 
   const { data: incomes = [], isLoading: incomesLoading } = useIncomeList({
     householdId,
@@ -96,25 +84,13 @@ function IncomePage() {
     enabled: !!householdId
   })
 
-  if (incomesLoading) {
-    return (
-      <PageLayout
-        title={t('income.title')}
-        description={t('income.pageSubtitle')}
-      >
-        <div className="flex flex-1 items-center justify-center py-8">
-          <p className="text-muted-foreground">{t('common.loading')}</p>
-        </div>
-      </PageLayout>
-    )
-  }
-
   return (
     <IncomePageContent
       householdId={householdId}
       incomes={incomes}
       accounts={accounts}
       categories={categories}
+      incomesLoading={incomesLoading}
     />
   )
 }
@@ -124,26 +100,25 @@ interface IncomePageContentProps {
   incomes: ReturnType<typeof useIncomeList>['data'] & {}
   accounts: ReturnType<typeof useAccountsList>['data'] & {}
   categories: ReturnType<typeof useCategoriesList>['data'] & {}
+  incomesLoading: boolean
 }
 
 function IncomePageContent({
   householdId,
   incomes,
   accounts,
-  categories
+  categories,
+  incomesLoading
 }: IncomePageContentProps) {
   const { t } = useTranslation()
+  const { userId } = useAuth()
   const { openDrawer } = useDrawer()
+  const { mutate: deleteIncome } = useDeleteIncome()
+  const { dateFrom, dateTo } = useDateRange()
   const [tab, setTab] = useState<IncomeTab>('overview')
 
   const accountById = useMemo(
-    () =>
-      new Map(
-        accounts.map((a) => [
-          a.id,
-          a.name
-        ])
-      ),
+    () => accountsById(accounts),
     [
       accounts
     ]
@@ -193,6 +168,8 @@ function IncomePageContent({
     isError: instancesError
   } = useIncomeInstancesFilteredList({
     householdId,
+    dateFrom,
+    dateTo,
     enabled: !!householdId && incomes.length > 0
   })
 
@@ -202,12 +179,8 @@ function IncomePageContent({
   const overviewRows = useMemo(() => {
     if (rawInstances.length === 0) return EMPTY_ROWS
 
-    const today = startOfDay(new Date())
-
     return rawInstances.map((inst) => {
       const expectedDate = fromApiDate(inst.expectedDate)
-      const hasTransaction = !!inst.transaction
-      const datePassed = expectedDate <= today
 
       return {
         id: inst.id,
@@ -216,8 +189,8 @@ function IncomePageContent({
         incomeSeriesName: inst.incomeId
           ? (incomeById.get(inst.incomeId) ?? null)
           : null,
-        status: deriveIncomeOverviewStatus(hasTransaction, datePassed),
-        transactionConnected: hasTransaction,
+        status: inst.status,
+        transactionConnected: !!inst.transaction?.id,
         amount: inst.amount,
         accountId: inst.accountId,
         accountName:
@@ -248,6 +221,27 @@ function IncomePageContent({
     categories: categoryById,
     senders: incomeSourceById
   }
+
+  const handleDeleteSourceIncome = useCallback(
+    (incomeId: string) => {
+      if (!window.confirm(t('income.sourceData.rowMenu.deleteConfirm'))) return
+      deleteIncome(
+        {
+          id: incomeId,
+          userId
+        },
+        {
+          onSuccess: () => toast.success(t('income.deleteSuccess')),
+          onError: (err) => toast.error(getErrorMessage(err))
+        }
+      )
+    },
+    [
+      deleteIncome,
+      t,
+      userId
+    ]
+  )
 
   const columns = useMemo(
     () =>
@@ -295,23 +289,58 @@ function IncomePageContent({
     ]
   })
 
-  const filteredRowCount = table.getRowModel().rows.length
+  const filteredRowCount = table.getFilteredRowModel().rows.length
   const totalRowCount = overviewRows.length
-
-  const statusCounts = useMemo(() => {
-    const counts: Record<IncomeOverviewStatus, number> = {
-      handled: 0,
-      pending: 0,
-      overdue: 0,
-      upcoming: 0
-    }
-    for (const row of overviewRows) {
-      counts[row.status]++
-    }
-    return counts
-  }, [
-    overviewRows
-  ])
+  const overviewDateRangeFilter = useMemo(
+    () => readDateRangeFilter(columnFilters, 'expectedDate'),
+    [
+      columnFilters
+    ]
+  )
+  const overviewAccountFilter = useMemo(
+    () => readSingleSelectFilter(columnFilters, 'account'),
+    [
+      columnFilters
+    ]
+  )
+  const overviewCategoryFilter = useMemo(
+    () => readSingleSelectFilter(columnFilters, 'category'),
+    [
+      columnFilters
+    ]
+  )
+  const canUseOverviewSummary = useMemo(
+    () =>
+      columnFilters.every((filter) =>
+        [
+          'expectedDate',
+          'account',
+          'category'
+        ].includes(filter.id)
+      ),
+    [
+      columnFilters
+    ]
+  )
+  const {
+    data: overviewSummary,
+    isLoading: summaryLoading,
+    isError: summaryError
+  } = useIncomeInstancesSummary({
+    householdId,
+    accountId: overviewAccountFilter,
+    categoryId:
+      overviewCategoryFilter === '__uncategorized__'
+        ? undefined
+        : overviewCategoryFilter,
+    dateFrom: overviewDateRangeFilter?.from ?? dateFrom,
+    dateTo: overviewDateRangeFilter?.to ?? dateTo,
+    enabled: !!householdId && canUseOverviewSummary
+  })
+  const effectiveOverviewLoading =
+    isOverviewLoading || (totalRowCount > 0 && summaryLoading)
+  const effectiveOverviewError =
+    hasOverviewError || (totalRowCount > 0 && summaryError)
 
   const filterOptions = useMemo(() => {
     const accountsSeen = new Set<string>()
@@ -358,10 +387,10 @@ function IncomePageContent({
     return {
       statuses: (
         [
-          'handled',
-          'pending',
           'overdue',
-          'upcoming'
+          'upcoming',
+          'handled',
+          'received'
         ] as IncomeOverviewStatus[]
       ).map((s) => ({
         value: s,
@@ -383,22 +412,24 @@ function IncomePageContent({
   ])
 
   const filterDisabled =
-    totalRowCount === 0 || isOverviewLoading || hasOverviewError
+    totalRowCount === 0 || effectiveOverviewLoading || effectiveOverviewError
   const overviewAmountBounds = useMemo(
     () => getAmountBounds(overviewRows),
-    [overviewRows]
+    [
+      overviewRows
+    ]
   )
 
   const emptyMessage = useMemo((): ReactNode | undefined => {
-    if (isOverviewLoading) return t('common.loading')
-    if (hasOverviewError) return t('common.error')
+    if (effectiveOverviewLoading) return t('common.loading')
+    if (effectiveOverviewError) return t('common.error')
     if (totalRowCount === 0) return undefined
     if (filteredRowCount === 0) return t('common.noResultsFound')
     return undefined
   }, [
+    effectiveOverviewError,
+    effectiveOverviewLoading,
     filteredRowCount,
-    hasOverviewError,
-    isOverviewLoading,
     totalRowCount,
     t
   ])
@@ -424,10 +455,16 @@ function IncomePageContent({
             categoryById.get(income.categoryId) ?? t('common.uncategorized'),
           senderId: income.incomeSourceId,
           senderName: incomeSourceById.get(income.incomeSourceId) ?? '',
-          hasRevisions: false
+          hasRevisions: income.hasRevisions
         }) satisfies IncomeSourceDataRow
     )
-  }, [incomes, accountById, categoryById, incomeSourceById, t])
+  }, [
+    incomes,
+    accountById,
+    categoryById,
+    incomeSourceById,
+    t
+  ])
 
   const sourceDataLabelLookupRef = useRef<IncomeSourceLabelLookup>({
     accounts: new Map(),
@@ -447,12 +484,22 @@ function IncomePageContent({
         labelLookupRef: sourceDataLabelLookupRef,
         onViewRevisions: () => void 0,
         onEditUpcoming: (incomeId) =>
-          openDrawer('editIncomeBlueprintUpcoming', { incomeId, mode: 'upcoming' }),
+          openDrawer('editIncomeBlueprintUpcoming', {
+            incomeId,
+            mode: 'upcoming'
+          }),
         onEditAll: (incomeId) =>
-          openDrawer('editIncomeBlueprintAll', { incomeId, mode: 'all' }),
-        onDeleteIncome: () => void 0
+          openDrawer('editIncomeBlueprintAll', {
+            incomeId,
+            mode: 'all'
+          }),
+        onDeleteIncome: handleDeleteSourceIncome
       }),
-    [t, openDrawer]
+    [
+      t,
+      openDrawer,
+      handleDeleteSourceIncome
+    ]
   )
 
   const {
@@ -465,13 +512,20 @@ function IncomePageContent({
   } = useDataTable({
     data: sourceDataRows,
     columns: sourceDataColumns,
-    initialSorting: [{ id: 'name', desc: false }]
+    initialSorting: [
+      {
+        id: 'name',
+        desc: false
+      }
+    ]
   })
 
   const sourceDataFilteredCount = sourceDataTable.getRowModel().rows.length
   const sourceDataAmountBounds = useMemo(
     () => getAmountBounds(sourceDataRows),
-    [sourceDataRows]
+    [
+      sourceDataRows
+    ]
   )
 
   const sourceDataFilterOptions = useMemo(() => {
@@ -479,22 +533,40 @@ function IncomePageContent({
     const categoriesSeen = new Set<string>()
     const sendersSeen = new Set<string>()
     const recurrencesSeen = new Set<RecurrenceType>()
-    const accountOpts: { value: string; label: string }[] = []
-    const categoryOpts: { value: string; label: string }[] = []
-    const senderOpts: { value: string; label: string }[] = []
+    const accountOpts: {
+      value: string
+      label: string
+    }[] = []
+    const categoryOpts: {
+      value: string
+      label: string
+    }[] = []
+    const senderOpts: {
+      value: string
+      label: string
+    }[] = []
 
     for (const row of sourceDataRows) {
       if (!accountsSeen.has(row.accountId)) {
         accountsSeen.add(row.accountId)
-        accountOpts.push({ value: row.accountId, label: row.accountName })
+        accountOpts.push({
+          value: row.accountId,
+          label: row.accountName
+        })
       }
       if (!categoriesSeen.has(row.categoryId)) {
         categoriesSeen.add(row.categoryId)
-        categoryOpts.push({ value: row.categoryId, label: row.categoryName })
+        categoryOpts.push({
+          value: row.categoryId,
+          label: row.categoryName
+        })
       }
       if (!sendersSeen.has(row.senderId)) {
         sendersSeen.add(row.senderId)
-        senderOpts.push({ value: row.senderId, label: row.senderName })
+        senderOpts.push({
+          value: row.senderId,
+          label: row.senderName
+        })
       }
       recurrencesSeen.add(row.recurrenceType)
     }
@@ -514,22 +586,36 @@ function IncomePageContent({
       [RecurrenceType.MONTHLY]: t('income.sourceData.recurrence.monthly'),
       [RecurrenceType.QUARTERLY]: t('income.sourceData.recurrence.quarterly'),
       [RecurrenceType.YEARLY]: t('income.sourceData.recurrence.yearly'),
-      [RecurrenceType.CUSTOM]: t('income.sourceData.recurrence.custom', { days: '?' })
+      [RecurrenceType.CUSTOM]: t('income.sourceData.recurrence.custom', {
+        days: '?'
+      })
     }
 
     return {
       recurrences: recurrenceOrder
         .filter((r) => recurrencesSeen.has(r))
-        .map((r) => ({ value: r, label: recurrenceLabels[r] })),
+        .map((r) => ({
+          value: r,
+          label: recurrenceLabels[r]
+        })),
       accounts: accountOpts,
       categories: categoryOpts,
       senders: senderOpts
     }
-  }, [sourceDataRows, t])
+  }, [
+    sourceDataRows,
+    t
+  ])
 
   const showNoData = !!householdId && incomes.length === 0
+  const loadingHeader =
+    incomesLoading ||
+    (incomes.length > 0 && effectiveOverviewLoading && !effectiveOverviewError)
+  const loadingContent =
+    incomesLoading || (tab === 'overview' && !showNoData && isOverviewLoading)
+
   const infoCards: PageLayoutProps['infoCards'] =
-    isOverviewLoading || hasOverviewError
+    effectiveOverviewLoading || effectiveOverviewError
       ? undefined
       : [
           {
@@ -541,8 +627,8 @@ function IncomePageContent({
                 aria-hidden
               />
             ),
-            label: t('income.summary.upcoming'),
-            value: statusCounts.upcoming
+            label: t('income.status.UPCOMING'),
+            value: overviewSummary?.upcomingCount ?? 0
           },
           {
             id: 'overdue',
@@ -553,11 +639,11 @@ function IncomePageContent({
                 aria-hidden
               />
             ),
-            label: t('income.summary.overdue'),
-            value: statusCounts.overdue
+            label: t('income.status.OVERDUE'),
+            value: overviewSummary?.overdueCount ?? 0
           },
           {
-            id: 'pending',
+            id: 'handled',
             color: 'blue',
             icon: (
               <ClockIcon
@@ -565,11 +651,11 @@ function IncomePageContent({
                 aria-hidden
               />
             ),
-            label: t('income.summary.pending'),
-            value: statusCounts.pending
+            label: t('income.status.HANDLED'),
+            value: overviewSummary?.handledCount ?? 0
           },
           {
-            id: 'handled',
+            id: 'received',
             color: 'green',
             icon: (
               <CheckCircle2Icon
@@ -577,8 +663,8 @@ function IncomePageContent({
                 aria-hidden
               />
             ),
-            label: t('income.summary.handled'),
-            value: statusCounts.handled
+            label: t('income.status.RECEIVED'),
+            value: overviewSummary?.receivedCount ?? 0
           }
         ]
 
@@ -586,6 +672,8 @@ function IncomePageContent({
     <PageLayout
       title={t('income.title')}
       description={t('income.pageSubtitle')}
+      loadingHeader={loadingHeader}
+      loadingContent={loadingContent}
       infoCards={infoCards}
       tabs={
         <Tabs

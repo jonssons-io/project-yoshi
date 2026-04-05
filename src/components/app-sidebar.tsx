@@ -6,16 +6,16 @@
 import { Link } from '@tanstack/react-router'
 import {
   ArrowLeftRight,
-  BadgeAlert,
-  CalendarIcon,
   ChartSpline,
   Grid2X2,
   HandCoins,
   ReceiptText
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { DateRangePicker } from '@/components/date-range-picker/date-range-picker'
 import { SidebarUserMenu } from '@/components/sidebar-user-menu/sidebar-user-menu'
 import { Sidebar } from '@/components/ui/sidebar'
+import { useDateRange } from '@/hooks/use-date-range'
 
 type AppSidebarProps = {
   user: {
@@ -47,6 +47,7 @@ export function AppSidebar({
   onSignOut
 }: AppSidebarProps) {
   const { t } = useTranslation()
+  const { from, to, dateFrom, dateTo, setDateRange } = useDateRange()
 
   const navItems = [
     {
@@ -73,16 +74,6 @@ export function AppSidebar({
       title: t('nav.categories'),
       url: '/categories',
       icon: Grid2X2
-    },
-    {
-      title: t('nav.accounts'),
-      url: '/accounts',
-      icon: BadgeAlert
-    },
-    {
-      title: t('nav.budgets'),
-      url: '/budgets',
-      icon: BadgeAlert
     }
   ]
 
@@ -92,6 +83,7 @@ export function AppSidebar({
         <div className="flex flex-col gap-8">
           <Link
             to="/"
+            search={{ from, to }}
             activeOptions={{
               exact: true
             }}
@@ -135,13 +127,12 @@ export function AppSidebar({
 
           <div className="flex flex-col gap-2 px-4">
             <span className="type-label text-black">{t('common.date')}</span>
-            <button
-              type="button"
-              className="type-label flex items-center justify-between gap-2 rounded-md border px-3 py-2 text-black"
-            >
-              <span>{t('dashboard.currentMonth')}</span>
-              <CalendarIcon className="size-4 shrink-0 stroke-[1.5]" />
-            </button>
+            <DateRangePicker
+              value={{ from: dateFrom, to: dateTo }}
+              onChange={setDateRange}
+              placeholder={t('common.pickDate')}
+              side="right"
+            />
           </div>
 
           <nav aria-label={t('dashboard.sidebar')}>
@@ -150,6 +141,7 @@ export function AppSidebar({
                 <li key={item.url}>
                   <Link
                     to={item.url}
+                    search={{ from, to }}
                     activeOptions={{
                       exact: item.url === '/'
                     }}

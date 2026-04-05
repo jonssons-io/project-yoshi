@@ -29,10 +29,46 @@ export const zTransactionType = z.enum([
 
 export const zTransactionStatus = z.enum(['PENDING', 'EFFECTIVE']);
 
-export const zInstanceStatus = z.enum([
+/**
+ * **Derived on each response** from `dueDate` (timezone-aware instant vs **UTC now**) and whether a transaction is
+ * linked (`transaction` / underlying `transactionId`). Not persisted; no scheduled job updates it.
+ *
+ * - **UPCOMING** — due instant is after UTC now; no linked transaction.
+ * - **HANDLED** — due instant is after UTC now; linked transaction (e.g. paid early).
+ * - **OVERDUE** — due instant is on or before UTC now; no linked transaction.
+ * - **PAID** — due instant is on or before UTC now; linked transaction.
+ *
+ * Writers sending `dueDate` for new or updated bills/instances should use **timezone-aware** `date-time` values.
+ * **Preferred:** equivalent UTC (`...Z`). **Acceptable:** local start-of-day with offset (e.g. `T00:00:00-07:00`) when
+ * the client cannot normalize to UTC. Avoid sending `...T00:00:00Z` for a “local calendar day” unless UTC midnight
+ * is intentionally meant.
+ *
+ */
+export const zBillInstanceStatus = z.enum([
     'UPCOMING',
-    'DUE',
-    'HANDLED'
+    'HANDLED',
+    'OVERDUE',
+    'PAID'
+]);
+
+/**
+ * **Derived on each response** from `expectedDate` (timezone-aware instant vs **UTC now**) and whether a transaction
+ * is linked (`transaction` / `transactionId`). Not persisted; no scheduled job updates it.
+ *
+ * - **UPCOMING** — expected instant is after UTC now; no linked transaction.
+ * - **HANDLED** — expected instant is after UTC now; linked transaction.
+ * - **OVERDUE** — expected instant is on or before UTC now; no linked transaction.
+ * - **RECEIVED** — expected instant is on or before UTC now; linked transaction.
+ *
+ * Same **date-time** guidance as `BillInstanceStatus`: prefer UTC instant; offset local start-of-day is acceptable
+ * when the client cannot convert to UTC; do not mistake `Z` for the user’s local midnight.
+ *
+ */
+export const zIncomeInstanceStatus = z.enum([
+    'UPCOMING',
+    'HANDLED',
+    'OVERDUE',
+    'RECEIVED'
 ]);
 
 /**
@@ -256,11 +292,86 @@ export const zTransactionGroupedByCategory = z.object({
     count: z.int()
 });
 
-export const zBillUpdateType = z.enum([
+/**
+ * How widely to apply changes to recurring blueprint instances (bills and incomes).
+ * **INSTANCE**: only the targeted occurrence. **FUTURE**: that occurrence and every later occurrence for the same blueprint
+ * (same bill or income): bill instances use **`dueDate`** ≥ the anchor instance’s **`dueDate`**; income instances use **`expectedDate`** ≥ the anchor’s **`expectedDate`**.
+ * **ALL**: every instance for that blueprint. **Handled** occurrences (already linked to a transaction) may be updated like any other row; clients should keep linked **transactions** consistent if amounts or dates change.
+ *
+ */
+export const zBlueprintUpdateScope = z.enum([
     'INSTANCE',
     'FUTURE',
     'ALL'
 ]);
+
+/**
+ * A single field change within a blueprint revision entry.
+ */
+export const zBillRevisionChange = z.object({
+    field: z.string(),
+    previousValue: z.unknown(),
+    newValue: z.unknown()
+});
+
+/**
+ * One recorded change to a recurring **bill blueprint** (`PUT`/`PATCH` on the Bill resource).
+ * Instance-only edits (`PATCH` bill-instances) are not included.
+ *
+ */
+export const zBillRevision = z.object({
+    id: z.string(),
+    billId: z.string(),
+    userId: z.string(),
+    createdAt: z.iso.datetime(),
+    effectiveFrom: z.optional(z.union([
+        z.iso.datetime(),
+        z.null()
+    ])),
+    scope: z.optional(z.union([
+        zBlueprintUpdateScope,
+        z.null()
+    ])),
+    changes: z.array(zBillRevisionChange)
+});
+
+export const zBillRevisionsEnvelope = z.object({
+    data: z.array(zBillRevision)
+});
+
+/**
+ * A single field change within an income blueprint revision entry.
+ */
+export const zIncomeRevisionChange = z.object({
+    field: z.string(),
+    previousValue: z.unknown(),
+    newValue: z.unknown()
+});
+
+/**
+ * One recorded change to a recurring **income blueprint** (`PUT`/`PATCH` on the Income resource).
+ * Instance-only edits (`PATCH` income-instances) are not included.
+ *
+ */
+export const zIncomeRevision = z.object({
+    id: z.string(),
+    incomeId: z.string(),
+    userId: z.string(),
+    createdAt: z.iso.datetime(),
+    effectiveFrom: z.optional(z.union([
+        z.iso.datetime(),
+        z.null()
+    ])),
+    scope: z.optional(z.union([
+        zBlueprintUpdateScope,
+        z.null()
+    ])),
+    changes: z.array(zIncomeRevisionChange)
+});
+
+export const zIncomeRevisionsEnvelope = z.object({
+    data: z.array(zIncomeRevision)
+});
 
 export const zBill = z.object({
     id: z.string(),
@@ -290,7 +401,34 @@ export const zBill = z.object({
     budget: z.optional(zNullableRelationRef),
     household: zRelationRef,
     archived: z.boolean(),
-    createdAt: z.iso.datetime()
+    createdAt: z.iso.datetime(),
+    hasRevisions: z.boolean()
+});
+
+/**
+ * Counts of bill instances in each **derived** status bucket (see `BillInstanceStatus`), for filters aligned with
+ * `GET /bill-instances`. **UTC now** at request time determines upcoming vs overdue vs each instance `dueDate`;
+ * **HANDLED** / **PAID** require a linked transaction (`transactionId`).
+ *
+ */
+export const zBillInstancesSummary = z.object({
+    upcomingCount: z.int().gte(0),
+    handledCount: z.int().gte(0),
+    overdueCount: z.int().gte(0),
+    paidCount: z.int().gte(0)
+});
+
+/**
+ * Counts of income instances in each **derived** status bucket (see `IncomeInstanceStatus`), for filters aligned with
+ * `GET /income-instances`. **UTC now** at request time determines upcoming vs overdue vs each instance `expectedDate`;
+ * **HANDLED** / **RECEIVED** require a linked transaction (`transactionId`).
+ *
+ */
+export const zIncomeInstancesSummary = z.object({
+    upcomingCount: z.int().gte(0),
+    handledCount: z.int().gte(0),
+    overdueCount: z.int().gte(0),
+    receivedCount: z.int().gte(0)
 });
 
 export const zBillSplit = z.object({
@@ -320,6 +458,8 @@ export const zBillSplit = z.object({
 
 /**
  * A flattened view of a bill instance with its recurring bill details.
+ * Field `status` is computed when the object is returned (see `BillInstanceStatus`).
+ *
  */
 export const zBillInstance = z.object({
     id: z.string(),
@@ -333,7 +473,7 @@ export const zBillInstance = z.object({
     ])),
     dueDate: z.iso.datetime(),
     budget: z.optional(zNullableRelationRef),
-    status: zInstanceStatus,
+    status: zBillInstanceStatus,
     transaction: z.optional(zNullableRelationRef),
     account: z.optional(zNullableRelationRef),
     category: z.optional(zNullableRelationRef),
@@ -364,6 +504,9 @@ export const zBillSplitWrite = z.object({
     subtitle: z.string()
 });
 
+/**
+ * Field `status` is computed when the object is returned (see `IncomeInstanceStatus`).
+ */
 export const zIncomeInstance = z.object({
     id: z.string(),
     incomeId: z.optional(z.union([
@@ -379,7 +522,7 @@ export const zIncomeInstance = z.object({
         z.string(),
         z.null()
     ])),
-    status: zInstanceStatus,
+    status: zIncomeInstanceStatus,
     transactionId: z.optional(z.union([
         z.string(),
         z.null()
@@ -418,7 +561,8 @@ export const zIncome = z.object({
     createdAt: z.iso.datetime(),
     category: z.optional(zCategory),
     account: z.optional(zAccount),
-    incomeSource: z.optional(zIncomeSource)
+    incomeSource: z.optional(zIncomeSource),
+    hasRevisions: z.boolean()
 });
 
 export const zRecipient = z.object({
@@ -455,19 +599,38 @@ export const zUnallocatedFunds = z.object({
 });
 
 /**
- * Aggregated INCOME and EXPENSE totals for a household over inclusive UTC calendar dates.
- * TRANSFER transactions are excluded. Both PENDING and EFFECTIVE transactions are included when
- * their transaction date falls within the range. Amounts are sums of stored transaction values only
- * (not account initial balances).
+ * Aggregated INCOME and EXPENSE totals for a household between the request `dateFrom` and `dateTo`
+ * instants (inclusive on `transaction.date`). TRANSFER transactions are excluded. Both PENDING and
+ * EFFECTIVE transactions are included when their transaction date falls within the range. Amounts are
+ * sums of stored transaction values only (not account initial balances). `dateFrom` / `dateTo` in the
+ * response echo the query bounds as UTC Zulu timestamps.
  *
  */
 export const zHouseholdPeriodSummary = z.object({
     householdId: z.string(),
-    dateFrom: z.iso.date(),
-    dateTo: z.iso.date(),
+    dateFrom: z.iso.datetime(),
+    dateTo: z.iso.datetime(),
     totalIncome: z.number(),
     totalExpense: z.number(),
     net: z.number()
+});
+
+/**
+ * Aggregated totals for rows matching the same filters as **`GET /transactions`** within **dateFrom** / **dateTo**
+ * (inclusive on **transaction.date**; query parsing matches the list endpoint). **totalIncome** and **totalExpense**
+ * are sums of stored **transaction.amount** for **INCOME** and **EXPENSE** types only (not account balances).
+ * **TRANSFER** rows are included in **transactionCount** but contribute **0** to income/expense sums. **net** is
+ * **totalIncome** − **totalExpense**. **PENDING** and **EFFECTIVE** transactions are included. Response **dateFrom**
+ * / **dateTo** echo the parsed inclusive bounds as UTC Zulu timestamps.
+ *
+ */
+export const zTransactionListSummary = z.object({
+    dateFrom: z.iso.datetime(),
+    dateTo: z.iso.datetime(),
+    totalIncome: z.number(),
+    totalExpense: z.number(),
+    net: z.number(),
+    transactionCount: z.int()
 });
 
 /**
@@ -484,7 +647,10 @@ export const zHouseholdAccountBalanceChartAccountMeta = z.object({
 });
 
 /**
- * **Daily** balance series for dashboard charts over inclusive calendar dates (`dateFrom` through `dateTo`).
+ * **Daily** balance series for dashboard charts. Query `dateFrom` / `dateTo` are UTC Zulu instants; the
+ * chart spans every UTC calendar day from the UTC date of `dateFrom` through the UTC date of `dateTo`
+ * (inclusive). Response fields `dateFrom` / `dateTo` echo those query instants as timestamps.
+ *
  * `dates` has one ISO calendar date per day in that range (in order). `series` maps each account id to
  * an array of balances with the same length as `dates`.
  *
@@ -500,8 +666,8 @@ export const zHouseholdAccountBalanceChartAccountMeta = z.object({
  */
 export const zHouseholdAccountBalanceChartResponse = z.object({
     householdId: z.string(),
-    dateFrom: z.iso.date(),
-    dateTo: z.iso.date(),
+    dateFrom: z.iso.datetime(),
+    dateTo: z.iso.datetime(),
     dates: z.array(z.iso.date()),
     series: z.record(z.string(), z.array(z.number())),
     accounts: z.array(zHouseholdAccountBalanceChartAccountMeta)
@@ -865,7 +1031,7 @@ export const zArchiveBillRequest = z.object({
 });
 
 export const zUpdateBillInstanceRequest = z.object({
-    updateType: zBillUpdateType,
+    updateType: zBlueprintUpdateScope,
     name: z.optional(z.string()),
     recipient: z.optional(z.string()),
     amount: z.optional(z.number().gt(0)),
@@ -875,6 +1041,7 @@ export const zUpdateBillInstanceRequest = z.object({
 });
 
 export const zUpdateIncomeInstanceRequest = z.object({
+    updateType: zBlueprintUpdateScope,
     name: z.optional(z.string()),
     amount: z.optional(z.number().gt(0)),
     expectedDate: z.optional(z.iso.datetime()),
@@ -1209,8 +1376,8 @@ export const zGetAccountBalanceHistoryData = z.object({
         accountId: z.string()
     }),
     query: z.optional(z.object({
-        dateFrom: z.optional(z.iso.date()),
-        dateTo: z.optional(z.iso.date()),
+        dateFrom: z.optional(z.iso.datetime()),
+        dateTo: z.optional(z.iso.datetime()),
         limit: z.optional(z.int().gte(0).lte(100)),
         offset: z.optional(z.int().gte(0))
     }))
@@ -1226,8 +1393,8 @@ export const zGetMultiAccountBalanceHistoryData = z.object({
     path: z.optional(z.never()),
     query: z.object({
         accountIds: z.array(z.string()),
-        dateFrom: z.optional(z.iso.date()),
-        dateTo: z.optional(z.iso.date())
+        dateFrom: z.optional(z.iso.datetime()),
+        dateTo: z.optional(z.iso.datetime())
     })
 });
 
@@ -1357,8 +1524,8 @@ export const zGetBudgetSnapshotHistoryData = z.object({
         budgetId: z.string()
     }),
     query: z.optional(z.object({
-        dateFrom: z.optional(z.iso.date()),
-        dateTo: z.optional(z.iso.date()),
+        dateFrom: z.optional(z.iso.datetime()),
+        dateTo: z.optional(z.iso.datetime()),
         limit: z.optional(z.int().gte(0).lte(100)),
         offset: z.optional(z.int().gte(0))
     }))
@@ -1556,8 +1723,8 @@ export const zGetHouseholdPeriodSummaryData = z.object({
         householdId: z.string()
     }),
     query: z.object({
-        dateFrom: z.iso.date(),
-        dateTo: z.iso.date()
+        dateFrom: z.iso.datetime(),
+        dateTo: z.iso.datetime()
     })
 });
 
@@ -1572,8 +1739,8 @@ export const zGetHouseholdAccountBalanceChartData = z.object({
         householdId: z.string()
     }),
     query: z.object({
-        dateFrom: z.iso.date(),
-        dateTo: z.iso.date(),
+        dateFrom: z.iso.datetime(),
+        dateTo: z.iso.datetime(),
         accountIds: z.optional(z.array(z.string())),
         includeArchived: z.optional(z.boolean())
     })
@@ -1592,6 +1759,7 @@ export const zListTransactionsData = z.object({
         householdId: z.optional(z.string()),
         accountId: z.optional(z.string()),
         billInstanceId: z.optional(z.string()),
+        incomeInstanceId: z.optional(z.string()),
         categoryId: z.optional(z.string()),
         dateFrom: z.optional(z.iso.datetime()),
         dateTo: z.optional(z.iso.datetime()),
@@ -1619,6 +1787,26 @@ export const zCreateTransactionData = z.object({
  * Created transaction
  */
 export const zCreateTransactionResponse = zTransaction;
+
+export const zGetTransactionsSummaryData = z.object({
+    body: z.optional(z.never()),
+    path: z.optional(z.never()),
+    query: z.object({
+        householdId: z.optional(z.string()),
+        budgetId: z.optional(z.string()),
+        accountId: z.optional(z.string()),
+        categoryId: z.optional(z.string()),
+        billInstanceId: z.optional(z.string()),
+        dateFrom: z.iso.datetime(),
+        dateTo: z.iso.datetime(),
+        type: z.optional(zTransactionType)
+    })
+});
+
+/**
+ * Filtered period totals and row count
+ */
+export const zGetTransactionsSummaryResponse = zTransactionListSummary;
 
 export const zDeleteTransactionData = z.object({
     body: z.optional(z.never()),
@@ -1716,6 +1904,25 @@ export const zListBillInstancesResponse = z.object({
     pagination: z.optional(zPaginationMeta)
 });
 
+export const zGetBillInstancesSummaryData = z.object({
+    body: z.optional(z.never()),
+    path: z.optional(z.never()),
+    query: z.optional(z.object({
+        householdId: z.optional(z.string()),
+        billId: z.optional(z.string()),
+        accountId: z.optional(z.string()),
+        budgetId: z.optional(z.string()),
+        dateFrom: z.optional(z.iso.datetime()),
+        dateTo: z.optional(z.iso.datetime()),
+        includeArchived: z.optional(z.boolean()).default(false)
+    }))
+});
+
+/**
+ * Status bucket counts for matching bill instances
+ */
+export const zGetBillInstancesSummaryResponse = zBillInstancesSummary;
+
 export const zListBillsData = z.object({
     body: z.optional(z.never()),
     path: z.object({
@@ -1758,6 +1965,19 @@ export const zDeleteBillData = z.object({
     query: z.optional(z.never())
 });
 
+export const zGetBillData = z.object({
+    body: z.optional(z.never()),
+    path: z.object({
+        billId: z.string()
+    }),
+    query: z.optional(z.never())
+});
+
+/**
+ * Recurring bill blueprint
+ */
+export const zGetBillResponse = zBill;
+
 export const zUpdateBillData = z.object({
     body: zUpdateBillRequest,
     path: z.object({
@@ -1770,6 +1990,19 @@ export const zUpdateBillData = z.object({
  * Updated recurring bill
  */
 export const zUpdateBillResponse = zBill;
+
+export const zListBillRevisionsData = z.object({
+    body: z.optional(z.never()),
+    path: z.object({
+        billId: z.string()
+    }),
+    query: z.optional(z.never())
+});
+
+/**
+ * Revision log for the bill blueprint
+ */
+export const zListBillRevisionsResponse = zBillRevisionsEnvelope;
 
 export const zArchiveBillData = z.object({
     body: zArchiveBillRequest,
@@ -1928,6 +2161,19 @@ export const zArchiveIncomeData = z.object({
  */
 export const zArchiveIncomeResponse = zIncome;
 
+export const zListIncomeRevisionsData = z.object({
+    body: z.optional(z.never()),
+    path: z.object({
+        incomeId: z.string()
+    }),
+    query: z.optional(z.never())
+});
+
+/**
+ * Revision log for the income blueprint
+ */
+export const zListIncomeRevisionsResponse = zIncomeRevisionsEnvelope;
+
 export const zListIncomeInstancesData = z.object({
     body: z.optional(z.never()),
     path: z.object({
@@ -1971,6 +2217,25 @@ export const zListIncomeInstancesFilteredResponse = z.object({
     data: z.optional(z.array(zIncomeInstance)),
     pagination: z.optional(zPaginationMeta)
 });
+
+export const zGetIncomeInstancesSummaryData = z.object({
+    body: z.optional(z.never()),
+    path: z.optional(z.never()),
+    query: z.optional(z.object({
+        householdId: z.optional(z.string()),
+        incomeId: z.optional(z.string()),
+        accountId: z.optional(z.string()),
+        categoryId: z.optional(z.string()),
+        dateFrom: z.optional(z.iso.datetime()),
+        dateTo: z.optional(z.iso.datetime()),
+        includeArchived: z.optional(z.boolean()).default(false)
+    }))
+});
+
+/**
+ * Status bucket counts for matching income instances
+ */
+export const zGetIncomeInstancesSummaryResponse = zIncomeInstancesSummary;
 
 export const zGetIncomeInstanceData = z.object({
     body: z.optional(z.never()),

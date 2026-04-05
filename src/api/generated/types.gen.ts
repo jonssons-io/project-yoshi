@@ -43,13 +43,79 @@ export const TransactionStatus = { PENDING: 'PENDING', EFFECTIVE: 'EFFECTIVE' } 
 
 export type TransactionStatus = typeof TransactionStatus[keyof typeof TransactionStatus];
 
-export const InstanceStatus = {
+/**
+ * **Derived on each response** from `dueDate` (timezone-aware instant vs **UTC now**) and whether a transaction is
+ * linked (`transaction` / underlying `transactionId`). Not persisted; no scheduled job updates it.
+ *
+ * - **UPCOMING** — due instant is after UTC now; no linked transaction.
+ * - **HANDLED** — due instant is after UTC now; linked transaction (e.g. paid early).
+ * - **OVERDUE** — due instant is on or before UTC now; no linked transaction.
+ * - **PAID** — due instant is on or before UTC now; linked transaction.
+ *
+ * Writers sending `dueDate` for new or updated bills/instances should use **timezone-aware** `date-time` values.
+ * **Preferred:** equivalent UTC (`...Z`). **Acceptable:** local start-of-day with offset (e.g. `T00:00:00-07:00`) when
+ * the client cannot normalize to UTC. Avoid sending `...T00:00:00Z` for a “local calendar day” unless UTC midnight
+ * is intentionally meant.
+ *
+ */
+export const BillInstanceStatus = {
     UPCOMING: 'UPCOMING',
-    DUE: 'DUE',
-    HANDLED: 'HANDLED'
+    HANDLED: 'HANDLED',
+    OVERDUE: 'OVERDUE',
+    PAID: 'PAID'
 } as const;
 
-export type InstanceStatus = typeof InstanceStatus[keyof typeof InstanceStatus];
+/**
+ * **Derived on each response** from `dueDate` (timezone-aware instant vs **UTC now**) and whether a transaction is
+ * linked (`transaction` / underlying `transactionId`). Not persisted; no scheduled job updates it.
+ *
+ * - **UPCOMING** — due instant is after UTC now; no linked transaction.
+ * - **HANDLED** — due instant is after UTC now; linked transaction (e.g. paid early).
+ * - **OVERDUE** — due instant is on or before UTC now; no linked transaction.
+ * - **PAID** — due instant is on or before UTC now; linked transaction.
+ *
+ * Writers sending `dueDate` for new or updated bills/instances should use **timezone-aware** `date-time` values.
+ * **Preferred:** equivalent UTC (`...Z`). **Acceptable:** local start-of-day with offset (e.g. `T00:00:00-07:00`) when
+ * the client cannot normalize to UTC. Avoid sending `...T00:00:00Z` for a “local calendar day” unless UTC midnight
+ * is intentionally meant.
+ *
+ */
+export type BillInstanceStatus = typeof BillInstanceStatus[keyof typeof BillInstanceStatus];
+
+/**
+ * **Derived on each response** from `expectedDate` (timezone-aware instant vs **UTC now**) and whether a transaction
+ * is linked (`transaction` / `transactionId`). Not persisted; no scheduled job updates it.
+ *
+ * - **UPCOMING** — expected instant is after UTC now; no linked transaction.
+ * - **HANDLED** — expected instant is after UTC now; linked transaction.
+ * - **OVERDUE** — expected instant is on or before UTC now; no linked transaction.
+ * - **RECEIVED** — expected instant is on or before UTC now; linked transaction.
+ *
+ * Same **date-time** guidance as `BillInstanceStatus`: prefer UTC instant; offset local start-of-day is acceptable
+ * when the client cannot convert to UTC; do not mistake `Z` for the user’s local midnight.
+ *
+ */
+export const IncomeInstanceStatus = {
+    UPCOMING: 'UPCOMING',
+    HANDLED: 'HANDLED',
+    OVERDUE: 'OVERDUE',
+    RECEIVED: 'RECEIVED'
+} as const;
+
+/**
+ * **Derived on each response** from `expectedDate` (timezone-aware instant vs **UTC now**) and whether a transaction
+ * is linked (`transaction` / `transactionId`). Not persisted; no scheduled job updates it.
+ *
+ * - **UPCOMING** — expected instant is after UTC now; no linked transaction.
+ * - **HANDLED** — expected instant is after UTC now; linked transaction.
+ * - **OVERDUE** — expected instant is on or before UTC now; no linked transaction.
+ * - **RECEIVED** — expected instant is on or before UTC now; linked transaction.
+ *
+ * Same **date-time** guidance as `BillInstanceStatus`: prefer UTC instant; offset local start-of-day is acceptable
+ * when the client cannot convert to UTC; do not mistake `Z` for the user’s local midnight.
+ *
+ */
+export type IncomeInstanceStatus = typeof IncomeInstanceStatus[keyof typeof IncomeInstanceStatus];
 
 /**
  * How the recurring bill is paid or delivered (Swedish UI “Hantering”): direct debit, e-invoice, mail, vendor portal, paper, etc.
@@ -246,19 +312,118 @@ export type TransactionGroupedByCategory = {
     count: number;
 };
 
-export const BillUpdateType = {
+/**
+ * How widely to apply changes to recurring blueprint instances (bills and incomes).
+ * **INSTANCE**: only the targeted occurrence. **FUTURE**: that occurrence and every later occurrence for the same blueprint
+ * (same bill or income): bill instances use **`dueDate`** ≥ the anchor instance’s **`dueDate`**; income instances use **`expectedDate`** ≥ the anchor’s **`expectedDate`**.
+ * **ALL**: every instance for that blueprint. **Handled** occurrences (already linked to a transaction) may be updated like any other row; clients should keep linked **transactions** consistent if amounts or dates change.
+ *
+ */
+export const BlueprintUpdateScope = {
     INSTANCE: 'INSTANCE',
     FUTURE: 'FUTURE',
     ALL: 'ALL'
 } as const;
 
-export type BillUpdateType = typeof BillUpdateType[keyof typeof BillUpdateType];
+/**
+ * How widely to apply changes to recurring blueprint instances (bills and incomes).
+ * **INSTANCE**: only the targeted occurrence. **FUTURE**: that occurrence and every later occurrence for the same blueprint
+ * (same bill or income): bill instances use **`dueDate`** ≥ the anchor instance’s **`dueDate`**; income instances use **`expectedDate`** ≥ the anchor’s **`expectedDate`**.
+ * **ALL**: every instance for that blueprint. **Handled** occurrences (already linked to a transaction) may be updated like any other row; clients should keep linked **transactions** consistent if amounts or dates change.
+ *
+ */
+export type BlueprintUpdateScope = typeof BlueprintUpdateScope[keyof typeof BlueprintUpdateScope];
+
+/**
+ * A single field change within a blueprint revision entry.
+ */
+export type BillRevisionChange = {
+    /**
+     * Blueprint field name in camelCase (e.g. estimatedAmount, recurrenceType, splits).
+     */
+    field: string;
+    previousValue: unknown;
+    newValue: unknown;
+};
+
+/**
+ * One recorded change to a recurring **bill blueprint** (`PUT`/`PATCH` on the Bill resource).
+ * Instance-only edits (`PATCH` bill-instances) are not included.
+ *
+ */
+export type BillRevision = {
+    id: string;
+    billId: string;
+    /**
+     * Authenticated user (e.g. Clerk `sub`) who applied the change.
+     */
+    userId: string;
+    createdAt: string;
+    /**
+     * Present when schedule-related fields changed; typically the blueprint `startDate` after the edit.
+     */
+    effectiveFrom?: string | null;
+    /**
+     * Blueprint template updates are recorded as **ALL** when scope applies; otherwise null.
+     */
+    scope?: BlueprintUpdateScope | null;
+    changes: Array<BillRevisionChange>;
+};
+
+export type BillRevisionsEnvelope = {
+    data: Array<BillRevision>;
+};
+
+/**
+ * A single field change within an income blueprint revision entry.
+ */
+export type IncomeRevisionChange = {
+    /**
+     * Blueprint field name in camelCase (e.g. estimatedAmount, recurrenceType, incomeSourceId).
+     */
+    field: string;
+    previousValue: unknown;
+    newValue: unknown;
+};
+
+/**
+ * One recorded change to a recurring **income blueprint** (`PUT`/`PATCH` on the Income resource).
+ * Instance-only edits (`PATCH` income-instances) are not included.
+ *
+ */
+export type IncomeRevision = {
+    id: string;
+    incomeId: string;
+    /**
+     * Authenticated user (e.g. Clerk `sub`) who applied the change.
+     */
+    userId: string;
+    createdAt: string;
+    /**
+     * Present when schedule-related fields changed; typically the blueprint `expectedDate` after the edit.
+     */
+    effectiveFrom?: string | null;
+    /**
+     * Blueprint template updates are recorded as **ALL** when scope applies; otherwise null.
+     */
+    scope?: BlueprintUpdateScope | null;
+    changes: Array<IncomeRevisionChange>;
+};
+
+export type IncomeRevisionsEnvelope = {
+    data: Array<IncomeRevision>;
+};
 
 export type Bill = {
     id: string;
     name: string;
     recipient: RelationRef;
     account: RelationRef;
+    /**
+     * Timezone-aware instant anchoring the bill schedule. Prefer UTC (`Z`); offset local start-of-day is acceptable
+     * when the client cannot normalize (see `BillInstanceStatus` / `BillInstance.dueDate`).
+     *
+     */
     startDate: string;
     recurrenceType: RecurrenceType;
     customIntervalDays?: number | null;
@@ -274,10 +439,16 @@ export type Bill = {
     household: RelationRef;
     archived: boolean;
     createdAt: string;
+    /**
+     * True when this blueprint has at least one recorded blueprint-level revision.
+     */
+    hasRevisions: boolean;
 };
 
 /**
  * A flattened view of a bill instance with its recurring bill details.
+ * Field `status` is computed when the object is returned (see `BillInstanceStatus`).
+ *
  */
 export type BillInstance = {
     /**
@@ -289,9 +460,14 @@ export type BillInstance = {
     recipient: RelationRef;
     amount: number;
     paidAmount?: number | null;
+    /**
+     * When **writing** due dates from a date picker, send a timezone-aware instant. Prefer equivalent UTC (`Z`);
+     * local start-of-day with offset is acceptable if the client cannot normalize to UTC (see `BillInstanceStatus`).
+     *
+     */
     dueDate: string;
     budget?: NullableRelationRef;
-    status: InstanceStatus;
+    status: BillInstanceStatus;
     transaction?: NullableRelationRef;
     account?: NullableRelationRef;
     category?: NullableRelationRef;
@@ -304,6 +480,56 @@ export type BillInstance = {
     paymentHandling?: BillPaymentHandling | null;
     startDate: string;
     archived: boolean;
+};
+
+/**
+ * Counts of bill instances in each **derived** status bucket (see `BillInstanceStatus`), for filters aligned with
+ * `GET /bill-instances`. **UTC now** at request time determines upcoming vs overdue vs each instance `dueDate`;
+ * **HANDLED** / **PAID** require a linked transaction (`transactionId`).
+ *
+ */
+export type BillInstancesSummary = {
+    /**
+     * Due instant after UTC now; no linked transaction.
+     */
+    upcomingCount: number;
+    /**
+     * Due instant after UTC now; linked transaction.
+     */
+    handledCount: number;
+    /**
+     * Due instant on or before UTC now; no linked transaction.
+     */
+    overdueCount: number;
+    /**
+     * Due instant on or before UTC now; linked transaction.
+     */
+    paidCount: number;
+};
+
+/**
+ * Counts of income instances in each **derived** status bucket (see `IncomeInstanceStatus`), for filters aligned with
+ * `GET /income-instances`. **UTC now** at request time determines upcoming vs overdue vs each instance `expectedDate`;
+ * **HANDLED** / **RECEIVED** require a linked transaction (`transactionId`).
+ *
+ */
+export type IncomeInstancesSummary = {
+    /**
+     * Expected instant after UTC now; no linked transaction.
+     */
+    upcomingCount: number;
+    /**
+     * Expected instant after UTC now; linked transaction.
+     */
+    handledCount: number;
+    /**
+     * Expected instant on or before UTC now; no linked transaction.
+     */
+    overdueCount: number;
+    /**
+     * Expected instant on or before UTC now; linked transaction.
+     */
+    receivedCount: number;
 };
 
 export type BillSplit = {
@@ -332,16 +558,24 @@ export type BillSplitWrite = {
     subtitle: string;
 };
 
+/**
+ * Field `status` is computed when the object is returned (see `IncomeInstanceStatus`).
+ */
 export type IncomeInstance = {
     id: string;
     incomeId?: string | null;
     name: string;
     incomeSourceId: string;
     amount: number;
+    /**
+     * When **writing** from a date picker, send a timezone-aware instant. Prefer equivalent UTC (`Z`);
+     * local start-of-day with offset is acceptable if the client cannot normalize to UTC (see `IncomeInstanceStatus`).
+     *
+     */
     expectedDate: string;
     accountId: string;
     categoryId?: string | null;
-    status: InstanceStatus;
+    status: IncomeInstanceStatus;
     transactionId?: string | null;
     transaction?: NullableRelationRef;
     householdId: string;
@@ -352,6 +586,11 @@ export type Income = {
     name: string;
     incomeSourceId: string;
     accountId: string;
+    /**
+     * Timezone-aware instant for the income schedule. Prefer UTC (`Z`); offset local start-of-day is acceptable when
+     * the client cannot normalize (see `IncomeInstanceStatus` / `IncomeInstance.expectedDate`).
+     *
+     */
     expectedDate: string;
     recurrenceType: RecurrenceType;
     customIntervalDays?: number | null;
@@ -364,6 +603,10 @@ export type Income = {
     category?: Category;
     account?: Account;
     incomeSource?: IncomeSource;
+    /**
+     * True when this blueprint has at least one recorded blueprint-level revision.
+     */
+    hasRevisions: boolean;
 };
 
 export type IncomeSource = {
@@ -408,10 +651,11 @@ export type UnallocatedFunds = {
 };
 
 /**
- * Aggregated INCOME and EXPENSE totals for a household over inclusive UTC calendar dates.
- * TRANSFER transactions are excluded. Both PENDING and EFFECTIVE transactions are included when
- * their transaction date falls within the range. Amounts are sums of stored transaction values only
- * (not account initial balances).
+ * Aggregated INCOME and EXPENSE totals for a household between the request `dateFrom` and `dateTo`
+ * instants (inclusive on `transaction.date`). TRANSFER transactions are excluded. Both PENDING and
+ * EFFECTIVE transactions are included when their transaction date falls within the range. Amounts are
+ * sums of stored transaction values only (not account initial balances). `dateFrom` / `dateTo` in the
+ * response echo the query bounds as UTC Zulu timestamps.
  *
  */
 export type HouseholdPeriodSummary = {
@@ -421,6 +665,24 @@ export type HouseholdPeriodSummary = {
     totalIncome: number;
     totalExpense: number;
     net: number;
+};
+
+/**
+ * Aggregated totals for rows matching the same filters as **`GET /transactions`** within **dateFrom** / **dateTo**
+ * (inclusive on **transaction.date**; query parsing matches the list endpoint). **totalIncome** and **totalExpense**
+ * are sums of stored **transaction.amount** for **INCOME** and **EXPENSE** types only (not account balances).
+ * **TRANSFER** rows are included in **transactionCount** but contribute **0** to income/expense sums. **net** is
+ * **totalIncome** − **totalExpense**. **PENDING** and **EFFECTIVE** transactions are included. Response **dateFrom**
+ * / **dateTo** echo the parsed inclusive bounds as UTC Zulu timestamps.
+ *
+ */
+export type TransactionListSummary = {
+    dateFrom: string;
+    dateTo: string;
+    totalIncome: number;
+    totalExpense: number;
+    net: number;
+    transactionCount: number;
 };
 
 /**
@@ -434,7 +696,10 @@ export type HouseholdAccountBalanceChartAccountMeta = {
 };
 
 /**
- * **Daily** balance series for dashboard charts over inclusive calendar dates (`dateFrom` through `dateTo`).
+ * **Daily** balance series for dashboard charts. Query `dateFrom` / `dateTo` are UTC Zulu instants; the
+ * chart spans every UTC calendar day from the UTC date of `dateFrom` through the UTC date of `dateTo`
+ * (inclusive). Response fields `dateFrom` / `dateTo` echo those query instants as timestamps.
+ *
  * `dates` has one ISO calendar date per day in that range (in order). `series` maps each account id to
  * an array of balances with the same length as `dates`.
  *
@@ -660,7 +925,8 @@ export type CreateTransactionRequest = {
     /**
      * When set, links this transaction to one occurrence: **bill instance** id if `type` is `EXPENSE`, **income instance**
      * id if `type` is `INCOME`. Must belong to the same household as `accountId`. Omit for `TRANSFER` and for unlinked
-     * transactions. See operation description for validation and side effects (handled status on the instance).
+     * transactions. See operation description for validation and side effects (stores `transactionId` on the instance;
+     * derived `status` on instance responses reflects the link and due/expected instant vs UTC now).
      *
      */
     instanceId?: string | null;
@@ -712,7 +978,7 @@ export type UpdateTransactionRequest = {
     /**
      * Set or clear (`null`) the linked bill or income instance. Same rules as create: **bill instance** for `EXPENSE`,
      * **income instance** for `INCOME`; must match `type` and household. Changing `type` or clearing the link updates
-     * prior instance state when applicable. Not valid when `type` is `TRANSFER`.
+     * the stored link on the instance when applicable (derived `status` is computed on read). Not valid when `type` is `TRANSFER`.
      *
      */
     instanceId?: string | null;
@@ -751,6 +1017,9 @@ export type CreateBillRequest = {
      * Used when there are no splits. Must be null when `splits` is non-empty.
      */
     budgetId?: string | null;
+    /**
+     * Timezone-aware instant; prefer UTC (`Z`), or offset local start-of-day if needed (see `BillInstance.dueDate`).
+     */
     startDate: string;
     recurrenceType: RecurrenceType;
     customIntervalDays?: number;
@@ -784,6 +1053,9 @@ export type UpdateBillRequest = {
      * Must be null when `splits` is non-empty.
      */
     budgetId?: string | null;
+    /**
+     * Timezone-aware instant; prefer UTC (`Z`), or offset local start-of-day if needed (see `BillInstance.dueDate`).
+     */
     startDate?: string;
     recurrenceType?: RecurrenceType;
     customIntervalDays?: number;
@@ -810,18 +1082,31 @@ export type ArchiveBillRequest = {
 };
 
 export type UpdateBillInstanceRequest = {
-    updateType: BillUpdateType;
+    updateType: BlueprintUpdateScope;
     name?: string;
     recipient?: string;
     amount?: number;
+    /**
+     * Timezone-aware instant; prefer UTC (`Z`), or offset local start-of-day if needed (see `BillInstance.dueDate`).
+     */
     dueDate?: string;
     accountId?: string;
     categoryId?: string;
 };
 
 export type UpdateIncomeInstanceRequest = {
+    /**
+     * Scope of the update (`BlueprintUpdateScope`). **INSTANCE**: only this occurrence.
+     * **FUTURE**: this occurrence and every later one for the same income (`expectedDate` ≥ this instance’s `expectedDate`).
+     * **ALL**: every income instance for that income. Handled/received rows (linked transaction) may be updated; see **`BlueprintUpdateScope`**.
+     *
+     */
+    updateType: BlueprintUpdateScope;
     name?: string;
     amount?: number;
+    /**
+     * Timezone-aware instant; prefer UTC (`Z`), or offset local start-of-day if needed (see `IncomeInstance.expectedDate`).
+     */
     expectedDate?: string;
     accountId?: string;
     categoryId?: string;
@@ -848,6 +1133,9 @@ export type CreateIncomeRequest = {
     incomeSourceId?: string;
     newIncomeSourceName?: string;
     amount: number;
+    /**
+     * Timezone-aware instant; prefer UTC (`Z`), or offset local start-of-day if needed (see `IncomeInstance.expectedDate`).
+     */
     expectedDate: string;
     accountId: string;
     categoryId?: string;
@@ -862,6 +1150,9 @@ export type UpdateIncomeRequest = {
     incomeSourceId?: string;
     newIncomeSourceName?: string;
     amount?: number;
+    /**
+     * Timezone-aware instant; prefer UTC (`Z`), or offset local start-of-day if needed (see `IncomeInstance.expectedDate`).
+     */
     expectedDate?: string;
     accountId?: string;
     categoryId?: string;
@@ -1929,6 +2220,10 @@ export type ListTransactionsData = {
         householdId?: string;
         accountId?: string;
         billInstanceId?: string;
+        /**
+         * When set, only transactions linked to this income instance are returned (same scoping column as billInstanceId).
+         */
+        incomeInstanceId?: string;
         categoryId?: string;
         dateFrom?: string;
         dateTo?: string;
@@ -1972,6 +2267,40 @@ export type CreateTransactionResponses = {
 };
 
 export type CreateTransactionResponse = CreateTransactionResponses[keyof CreateTransactionResponses];
+
+export type GetTransactionsSummaryData = {
+    body?: never;
+    path?: never;
+    query: {
+        householdId?: string;
+        budgetId?: string;
+        accountId?: string;
+        categoryId?: string;
+        billInstanceId?: string;
+        dateFrom: string;
+        dateTo: string;
+        type?: TransactionType;
+    };
+    url: '/transactions/summary';
+};
+
+export type GetTransactionsSummaryErrors = {
+    /**
+     * Household or account not found
+     */
+    404: ProblemDetails;
+};
+
+export type GetTransactionsSummaryError = GetTransactionsSummaryErrors[keyof GetTransactionsSummaryErrors];
+
+export type GetTransactionsSummaryResponses = {
+    /**
+     * Filtered period totals and row count
+     */
+    200: TransactionListSummary;
+};
+
+export type GetTransactionsSummaryResponse = GetTransactionsSummaryResponses[keyof GetTransactionsSummaryResponses];
 
 export type DeleteTransactionData = {
     body?: never;
@@ -2111,6 +2440,30 @@ export type ListBillInstancesResponses = {
 
 export type ListBillInstancesResponse = ListBillInstancesResponses[keyof ListBillInstancesResponses];
 
+export type GetBillInstancesSummaryData = {
+    body?: never;
+    path?: never;
+    query?: {
+        householdId?: string;
+        billId?: string;
+        accountId?: string;
+        budgetId?: string;
+        dateFrom?: string;
+        dateTo?: string;
+        includeArchived?: boolean;
+    };
+    url: '/bill-instances/summary';
+};
+
+export type GetBillInstancesSummaryResponses = {
+    /**
+     * Status bucket counts for matching bill instances
+     */
+    200: BillInstancesSummary;
+};
+
+export type GetBillInstancesSummaryResponse = GetBillInstancesSummaryResponses[keyof GetBillInstancesSummaryResponses];
+
 export type ListBillsData = {
     body?: never;
     path: {
@@ -2177,6 +2530,24 @@ export type DeleteBillResponses = {
     200: unknown;
 };
 
+export type GetBillData = {
+    body?: never;
+    path: {
+        billId: string;
+    };
+    query?: never;
+    url: '/bills/{billId}';
+};
+
+export type GetBillResponses = {
+    /**
+     * Recurring bill blueprint
+     */
+    200: Bill;
+};
+
+export type GetBillResponse = GetBillResponses[keyof GetBillResponses];
+
 export type UpdateBillData = {
     body: UpdateBillRequest;
     path: {
@@ -2194,6 +2565,24 @@ export type UpdateBillResponses = {
 };
 
 export type UpdateBillResponse = UpdateBillResponses[keyof UpdateBillResponses];
+
+export type ListBillRevisionsData = {
+    body?: never;
+    path: {
+        billId: string;
+    };
+    query?: never;
+    url: '/bills/{billId}/revisions';
+};
+
+export type ListBillRevisionsResponses = {
+    /**
+     * Revision log for the bill blueprint
+     */
+    200: BillRevisionsEnvelope;
+};
+
+export type ListBillRevisionsResponse = ListBillRevisionsResponses[keyof ListBillRevisionsResponses];
 
 export type ArchiveBillData = {
     body: ArchiveBillRequest;
@@ -2437,6 +2826,24 @@ export type ArchiveIncomeResponses = {
 
 export type ArchiveIncomeResponse = ArchiveIncomeResponses[keyof ArchiveIncomeResponses];
 
+export type ListIncomeRevisionsData = {
+    body?: never;
+    path: {
+        incomeId: string;
+    };
+    query?: never;
+    url: '/incomes/{incomeId}/revisions';
+};
+
+export type ListIncomeRevisionsResponses = {
+    /**
+     * Revision log for the income blueprint
+     */
+    200: IncomeRevisionsEnvelope;
+};
+
+export type ListIncomeRevisionsResponse = ListIncomeRevisionsResponses[keyof ListIncomeRevisionsResponses];
+
 export type ListIncomeInstancesData = {
     body?: never;
     path: {
@@ -2502,6 +2909,30 @@ export type ListIncomeInstancesFilteredResponses = {
 };
 
 export type ListIncomeInstancesFilteredResponse = ListIncomeInstancesFilteredResponses[keyof ListIncomeInstancesFilteredResponses];
+
+export type GetIncomeInstancesSummaryData = {
+    body?: never;
+    path?: never;
+    query?: {
+        householdId?: string;
+        incomeId?: string;
+        accountId?: string;
+        categoryId?: string;
+        dateFrom?: string;
+        dateTo?: string;
+        includeArchived?: boolean;
+    };
+    url: '/income-instances/summary';
+};
+
+export type GetIncomeInstancesSummaryResponses = {
+    /**
+     * Status bucket counts for matching income instances
+     */
+    200: IncomeInstancesSummary;
+};
+
+export type GetIncomeInstancesSummaryResponse = GetIncomeInstancesSummaryResponses[keyof GetIncomeInstancesSummaryResponses];
 
 export type GetIncomeInstanceData = {
     body?: never;

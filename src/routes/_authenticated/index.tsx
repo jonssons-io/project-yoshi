@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { type ReactNode, useCallback, useMemo } from 'react'
+import { useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { PageLayout } from '@/components/page-layout/page-layout'
 import { useAuth } from '@/contexts/auth-context'
@@ -102,47 +102,54 @@ function Dashboard() {
     openDrawer
   ])
 
-  const withDashboardChrome = (content: ReactNode) => (
-    <PageLayout
-      title={dashboardTitle}
-      description={dashboardDescription}
-    >
-      {content}
-    </PageLayout>
+  const isParentDataLoading = Boolean(
+    householdId &&
+      (budgetsLoading ||
+        accountsLoading ||
+        accountBalancesLoading ||
+        allocationSummaryLoading)
   )
 
-  const isDashboardDataLoading =
-    householdId &&
-    (budgetsLoading ||
-      accountsLoading ||
-      accountBalancesLoading ||
-      allocationSummaryLoading)
-
-  if (isDashboardDataLoading) {
-    return withDashboardChrome(
-      <div className="flex flex-1 items-center justify-center py-8">
-        <p className="text-muted-foreground">{t('common.loading')}</p>
-      </div>
+  if (!householdId) {
+    return (
+      <PageLayout
+        title={dashboardTitle}
+        description={dashboardDescription}
+      >
+        <div className="flex min-h-0 flex-1 flex-col items-center justify-center">
+          <NoHouseholdOnboarding />
+        </div>
+      </PageLayout>
     )
   }
 
-  if (!householdId) {
-    return withDashboardChrome(
-      <div className="flex min-h-0 flex-1 flex-col items-center justify-center">
-        <NoHouseholdOnboarding />
-      </div>
+  if (budgetsLoading) {
+    return (
+      <PageLayout
+        title={dashboardTitle}
+        description={dashboardDescription}
+        loadingHeader={true}
+        loadingContent={true}
+      >
+        {null}
+      </PageLayout>
     )
   }
 
   if (!(budgets?.length ?? 0)) {
-    return withDashboardChrome(
-      <NoData
-        variant="no-budget"
-        illustrationSize="lg"
-        onAction={() => {
-          openDrawer('createBudget', {})
-        }}
-      />
+    return (
+      <PageLayout
+        title={dashboardTitle}
+        description={dashboardDescription}
+      >
+        <NoData
+          variant="no-budget"
+          illustrationSize="lg"
+          onAction={() => {
+            openDrawer('createBudget', {})
+          }}
+        />
+      </PageLayout>
     )
   }
 
@@ -154,6 +161,7 @@ function Dashboard() {
         dashboardSettings={dashboardSettings}
         onOpenChartSettings={openChartSettingsDrawer}
         unallocatedAmount={allocationSummary?.unallocated ?? 0}
+        isParentDataLoading={isParentDataLoading}
       />
     </div>
   )

@@ -33,8 +33,9 @@ info:
     List endpoints support optional `limit` and `offset` (default 0) query parameters. If `limit` is **omitted**, the full dataset is returned. If provided, `limit` must be between 0 and 100: use `limit=0` to fetch only the total count in the pagination metadata; use 1–100 to cap the number of items. Responses include pagination metadata.
 
     ## Dates and timestamps
-    - **Dates** (`format: date`, `YYYY-MM-DD`) are plain calendar dates. Where a range must cover full UTC days, the server expands them to inclusive UTC bounds (`00:00:00.000Z` on the start date through `23:59:59.999Z` on the end date) unless an operation documents otherwise.
+    - **Dates** (`format: date`, `YYYY-MM-DD`) are plain calendar dates in **responses** where noted (for example snapshot rows and chart day keys).
     - **Timestamps** (`format: date-time`) must be ISO 8601 instants in **UTC** with a **`Z`** suffix (for example `2024-06-01T12:00:00.000Z`). Numeric offsets such as `+00:00` are not accepted on input.
+    - **Dashboard and snapshot history** query parameters `dateFrom` / `dateTo` use **`date-time`** (UTC Zulu). The server uses the instants **inclusively** for transaction aggregates (`period-summary`). For **daily** account/budget snapshot rows, each bound is mapped to its **UTC calendar date** for filtering; chart `dates` are still one ISO calendar date per day between those UTC dates (inclusive).
     - **Responses** serialize timestamps with a `Z` suffix and three fractional digits.
 
     ## Empty List Behavior
@@ -83,9 +84,38 @@ components:
     TransactionStatus:
       type: string
       enum: [PENDING, EFFECTIVE]
-    InstanceStatus:
+
+    BillInstanceStatus:
       type: string
-      enum: [UPCOMING, DUE, HANDLED]
+      description: |
+        **Derived on each response** from `dueDate` (timezone-aware instant vs **UTC now**) and whether a transaction is
+        linked (`transaction` / underlying `transactionId`). Not persisted; no scheduled job updates it.
+
+        - **UPCOMING** — due instant is after UTC now; no linked transaction.
+        - **HANDLED** — due instant is after UTC now; linked transaction (e.g. paid early).
+        - **OVERDUE** — due instant is on or before UTC now; no linked transaction.
+        - **PAID** — due instant is on or before UTC now; linked transaction.
+
+        Writers sending `dueDate` for new or updated bills/instances should use **timezone-aware** `date-time` values.
+        **Preferred:** equivalent UTC (`...Z`). **Acceptable:** local start-of-day with offset (e.g. `T00:00:00-07:00`) when
+        the client cannot normalize to UTC. Avoid sending `...T00:00:00Z` for a “local calendar day” unless UTC midnight
+        is intentionally meant.
+      enum: [UPCOMING, HANDLED, OVERDUE, PAID]
+
+    IncomeInstanceStatus:
+      type: string
+      description: |
+        **Derived on each response** from `expectedDate` (timezone-aware instant vs **UTC now**) and whether a transaction
+        is linked (`transaction` / `transactionId`). Not persisted; no scheduled job updates it.
+
+        - **UPCOMING** — expected instant is after UTC now; no linked transaction.
+        - **HANDLED** — expected instant is after UTC now; linked transaction.
+        - **OVERDUE** — expected instant is on or before UTC now; no linked transaction.
+        - **RECEIVED** — expected instant is on or before UTC now; linked transaction.
+
+        Same **date-time** guidance as `BillInstanceStatus`: prefer UTC instant; offset local start-of-day is acceptable
+        when the client cannot convert to UTC; do not mistake `Z` for the user’s local midnight.
+      enum: [UPCOMING, HANDLED, OVERDUE, RECEIVED]
 
     BillPaymentHandling:
       type: string
@@ -466,9 +496,116 @@ components:
           type: integer
       required: [category, transactions, total, count]
 
-    BillUpdateType:
+    BlueprintUpdateScope:
       type: string
       enum: [INSTANCE, FUTURE, ALL]
+      description: |
+        How widely to apply changes to recurring blueprint instances (bills and incomes).
+        **INSTANCE**: only the targeted occurrence. **FUTURE**: that occurrence and every later occurrence for the same blueprint
+        (same bill or income): bill instances use **`dueDate`** ≥ the anchor instance’s **`dueDate`**; income instances use **`expectedDate`** ≥ the anchor’s **`expectedDate`**.
+        **ALL**: every instance for that blueprint. **Handled** occurrences (already linked to a transaction) may be updated like any other row; clients should keep linked **transactions** consistent if amounts or dates change.
+
+    BillRevisionChange:
+      type: object
+      description: A single field change within a blueprint revision entry.
+      properties:
+        field:
+          type: string
+          description: Blueprint field name in camelCase (e.g. estimatedAmount, recurrenceType, splits).
+        previousValue: {}
+        newValue: {}
+      required: [field, previousValue, newValue]
+
+    BillRevision:
+      type: object
+      description: |
+        One recorded change to a recurring **bill blueprint** (`PUT`/`PATCH` on the Bill resource).
+        Instance-only edits (`PATCH` bill-instances) are not included.
+      properties:
+        id:
+          type: string
+        billId:
+          type: string
+        userId:
+          type: string
+          description: Authenticated user (e.g. Clerk `sub`) who applied the change.
+        createdAt:
+          type: string
+          format: date-time
+        effectiveFrom:
+          type: [string, "null"]
+          format: date-time
+          description: Present when schedule-related fields changed; typically the blueprint `startDate` after the edit.
+        scope:
+          anyOf:
+            - $ref: '#/components/schemas/BlueprintUpdateScope'
+            - type: "null"
+          description: Blueprint template updates are recorded as **ALL** when scope applies; otherwise null.
+        changes:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillRevisionChange'
+      required: [id, billId, userId, createdAt, changes]
+
+    BillRevisionsEnvelope:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillRevision'
+      required: [data]
+
+    IncomeRevisionChange:
+      type: object
+      description: A single field change within an income blueprint revision entry.
+      properties:
+        field:
+          type: string
+          description: Blueprint field name in camelCase (e.g. estimatedAmount, recurrenceType, incomeSourceId).
+        previousValue: {}
+        newValue: {}
+      required: [field, previousValue, newValue]
+
+    IncomeRevision:
+      type: object
+      description: |
+        One recorded change to a recurring **income blueprint** (`PUT`/`PATCH` on the Income resource).
+        Instance-only edits (`PATCH` income-instances) are not included.
+      properties:
+        id:
+          type: string
+        incomeId:
+          type: string
+        userId:
+          type: string
+          description: Authenticated user (e.g. Clerk `sub`) who applied the change.
+        createdAt:
+          type: string
+          format: date-time
+        effectiveFrom:
+          type: [string, "null"]
+          format: date-time
+          description: Present when schedule-related fields changed; typically the blueprint `expectedDate` after the edit.
+        scope:
+          anyOf:
+            - $ref: '#/components/schemas/BlueprintUpdateScope'
+            - type: "null"
+          description: Blueprint template updates are recorded as **ALL** when scope applies; otherwise null.
+        changes:
+          type: array
+          items:
+            $ref: '#/components/schemas/IncomeRevisionChange'
+      required: [id, incomeId, userId, createdAt, changes]
+
+    IncomeRevisionsEnvelope:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/IncomeRevision'
+      required: [data]
 
     Bill:
       type: object
@@ -484,6 +621,9 @@ components:
         startDate:
           type: string
           format: date-time
+          description: |
+            Timezone-aware instant anchoring the bill schedule. Prefer UTC (`Z`); offset local start-of-day is acceptable
+            when the client cannot normalize (see `BillInstanceStatus` / `BillInstance.dueDate`).
         recurrenceType:
           $ref: '#/components/schemas/RecurrenceType'
         customIntervalDays:
@@ -513,11 +653,29 @@ components:
         createdAt:
           type: string
           format: date-time
-      required: [id, name, recipient, account, startDate, recurrenceType, estimatedAmount, household, archived, createdAt]
+        hasRevisions:
+          type: boolean
+          description: True when this blueprint has at least one recorded blueprint-level revision.
+      required:
+        [
+          id,
+          name,
+          recipient,
+          account,
+          startDate,
+          recurrenceType,
+          estimatedAmount,
+          household,
+          archived,
+          createdAt,
+          hasRevisions,
+        ]
 
     BillInstance:
       type: object
-      description: A flattened view of a bill instance with its recurring bill details.
+      description: |
+        A flattened view of a bill instance with its recurring bill details.
+        Field `status` is computed when the object is returned (see `BillInstanceStatus`).
       properties:
         id:
           type: string
@@ -537,10 +695,13 @@ components:
         dueDate:
           type: string
           format: date-time
+          description: |
+            When **writing** due dates from a date picker, send a timezone-aware instant. Prefer equivalent UTC (`Z`);
+            local start-of-day with offset is acceptable if the client cannot normalize to UTC (see `BillInstanceStatus`).
         budget:
           $ref: '#/components/schemas/NullableRelationRef'
         status:
-          $ref: '#/components/schemas/InstanceStatus'
+          $ref: '#/components/schemas/BillInstanceStatus'
         transaction:
           $ref: '#/components/schemas/NullableRelationRef'
         account:
@@ -566,6 +727,56 @@ components:
         archived:
           type: boolean
       required: [id, name, recipient, amount, dueDate, status, recurrenceType, startDate, archived]
+
+    BillInstancesSummary:
+      type: object
+      description: |
+        Counts of bill instances in each **derived** status bucket (see `BillInstanceStatus`), for filters aligned with
+        `GET /bill-instances`. **UTC now** at request time determines upcoming vs overdue vs each instance `dueDate`;
+        **HANDLED** / **PAID** require a linked transaction (`transactionId`).
+      properties:
+        upcomingCount:
+          type: integer
+          minimum: 0
+          description: Due instant after UTC now; no linked transaction.
+        handledCount:
+          type: integer
+          minimum: 0
+          description: Due instant after UTC now; linked transaction.
+        overdueCount:
+          type: integer
+          minimum: 0
+          description: Due instant on or before UTC now; no linked transaction.
+        paidCount:
+          type: integer
+          minimum: 0
+          description: Due instant on or before UTC now; linked transaction.
+      required: [upcomingCount, handledCount, overdueCount, paidCount]
+
+    IncomeInstancesSummary:
+      type: object
+      description: |
+        Counts of income instances in each **derived** status bucket (see `IncomeInstanceStatus`), for filters aligned with
+        `GET /income-instances`. **UTC now** at request time determines upcoming vs overdue vs each instance `expectedDate`;
+        **HANDLED** / **RECEIVED** require a linked transaction (`transactionId`).
+      properties:
+        upcomingCount:
+          type: integer
+          minimum: 0
+          description: Expected instant after UTC now; no linked transaction.
+        handledCount:
+          type: integer
+          minimum: 0
+          description: Expected instant after UTC now; linked transaction.
+        overdueCount:
+          type: integer
+          minimum: 0
+          description: Expected instant on or before UTC now; no linked transaction.
+        receivedCount:
+          type: integer
+          minimum: 0
+          description: Expected instant on or before UTC now; linked transaction.
+      required: [upcomingCount, handledCount, overdueCount, receivedCount]
 
     BillSplit:
       type: object
@@ -616,6 +827,7 @@ components:
 
     IncomeInstance:
       type: object
+      description: Field `status` is computed when the object is returned (see `IncomeInstanceStatus`).
       properties:
         id:
           type: string
@@ -631,12 +843,15 @@ components:
         expectedDate:
           type: string
           format: date-time
+          description: |
+            When **writing** from a date picker, send a timezone-aware instant. Prefer equivalent UTC (`Z`);
+            local start-of-day with offset is acceptable if the client cannot normalize to UTC (see `IncomeInstanceStatus`).
         accountId:
           type: string
         categoryId:
           type: [string, "null"]
         status:
-          $ref: '#/components/schemas/InstanceStatus'
+          $ref: '#/components/schemas/IncomeInstanceStatus'
         transactionId:
           type: [string, "null"]
         transaction:
@@ -659,6 +874,9 @@ components:
         expectedDate:
           type: string
           format: date-time
+          description: |
+            Timezone-aware instant for the income schedule. Prefer UTC (`Z`); offset local start-of-day is acceptable when
+            the client cannot normalize (see `IncomeInstanceStatus` / `IncomeInstance.expectedDate`).
         recurrenceType:
           $ref: '#/components/schemas/RecurrenceType'
         customIntervalDays:
@@ -684,7 +902,24 @@ components:
           $ref: '#/components/schemas/Account'
         incomeSource:
           $ref: '#/components/schemas/IncomeSource'
-      required: [id, name, incomeSourceId, accountId, expectedDate, recurrenceType, estimatedAmount, categoryId, householdId, archived, createdAt]
+        hasRevisions:
+          type: boolean
+          description: True when this blueprint has at least one recorded blueprint-level revision.
+      required:
+        [
+          id,
+          name,
+          incomeSourceId,
+          accountId,
+          expectedDate,
+          recurrenceType,
+          estimatedAmount,
+          categoryId,
+          householdId,
+          archived,
+          createdAt,
+          hasRevisions,
+        ]
 
     IncomeSource:
       type: object
@@ -779,19 +1014,20 @@ components:
     HouseholdPeriodSummary:
       type: object
       description: |
-        Aggregated INCOME and EXPENSE totals for a household over inclusive UTC calendar dates.
-        TRANSFER transactions are excluded. Both PENDING and EFFECTIVE transactions are included when
-        their transaction date falls within the range. Amounts are sums of stored transaction values only
-        (not account initial balances).
+        Aggregated INCOME and EXPENSE totals for a household between the request `dateFrom` and `dateTo`
+        instants (inclusive on `transaction.date`). TRANSFER transactions are excluded. Both PENDING and
+        EFFECTIVE transactions are included when their transaction date falls within the range. Amounts are
+        sums of stored transaction values only (not account initial balances). `dateFrom` / `dateTo` in the
+        response echo the query bounds as UTC Zulu timestamps.
       properties:
         householdId:
           type: string
         dateFrom:
           type: string
-          format: date
+          format: date-time
         dateTo:
           type: string
-          format: date
+          format: date-time
         totalIncome:
           type: number
           format: double
@@ -802,6 +1038,35 @@ components:
           type: number
           format: double
       required: [householdId, dateFrom, dateTo, totalIncome, totalExpense, net]
+
+    TransactionListSummary:
+      type: object
+      description: |
+        Aggregated totals for rows matching the same filters as **`GET /transactions`** within **dateFrom** / **dateTo**
+        (inclusive on **transaction.date**; query parsing matches the list endpoint). **totalIncome** and **totalExpense**
+        are sums of stored **transaction.amount** for **INCOME** and **EXPENSE** types only (not account balances).
+        **TRANSFER** rows are included in **transactionCount** but contribute **0** to income/expense sums. **net** is
+        **totalIncome** − **totalExpense**. **PENDING** and **EFFECTIVE** transactions are included. Response **dateFrom**
+        / **dateTo** echo the parsed inclusive bounds as UTC Zulu timestamps.
+      properties:
+        dateFrom:
+          type: string
+          format: date-time
+        dateTo:
+          type: string
+          format: date-time
+        totalIncome:
+          type: number
+          format: double
+        totalExpense:
+          type: number
+          format: double
+        net:
+          type: number
+          format: double
+        transactionCount:
+          type: integer
+      required: [dateFrom, dateTo, totalIncome, totalExpense, net, transactionCount]
 
     HouseholdAccountBalanceChartAccountMeta:
       type: object
@@ -822,7 +1087,10 @@ components:
     HouseholdAccountBalanceChartResponse:
       type: object
       description: |
-        **Daily** balance series for dashboard charts over inclusive calendar dates (`dateFrom` through `dateTo`).
+        **Daily** balance series for dashboard charts. Query `dateFrom` / `dateTo` are UTC Zulu instants; the
+        chart spans every UTC calendar day from the UTC date of `dateFrom` through the UTC date of `dateTo`
+        (inclusive). Response fields `dateFrom` / `dateTo` echo those query instants as timestamps.
+
         `dates` has one ISO calendar date per day in that range (in order). `series` maps each account id to
         an array of balances with the same length as `dates`.
 
@@ -839,10 +1107,10 @@ components:
           type: string
         dateFrom:
           type: string
-          format: date
+          format: date-time
         dateTo:
           type: string
-          format: date
+          format: date-time
         dates:
           type: array
           items:
@@ -1212,7 +1480,8 @@ components:
           description: |
             When set, links this transaction to one occurrence: **bill instance** id if `type` is `EXPENSE`, **income instance**
             id if `type` is `INCOME`. Must belong to the same household as `accountId`. Omit for `TRANSFER` and for unlinked
-            transactions. See operation description for validation and side effects (handled status on the instance).
+            transactions. See operation description for validation and side effects (stores `transactionId` on the instance;
+            derived `status` on instance responses reflects the link and due/expected instant vs UTC now).
         newCategory:
           type: object
           properties:
@@ -1279,7 +1548,7 @@ components:
           description: |
             Set or clear (`null`) the linked bill or income instance. Same rules as create: **bill instance** for `EXPENSE`,
             **income instance** for `INCOME`; must match `type` and household. Changing `type` or clearing the link updates
-            prior instance state when applicable. Not valid when `type` is `TRANSFER`.
+            the stored link on the instance when applicable (derived `status` is computed on read). Not valid when `type` is `TRANSFER`.
         name:
           type: string
           minLength: 1
@@ -1332,6 +1601,7 @@ components:
         startDate:
           type: string
           format: date-time
+          description: Timezone-aware instant; prefer UTC (`Z`), or offset local start-of-day if needed (see `BillInstance.dueDate`).
         recurrenceType:
           $ref: '#/components/schemas/RecurrenceType'
         customIntervalDays:
@@ -1385,6 +1655,7 @@ components:
         startDate:
           type: string
           format: date-time
+          description: Timezone-aware instant; prefer UTC (`Z`), or offset local start-of-day if needed (see `BillInstance.dueDate`).
         recurrenceType:
           $ref: '#/components/schemas/RecurrenceType'
         customIntervalDays:
@@ -1425,7 +1696,7 @@ components:
       type: object
       properties:
         updateType:
-          $ref: '#/components/schemas/BillUpdateType'
+          $ref: '#/components/schemas/BlueprintUpdateScope'
         name:
           type: string
         recipient:
@@ -1437,6 +1708,7 @@ components:
         dueDate:
           type: string
           format: date-time
+          description: Timezone-aware instant; prefer UTC (`Z`), or offset local start-of-day if needed (see `BillInstance.dueDate`).
         accountId:
           type: string
         categoryId:
@@ -1445,6 +1717,12 @@ components:
     UpdateIncomeInstanceRequest:
       type: object
       properties:
+        updateType:
+          $ref: '#/components/schemas/BlueprintUpdateScope'
+          description: |
+            Scope of the update (`BlueprintUpdateScope`). **INSTANCE**: only this occurrence.
+            **FUTURE**: this occurrence and every later one for the same income (`expectedDate` ≥ this instance’s `expectedDate`).
+            **ALL**: every income instance for that income. Handled/received rows (linked transaction) may be updated; see **`BlueprintUpdateScope`**.
         name:
           type: string
         amount:
@@ -1454,10 +1732,12 @@ components:
         expectedDate:
           type: string
           format: date-time
+          description: Timezone-aware instant; prefer UTC (`Z`), or offset local start-of-day if needed (see `IncomeInstance.expectedDate`).
         accountId:
           type: string
         categoryId:
           type: string
+      required: [updateType]
     CreateTransferRequest:
       type: object
       properties:
@@ -1509,6 +1789,7 @@ components:
         expectedDate:
           type: string
           format: date-time
+          description: Timezone-aware instant; prefer UTC (`Z`), or offset local start-of-day if needed (see `IncomeInstance.expectedDate`).
         accountId:
           type: string
         categoryId:
@@ -1541,6 +1822,7 @@ components:
         expectedDate:
           type: string
           format: date-time
+          description: Timezone-aware instant; prefer UTC (`Z`), or offset local start-of-day if needed (see `IncomeInstance.expectedDate`).
         accountId:
           type: string
         categoryId:
@@ -2021,7 +2303,8 @@ paths:
       operationId: getAccountBalanceHistory
       summary: Get historical balance snapshots for an account
       description: |
-        Daily snapshot history for an account. If `staleHistory` is true, any dates on or after
+        Daily snapshot history for an account. Optional `dateFrom` / `dateTo` are UTC Zulu instants; each is
+        mapped to its UTC calendar date to filter `snapshot.date`. If `staleHistory` is true, any dates on or after
         `historyRecalcFrom` should be treated as provisional until the async rebuild completes.
       tags: [Accounts]
       parameters:
@@ -2029,12 +2312,12 @@ paths:
           in: query
           schema:
             type: string
-            format: date
+            format: date-time
         - name: dateTo
           in: query
           schema:
             type: string
-            format: date
+            format: date-time
         - $ref: '#/components/parameters/limit'
         - $ref: '#/components/parameters/offset'
       responses:
@@ -2050,7 +2333,8 @@ paths:
       operationId: getMultiAccountBalanceHistory
       summary: Get balance snapshots for multiple accounts
       description: |
-        Batch snapshot history for multiple accounts, including staleness flags per account.
+        Batch snapshot history for multiple accounts, including staleness flags per account. Optional `dateFrom` /
+        `dateTo` are UTC Zulu instants mapped to UTC calendar dates for `snapshot.date` filtering.
       tags: [Accounts]
       parameters:
         - name: accountIds
@@ -2064,12 +2348,12 @@ paths:
           in: query
           schema:
             type: string
-            format: date
+            format: date-time
         - name: dateTo
           in: query
           schema:
             type: string
-            format: date
+            format: date-time
       responses:
         '200':
           description: Balance history for multiple accounts
@@ -2261,18 +2545,21 @@ paths:
     get:
       operationId: getBudgetSnapshotHistory
       summary: Get historical snapshots for a budget
+      description: |
+        Optional `dateFrom` / `dateTo` are UTC Zulu instants mapped to UTC calendar dates for `snapshot.date`
+        filtering.
       tags: [Budgets]
       parameters:
         - name: dateFrom
           in: query
           schema:
             type: string
-            format: date
+            format: date-time
         - name: dateTo
           in: query
           schema:
             type: string
-            format: date
+            format: date-time
         - $ref: '#/components/parameters/limit'
         - $ref: '#/components/parameters/offset'
       responses:
@@ -2561,7 +2848,7 @@ paths:
       summary: Income and expense totals for a household date range
       description: |
         Returns **totalIncome** (sum of INCOME), **totalExpense** (sum of EXPENSE), and **net** (totalIncome − totalExpense)
-        for transactions whose **date** falls in the inclusive UTC range from **dateFrom** through **dateTo** (calendar dates).
+        for transactions whose **date** falls between **dateFrom** and **dateTo** (UTC Zulu instants, inclusive).
         TRANSFER rows are excluded; PENDING and EFFECTIVE rows are included.
       tags: [Households]
       parameters:
@@ -2570,13 +2857,13 @@ paths:
           required: true
           schema:
             type: string
-            format: date
+            format: date-time
         - name: dateTo
           in: query
           required: true
           schema:
             type: string
-            format: date
+            format: date-time
       responses:
         '200':
           description: Period totals for the household
@@ -2602,6 +2889,7 @@ paths:
       summary: Daily account balance series for dashboard charts
       description: |
         Returns forward-filled **daily** balances for the requested accounts (see `HouseholdAccountBalanceChartResponse`).
+        Required `dateFrom` / `dateTo` are UTC Zulu instants; see that schema for how they map to chart days.
         When `accountIds` is omitted, all **non-archived** household accounts are included unless `includeArchived` is true.
       tags: [Households]
       parameters:
@@ -2610,13 +2898,13 @@ paths:
           required: true
           schema:
             type: string
-            format: date
+            format: date-time
         - name: dateTo
           in: query
           required: true
           schema:
             type: string
-            format: date
+            format: date-time
         - name: accountIds
           in: query
           required: false
@@ -2682,6 +2970,11 @@ paths:
           in: query
           schema:
             type: string
+        - name: incomeInstanceId
+          in: query
+          schema:
+            type: string
+          description: When set, only transactions linked to this income instance are returned (same scoping column as billInstanceId).
         - name: categoryId
           in: query
           schema:
@@ -2727,8 +3020,10 @@ paths:
 
         Optional `instanceId` links the transaction to a single **occurrence**: for `EXPENSE` it must be a **bill instance**
         id (from bill-instance APIs); for `INCOME` it must be an **income instance** id. The server stores the link on the
-        transaction and marks that instance as handled. Resolution uses the transaction `type` (wrong kind or other
-        household → 404; already linked elsewhere → 422). `TRANSFER` must not send `instanceId` (422).
+        transaction and on the instance (`transactionId`). Bill/income **instance `status`** in API responses is **derived**
+        from the due/expected instant vs UTC now and that link (see `BillInstanceStatus` / `IncomeInstanceStatus`), not from
+        a background job. Resolution uses the transaction `type` (wrong kind or other household → 404; already linked
+        elsewhere → 422). `TRANSFER` must not send `instanceId` (422).
 
         This is not the recurring blueprint id (`billId` on bills, or income id on incomes). Additional forward instances
         for recurring blueprints are created by scheduled jobs, not by this endpoint.
@@ -2745,6 +3040,69 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Transaction'
+
+  /transactions/summary:
+    get:
+      operationId: getTransactionsSummary
+      summary: Income, expense, and net totals for filtered transactions
+      description: |
+        Same scoping filters as **`GET /transactions`** (at least one required), plus required **dateFrom** / **dateTo**.
+        Totals match **transaction.amount** sums for **INCOME** / **EXPENSE**; **transactionCount** counts all matching rows
+        (including **TRANSFER**). See **`TransactionListSummary`** for full semantics.
+      tags: [Transactions]
+      parameters:
+        - name: householdId
+          in: query
+          schema:
+            type: string
+        - name: budgetId
+          in: query
+          schema:
+            type: string
+        - name: accountId
+          in: query
+          schema:
+            type: string
+        - name: categoryId
+          in: query
+          schema:
+            type: string
+        - name: billInstanceId
+          in: query
+          schema:
+            type: string
+        - name: dateFrom
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+        - name: dateTo
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+        - name: type
+          in: query
+          schema:
+            $ref: '#/components/schemas/TransactionType'
+      responses:
+        '200':
+          description: Filtered period totals and row count
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionListSummary'
+        '404':
+          description: Household or account not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
 
   /transactions/{transactionId}:
     parameters:
@@ -2904,6 +3262,57 @@ paths:
                   pagination:
                     $ref: '#/components/schemas/PaginationMeta'
 
+  /bill-instances/summary:
+    get:
+      operationId: getBillInstancesSummary
+      summary: Count bill instances by derived status bucket
+      description: |
+        Returns **`upcomingCount`**, **`handledCount`**, **`overdueCount`**, and **`paidCount`** using the same rules as
+        `BillInstance.status` (`BillInstanceStatus`). Scoping matches **`GET /bill-instances`**: provide **`householdId`**
+        and/or **`billId`** (at least one required). Optional **`accountId`** filters by the instance's account;
+        **`budgetId`** includes instances whose parent bill targets that budget (top-level or via a bill split).
+        **`dateFrom`** / **`dateTo`** filter by instance **`dueDate`** (inclusive), with the same parsing as the list endpoint.
+      tags: [Bills]
+      parameters:
+        - name: householdId
+          in: query
+          schema:
+            type: string
+        - name: billId
+          in: query
+          schema:
+            type: string
+        - name: accountId
+          in: query
+          schema:
+            type: string
+        - name: budgetId
+          in: query
+          schema:
+            type: string
+        - name: dateFrom
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: dateTo
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: includeArchived
+          in: query
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: Status bucket counts for matching bill instances
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillInstancesSummary'
+
   /households/{householdId}/bills:
     parameters:
       - $ref: '#/components/parameters/householdId'
@@ -2961,6 +3370,19 @@ paths:
   /bills/{billId}:
     parameters:
       - $ref: '#/components/parameters/billId'
+    get:
+      operationId: getBill
+      summary: Get a recurring bill blueprint by ID
+      tags: [Bills]
+      description: |
+        Returns the **Bill** template (blueprint), not a bill instance. Response shape matches list/create/update bill responses.
+      responses:
+        '200':
+          description: Recurring bill blueprint
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Bill'
     patch:
       operationId: updateBill
       summary: Update a recurring bill (regenerates future unpaid instances on schedule change)
@@ -2989,6 +3411,23 @@ paths:
       responses:
         '200':
           description: Deleted
+
+  /bills/{billId}/revisions:
+    parameters:
+      - $ref: '#/components/parameters/billId'
+    get:
+      operationId: listBillRevisions
+      summary: List revision history for a recurring bill blueprint
+      tags: [Bills]
+      description: |
+        Returns blueprint-level revision entries (newest first). Edits applied only to bill instances are not included.
+      responses:
+        '200':
+          description: Revision log for the bill blueprint
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillRevisionsEnvelope'
 
   /bills/{billId}/archive:
     parameters:
@@ -3031,7 +3470,7 @@ paths:
                 $ref: '#/components/schemas/BillInstance'
     patch:
       operationId: updateBillInstance
-      summary: Update a specific bill instance, optionally applying to future instances
+      summary: Update a bill instance (including paid/handled), optionally applying to other instances
       tags: [Bills]
       requestBody:
         required: true
@@ -3229,6 +3668,23 @@ paths:
               schema:
                 $ref: '#/components/schemas/Income'
 
+  /incomes/{incomeId}/revisions:
+    parameters:
+      - $ref: '#/components/parameters/incomeId'
+    get:
+      operationId: listIncomeRevisions
+      summary: List revision history for a recurring income blueprint
+      tags: [Income]
+      description: |
+        Returns blueprint-level revision entries (newest first). Edits applied only to income instances are not included.
+      responses:
+        '200':
+          description: Revision log for the income blueprint
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IncomeRevisionsEnvelope'
+
   /incomes/{incomeId}/instances:
     parameters:
       - $ref: '#/components/parameters/incomeId'
@@ -3312,6 +3768,57 @@ paths:
                   pagination:
                     $ref: '#/components/schemas/PaginationMeta'
 
+  /income-instances/summary:
+    get:
+      operationId: getIncomeInstancesSummary
+      summary: Count income instances by derived status bucket
+      description: |
+        Returns **`upcomingCount`**, **`handledCount`**, **`overdueCount`**, and **`receivedCount`** using the same rules as
+        `IncomeInstance.status` (`IncomeInstanceStatus`). Scoping matches **`GET /income-instances`**: provide **`householdId`**
+        and/or **`incomeId`** (at least one required). Optional **`accountId`** filters by the instance's account;
+        **`categoryId`** filters by the instance's category. **`dateFrom`** / **`dateTo`** filter by instance **`expectedDate`**
+        (inclusive), with the same parsing as the list endpoint.
+      tags: [Income]
+      parameters:
+        - name: householdId
+          in: query
+          schema:
+            type: string
+        - name: incomeId
+          in: query
+          schema:
+            type: string
+        - name: accountId
+          in: query
+          schema:
+            type: string
+        - name: categoryId
+          in: query
+          schema:
+            type: string
+        - name: dateFrom
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: dateTo
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: includeArchived
+          in: query
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: Status bucket counts for matching income instances
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IncomeInstancesSummary'
+
   /income-instances/{instanceId}:
     parameters:
       - name: instanceId
@@ -3332,7 +3839,7 @@ paths:
                 $ref: '#/components/schemas/IncomeInstance'
     patch:
       operationId: updateIncomeInstance
-      summary: Update an income instance
+      summary: Update an income instance (including handled/received), optionally applying to other instances
       tags: [Income]
       requestBody:
         required: true

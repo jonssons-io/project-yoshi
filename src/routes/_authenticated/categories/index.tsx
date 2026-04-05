@@ -1,259 +1,343 @@
 /**
- * Categories page - Manage income and expense categories
+ * Categories — list, filters, and per-budget category membership.
  */
 
 import { createFileRoute } from '@tanstack/react-router'
-import {
-  ArchiveIcon,
-  ArchiveRestoreIcon,
-  PencilIcon,
-  PlusIcon,
-  TrashIcon
-} from 'lucide-react'
-import { useState } from 'react'
+import { PlusIcon } from 'lucide-react'
+import { type ReactNode, useCallback, useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
-import { toast } from 'sonner'
-import { BaseButton } from '@/components/base-button/base-button'
-import { Button } from '@/components/button/button'
-import { IconButton } from '@/components/icon-button/icon-button'
-import { Badge } from '@/components/ui/badge'
-import { Card } from '@/components/ui/card'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow
-} from '@/components/ui/table'
+
+import { CategoryType } from '@/api/generated/types.gen'
+import { Badge } from '@/components/badge/badge'
+import { DataTable, useDataTable } from '@/components/data-table'
+import { PageLayout } from '@/components/page-layout/page-layout'
 import { useAuth } from '@/contexts/auth-context'
+import { useDrawer } from '@/drawers'
 import { NoData } from '@/features/no-data/no-data'
 import {
-  useArchiveCategory,
-  useCategoriesList,
-  useDeleteCategory
+  useBudgetsList,
+  useCategoriesByBudgetMap,
+  useCategoriesList
 } from '@/hooks/api'
-import { useConfirmDialog } from '@/hooks/use-confirm-dialog'
-import { getErrorMessage } from '@/lib/api-error'
+import { useCategoryTableMutations } from '@/hooks/use-category-table-mutations'
+import {
+  type CategoryColumnLabelLookup,
+  type CategoryTableRow,
+  createCategoriesTableColumns
+} from './-components/categories-table'
+import { categoryBadgeColor } from './-components/category-badge-utils'
 
 export const Route = createFileRoute('/_authenticated/categories/')({
   component: CategoriesPage
 })
 
 function CategoriesPage() {
-  const { t } = useTranslation()
   const { userId, householdId } = useAuth()
-  const [filter, setFilter] = useState<'ALL' | 'INCOME' | 'EXPENSE'>('ALL')
-  const { confirm, confirmDialog } = useConfirmDialog()
+  const { t } = useTranslation()
+  const { openDrawer } = useDrawer()
 
-  const { data: categories, refetch } = useCategoriesList({
+  const {
+    data: categories = [],
+    isLoading: categoriesLoading,
+    refetch: refetchCategories
+  } = useCategoriesList({
     householdId,
     userId,
-    type: filter === 'ALL' ? undefined : filter
+    enabled: !!householdId
   })
 
-  const { mutateAsync: deleteCategory } = useDeleteCategory({
+  const { data: budgets = [], isLoading: budgetsLoading } = useBudgetsList({
+    householdId,
+    userId,
+    enabled: !!householdId
+  })
+
+  const activeBudgets = useMemo(
+    () => budgets,
+    [
+      budgets
+    ]
+  )
+
+  const budgetIds = useMemo(
+    () => activeBudgets.map((b) => b.id),
+    [
+      activeBudgets
+    ]
+  )
+
+  const categoriesByBudget = useCategoriesByBudgetMap({
+    householdId,
+    budgetIds,
+    enabled: !!householdId && budgetIds.length > 0
+  })
+
+  const categoryToBudgets = useMemo(() => {
+    const map = new Map<string, CategoryTableRow['linkedBudgets']>()
+    for (const b of activeBudgets) {
+      const cats = categoriesByBudget.byBudgetId.get(b.id) ?? []
+      for (const c of cats) {
+        const list = map.get(c.id) ?? []
+        if (!list.some((x) => x.id === b.id)) {
+          list.push({
+            id: b.id,
+            name: b.name
+          })
+          map.set(c.id, list)
+        }
+      }
+    }
+    return map
+  }, [
+    activeBudgets,
+    categoriesByBudget.byBudgetId
+  ])
+
+  const tableRows: CategoryTableRow[] = useMemo(() => {
+    return categories.map((c) => ({
+      id: c.id,
+      name: c.name,
+      types: c.types,
+      archived: c.archived,
+      _count: c._count,
+      linkedBudgets: categoryToBudgets.get(c.id) ?? []
+    }))
+  }, [
+    categories,
+    categoryToBudgets
+  ])
+
+  const labelLookupRef = useRef<CategoryColumnLabelLookup>({
+    budgets: new Map()
+  })
+
+  const { archiveCategory } = useCategoryTableMutations({
     onSuccess: () => {
-      refetch()
-      toast.success(t('categories.deleteSuccess'))
-    },
-    onError: (error) => {
-      toast.error(getErrorMessage(error))
+      void refetchCategories()
     }
   })
 
-  const { mutate: archiveCategory } = useArchiveCategory({
-    onSuccess: (_data, variables) => {
-      refetch()
-      toast.success(
-        variables.archived
-          ? t('categories.archiveSuccess')
-          : t('categories.unarchiveSuccess')
-      )
+  const handleEditCategory = useCallback(() => {
+    void 0
+  }, [])
+
+  const handleCreateCategory = useCallback(() => {
+    void 0
+  }, [])
+
+  const handleArchive = useCallback(
+    (row: CategoryTableRow, archived: boolean) => {
+      archiveCategory({
+        id: row.id,
+        archived,
+        userId
+      })
     },
-    onError: (error) => {
-      toast.error(getErrorMessage(error))
-    }
+    [
+      archiveCategory,
+      userId
+    ]
+  )
+
+  const columns = useMemo(
+    () =>
+      createCategoriesTableColumns({
+        t,
+        labelLookupRef,
+        onEdit: handleEditCategory,
+        onArchive: handleArchive
+      }),
+    [
+      t,
+      handleEditCategory,
+      handleArchive
+    ]
+  )
+
+  const {
+    table,
+    globalFilter,
+    setGlobalFilter,
+    columnFilters,
+    setColumnFilters,
+    activeFilters
+  } = useDataTable({
+    data: tableRows,
+    columns
   })
 
-  const handleDeleteCategory = async (category: {
-    id: string
-    name: string
-    _count?: {
-      transactions?: number
+  const sortedBudgetsSidebar = useMemo(() => {
+    return [
+      ...activeBudgets
+    ].sort((a, b) =>
+      a.name.localeCompare(b.name, 'sv', {
+        sensitivity: 'base'
+      })
+    )
+  }, [
+    activeBudgets
+  ])
+
+  const availableTypes = useMemo(() => {
+    const seen = new Set<CategoryType>()
+    for (const row of tableRows) {
+      for (const ty of row.types) {
+        seen.add(ty)
+      }
     }
-  }) => {
-    const transactionCount = category._count?.transactions ?? 0
-    if (transactionCount > 0) {
-      toast.error(
-        t('categories.deleteBlocked', {
-          name: category.name,
-          count: transactionCount
+    const order: CategoryType[] = [
+      CategoryType.EXPENSE,
+      CategoryType.INCOME
+    ]
+    return order
+      .filter((ty) => seen.has(ty))
+      .map((ty) => ({
+        value: ty,
+        label:
+          ty === CategoryType.INCOME
+            ? t('categories.income')
+            : t('categories.expense')
+      }))
+  }, [
+    tableRows,
+    t
+  ])
+
+  const availableBudgetsFilter = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const b of activeBudgets) {
+      map.set(b.id, b.name)
+    }
+    labelLookupRef.current.budgets = map
+    return [
+      ...map.entries()
+    ]
+      .map(([value, label]) => ({
+        value,
+        label
+      }))
+      .sort((a, b) =>
+        a.label.localeCompare(b.label, 'sv', {
+          sensitivity: 'base'
         })
       )
-      return
+  }, [
+    activeBudgets
+  ])
+
+  const filterDisabled = tableRows.length === 0
+  const filteredRowCount = table.getFilteredRowModel().rows.length
+
+  const tableEmptyMessage = useMemo((): ReactNode | undefined => {
+    if (categories.length === 0) {
+      return undefined
     }
+    if (filteredRowCount === 0) {
+      return t('common.noResultsFound')
+    }
+    return undefined
+  }, [
+    categories.length,
+    filteredRowCount,
+    t
+  ])
 
-    const isConfirmed = await confirm({
-      description: t('categories.deleteConfirm', {
-        name: category.name
-      }),
-      confirmText: t('common.delete')
-    })
-    if (!isConfirmed) return
+  const pageLoading =
+    categoriesLoading || budgetsLoading || categoriesByBudget.isLoading
 
-    await deleteCategory({
-      id: category.id,
-      userId
-    })
-  }
-
-  const handleCreate = () => {
-    void 0
-  }
-
-  const incomeCount =
-    categories?.filter((c) => c.types.includes('INCOME')).length ?? 0
-  const expenseCount =
-    categories?.filter((c) => c.types.includes('EXPENSE')).length ?? 0
+  const showNoCategories =
+    !!householdId && categories.length === 0 && !pageLoading
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-      <div className="min-h-0 flex-1 space-y-6 overflow-auto px-4 pt-6 pb-6">
-        {/* Toolbar */}
-        <div className="flex items-center justify-end gap-2">
-          <div className="flex gap-2">
-            <Button
-              variant={filter === 'ALL' ? 'filled' : 'outlined'}
-              color={filter === 'ALL' ? 'primary' : 'subtle'}
-              onClick={() => setFilter('ALL')}
-              label={`${t('categories.all')} (${categories?.length ?? 0})`}
+    <PageLayout
+      title={t('categories.title')}
+      description={t('categories.pageDescription')}
+      loadingContent={pageLoading}
+    >
+      <div className="flex min-h-0 flex-1 flex-col gap-8 lg:flex-row lg:items-start">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+          {showNoCategories ? (
+            <NoData
+              variant="no-category"
+              onAction={handleCreateCategory}
             />
-            <Button
-              variant={filter === 'INCOME' ? 'filled' : 'outlined'}
-              color={filter === 'INCOME' ? 'primary' : 'subtle'}
-              onClick={() => setFilter('INCOME')}
-              label={`${t('categories.income')} (${incomeCount})`}
+          ) : (
+            <DataTable
+              table={table}
+              columns={columns}
+              globalFilter={globalFilter}
+              onGlobalFilterChange={setGlobalFilter}
+              filterDisabled={filterDisabled}
+              onFilterClick={() =>
+                openDrawer('categoriesTableFilterDrawer', {
+                  columnFilters,
+                  onApply: setColumnFilters,
+                  availableTypes,
+                  availableBudgets: availableBudgetsFilter
+                })
+              }
+              activeFilters={activeFilters}
+              actionButton={{
+                label: t('categories.createAction'),
+                icon: <PlusIcon />,
+                onClick: handleCreateCategory,
+                disabled: !householdId
+              }}
+              toolbarLabels={{
+                searchPlaceholder: t('common.search'),
+                filter: t('common.filter'),
+                pillRemoveAriaLabel: t('common.removeFilter')
+              }}
+              emptyMessage={tableEmptyMessage}
             />
-            <Button
-              variant={filter === 'EXPENSE' ? 'filled' : 'outlined'}
-              color={filter === 'EXPENSE' ? 'primary' : 'subtle'}
-              onClick={() => setFilter('EXPENSE')}
-              label={`${t('categories.expense')} (${expenseCount})`}
-            />
-          </div>
-
-          <Button
-            onClick={handleCreate}
-            icon={<PlusIcon />}
-            label={t('categories.add')}
-          />
+          )}
         </div>
-
-        {categories?.length === 0 ? (
-          <NoData
-            variant="no-category"
-            onAction={handleCreate}
-          />
-        ) : (
-          <Card>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{t('common.name')}</TableHead>
-                  <TableHead>{t('categories.type')}</TableHead>
-                  <TableHead>{t('categories.transactions')}</TableHead>
-                  <TableHead className="text-right">
-                    {t('common.actions')}
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {categories?.map((category) => (
-                  <TableRow
-                    key={category.id}
-                    className={
-                      category.archived ? 'opacity-50 bg-muted/50' : ''
-                    }
+        {!showNoCategories ? (
+          <aside
+            className="flex w-full shrink-0 flex-col gap-5 border-gray-200 border-t pt-6 lg:w-72 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-6"
+            aria-label={t('categories.byBudget')}
+          >
+            <h2 className="type-label text-gray-600">
+              {t('categories.byBudget')}
+            </h2>
+            <div className="flex flex-col gap-5">
+              {sortedBudgetsSidebar.map((b) => {
+                const cats = categoriesByBudget.byBudgetId.get(b.id) ?? []
+                const sortedCats = [
+                  ...cats
+                ].sort((a, c2) =>
+                  a.name.localeCompare(c2.name, 'sv', {
+                    sensitivity: 'base'
+                  })
+                )
+                return (
+                  <div
+                    key={b.id}
+                    className="flex flex-col gap-2"
                   >
-                    <TableCell className="font-medium">
-                      {category.name}
-                      {category.archived && (
-                        <Badge
-                          variant="secondary"
-                          className="ml-2"
-                        >
-                          {t('common.archived')}
-                        </Badge>
+                    <p className="type-label-small text-gray-500">{b.name}</p>
+                    <div className="flex flex-row flex-wrap gap-1">
+                      {sortedCats.length === 0 ? (
+                        <span className="type-body-small text-muted-foreground">
+                          {'\u2014'}
+                        </span>
+                      ) : (
+                        sortedCats.map((c) => (
+                          <Badge
+                            key={c.id}
+                            color={categoryBadgeColor(c.id)}
+                            label={c.name}
+                          />
+                        ))
                       )}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline">
-                        {category.types
-                          .map(
-                            (ty) =>
-                              ty.charAt(0).toUpperCase() +
-                              ty.slice(1).toLowerCase()
-                          )
-                          .join(' & ')}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{category._count?.transactions ?? 0}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <IconButton
-                          variant="text"
-                          color="subtle"
-                          icon={<PencilIcon />}
-                          onClick={() => void 0}
-                        />
-                        <IconButton
-                          variant="text"
-                          color="subtle"
-                          icon={
-                            category.archived ? (
-                              <ArchiveRestoreIcon className="h-4 w-4" />
-                            ) : (
-                              <ArchiveIcon className="h-4 w-4" />
-                            )
-                          }
-                          onClick={() =>
-                            archiveCategory({
-                              id: category.id,
-                              archived: !category.archived,
-                              userId
-                            })
-                          }
-                          title={
-                            category.archived
-                              ? t('common.unarchive')
-                              : t('common.archive')
-                          }
-                        />
-                        <BaseButton
-                          variant="text"
-                          color="subtle"
-                          iconOnly
-                          className={
-                            (category._count?.transactions ?? 0) > 0
-                              ? 'opacity-50'
-                              : undefined
-                          }
-                          onClick={() => handleDeleteCategory(category)}
-                          title={t('common.delete')}
-                        >
-                          <TrashIcon className="h-4 w-4" />
-                        </BaseButton>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </Card>
-        )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </aside>
+        ) : null}
       </div>
-      {confirmDialog}
-    </div>
+    </PageLayout>
   )
 }

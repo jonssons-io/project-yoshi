@@ -3,8 +3,10 @@ import { useAuth } from '@clerk/tanstack-react-start'
 import { auth } from '@clerk/tanstack-react-start/server'
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
+import { format, subDays } from 'date-fns'
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
+import { z } from 'zod'
 import { configureApiClient } from '@/api/client-config'
 import { AppSidebar } from '@/components/app-sidebar'
 import {
@@ -32,9 +34,23 @@ const authStateFn = createServerFn().handler(async () => {
   }
 })
 
+const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/
+
+const dateRangeSearchSchema = z.object({
+  from: z
+    .string()
+    .regex(DATE_PATTERN)
+    .catch(() => format(subDays(new Date(), 29), 'yyyy-MM-dd')),
+  to: z
+    .string()
+    .regex(DATE_PATTERN)
+    .catch(() => format(new Date(), 'yyyy-MM-dd'))
+})
+
 export const Route = createFileRoute('/_authenticated')({
   beforeLoad: async () => await authStateFn(),
-  component: AuthenticatedLayout
+  component: AuthenticatedLayout,
+  validateSearch: (search) => dateRangeSearchSchema.parse(search)
 })
 
 function AuthenticatedLayout() {

@@ -11,6 +11,7 @@ import type { IncomeOverviewStatus } from '@/routes/_authenticated/income/-compo
 import { AllocateBudgetDrawer } from './drawers/allocate-budget-drawer'
 import { BillBasisFilterDrawer } from './drawers/bill-basis-filter-drawer'
 import { BillOverviewFilterDrawer } from './drawers/bill-overview-filter-drawer'
+import { CategoriesTableFilterDrawer } from './drawers/categories-table-filter-drawer'
 import { CreateAccountDrawer } from './drawers/create-account-drawer'
 import { CreateBillDrawer } from './drawers/create-bill-drawer'
 import { CreateBudgetDrawer } from './drawers/create-budget-drawer'
@@ -19,6 +20,9 @@ import { CreateTransactionDrawer } from './drawers/create-transaction-drawer'
 import { DashboardChartSettingsDrawer } from './drawers/dashboard-chart-settings-drawer'
 import { DeallocateBudgetDrawer } from './drawers/deallocate-budget-drawer'
 import { EditAccountDrawer } from './drawers/edit-account-drawer'
+import { EditBillBlueprintAllDrawer } from './drawers/edit-bill-blueprint-drawer/edit-bill-blueprint-all-drawer'
+import { EditBillBlueprintUpcomingDrawer } from './drawers/edit-bill-blueprint-drawer/edit-bill-blueprint-upcoming-drawer'
+import { EditBillInstanceDrawer } from './drawers/edit-bill-instance-drawer'
 import { EditBudgetDrawer } from './drawers/edit-budget-drawer'
 import { EditIncomeBlueprintDrawer } from './drawers/edit-income-blueprint-drawer'
 import { EditIncomeInstanceDrawer } from './drawers/edit-income-instance-drawer'
@@ -152,6 +156,15 @@ export type DrawerPropsMap = {
     incomeId: string
     mode: 'all'
   }
+  editBillInstance: {
+    instanceId: string
+  }
+  editBillBlueprintUpcoming: {
+    billId: string
+  }
+  editBillBlueprintAll: {
+    billId: string
+  }
   incomeSourceFilterDrawer: {
     columnFilters: ColumnFiltersState
     onApply: (filters: ColumnFiltersState) => void
@@ -240,6 +253,18 @@ export type DrawerPropsMap = {
       max?: number
     }
   }
+  categoriesTableFilterDrawer: {
+    columnFilters: ColumnFiltersState
+    onApply: (filters: ColumnFiltersState) => void
+    availableTypes: Array<{
+      value: string
+      label: string
+    }>
+    availableBudgets: Array<{
+      value: string
+      label: string
+    }>
+  }
 }
 
 export type DrawerName = keyof DrawerPropsMap
@@ -325,6 +350,18 @@ export const drawerMeta = {
     titleKey: 'drawers.editIncomeBlueprintAll.title',
     descriptionKey: 'drawers.editIncomeBlueprintAll.description'
   },
+  editBillInstance: {
+    titleKey: 'drawers.editBillInstance.title',
+    descriptionKey: 'drawers.editBillInstance.description'
+  },
+  editBillBlueprintUpcoming: {
+    titleKey: 'drawers.editBillBlueprintUpcoming.title',
+    descriptionKey: 'drawers.editBillBlueprintUpcoming.description'
+  },
+  editBillBlueprintAll: {
+    titleKey: 'drawers.editBillBlueprintAll.title',
+    descriptionKey: 'drawers.editBillBlueprintAll.description'
+  },
   incomeSourceFilterDrawer: {
     titleKey: 'drawers.incomeSourceFilterDrawer.title'
   },
@@ -333,6 +370,9 @@ export const drawerMeta = {
   },
   billBasisFilterDrawer: {
     titleKey: 'drawers.billBasisFilterDrawer.title'
+  },
+  categoriesTableFilterDrawer: {
+    titleKey: 'drawers.categoriesTableFilterDrawer.title'
   }
 } satisfies DrawerMeta
 
@@ -353,9 +393,13 @@ export const drawerComponents = {
   editIncomeInstance: EditIncomeInstanceDrawer,
   editIncomeBlueprintUpcoming: EditIncomeBlueprintDrawer,
   editIncomeBlueprintAll: EditIncomeBlueprintDrawer,
+  editBillInstance: EditBillInstanceDrawer,
+  editBillBlueprintUpcoming: EditBillBlueprintUpcomingDrawer,
+  editBillBlueprintAll: EditBillBlueprintAllDrawer,
   incomeSourceFilterDrawer: IncomeSourceFilterDrawer,
   billOverviewFilterDrawer: BillOverviewFilterDrawer,
-  billBasisFilterDrawer: BillBasisFilterDrawer
+  billBasisFilterDrawer: BillBasisFilterDrawer,
+  categoriesTableFilterDrawer: CategoriesTableFilterDrawer
 } satisfies {
   [K in keyof DrawerPropsMap]: ComponentType<
     DrawerPropsMap[K] & {

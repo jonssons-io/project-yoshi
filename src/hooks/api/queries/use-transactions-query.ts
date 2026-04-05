@@ -1,15 +1,18 @@
 import { useQuery } from '@tanstack/react-query'
 import {
+  getTransactionsSummaryOptions,
   getTransactionOptions,
   listTransactionsOptions
 } from '@/api/generated/@tanstack/react-query.gen'
 import type {
+  GetTransactionsSummaryData,
   GetTransactionData,
   ListTransactionsData
 } from '@/api/generated/types.gen'
 import { fromApiDate } from '@/hooks/api/date-normalization'
 
 type ListTransactionsQuery = NonNullable<ListTransactionsData['query']>
+type GetTransactionsSummaryQuery = GetTransactionsSummaryData['query']
 
 /**
  * Hook to fetch list of transactions for a household, optionally filtered by budget.
@@ -48,6 +51,56 @@ export function useTransactionsList(params: {
         ...transaction,
         date: fromApiDate(transaction.date)
       }))
+  })
+}
+
+/**
+ * Hook to fetch server-side transaction totals for a filtered timestamp range.
+ */
+export function useTransactionsSummary(params: {
+  householdId?: GetTransactionsSummaryQuery['householdId'] | null
+  budgetId?: GetTransactionsSummaryQuery['budgetId'] | null
+  accountId?: GetTransactionsSummaryQuery['accountId'] | null
+  categoryId?: GetTransactionsSummaryQuery['categoryId'] | null
+  billInstanceId?: GetTransactionsSummaryQuery['billInstanceId'] | null
+  type?: GetTransactionsSummaryQuery['type']
+  dateFrom?: Date
+  dateTo?: Date
+  enabled?: boolean
+}) {
+  const {
+    householdId,
+    budgetId,
+    accountId,
+    categoryId,
+    billInstanceId,
+    type,
+    dateFrom,
+    dateTo,
+    enabled = true
+  } = params
+  const dateFromIso = dateFrom?.toISOString()
+  const dateToIso = dateTo?.toISOString()
+
+  return useQuery({
+    ...getTransactionsSummaryOptions({
+      query: {
+        householdId: householdId ?? undefined,
+        budgetId: budgetId ?? undefined,
+        accountId: accountId ?? undefined,
+        categoryId: categoryId ?? undefined,
+        billInstanceId: billInstanceId ?? undefined,
+        type,
+        dateFrom: dateFromIso ?? '',
+        dateTo: dateToIso ?? ''
+      }
+    }),
+    enabled: Boolean(
+      enabled &&
+        dateFromIso &&
+        dateToIso &&
+        (householdId || budgetId || accountId || categoryId || billInstanceId)
+    )
   })
 }
 

@@ -15,8 +15,10 @@ import {
   useAccountsList,
   useCategoriesList,
   useIncomeById,
-  useIncomeList
+  useIncomeList,
+  useUpdateIncome
 } from '@/hooks/api'
+import { getErrorMessage } from '@/lib/api-error'
 import { translateIfLikelyI18nKey } from '@/lib/form-validation'
 import { filterIncomeCategories } from '../create-income-drawer/types'
 
@@ -41,6 +43,7 @@ const DEFAULT_VALUES = {
   recurrenceType: RecurrenceType.MONTHLY as RecurrenceType,
   customIntervalDays: undefined as number | undefined | null,
   changeDate: undefined as Date | undefined | null,
+  expectedDate: new Date(),
   endDate: undefined as Date | undefined | null,
   categoryId: '' as string | undefined
 }
@@ -84,8 +87,16 @@ export function EditIncomeBlueprintDrawer({
     enabled: Boolean(householdId)
   })
 
+  const { mutateAsync: updateIncomeAsync, isPending } = useUpdateIncome()
+
   const incomeSources = useMemo(() => {
-    const byId = new Map<string, { id: string; name: string }>()
+    const byId = new Map<
+      string,
+      {
+        id: string
+        name: string
+      }
+    >()
     for (const inc of incomes) {
       if (inc.incomeSource) {
         byId.set(inc.incomeSource.id, {
@@ -94,39 +105,83 @@ export function EditIncomeBlueprintDrawer({
         })
       }
     }
-    return [...byId.values()]
-  }, [incomes])
+    return [
+      ...byId.values()
+    ]
+  }, [
+    incomes
+  ])
 
   const incomeCategories = useMemo(
     () => filterIncomeCategories(categories),
-    [categories]
+    [
+      categories
+    ]
   )
 
   const categoryOptions = useMemo(
-    () => incomeCategories.map((c) => ({ value: c.id, label: c.name })),
-    [incomeCategories]
+    () =>
+      incomeCategories.map((c) => ({
+        value: c.id,
+        label: c.name
+      })),
+    [
+      incomeCategories
+    ]
   )
 
   const accountOptions = useMemo(
-    () => accounts.map((a) => ({ value: a.id, label: a.name })),
-    [accounts]
+    () =>
+      accounts.map((a) => ({
+        value: a.id,
+        label: a.name
+      })),
+    [
+      accounts
+    ]
   )
 
   const sourceOptions = useMemo(
-    () => incomeSources.map((s) => ({ value: s.id, label: s.name })),
-    [incomeSources]
+    () =>
+      incomeSources.map((s) => ({
+        value: s.id,
+        label: s.name
+      })),
+    [
+      incomeSources
+    ]
   )
 
   const recurrenceOptions = useMemo(
     () => [
-      { value: RecurrenceType.NONE, label: t('recurrence.none') },
-      { value: RecurrenceType.WEEKLY, label: t('recurrence.weekly') },
-      { value: RecurrenceType.MONTHLY, label: t('recurrence.monthly') },
-      { value: RecurrenceType.QUARTERLY, label: t('recurrence.quarterly') },
-      { value: RecurrenceType.YEARLY, label: t('recurrence.yearly') },
-      { value: RecurrenceType.CUSTOM, label: t('recurrence.custom') }
+      {
+        value: RecurrenceType.NONE,
+        label: t('recurrence.none')
+      },
+      {
+        value: RecurrenceType.WEEKLY,
+        label: t('recurrence.weekly')
+      },
+      {
+        value: RecurrenceType.MONTHLY,
+        label: t('recurrence.monthly')
+      },
+      {
+        value: RecurrenceType.QUARTERLY,
+        label: t('recurrence.quarterly')
+      },
+      {
+        value: RecurrenceType.YEARLY,
+        label: t('recurrence.yearly')
+      },
+      {
+        value: RecurrenceType.CUSTOM,
+        label: t('recurrence.custom')
+      }
     ],
-    [t]
+    [
+      t
+    ]
   )
 
   const form = useAppForm({
@@ -145,16 +200,47 @@ export function EditIncomeBlueprintDrawer({
         return
       }
 
-      // TODO: Wire to scoped update API once backend adds IncomeUpdateType (FUTURE / ALL)
-      toast.info(t('common.error'))
-      void result
+      const trimmedCategory = result.data.categoryId?.trim()
+
+      try {
+        await updateIncomeAsync({
+          id: incomeId,
+          userId,
+          name: result.data.name,
+          incomeSourceId: result.data.incomeSourceId,
+          amount: result.data.amount,
+          expectedDate: result.data.expectedDate,
+          accountId: result.data.accountId,
+          recurrenceType: result.data.recurrenceType,
+          customIntervalDays:
+            result.data.recurrenceType === RecurrenceType.CUSTOM
+              ? result.data.customIntervalDays
+              : undefined,
+          ...(result.data.endDate != null
+            ? {
+                endDate: result.data.endDate
+              }
+            : {}),
+          ...(trimmedCategory
+            ? {
+                categoryId: trimmedCategory
+              }
+            : {})
+        })
+        toast.success(t('income.updateSuccess'))
+        onClose()
+      } catch (err) {
+        toast.error(getErrorMessage(err))
+      }
     }
   })
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: reset local init flag when opening another income
   useEffect(() => {
     setHasInitializedForm(false)
-  }, [incomeId])
+  }, [
+    incomeId
+  ])
 
   useEffect(() => {
     if (!income || hasInitializedForm) return
@@ -165,15 +251,23 @@ export function EditIncomeBlueprintDrawer({
     form.setFieldValue('amount', income.estimatedAmount)
     form.setFieldValue('recurrenceType', income.recurrenceType)
     form.setFieldValue('customIntervalDays', income.customIntervalDays ?? null)
+    form.setFieldValue('expectedDate', income.expectedDate)
     form.setFieldValue('endDate', income.endDate ?? null)
     form.setFieldValue('categoryId', income.categoryId ?? '')
 
     if (mode === 'upcoming') {
       form.setFieldValue('changeDate', income.expectedDate)
+    } else {
+      form.setFieldValue('changeDate', null)
     }
 
     setHasInitializedForm(true)
-  }, [income, form, hasInitializedForm, mode])
+  }, [
+    income,
+    form,
+    hasInitializedForm,
+    mode
+  ])
 
   if (isIncomePending || (!hasInitializedForm && !isIncomeError)) {
     return (
@@ -201,6 +295,26 @@ export function EditIncomeBlueprintDrawer({
       }}
     >
       <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto">
+        {mode === 'upcoming' ? (
+          <form.AppField
+            name="changeDate"
+            validators={{
+              onChange: createTranslatedZodValidator(
+                editIncomeBlueprintObjectSchema.shape.changeDate,
+                t
+              )
+            }}
+          >
+            {(field) => (
+              <field.DateField
+                label={t('income.editBlueprintDrawer.changeDateLabel')}
+                labelHelpText={`${t('income.editBlueprintDrawer.changeDateHelp')} ${t('income.editBlueprintDrawer.changeDateContractNote')}`}
+                calendarPosition="start"
+              />
+            )}
+          </form.AppField>
+        ) : null}
+
         <form.AppField
           name="name"
           validators={{
@@ -318,25 +432,23 @@ export function EditIncomeBlueprintDrawer({
           }
         </form.Subscribe>
 
-        {mode === 'upcoming' ? (
-          <form.AppField
-            name="changeDate"
-            validators={{
-              onChange: createTranslatedZodValidator(
-                editIncomeBlueprintObjectSchema.shape.changeDate,
-                t
-              )
-            }}
-          >
-            {(field) => (
-              <field.DateField
-                label={t('income.editBlueprintDrawer.changeDateLabel')}
-                labelHelpText={t('income.editBlueprintDrawer.changeDateHelp')}
-                calendarPosition="start"
-              />
-            )}
-          </form.AppField>
-        ) : null}
+        <form.AppField
+          name="expectedDate"
+          validators={{
+            onChange: createTranslatedZodValidator(
+              editIncomeBlueprintObjectSchema.shape.expectedDate,
+              t
+            )
+          }}
+        >
+          {(field) => (
+            <field.DateField
+              label={t('income.editBlueprintDrawer.expectedDateLabel')}
+              labelHelpText={t('income.editBlueprintDrawer.expectedDateHelp')}
+              calendarPosition="start"
+            />
+          )}
+        </form.AppField>
 
         <form.AppField name="endDate">
           {(field) => (
@@ -377,7 +489,7 @@ export function EditIncomeBlueprintDrawer({
               color="primary"
               icon={<Check aria-hidden={true} />}
               label={t('income.editBlueprintDrawer.submit')}
-              disabled={isSubmitting}
+              disabled={isSubmitting || isPending}
               onClick={() => void 0}
             />
           )}

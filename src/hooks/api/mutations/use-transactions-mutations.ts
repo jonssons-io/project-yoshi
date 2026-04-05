@@ -15,6 +15,7 @@ import type {
   UpdateTransactionResponse
 } from '@/api/generated/types.gen'
 import { toApiDate, toApiDateRequired } from '@/hooks/api/date-normalization'
+import { withTitleCasedCategoryFieldsForTransactionBody } from '@/lib/category-name-normalize'
 import { invalidateByOperation } from '../invalidate-by-operation'
 import type { MutationCallbacks } from '../types'
 
@@ -52,10 +53,10 @@ export function useCreateTransaction(
   >({
     mutationFn: async (variables: CreateTransactionVariables) => {
       const { userId: _userId, date, ...rest } = variables
-      const body = {
+      const body = withTitleCasedCategoryFieldsForTransactionBody({
         ...rest,
         date: toApiDateRequired(date)
-      }
+      })
       const mutationFn = mutationOptions.mutationFn
       if (!mutationFn)
         throw new Error('Missing createTransaction mutation function')
@@ -68,6 +69,7 @@ export function useCreateTransaction(
     },
     onSuccess: (data, variables) => {
       invalidateByOperation(queryClient, 'listTransactions')
+      invalidateByOperation(queryClient, 'getTransactionsSummary')
       invalidateByOperation(queryClient, 'getHouseholdPeriodSummary')
       invalidateByOperation(queryClient, 'listBudgets')
       invalidateByOperation(queryClient, 'getUnallocatedFunds')
@@ -75,7 +77,9 @@ export function useCreateTransaction(
       if (variables.instanceId) {
         invalidateByOperation(queryClient, 'listIncomeInstances')
         invalidateByOperation(queryClient, 'listIncomeInstancesFiltered')
+        invalidateByOperation(queryClient, 'getIncomeInstancesSummary')
         invalidateByOperation(queryClient, 'listBillInstances')
+        invalidateByOperation(queryClient, 'getBillInstancesSummary')
       }
       if (variables.newIncomeSourceName) {
         invalidateByOperation(queryClient, 'listIncomeSources')
@@ -104,10 +108,10 @@ export function useUpdateTransaction(
   >({
     mutationFn: async (variables: UpdateTransactionVariables) => {
       const { id, userId: _userId, date, ...rest } = variables
-      const body = {
+      const body = withTitleCasedCategoryFieldsForTransactionBody({
         ...rest,
         date: toApiDate(date)
-      }
+      })
       const mutationFn = mutationOptions.mutationFn
       if (!mutationFn)
         throw new Error('Missing updateTransaction mutation function')
@@ -123,6 +127,7 @@ export function useUpdateTransaction(
     },
     onSuccess: (data, variables) => {
       invalidateByOperation(queryClient, 'listTransactions')
+      invalidateByOperation(queryClient, 'getTransactionsSummary')
       invalidateByOperation(queryClient, 'getHouseholdPeriodSummary')
       invalidateByOperation(queryClient, 'listBudgets')
       invalidateByOperation(queryClient, 'getUnallocatedFunds')
@@ -168,6 +173,7 @@ export function useDeleteTransaction(
       })(),
     onSuccess: (data, variables) => {
       invalidateByOperation(queryClient, 'listTransactions')
+      invalidateByOperation(queryClient, 'getTransactionsSummary')
       invalidateByOperation(queryClient, 'getHouseholdPeriodSummary')
       invalidateByOperation(queryClient, 'listBudgets')
       invalidateByOperation(queryClient, 'getUnallocatedFunds')
@@ -207,6 +213,7 @@ export function useCloneTransaction(
       })(),
     onSuccess: (data, variables) => {
       invalidateByOperation(queryClient, 'listTransactions')
+      invalidateByOperation(queryClient, 'getTransactionsSummary')
       invalidateByOperation(queryClient, 'getHouseholdPeriodSummary')
       invalidateByOperation(queryClient, 'listBudgets')
       invalidateByOperation(queryClient, 'getUnallocatedFunds')

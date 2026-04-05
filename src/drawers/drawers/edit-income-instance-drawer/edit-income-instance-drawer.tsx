@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
-import { CategoryType } from '@/api/generated/types.gen'
+import { BlueprintUpdateScope, CategoryType } from '@/api/generated/types.gen'
 import { Alert } from '@/components/alert/alert'
 import { Button } from '@/components/button/button'
 import {
@@ -167,6 +167,7 @@ export function EditIncomeInstanceDrawer({
         await updateIncomeInstanceAsync({
           id: instance.id,
           userId,
+          updateType: BlueprintUpdateScope.INSTANCE,
           name: result.data.name,
           amount: result.data.amount,
           expectedDate: result.data.expectedDate,

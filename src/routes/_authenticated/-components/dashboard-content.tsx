@@ -17,7 +17,6 @@ import { Button } from '@/components/button/button'
 import { IconButton } from '@/components/icon-button/icon-button'
 import { PageLayout } from '@/components/page-layout/page-layout'
 import { Progress } from '@/components/progress/progress'
-import { TableRowMenu } from '@/components/table-row-menu/table-row-menu'
 import {
   Table,
   TableBody,
@@ -26,14 +25,12 @@ import {
   TableHeader,
   TableRow
 } from '@/components/table/table'
+import { TableRowMenu } from '@/components/table-row-menu/table-row-menu'
 import { useAuth } from '@/contexts/auth-context'
 import { useDrawer } from '@/drawers'
-import {
-  useAccountBalanceChart,
-  useHouseholdPeriodSummary
-} from '@/hooks/api'
+import { useAccountBalanceChart, useHouseholdPeriodSummary } from '@/hooks/api'
+import { useDateRange } from '@/hooks/use-date-range'
 import type { ChartDataPoint } from '@/lib/dashboard-utils'
-import { getDateRange } from '@/lib/dashboard-utils'
 import { formatCurrency } from '@/lib/utils'
 import type { UseDashboardSettingsResult } from './use-dashboard-settings'
 
@@ -61,6 +58,8 @@ type DashboardContentProps = {
   dashboardSettings: UseDashboardSettingsResult
   onOpenChartSettings: () => void
   unallocatedAmount: number
+  /** Accounts, budgets, balances, or allocations still loading from the dashboard route */
+  isParentDataLoading: boolean
 }
 
 function budgetProgressTone(
@@ -86,27 +85,23 @@ export function DashboardContent({
   budgets,
   dashboardSettings,
   onOpenChartSettings,
-  unallocatedAmount
+  unallocatedAmount,
+  isParentDataLoading
 }: DashboardContentProps) {
   const { t } = useTranslation()
   const { householdId } = useAuth()
   const { openDrawer } = useDrawer()
+  const { dateFrom, dateTo } = useDateRange()
 
-  const { quickSelection, customStartDate, customEndDate, selectedAccountIds } =
-    dashboardSettings
+  const { selectedAccountIds } = dashboardSettings
 
-  const { startDate, endDate } = getDateRange(
-    quickSelection,
-    customStartDate,
-    customEndDate
-  )
-
-  const { data: periodSummary } = useHouseholdPeriodSummary({
-    householdId,
-    dateFrom: startDate,
-    dateTo: endDate,
-    enabled: Boolean(householdId)
-  })
+  const { data: periodSummary, isLoading: periodSummaryLoading } =
+    useHouseholdPeriodSummary({
+      householdId,
+      dateFrom,
+      dateTo,
+      enabled: Boolean(householdId)
+    })
 
   const totalIncome = periodSummary?.totalIncome ?? 0
   const totalExpense = periodSummary?.totalExpense ?? 0
@@ -127,18 +122,23 @@ export function DashboardContent({
     ]
   )
 
-  const { data: chartResponse } = useAccountBalanceChart({
-    householdId,
-    accountIds: chartAccountIds,
-    dateFrom: startDate,
-    dateTo: endDate,
-    enabled: chartAccountIds.length > 0 && !!householdId
-  })
+  const { data: chartResponse, isLoading: chartLoading } =
+    useAccountBalanceChart({
+      householdId,
+      accountIds: chartAccountIds,
+      dateFrom,
+      dateTo,
+      enabled: chartAccountIds.length > 0 && !!householdId
+    })
+
+  const loadingHeader = isParentDataLoading || periodSummaryLoading
+  const loadingContent = isParentDataLoading || chartLoading
 
   const totalAvailableFunds = useMemo(
     () =>
       accounts.reduce(
-        (sum, account) => sum + Number(account.currentBalance ?? account.initialBalance),
+        (sum, account) =>
+          sum + Number(account.currentBalance ?? account.initialBalance),
         0
       ),
     [
@@ -227,6 +227,8 @@ export function DashboardContent({
     <PageLayout
       title={t('nav.dashboard')}
       description={t('dashboard.overviewSubtitle')}
+      loadingHeader={loadingHeader}
+      loadingContent={loadingContent}
       quickActions={[
         {
           id: 'add-transaction',

@@ -1,11 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
-import { format } from 'date-fns'
-
 import { getHouseholdPeriodSummaryOptions } from '@/api/generated/@tanstack/react-query.gen'
 
 /**
- * Dashboard-style income / expense / net totals for an inclusive calendar date range.
- * Query params are `YYYY-MM-DD` (local calendar dates from the given `Date` values).
+ * Dashboard-style income / expense / net totals for an inclusive UTC timestamp range.
  */
 export function useHouseholdPeriodSummary(params: {
   householdId?: string | null
@@ -14,8 +11,8 @@ export function useHouseholdPeriodSummary(params: {
   enabled?: boolean
 }) {
   const { householdId, dateFrom, dateTo, enabled = true } = params
-  const dateFromStr = dateFrom ? format(dateFrom, 'yyyy-MM-dd') : undefined
-  const dateToStr = dateTo ? format(dateTo, 'yyyy-MM-dd') : undefined
+  const dateFromIso = dateFrom?.toISOString()
+  const dateToIso = dateTo?.toISOString()
 
   return useQuery({
     ...getHouseholdPeriodSummaryOptions({
@@ -23,10 +20,10 @@ export function useHouseholdPeriodSummary(params: {
         householdId: householdId ?? ''
       },
       query: {
-        dateFrom: dateFromStr ?? '',
-        dateTo: dateToStr ?? ''
+        dateFrom: dateFromIso ?? '',
+        dateTo: dateToIso ?? ''
       }
     }),
-    enabled: Boolean(enabled && householdId && dateFromStr && dateToStr)
+    enabled: Boolean(enabled && householdId && dateFromIso && dateToIso)
   })
 }
