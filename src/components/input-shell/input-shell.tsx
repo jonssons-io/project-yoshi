@@ -10,6 +10,10 @@ export const inputShellClassName =
 export const inputInnerClassName =
   'min-w-0 flex-1 border-0 bg-transparent p-0 type-label text-black outline-none placeholder:text-gray-500 focus-visible:ring-0 disabled:cursor-not-allowed disabled:opacity-50'
 
+/** Use with `type="number"` when native steppers are hidden (e.g. small `step`). */
+export const numberInputNoSpinnersClassName =
+  '[&::-webkit-outer-spin-button]:[-webkit-appearance:none] [&::-webkit-inner-spin-button]:[-webkit-appearance:none] [-moz-appearance:textfield]'
+
 export const inputIconClassName =
   'inline-flex size-4 shrink-0 items-center justify-center text-gray-500 [&_svg]:size-4 [&_svg]:shrink-0'
 

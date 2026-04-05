@@ -151,7 +151,6 @@ export function AllocateBudgetDrawer({
               unit={t('common.currencyCode')}
               min={0}
               max={availableToAllocate}
-              step={100}
             />
           )}
         </form.AppField>

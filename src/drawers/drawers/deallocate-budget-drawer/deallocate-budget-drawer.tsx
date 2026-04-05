@@ -139,7 +139,6 @@ export function DeallocateBudgetDrawer({
               unit={t('common.currencyCode')}
               min={0}
               max={currentAllocation}
-              step={100}
             />
           )}
         </form.AppField>

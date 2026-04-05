@@ -201,7 +201,6 @@ export function CreateBudgetDrawer({ onClose }: CreateBudgetDrawerProps) {
               label={t('budgets.drawerInitialBudget')}
               unit={t('common.currencyCode')}
               min={0}
-              step={100}
             />
           )}
         </form.AppField>

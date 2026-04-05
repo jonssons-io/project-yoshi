@@ -166,7 +166,6 @@ export function CreateAccountDrawer({ onClose }: CreateAccountDrawerProps) {
               label={t('accounts.drawerInitialBalance')}
               unit={t('common.currencyCode')}
               min={0}
-              step={100}
             />
           )}
         </form.AppField>

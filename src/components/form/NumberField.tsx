@@ -1,16 +1,13 @@
 /**
- * NumberField — numeric input with up to two decimal places; step buttons use integer steps only.
+ * NumberField — native `type="number"`; optional `min` / `max` / `step` for validation hints.
  */
 
-import { ChevronDownIcon, ChevronUpIcon } from 'lucide-react'
-import { useTranslation } from 'react-i18next'
 import { FormField } from '@/components/form-field/form-field'
 import {
-  INPUT_ICON_STROKE,
   InputShell,
-  inputInnerClassName
+  inputInnerClassName,
+  numberInputNoSpinnersClassName
 } from '@/components/input-shell/input-shell'
-import { ShadcnButton } from '@/components/ui/button'
 import { useFieldContext } from '@/hooks/form'
 import { cn } from '@/lib/utils'
 
@@ -23,36 +20,13 @@ export interface NumberFieldProps {
   min?: number
   max?: number
   /**
-   * Step for the up/down controls. Coerced to a positive integer; default `1`.
-   * The numeric value may still have up to two decimal places.
+   * Native `step` (default `0.01`).
    */
   step?: string | number
   /**
    * Prepended unit label (e.g. "SEK"), type-label in gray-500.
    */
   unit?: string
-}
-
-function parseStep(step: string | number): number {
-  const raw = typeof step === 'number' ? step : Number.parseFloat(step)
-  if (!Number.isFinite(raw)) {
-    return 1
-  }
-  const t = Math.trunc(raw)
-  return t >= 1 ? t : 1
-}
-
-/** Round to at most two decimal places (half-up). */
-function roundToTwoDecimals(n: number): number {
-  return Math.round(n * 100) / 100
-}
-
-function formatDisplayValue(n: number): string {
-  const r = roundToTwoDecimals(n)
-  if (Object.is(r, -0)) {
-    return '0'
-  }
-  return String(r)
 }
 
 export function NumberField({
@@ -63,57 +37,19 @@ export function NumberField({
   disabled,
   min,
   max,
-  step = 1,
+  step = 0.01,
   unit
 }: NumberFieldProps) {
-  const { t } = useTranslation()
   const field = useFieldContext<number>()
-  const stepNum = parseStep(step)
+  const stepAttr = typeof step === 'number' ? String(step) : step
 
   const hasError =
     field.state.meta.isTouched && field.state.meta.errors.length > 0
   const errorText = hasError ? field.state.meta.errors.join(', ') : null
 
   const raw = field.state.value
-  const displayValue =
-    raw === undefined || raw === null || Number.isNaN(raw)
-      ? ''
-      : formatDisplayValue(raw)
-
-  const clamp = (n: number): number => {
-    let v = roundToTwoDecimals(n)
-    if (min !== undefined) {
-      v = Math.max(roundToTwoDecimals(min), v)
-    }
-    if (max !== undefined) {
-      v = Math.min(roundToTwoDecimals(max), v)
-    }
-    return roundToTwoDecimals(v)
-  }
-
-  const setFromNumber = (n: number) => {
-    field.handleChange(clamp(n))
-  }
-
-  const onInputChange = (s: string) => {
-    if (s === '' || s === '-') {
-      field.handleChange(0)
-      return
-    }
-    const parsed = Number.parseFloat(s)
-    if (Number.isNaN(parsed)) {
-      return
-    }
-    setFromNumber(parsed)
-  }
-
-  const bump = (delta: number) => {
-    const base =
-      typeof raw === 'number' && !Number.isNaN(raw)
-        ? roundToTwoDecimals(raw)
-        : 0
-    setFromNumber(base + delta * stepNum)
-  }
+  const valueAttr =
+    raw === undefined || raw === null || Number.isNaN(raw) ? '' : raw
 
   return (
     <FormField
@@ -131,43 +67,26 @@ export function NumberField({
         <input
           id={field.name}
           name={field.name}
-          type="text"
+          type="number"
           inputMode="decimal"
-          autoComplete="off"
+          step={stepAttr}
+          min={min}
+          max={max}
           placeholder={placeholder}
-          value={displayValue}
-          onChange={(e) => onInputChange(e.target.value)}
+          value={valueAttr}
+          onChange={(e) => {
+            const v = e.target.value
+            if (v === '') {
+              field.handleChange(0)
+              return
+            }
+            field.handleChange(e.target.valueAsNumber)
+          }}
           onBlur={field.handleBlur}
           disabled={disabled}
           aria-invalid={hasError || undefined}
-          className={cn(inputInnerClassName)}
+          className={cn(inputInnerClassName, numberInputNoSpinnersClassName)}
         />
-        <div className="flex shrink-0 flex-col">
-          <ShadcnButton
-            type="button"
-            disabled={disabled}
-            className="flex size-4 items-center justify-center rounded-sm border-0 bg-transparent p-0 text-gray-500 hover:bg-gray-100 hover:text-gray-800"
-            onClick={() => bump(1)}
-            aria-label={t('common.increase')}
-          >
-            <ChevronUpIcon
-              strokeWidth={INPUT_ICON_STROKE}
-              className="size-4"
-            />
-          </ShadcnButton>
-          <ShadcnButton
-            type="button"
-            disabled={disabled}
-            className="flex size-4 items-center justify-center rounded-sm border-0 bg-transparent p-0 text-gray-500 hover:bg-gray-100 hover:text-gray-800"
-            onClick={() => bump(-1)}
-            aria-label={t('common.decrease')}
-          >
-            <ChevronDownIcon
-              strokeWidth={INPUT_ICON_STROKE}
-              className="size-4"
-            />
-          </ShadcnButton>
-        </div>
       </InputShell>
     </FormField>
   )

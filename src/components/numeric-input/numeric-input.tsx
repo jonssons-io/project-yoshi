@@ -1,4 +1,9 @@
-import { InputShell, inputInnerClassName } from '@/components/input-shell/input-shell'
+import {
+  InputShell,
+  inputInnerClassName,
+  numberInputNoSpinnersClassName
+} from '@/components/input-shell/input-shell'
+import { cn } from '@/lib/utils'
 
 export interface NumericInputProps {
   id?: string
@@ -6,14 +11,17 @@ export interface NumericInputProps {
   onValueChange: (value: number | undefined) => void
   min?: number
   max?: number
+  /**
+   * Passed to the native `step` attribute (default `0.01`).
+   */
+  step?: string | number
   disabled?: boolean
   placeholder?: string
   unit?: string
 }
 
 /**
- * Lightweight controlled numeric input for non-form UI like filters.
- * Keeps the shared input shell styling without coupling callers to the low-level primitive.
+ * Filter / shell numeric field: native `type="number"`; no rounding or clamping in JS.
  */
 export function NumericInput({
   id,
@@ -21,10 +29,13 @@ export function NumericInput({
   onValueChange,
   min,
   max,
+  step = 0.01,
   disabled,
   placeholder,
   unit
 }: NumericInputProps) {
+  const stepAttr = typeof step === 'number' ? String(step) : step
+
   return (
     <InputShell>
       {unit ? (
@@ -34,17 +45,25 @@ export function NumericInput({
         id={id}
         type="number"
         inputMode="decimal"
-        step="any"
+        step={stepAttr}
         min={min}
         max={max}
         disabled={disabled}
         placeholder={placeholder}
-        value={value ?? ''}
-        onChange={(event) => {
-          const nextValue = event.target.value
-          onValueChange(nextValue === '' ? undefined : Number(nextValue))
+        value={
+          value === undefined || value === null || Number.isNaN(value)
+            ? ''
+            : value
+        }
+        onChange={(e) => {
+          const v = e.target.value
+          if (v === '') {
+            onValueChange(undefined)
+            return
+          }
+          onValueChange(e.target.valueAsNumber)
         }}
-        className={inputInnerClassName}
+        className={cn(inputInnerClassName, numberInputNoSpinnersClassName)}
       />
     </InputShell>
   )

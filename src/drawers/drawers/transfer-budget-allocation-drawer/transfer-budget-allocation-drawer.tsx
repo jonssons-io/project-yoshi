@@ -252,7 +252,6 @@ export function TransferBudgetAllocationDrawer({
                     unit={t('common.currencyCode')}
                     min={0}
                     max={allocationByBudgetId.get(fromBudgetId)}
-                    step={100}
                   />
                 )}
               </form.AppField>
