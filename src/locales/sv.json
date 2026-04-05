@@ -671,7 +671,8 @@
     "customIntervalRequired": "Anpassat intervall krävs",
     "categoryOrSectionsRequired": "Kategori eller sektioner krävs",
     "categoryRequiredForSections": "Kategori krävs för alla sektioner",
-    "categoryOrNameRequired": "Kategori eller namn på ny kategori krävs"
+    "categoryOrNameRequired": "Kategori eller namn på ny kategori krävs",
+    "emailInvalid": "Ange en giltig e-postadress"
   },
   "income": {
     "title": "Inkomster",
@@ -921,6 +922,21 @@
     },
     "categoriesTableFilterDrawer": {
       "title": "Kategorifilter"
+    },
+    "editHousehold": {
+      "title": "Redigera hushåll",
+      "noHouseholdSelected": "Välj ett hushåll för att redigera det.",
+      "nameLabel": "Namn",
+      "addLabel": "Lägg till",
+      "addInvite": "Skicka inbjudan",
+      "save": "Spara hushåll",
+      "statusMember": "Medlem",
+      "statusInvited": "Inbjuden",
+      "inviteSent": "Inbjudan skickad"
+    },
+    "myInvitations": {
+      "title": "Dina inbjudningar",
+      "description": "Här ser du hushåll som bjudit in dig. Acceptera för att gå med, eller avböj om du inte vill ansluta."
     }
   }
 }

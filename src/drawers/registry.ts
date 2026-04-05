@@ -15,6 +15,7 @@ import { CategoriesTableFilterDrawer } from './drawers/categories-table-filter-d
 import { CreateAccountDrawer } from './drawers/create-account-drawer'
 import { CreateBillDrawer } from './drawers/create-bill-drawer'
 import { CreateBudgetDrawer } from './drawers/create-budget-drawer'
+import { CreateHouseholdDrawer } from './drawers/create-household-drawer'
 import { CreateIncomeDrawer } from './drawers/create-income-drawer/create-income-drawer'
 import { CreateTransactionDrawer } from './drawers/create-transaction-drawer'
 import { DashboardChartSettingsDrawer } from './drawers/dashboard-chart-settings-drawer'
@@ -24,10 +25,12 @@ import { EditBillBlueprintAllDrawer } from './drawers/edit-bill-blueprint-drawer
 import { EditBillBlueprintUpcomingDrawer } from './drawers/edit-bill-blueprint-drawer/edit-bill-blueprint-upcoming-drawer'
 import { EditBillInstanceDrawer } from './drawers/edit-bill-instance-drawer'
 import { EditBudgetDrawer } from './drawers/edit-budget-drawer'
+import { EditHouseholdDrawer } from './drawers/edit-household-drawer'
 import { EditIncomeBlueprintDrawer } from './drawers/edit-income-blueprint-drawer'
 import { EditIncomeInstanceDrawer } from './drawers/edit-income-instance-drawer'
 import { IncomeSourceFilterDrawer } from './drawers/income-source-filter-drawer'
 import { IncomeTableFilterDrawer } from './drawers/income-table-filter-drawer'
+import { MyInvitationsDrawer } from './drawers/my-invitations-drawer'
 import { TransactionsTableFilterDrawer } from './drawers/transactions-table-filter-drawer'
 import { TransferBudgetAllocationDrawer } from './drawers/transfer-budget-allocation-drawer'
 
@@ -265,6 +268,9 @@ export type DrawerPropsMap = {
       label: string
     }>
   }
+  createHousehold: Record<string, never>
+  editHousehold: Record<string, never>
+  myInvitations: Record<string, never>
 }
 
 export type DrawerName = keyof DrawerPropsMap
@@ -373,6 +379,17 @@ export const drawerMeta = {
   },
   categoriesTableFilterDrawer: {
     titleKey: 'drawers.categoriesTableFilterDrawer.title'
+  },
+  createHousehold: {
+    titleKey: 'setup.noHouseholdTitle',
+    descriptionKey: 'setup.noHouseholdDescription'
+  },
+  editHousehold: {
+    titleKey: 'drawers.editHousehold.title'
+  },
+  myInvitations: {
+    titleKey: 'drawers.myInvitations.title',
+    descriptionKey: 'drawers.myInvitations.description'
   }
 } satisfies DrawerMeta
 
@@ -399,7 +416,10 @@ export const drawerComponents = {
   incomeSourceFilterDrawer: IncomeSourceFilterDrawer,
   billOverviewFilterDrawer: BillOverviewFilterDrawer,
   billBasisFilterDrawer: BillBasisFilterDrawer,
-  categoriesTableFilterDrawer: CategoriesTableFilterDrawer
+  categoriesTableFilterDrawer: CategoriesTableFilterDrawer,
+  createHousehold: CreateHouseholdDrawer,
+  editHousehold: EditHouseholdDrawer,
+  myInvitations: MyInvitationsDrawer
 } satisfies {
   [K in keyof DrawerPropsMap]: ComponentType<
     DrawerPropsMap[K] & {
