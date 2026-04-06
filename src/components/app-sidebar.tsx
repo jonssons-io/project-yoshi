@@ -83,7 +83,10 @@ export function AppSidebar({
         <div className="flex flex-col gap-8">
           <Link
             to="/"
-            search={{ from, to }}
+            search={{
+              from,
+              to
+            }}
             activeOptions={{
               exact: true
             }}
@@ -128,7 +131,10 @@ export function AppSidebar({
           <div className="flex flex-col gap-2 px-4">
             <span className="type-label text-black">{t('common.date')}</span>
             <DateRangePicker
-              value={{ from: dateFrom, to: dateTo }}
+              value={{
+                from: dateFrom,
+                to: dateTo
+              }}
               onChange={setDateRange}
               placeholder={t('common.pickDate')}
               side="right"
@@ -141,7 +147,10 @@ export function AppSidebar({
                 <li key={item.url}>
                   <Link
                     to={item.url}
-                    search={{ from, to }}
+                    search={{
+                      from,
+                      to
+                    }}
                     activeOptions={{
                       exact: item.url === '/'
                     }}

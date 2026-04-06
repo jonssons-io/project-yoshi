@@ -17,7 +17,10 @@ const createAccountSchema = (t: (key: string) => string) =>
   z.object({
     name: z.string().min(1, t('validation.accountNameRequired')),
     externalIdentifier: z.string().optional(),
-    initialBalance: z.number().default(0),
+    initialBalance: z.preprocess(
+      (val) => (val === null ? 0 : val),
+      z.number().min(0, t('budgets.drawerInitialBudgetMin'))
+    ),
     budgetIds: z.array(z.string()).optional()
   })
 
@@ -27,7 +30,9 @@ export interface AccountFormProps {
   /**
    * Initial values for editing an existing account
    */
-  defaultValues?: Partial<AccountFormData>
+  defaultValues?: Partial<AccountFormData> & {
+    initialBalance?: number | null
+  }
 
   /**
    * Callback when form is submitted successfully
@@ -77,7 +82,7 @@ export function AccountForm({
     defaultValues: {
       name: defaultValues?.name ?? '',
       externalIdentifier: defaultValues?.externalIdentifier ?? '',
-      initialBalance: defaultValues?.initialBalance ?? 0,
+      initialBalance: defaultValues?.initialBalance ?? null,
       budgetIds: defaultValues?.budgetIds ?? budgets.map((b) => b.id)
     },
     onSubmit: async ({ value }) => {

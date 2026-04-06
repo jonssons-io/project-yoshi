@@ -6,7 +6,10 @@ import type { MutableRefObject } from 'react'
 import { RecurrenceType } from '@/api/generated/types.gen'
 import type { DataTableColumnDef } from '@/components/data-table'
 import { IconButton } from '@/components/icon-button/icon-button'
-import { TableRowMenu, type TableRowMenuItem } from '@/components/table-row-menu/table-row-menu'
+import {
+  TableRowMenu,
+  type TableRowMenuItem
+} from '@/components/table-row-menu/table-row-menu'
 import { formatCurrency } from '@/lib/utils'
 
 export type IncomeSourceDataRow = {
@@ -14,7 +17,7 @@ export type IncomeSourceDataRow = {
   name: string
   recurrenceType: RecurrenceType
   customIntervalDays: number | null | undefined
-  startDate: Date
+  expectedDate: Date
   endDate: Date | undefined
   amount: number
   accountId: string
@@ -23,8 +26,8 @@ export type IncomeSourceDataRow = {
   categoryName: string
   senderId: string
   senderName: string
-  /** True when the income blueprint has been revised (e.g. amount changed). Requires backend support. */
-  hasRevisions: boolean
+  /** Logical revision count from the API (`GET …/revisions`); 1 = creation snapshot only. */
+  numberOfRevisions: number
 }
 
 export type IncomeSourceLabelLookup = {
@@ -88,15 +91,14 @@ export type CreateIncomeSourceDataColumnsParams = {
   onDeleteIncome: (incomeId: string) => void
 }
 
-function recurrenceFilterPillValue(
-  value: unknown,
-  t: TFunction
-): string {
+function recurrenceFilterPillValue(value: unknown, t: TFunction): string {
   if (!Array.isArray(value)) return ''
   return (value as RecurrenceType[])
     .map((item) =>
       item === RecurrenceType.CUSTOM
-        ? t('income.sourceData.recurrence.custom', { days: '?' })
+        ? t('income.sourceData.recurrence.custom', {
+            days: '?'
+          })
         : recurrenceLabel(item, null, t)
     )
     .join(', ')
@@ -107,10 +109,7 @@ function presenceFilterPillValue(value: unknown, t: TFunction): string {
   return value[0] === 'has' ? t('common.has') : t('common.doesNotHave')
 }
 
-function matchesPresenceFilter(
-  value: boolean,
-  filterValue: unknown
-): boolean {
+function matchesPresenceFilter(value: boolean, filterValue: unknown): boolean {
   if (!Array.isArray(filterValue) || filterValue.length !== 1) return true
   return filterValue[0] === 'has' ? value : !value
 }
@@ -129,9 +128,9 @@ export function createIncomeSourceDataColumns({
       enableSorting: false,
       header: t('income.sourceData.columns.revisions'),
       filterFn: (row, _columnId, filterValue: PresenceFilterValue) =>
-        matchesPresenceFilter(row.original.hasRevisions, filterValue),
+        matchesPresenceFilter(row.original.numberOfRevisions > 1, filterValue),
       cell: ({ row }) => {
-        if (!row.original.hasRevisions) return null
+        if (row.original.numberOfRevisions <= 1) return null
         return (
           <IconButton
             type="button"
@@ -155,7 +154,9 @@ export function createIncomeSourceDataColumns({
       id: 'name',
       accessorKey: 'name',
       header: t('forms.transactionName'),
-      meta: { globalSearchable: true }
+      meta: {
+        globalSearchable: true
+      }
     },
     {
       id: 'recurrence',
@@ -185,11 +186,11 @@ export function createIncomeSourceDataColumns({
     },
     {
       id: 'period',
-      accessorFn: (row) => row.startDate.getTime(),
+      accessorFn: (row) => row.expectedDate.getTime(),
       header: t('income.sourceData.columns.period'),
       cell: ({ row }) => {
-        const { startDate, endDate, recurrenceType } = row.original
-        const startStr = format(startDate, 'yyyy-MM-dd')
+        const { expectedDate, endDate, recurrenceType } = row.original
+        const startStr = format(expectedDate, 'yyyy-MM-dd')
 
         if (recurrenceType === RecurrenceType.NONE) {
           return <span>{startStr}</span>
@@ -209,8 +210,10 @@ export function createIncomeSourceDataColumns({
       },
       sortingFn: 'basic',
       filterFn: (row, _columnId, filterValue: IncomeSourceDateFilterValue) => {
-        const start = row.original.startDate.getTime()
-        const end = (row.original.endDate ?? row.original.startDate).getTime()
+        const start = row.original.expectedDate.getTime()
+        const end = (
+          row.original.endDate ?? row.original.expectedDate
+        ).getTime()
         if (filterValue.from && end < new Date(filterValue.from).getTime()) {
           return false
         }
@@ -227,7 +230,8 @@ export function createIncomeSourceDataColumns({
           const filter = value as IncomeSourceDateFilterValue | undefined
           if (!filter) return ''
           const parts: string[] = []
-          if (filter.from) parts.push(format(new Date(filter.from), 'yyyy-MM-dd'))
+          if (filter.from)
+            parts.push(format(new Date(filter.from), 'yyyy-MM-dd'))
           if (filter.to) parts.push(format(new Date(filter.to), 'yyyy-MM-dd'))
           return parts.join(' – ')
         }
@@ -239,10 +243,16 @@ export function createIncomeSourceDataColumns({
       header: t('common.amount'),
       cell: ({ row }) => formatCurrency(row.original.amount),
       sortingFn: 'basic',
-      filterFn: (row, _columnId, filterValue: IncomeSourceAmountFilterValue) => {
+      filterFn: (
+        row,
+        _columnId,
+        filterValue: IncomeSourceAmountFilterValue
+      ) => {
         const amount = row.original.amount
-        if (filterValue.min !== undefined && amount < filterValue.min) return false
-        if (filterValue.max !== undefined && amount > filterValue.max) return false
+        if (filterValue.min !== undefined && amount < filterValue.min)
+          return false
+        if (filterValue.max !== undefined && amount > filterValue.max)
+          return false
         return true
       },
       meta: {
@@ -278,7 +288,9 @@ export function createIncomeSourceDataColumns({
         filterPillValue: (value: unknown) => {
           if (!Array.isArray(value)) return ''
           const lookup = labelLookupRef.current.accounts
-          return (value as string[]).map((id) => lookup.get(id) ?? id).join(', ')
+          return (value as string[])
+            .map((id) => lookup.get(id) ?? id)
+            .join(', ')
         }
       }
     },
@@ -297,7 +309,9 @@ export function createIncomeSourceDataColumns({
         filterPillValue: (value: unknown) => {
           if (!Array.isArray(value)) return ''
           const lookup = labelLookupRef.current.categories
-          return (value as string[]).map((id) => lookup.get(id) ?? id).join(', ')
+          return (value as string[])
+            .map((id) => lookup.get(id) ?? id)
+            .join(', ')
         }
       }
     },
@@ -316,7 +330,9 @@ export function createIncomeSourceDataColumns({
         filterPillValue: (value: unknown) => {
           if (!Array.isArray(value)) return ''
           const lookup = labelLookupRef.current.senders
-          return (value as string[]).map((id) => lookup.get(id) ?? id).join(', ')
+          return (value as string[])
+            .map((id) => lookup.get(id) ?? id)
+            .join(', ')
         }
       }
     },
@@ -340,7 +356,7 @@ export function createIncomeSourceDataColumns({
           }
         ]
 
-        if (row.original.hasRevisions) {
+        if (row.original.numberOfRevisions > 1) {
           items.push({
             id: 'viewRevisions',
             label: t('income.sourceData.rowMenu.viewRevisions'),
@@ -365,7 +381,9 @@ export function createIncomeSourceDataColumns({
           />
         )
       },
-      meta: { globalSearchable: false }
+      meta: {
+        globalSearchable: false
+      }
     }
   ]
 }

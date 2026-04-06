@@ -109,18 +109,12 @@ function transactionNameSearchText(transaction: TransactionListItem): string {
     .join(' ')
 }
 
-function presenceFilterPillValue(
-  value: unknown,
-  t: TFunction
-): string {
+function presenceFilterPillValue(value: unknown, t: TFunction): string {
   if (!Array.isArray(value) || value.length !== 1) return ''
   return value[0] === 'has' ? t('common.has') : t('common.doesNotHave')
 }
 
-function matchesPresenceFilter(
-  value: boolean,
-  filterValue: unknown
-): boolean {
+function matchesPresenceFilter(value: boolean, filterValue: unknown): boolean {
   if (!Array.isArray(filterValue) || filterValue.length !== 1) return true
   return filterValue[0] === 'has' ? value : !value
 }
@@ -279,8 +273,18 @@ export function createTransactionTableColumns({
         filterPillValue: (value: unknown) => {
           const v = value as TransactionDateFilterValue
           const parts: string[] = []
-          if (v.from) parts.push(format(new Date(v.from), 'P', { locale: sv }))
-          if (v.to) parts.push(format(new Date(v.to), 'P', { locale: sv }))
+          if (v.from)
+            parts.push(
+              format(new Date(v.from), 'P', {
+                locale: sv
+              })
+            )
+          if (v.to)
+            parts.push(
+              format(new Date(v.to), 'P', {
+                locale: sv
+              })
+            )
           return parts.join(' – ')
         }
       },
@@ -298,10 +302,15 @@ export function createTransactionTableColumns({
         row: Row<TransactionListItem>,
         _columnId: string,
         filterValue: PresenceFilterValue
-      ) => matchesPresenceFilter(isLinkedToScheduledInstance(row.original), filterValue),
+      ) =>
+        matchesPresenceFilter(
+          isLinkedToScheduledInstance(row.original),
+          filterValue
+        ),
       meta: {
         globalSearchable: true,
-        searchValue: (row: TransactionListItem) => transactionNameSearchText(row),
+        searchValue: (row: TransactionListItem) =>
+          transactionNameSearchText(row),
         filterable: true,
         filterLabel: t('transactions.scheduledLink'),
         filterPillValue: (value: unknown) => presenceFilterPillValue(value, t)
@@ -503,7 +512,9 @@ export function createTransactionTableColumns({
         recipientSenderSortValue(rowA.original).localeCompare(
           recipientSenderSortValue(rowB.original),
           undefined,
-          { numeric: true }
+          {
+            numeric: true
+          }
         ),
       filterFn: (
         row: Row<TransactionListItem>,

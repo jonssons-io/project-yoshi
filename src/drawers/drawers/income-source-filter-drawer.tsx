@@ -18,7 +18,10 @@ import {
   toggleFilterValue
 } from '@/drawers/filter-drawer-helpers'
 
-type SelectOption = { value: string; label: string }
+type SelectOption = {
+  value: string
+  label: string
+}
 
 type PresenceFilterValue = Array<'has' | 'doesNotHave'>
 
@@ -35,7 +38,10 @@ export type IncomeSourceAmountFilterValue = {
 export type IncomeSourceFilterDrawerProps = {
   columnFilters: ColumnFiltersState
   onApply: (filters: ColumnFiltersState) => void
-  availableRecurrences: Array<{ value: RecurrenceType; label: string }>
+  availableRecurrences: Array<{
+    value: RecurrenceType
+    label: string
+  }>
   availableAccounts: SelectOption[]
   availableCategories: SelectOption[]
   availableSenders: SelectOption[]
@@ -78,7 +84,9 @@ export function IncomeSourceFilterDrawer({
     RecurrenceType[]
   >(() => readArrayFilter(columnFilters, 'recurrence', []))
   const [selectedRevisionStates, setSelectedRevisionStates] =
-    useState<PresenceFilterValue>(() => readArrayFilter(columnFilters, 'revisions', []))
+    useState<PresenceFilterValue>(() =>
+      readArrayFilter(columnFilters, 'revisions', [])
+    )
   const [selectedAccounts, setSelectedAccounts] = useState<string[]>(() =>
     readArrayFilter(columnFilters, 'account', [])
   )
@@ -88,13 +96,13 @@ export function IncomeSourceFilterDrawer({
   const [selectedSenders, setSelectedSenders] = useState<string[]>(() =>
     readArrayFilter(columnFilters, 'sender', [])
   )
-  const [amountRange, setAmountRange] =
-    useState<IncomeSourceAmountFilterValue>(() =>
+  const [amountRange, setAmountRange] = useState<IncomeSourceAmountFilterValue>(
+    () =>
       readAmountRangeFilter<IncomeSourceAmountFilterValue>(
         columnFilters,
         'amount'
       )
-    )
+  )
 
   useEffect(() => {
     setDateRange(readDateRangeFilter(columnFilters, 'period'))
@@ -109,13 +117,16 @@ export function IncomeSourceFilterDrawer({
         'amount'
       )
     )
-  }, [columnFilters])
+  }, [
+    columnFilters
+  ])
 
   const handleApply = () => {
     const nextFilters = stripDrawerFilters(columnFilters, FILTER_IDS)
 
     const normalizedDateRange = normalizeDateRange(dateRange) satisfies
-      IncomeSourceDateFilterValue | undefined
+      | IncomeSourceDateFilterValue
+      | undefined
 
     const normalizedAmountRange: IncomeSourceAmountFilterValue = {
       min: amountRange.min,
@@ -123,34 +134,55 @@ export function IncomeSourceFilterDrawer({
     }
 
     if (normalizedDateRange) {
-      nextFilters.push({ id: 'period', value: normalizedDateRange })
+      nextFilters.push({
+        id: 'period',
+        value: normalizedDateRange
+      })
     }
 
     if (selectedRecurrences.length > 0) {
-      nextFilters.push({ id: 'recurrence', value: selectedRecurrences })
+      nextFilters.push({
+        id: 'recurrence',
+        value: selectedRecurrences
+      })
     }
 
     if (selectedRevisionStates.length === 1) {
-      nextFilters.push({ id: 'revisions', value: selectedRevisionStates })
+      nextFilters.push({
+        id: 'revisions',
+        value: selectedRevisionStates
+      })
     }
 
     if (selectedAccounts.length > 0) {
-      nextFilters.push({ id: 'account', value: selectedAccounts })
+      nextFilters.push({
+        id: 'account',
+        value: selectedAccounts
+      })
     }
 
     if (selectedCategories.length > 0) {
-      nextFilters.push({ id: 'category', value: selectedCategories })
+      nextFilters.push({
+        id: 'category',
+        value: selectedCategories
+      })
     }
 
     if (selectedSenders.length > 0) {
-      nextFilters.push({ id: 'sender', value: selectedSenders })
+      nextFilters.push({
+        id: 'sender',
+        value: selectedSenders
+      })
     }
 
     if (
       normalizedAmountRange.min !== undefined ||
       normalizedAmountRange.max !== undefined
     ) {
-      nextFilters.push({ id: 'amount', value: normalizedAmountRange })
+      nextFilters.push({
+        id: 'amount',
+        value: normalizedAmountRange
+      })
     }
 
     onApply(nextFilters)
@@ -178,7 +210,9 @@ export function IncomeSourceFilterDrawer({
           <p className="type-label text-gray-600">{t('recurrence.label')}</p>
           <FilterMultiselect
             value={selectedRecurrences}
-            onChange={(values) => setSelectedRecurrences(values as RecurrenceType[])}
+            onChange={(values) =>
+              setSelectedRecurrences(values as RecurrenceType[])
+            }
             options={availableRecurrences}
             placeholder={t('common.selectAnOption')}
             searchPlaceholder={t('common.search')}
@@ -195,7 +229,7 @@ export function IncomeSourceFilterDrawer({
               checked={selectedRevisionStates.includes('has')}
               onCheckedChange={(checked) => {
                 setSelectedRevisionStates((current) =>
-                    toggleFilterValue(current, 'has', checked)
+                  toggleFilterValue(current, 'has', checked)
                 )
               }}
               label={t('common.has')}
@@ -205,7 +239,7 @@ export function IncomeSourceFilterDrawer({
               checked={selectedRevisionStates.includes('doesNotHave')}
               onCheckedChange={(checked) => {
                 setSelectedRevisionStates((current) =>
-                    toggleFilterValue(current, 'doesNotHave', checked)
+                  toggleFilterValue(current, 'doesNotHave', checked)
                 )
               }}
               label={t('common.doesNotHave')}

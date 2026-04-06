@@ -107,6 +107,9 @@ export function buildCreateTransactionBody(params: {
   const transferName = t('common.transfer')
 
   if (data.transactionType === TransactionType.TRANSFER) {
+    if (data.amount == null) {
+      throw new Error('buildCreateTransactionBody: transfer amount is required')
+    }
     return {
       type: TransactionType.TRANSFER,
       accountId: data.accountId,
@@ -127,7 +130,12 @@ export function buildCreateTransactionBody(params: {
     data.splits.length > 0
   ) {
     const splitRows = data.splits
-    const splitsTotal = splitRows.reduce((s, r) => s + r.amount, 0)
+    const splitsTotal = splitRows.reduce((s, r) => {
+      if (r.amount == null) {
+        throw new Error('buildCreateTransactionBody: split amount is required')
+      }
+      return s + r.amount
+    }, 0)
     return {
       type: TransactionType.EXPENSE,
       accountId: data.accountId,
@@ -136,20 +144,30 @@ export function buildCreateTransactionBody(params: {
       date: data.date,
       budgetId: null,
       categoryId: null,
-      splits: splitRows.map((row) => ({
-        subtitle:
-          row.subtitle.trim().length > 0
-            ? row.subtitle.trim()
-            : t('forms.namelessSection'),
-        amount: row.amount,
-        budgetId: row.budgetId,
-        ...splitCategoryToApi(row.category)
-      })),
+      splits: splitRows.map((row) => {
+        if (row.amount == null) {
+          throw new Error(
+            'buildCreateTransactionBody: split amount is required'
+          )
+        }
+        return {
+          subtitle:
+            row.subtitle.trim().length > 0
+              ? row.subtitle.trim()
+              : t('forms.namelessSection'),
+          amount: row.amount,
+          budgetId: row.budgetId,
+          ...splitCategoryToApi(row.category)
+        }
+      }),
       ...recipientToApi(data.recipient)
     }
   }
 
   if (data.transactionType === TransactionType.EXPENSE) {
+    if (data.amount == null) {
+      throw new Error('buildCreateTransactionBody: expense amount is required')
+    }
     return {
       type: TransactionType.EXPENSE,
       accountId: data.accountId,
@@ -163,6 +181,9 @@ export function buildCreateTransactionBody(params: {
     }
   }
 
+  if (data.amount == null) {
+    throw new Error('buildCreateTransactionBody: income amount is required')
+  }
   return {
     type: TransactionType.INCOME,
     accountId: data.accountId,

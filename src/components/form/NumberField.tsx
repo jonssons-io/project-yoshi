@@ -40,7 +40,7 @@ export function NumberField({
   step = 0.01,
   unit
 }: NumberFieldProps) {
-  const field = useFieldContext<number>()
+  const field = useFieldContext<number | null>()
   const stepAttr = typeof step === 'number' ? String(step) : step
 
   const hasError =
@@ -77,10 +77,11 @@ export function NumberField({
           onChange={(e) => {
             const v = e.target.value
             if (v === '') {
-              field.handleChange(0)
+              field.handleChange(null)
               return
             }
-            field.handleChange(e.target.valueAsNumber)
+            const n = e.target.valueAsNumber
+            field.handleChange(Number.isFinite(n) ? n : null)
           }}
           onBlur={field.handleBlur}
           disabled={disabled}

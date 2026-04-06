@@ -12,12 +12,6 @@ import { IconButton } from '@/components/icon-button/icon-button'
 import { TableRowMenu } from '@/components/table-row-menu/table-row-menu'
 import { formatCurrency } from '@/lib/utils'
 
-export type IncomeOverviewStatus =
-  | 'handled'
-  | 'received'
-  | 'overdue'
-  | 'upcoming'
-
 export type IncomeDateFilterValue = {
   from?: string
   to?: string
@@ -43,21 +37,6 @@ export type IncomeOverviewRow = {
   categoryName: string
   senderId: string
   senderName: string
-}
-
-export function mapIncomeOverviewStatus(
-  apiStatus: IncomeInstanceStatus
-): IncomeOverviewStatus {
-  switch (apiStatus) {
-    case IncomeInstanceStatus.HANDLED:
-      return 'handled'
-    case IncomeInstanceStatus.RECEIVED:
-      return 'received'
-    case IncomeInstanceStatus.OVERDUE:
-      return 'overdue'
-    default:
-      return 'upcoming'
-  }
 }
 
 const STATUS_BADGE_COLOR: Record<IncomeInstanceStatus, BadgeColor> = {

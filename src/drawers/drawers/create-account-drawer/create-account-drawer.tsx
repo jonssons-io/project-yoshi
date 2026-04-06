@@ -21,7 +21,7 @@ export type CreateAccountDrawerProps = {
 const DEFAULT_VALUES = {
   name: '',
   externalIdentifier: '',
-  initialBalance: 0,
+  initialBalance: null as number | null,
   budgetIds: [] as string[]
 }
 
@@ -53,7 +53,10 @@ export function CreateAccountDrawer({ onClose }: CreateAccountDrawerProps) {
       z.object({
         name: z.string().min(1, 'validation.accountNameRequired'),
         externalIdentifier: z.string().optional(),
-        initialBalance: z.number().min(0, 'budgets.drawerInitialBudgetMin'),
+        initialBalance: z.preprocess(
+          (val) => (val === null ? 0 : val),
+          z.number().min(0, 'budgets.drawerInitialBudgetMin')
+        ),
         budgetIds: z.array(z.string())
       }),
     []

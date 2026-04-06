@@ -74,6 +74,8 @@ export function useCreateTransaction(
       invalidateByOperation(queryClient, 'listBudgets')
       invalidateByOperation(queryClient, 'getUnallocatedFunds')
       invalidateByOperation(queryClient, 'listAccounts')
+      invalidateByOperation(queryClient, 'listAccountBalances')
+      invalidateByOperation(queryClient, 'getHouseholdAccountBalanceChart')
       if (variables.instanceId) {
         invalidateByOperation(queryClient, 'listIncomeInstances')
         invalidateByOperation(queryClient, 'listIncomeInstancesFiltered')

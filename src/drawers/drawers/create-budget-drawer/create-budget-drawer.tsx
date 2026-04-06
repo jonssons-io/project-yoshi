@@ -28,7 +28,7 @@ export type CreateBudgetDrawerProps = {
 
 const DEFAULT_VALUES = {
   name: '',
-  initialAmount: 0,
+  initialAmount: null as number | null,
   categoryIds: [] as string[]
 }
 
@@ -72,13 +72,16 @@ export function CreateBudgetDrawer({ onClose }: CreateBudgetDrawerProps) {
       z
         .object({
           name: z.string().min(1, 'validation.budgetNameRequired'),
-          initialAmount: z.number().min(0, 'budgets.drawerInitialBudgetMin'),
+          initialAmount: z.preprocess(
+            (val) => (val === null ? 0 : val),
+            z.number().min(0, 'budgets.drawerInitialBudgetMin')
+          ),
           categoryIds: z.array(z.string())
         })
         .superRefine((data, ctx) => {
           if (data.initialAmount > unallocatedAmount) {
             ctx.addIssue({
-              code: z.ZodIssueCode.custom,
+              code: 'custom',
               message: 'budgets.drawerAmountExceedsAvailable',
               path: [
                 'initialAmount'

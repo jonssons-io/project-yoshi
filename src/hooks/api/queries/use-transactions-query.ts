@@ -1,12 +1,12 @@
 import { useQuery } from '@tanstack/react-query'
 import {
-  getTransactionsSummaryOptions,
   getTransactionOptions,
+  getTransactionsSummaryOptions,
   listTransactionsOptions
 } from '@/api/generated/@tanstack/react-query.gen'
 import type {
-  GetTransactionsSummaryData,
   GetTransactionData,
+  GetTransactionsSummaryData,
   ListTransactionsData
 } from '@/api/generated/types.gen'
 import { fromApiDate } from '@/hooks/api/date-normalization'
@@ -23,6 +23,8 @@ export function useTransactionsList(params: {
   budgetId?: ListTransactionsQuery['budgetId'] | null
   userId?: string | null
   type?: ListTransactionsQuery['type']
+  billInstanceId?: ListTransactionsQuery['billInstanceId'] | null
+  incomeInstanceId?: ListTransactionsQuery['incomeInstanceId'] | null
   dateFrom?: Date
   dateTo?: Date
   enabled?: boolean
@@ -31,6 +33,8 @@ export function useTransactionsList(params: {
     householdId,
     budgetId,
     type,
+    billInstanceId,
+    incomeInstanceId,
     dateFrom,
     dateTo,
     enabled = true
@@ -41,6 +45,8 @@ export function useTransactionsList(params: {
         householdId: householdId ?? undefined,
         budgetId: budgetId ?? undefined,
         type,
+        billInstanceId: billInstanceId ?? undefined,
+        incomeInstanceId: incomeInstanceId ?? undefined,
         dateFrom: dateFrom?.toISOString(),
         dateTo: dateTo?.toISOString()
       }

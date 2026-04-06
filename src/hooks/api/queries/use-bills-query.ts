@@ -55,7 +55,7 @@ export function useBillsList(params: {
         }
         return {
           ...bill,
-          startDate: fromApiDate(bill.startDate),
+          dueDate: fromApiDate(bill.dueDate),
           endDate: fromOptionalApiDate(bill.endDate ?? undefined),
           lastPaymentDate: fromOptionalApiDate(
             bill.lastPaymentDate ?? undefined
@@ -110,8 +110,7 @@ export function useBillInstancesList(params: {
             ...bill,
             category: bill.category ?? syntheticSplit?.category,
             splits: normalizeBackendSplits(bill.splits),
-            dueDate: fromApiDate(bill.dueDate),
-            startDate: fromApiDate(bill.startDate)
+            dueDate: fromApiDate(bill.dueDate)
           }
         })
         .filter((bill) => (budgetId ? bill.budget?.id === budgetId : true))
@@ -209,8 +208,7 @@ export function useBillInstanceById(params: {
         ...bill,
         category: bill.category ?? syntheticSplit?.category,
         splits: normalizeBackendSplits(bill.splits),
-        dueDate: fromApiDate(bill.dueDate),
-        startDate: fromApiDate(bill.startDate)
+        dueDate: fromApiDate(bill.dueDate)
       }
     }
   })

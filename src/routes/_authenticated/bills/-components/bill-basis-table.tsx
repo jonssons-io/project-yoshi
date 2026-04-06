@@ -19,7 +19,7 @@ export type BillBasisRow = {
   name: string
   recurrenceType: RecurrenceType
   customIntervalDays: number | null | undefined
-  startDate: Date
+  dueDate: Date
   endDate: Date | undefined
   amount: number
   paymentHandling: BillPaymentHandling | null | undefined
@@ -31,7 +31,8 @@ export type BillBasisRow = {
   categoryName: string
   recipientId: string
   recipientName: string
-  hasRevisions: boolean
+  /** Logical revision count from the API (`GET …/revisions`); 1 = creation snapshot only. */
+  numberOfRevisions: number
 }
 
 export const BILL_BASIS_NO_ACCOUNT_FILTER_VALUE = '__no_account__'
@@ -148,9 +149,9 @@ export function createBillBasisColumns({
       enableSorting: false,
       header: t('bills.basisData.columns.revisions'),
       filterFn: (row, _columnId, filterValue: PresenceFilterValue) =>
-        matchesPresenceFilter(row.original.hasRevisions, filterValue),
+        matchesPresenceFilter(row.original.numberOfRevisions > 1, filterValue),
       cell: ({ row }) => {
-        if (!row.original.hasRevisions) return null
+        if (row.original.numberOfRevisions <= 1) return null
         return (
           <IconButton
             type="button"
@@ -238,11 +239,11 @@ export function createBillBasisColumns({
     },
     {
       id: 'period',
-      accessorFn: (row) => row.startDate.getTime(),
+      accessorFn: (row) => row.dueDate.getTime(),
       header: t('bills.basisData.columns.period'),
       cell: ({ row }) => {
-        const { startDate, endDate, recurrenceType } = row.original
-        const startStr = format(startDate, 'yyyy-MM-dd')
+        const { dueDate, endDate, recurrenceType } = row.original
+        const startStr = format(dueDate, 'yyyy-MM-dd')
 
         if (recurrenceType === RecurrenceType.NONE) {
           return <span>{startStr}</span>
@@ -262,8 +263,8 @@ export function createBillBasisColumns({
       },
       sortingFn: 'basic',
       filterFn: (row, _columnId, filterValue: BillBasisDateFilterValue) => {
-        const start = row.original.startDate.getTime()
-        const end = (row.original.endDate ?? row.original.startDate).getTime()
+        const start = row.original.dueDate.getTime()
+        const end = (row.original.endDate ?? row.original.dueDate).getTime()
         if (filterValue.from && end < new Date(filterValue.from).getTime()) {
           return false
         }
@@ -436,7 +437,7 @@ export function createBillBasisColumns({
           }
         ]
 
-        if (row.original.hasRevisions) {
+        if (row.original.numberOfRevisions > 1) {
           items.push({
             id: 'viewRevisions',
             label: t('bills.basisData.rowMenu.viewRevisions'),

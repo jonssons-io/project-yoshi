@@ -3,8 +3,14 @@ import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
-import { CategoryType, RecurrenceType } from '@/api/generated/types.gen'
+import {
+  BlueprintPatchScope,
+  CategoryType,
+  type UpdateIncomeRequest,
+  RecurrenceType
+} from '@/api/generated/types.gen'
 import { Button } from '@/components/button/button'
+import type { ComboboxValue } from '@/components/form'
 import {
   createTranslatedZodValidator,
   safeValidateForm,
@@ -24,8 +30,39 @@ import { filterIncomeCategories } from '../create-income-drawer/types'
 
 import {
   editIncomeBlueprintObjectSchema,
-  editIncomeBlueprintSchema
+  editIncomeBlueprintSchema,
+  type EditIncomeBlueprintFormValues
 } from './schema'
+
+function incomeSourceToUpdate(
+  v: EditIncomeBlueprintFormValues['incomeSource']
+): Pick<UpdateIncomeRequest, 'incomeSourceId' | 'newIncomeSourceName'> {
+  if (typeof v === 'object' && v !== null && 'isNew' in v && v.isNew) {
+    return {
+      newIncomeSourceName: v.name
+    }
+  }
+  return {
+    incomeSourceId: v as string
+  }
+}
+
+function categoryToUpdate(
+  c: EditIncomeBlueprintFormValues['category']
+): Pick<UpdateIncomeRequest, 'categoryId' | 'newCategoryName'> {
+  if (c == null || c === undefined) return {}
+  if (typeof c === 'object' && 'isNew' in c && c.isNew) {
+    return {
+      newCategoryName: c.name
+    }
+  }
+  if (typeof c === 'string' && c.length > 0) {
+    return {
+      categoryId: c
+    }
+  }
+  return {}
+}
 
 export type EditIncomeBlueprintMode = 'upcoming' | 'all'
 
@@ -37,7 +74,7 @@ export type EditIncomeBlueprintDrawerProps = {
 
 const DEFAULT_VALUES = {
   name: '',
-  incomeSourceId: '',
+  incomeSource: '' as ComboboxValue,
   accountId: '',
   amount: 0,
   recurrenceType: RecurrenceType.MONTHLY as RecurrenceType,
@@ -45,7 +82,7 @@ const DEFAULT_VALUES = {
   changeDate: undefined as Date | undefined | null,
   expectedDate: new Date(),
   endDate: undefined as Date | undefined | null,
-  categoryId: '' as string | undefined
+  category: null as ComboboxValue | null
 }
 
 export function EditIncomeBlueprintDrawer({
@@ -200,32 +237,50 @@ export function EditIncomeBlueprintDrawer({
         return
       }
 
-      const trimmedCategory = result.data.categoryId?.trim()
+      if (mode === 'upcoming' && result.data.changeDate == null) {
+        toast.error(t('validation.dateRequired'))
+        return
+      }
+
+      const isUpcoming = mode === 'upcoming'
+      const amount = result.data.amount
+      if (amount == null) {
+        toast.error(t('validation.positive'))
+        return
+      }
 
       try {
         await updateIncomeAsync({
           id: incomeId,
           userId,
+          updateScope: isUpcoming
+            ? BlueprintPatchScope.UPCOMING
+            : BlueprintPatchScope.ALL,
+          ...(isUpcoming && result.data.changeDate
+            ? {
+                fromDate: result.data.changeDate
+              }
+            : {}),
           name: result.data.name,
-          incomeSourceId: result.data.incomeSourceId,
-          amount: result.data.amount,
+          ...incomeSourceToUpdate(result.data.incomeSource),
+          amount,
           expectedDate: result.data.expectedDate,
           accountId: result.data.accountId,
-          recurrenceType: result.data.recurrenceType,
-          customIntervalDays:
-            result.data.recurrenceType === RecurrenceType.CUSTOM
-              ? result.data.customIntervalDays
-              : undefined,
+          ...(isUpcoming
+            ? {
+                recurrenceType: result.data.recurrenceType,
+                customIntervalDays:
+                  result.data.recurrenceType === RecurrenceType.CUSTOM
+                    ? (result.data.customIntervalDays ?? undefined)
+                    : undefined
+              }
+            : {}),
           ...(result.data.endDate != null
             ? {
                 endDate: result.data.endDate
               }
             : {}),
-          ...(trimmedCategory
-            ? {
-                categoryId: trimmedCategory
-              }
-            : {})
+          ...categoryToUpdate(result.data.category)
         })
         toast.success(t('income.updateSuccess'))
         onClose()
@@ -246,14 +301,14 @@ export function EditIncomeBlueprintDrawer({
     if (!income || hasInitializedForm) return
 
     form.setFieldValue('name', income.name)
-    form.setFieldValue('incomeSourceId', income.incomeSourceId)
+    form.setFieldValue('incomeSource', income.incomeSourceId)
     form.setFieldValue('accountId', income.accountId)
     form.setFieldValue('amount', income.estimatedAmount)
     form.setFieldValue('recurrenceType', income.recurrenceType)
     form.setFieldValue('customIntervalDays', income.customIntervalDays ?? null)
     form.setFieldValue('expectedDate', income.expectedDate)
     form.setFieldValue('endDate', income.endDate ?? null)
-    form.setFieldValue('categoryId', income.categoryId ?? '')
+    form.setFieldValue('category', income.categoryId ?? null)
 
     if (mode === 'upcoming') {
       form.setFieldValue('changeDate', income.expectedDate)
@@ -334,10 +389,10 @@ export function EditIncomeBlueprintDrawer({
         </form.AppField>
 
         <form.AppField
-          name="incomeSourceId"
+          name="incomeSource"
           validators={{
             onChange: createTranslatedZodValidator(
-              editIncomeBlueprintObjectSchema.shape.incomeSourceId,
+              editIncomeBlueprintObjectSchema.shape.incomeSource,
               t
             )
           }}
@@ -349,6 +404,8 @@ export function EditIncomeBlueprintDrawer({
               searchPlaceholder={t('forms.searchPlaceholder')}
               emptyText={t('forms.noMatches')}
               options={sourceOptions}
+              allowCreate
+              createLabel={t('forms.addSender')}
             />
           )}
         </form.AppField>
@@ -460,7 +517,7 @@ export function EditIncomeBlueprintDrawer({
           )}
         </form.AppField>
 
-        <form.AppField name="categoryId">
+        <form.AppField name="category">
           {(field) => (
             <field.ComboboxField
               label={t('common.category')}
@@ -468,6 +525,8 @@ export function EditIncomeBlueprintDrawer({
               searchPlaceholder={t('forms.searchPlaceholder')}
               emptyText={t('forms.noMatches')}
               options={categoryOptions}
+              allowCreate
+              createLabel={t('forms.createIncomeCategory')}
             />
           )}
         </form.AppField>

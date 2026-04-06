@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 import { RecurrenceType } from '@/api/generated/types.gen'
+import { nullablePositiveNumber } from '@/lib/zod-nullable-number'
 
 /** Base object schema — keep `.shape` for per-field validators (superRefine wraps the object). */
 export const incomeObjectSchema = z.object({
@@ -17,7 +18,7 @@ export const incomeObjectSchema = z.object({
     .refine((v): v is Exclude<typeof v, null> => v !== null, {
       message: 'validation.sourceRequired'
     }),
-  amount: z.number().positive('validation.positive'),
+  amount: nullablePositiveNumber('validation.positive'),
   expectedDate: z.date({
     message: 'validation.dateRequired'
   }),
@@ -40,11 +41,20 @@ export const incomeObjectSchema = z.object({
 
 /** Full schema for submit / parsing (all fields required except end date; custom interval when recurrence is CUSTOM). */
 export const incomeSchema = incomeObjectSchema.superRefine((data, ctx) => {
+  if (data.amount == null) {
+    ctx.addIssue({
+      code: 'custom',
+      message: 'validation.positive',
+      path: [
+        'amount'
+      ]
+    })
+  }
   if (data.recurrenceType !== RecurrenceType.CUSTOM) return
   const n = data.customIntervalDays
   if (n == null || n < 1) {
     ctx.addIssue({
-      code: z.ZodIssueCode.custom,
+      code: 'custom',
       message: 'validation.customIntervalRequired',
       path: [
         'customIntervalDays'

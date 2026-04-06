@@ -9,7 +9,7 @@ import { useAppForm } from '@/components/form'
 import { TransactionTypeSegmentedControl } from '@/components/transaction-type-segmented-control/transaction-type-segmented-control'
 import { useAuth } from '@/contexts/auth-context'
 import {
-  useAccountsList,
+  useAccountBalancesList,
   useBudgetsList,
   useCreateTransaction,
   useIncomeSourcesList,
@@ -17,9 +17,11 @@ import {
 } from '@/hooks/api'
 import { getErrorMessage } from '@/lib/api-error'
 import {
-  safeValidateForm,
+  applyZodIssuesToTanStackForm,
+  clearTanStackFieldErrors,
   translateIfLikelyI18nKey
 } from '@/lib/form-validation'
+import { formatCurrency } from '@/lib/utils'
 
 import { ExpenseIncomeTransferFields } from './expense-income-transfer-fields'
 import { buildCreateTransactionBody } from './map-to-request'
@@ -74,11 +76,11 @@ export function CreateTransactionDrawer({
 
   const { mutate: createTransaction, isPending } = useCreateTransaction()
 
-  const { data: accounts = [] } = useAccountsList({
+  const { data: accountBalances = [] } = useAccountBalancesList({
     householdId,
     userId,
-    enabled: !!householdId,
-    excludeArchived: true
+    enabled: Boolean(householdId),
+    includeArchived: false
   })
 
   const { data: budgets = [] } = useBudgetsList({
@@ -107,7 +109,9 @@ export function CreateTransactionDrawer({
           value: s.id,
           label: s.name
         })),
-    [incomeSources]
+    [
+      incomeSources
+    ]
   )
 
   const defaultValues = useMemo<DrawerFormValues>(() => {
@@ -136,12 +140,27 @@ export function CreateTransactionDrawer({
       }
     }
     return DRAWER_DEFAULT_VALUES
-  }, [incomeInstance, billInstance])
+  }, [
+    incomeInstance,
+    billInstance
+  ])
 
   const form = useAppForm({
     defaultValues,
     canSubmitWhenInvalid: true,
-    onSubmit: async ({ value }) => {
+    onSubmitInvalid: ({ formApi }) => {
+      for (const meta of Object.values(formApi.state.fieldMeta)) {
+        const m = meta as {
+          errors?: string[]
+        }
+        const first = m?.errors?.[0]
+        if (first) {
+          toast.error(translateIfLikelyI18nKey(first, t))
+          return
+        }
+      }
+    },
+    onSubmit: async ({ value, formApi }) => {
       const hasSplits =
         value.transactionType === TransactionType.EXPENSE &&
         useSplits &&
@@ -152,20 +171,74 @@ export function CreateTransactionDrawer({
         splits: hasSplits ? value.splits : []
       }
 
-      const parsed = safeValidateForm(drawerFormSchema, payload)
-      if (!parsed.success) {
-        const msg = parsed.errors[0]?.message ?? 'common.error'
-        toast.error(translateIfLikelyI18nKey(msg, t))
+      const splitCount = payload.splits?.length ?? 0
+      const keysToReset = [
+        'name',
+        'date',
+        'amount',
+        'accountId',
+        'transferToAccountId',
+        'budgetId',
+        'category',
+        'recipient',
+        'sender'
+      ]
+      for (let i = 0; i < splitCount; i++) {
+        keysToReset.push(
+          `splits[${i}].subtitle`,
+          `splits[${i}].amount`,
+          `splits[${i}].budgetId`,
+          `splits[${i}].category`
+        )
+      }
+      clearTanStackFieldErrors(formApi, keysToReset)
+
+      const zodResult = drawerFormSchema.safeParse(payload)
+      if (!zodResult.success) {
+        applyZodIssuesToTanStackForm(formApi, zodResult.error.issues, (m) =>
+          translateIfLikelyI18nKey(m, t)
+        )
+        const splitIdx = new Set<number>()
+        for (const issue of zodResult.error.issues) {
+          if (issue.path[0] === 'splits' && typeof issue.path[1] === 'number') {
+            splitIdx.add(issue.path[1])
+          }
+        }
+        if (splitIdx.size > 0 && payload.splits?.length) {
+          setExpandedSplitIds((m) => {
+            const next = {
+              ...m
+            }
+            for (const i of splitIdx) {
+              const row = payload.splits[i]
+              if (row) {
+                next[row.id] = true
+              }
+            }
+            return next
+          })
+        }
         return
       }
 
-      const data = parsed.data
-      const body = buildCreateTransactionBody({
-        t,
-        data,
-        hasSplits,
-        instanceId: incomeInstance?.instanceId ?? billInstance?.instanceId
-      })
+      if (!householdId) {
+        toast.error(t('server.badRequest.missingHouseholdId'))
+        return
+      }
+
+      const data = zodResult.data
+      let body: ReturnType<typeof buildCreateTransactionBody>
+      try {
+        body = buildCreateTransactionBody({
+          t,
+          data,
+          hasSplits,
+          instanceId: incomeInstance?.instanceId ?? billInstance?.instanceId
+        })
+      } catch (err) {
+        toast.error(getErrorMessage(err))
+        return
+      }
 
       createTransaction(
         {
@@ -196,7 +269,11 @@ export function CreateTransactionDrawer({
     if (match) {
       form.setFieldValue('sender', match.id)
     }
-  }, [incomeInstance, incomeSources, form])
+  }, [
+    incomeInstance,
+    incomeSources,
+    form
+  ])
 
   const typeOptions = useMemo(
     () => [
@@ -220,12 +297,16 @@ export function CreateTransactionDrawer({
 
   const accountOptions = useMemo(
     () =>
-      accounts.map((a) => ({
-        value: a.id,
-        label: a.name
-      })),
+      accountBalances.map((b) => {
+        const name = b.account.name?.trim() || t('common.account')
+        return {
+          value: b.account.id,
+          label: `${name}: ${formatCurrency(b.currentBalance)} SEK`
+        }
+      }),
     [
-      accounts
+      accountBalances,
+      t
     ]
   )
 
@@ -379,7 +460,7 @@ export function CreateTransactionDrawer({
               transactionType={transactionType}
               accountId={accountId}
               budgetId={budgetId}
-              householdId={householdId}
+              householdId={householdId ?? ''}
               splitSwitchId={splitSwitchId}
               userId={userId}
               useSplits={useSplits}

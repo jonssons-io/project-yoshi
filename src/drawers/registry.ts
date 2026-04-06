@@ -3,14 +3,15 @@ import type { ComponentType } from 'react'
 
 import type {
   BillPaymentHandling,
+  IncomeInstanceStatus,
   RecurrenceType,
   TransactionType
 } from '@/api/generated/types.gen'
 import type { BillOverviewStatus } from '@/routes/_authenticated/bills/-components/bill-overview-table'
-import type { IncomeOverviewStatus } from '@/routes/_authenticated/income/-components/income-overview-table'
 import { AllocateBudgetDrawer } from './drawers/allocate-budget-drawer'
 import { BillBasisFilterDrawer } from './drawers/bill-basis-filter-drawer'
 import { BillOverviewFilterDrawer } from './drawers/bill-overview-filter-drawer'
+import { BillRevisionsDrawer } from './drawers/bill-revisions-drawer'
 import { CategoriesTableFilterDrawer } from './drawers/categories-table-filter-drawer'
 import { CreateAccountDrawer } from './drawers/create-account-drawer'
 import { CreateBillDrawer } from './drawers/create-bill-drawer'
@@ -28,6 +29,7 @@ import { EditBudgetDrawer } from './drawers/edit-budget-drawer'
 import { EditHouseholdDrawer } from './drawers/edit-household-drawer'
 import { EditIncomeBlueprintDrawer } from './drawers/edit-income-blueprint-drawer'
 import { EditIncomeInstanceDrawer } from './drawers/edit-income-instance-drawer'
+import { IncomeRevisionsDrawer } from './drawers/income-revisions-drawer'
 import { IncomeSourceFilterDrawer } from './drawers/income-source-filter-drawer'
 import { IncomeTableFilterDrawer } from './drawers/income-table-filter-drawer'
 import { MyInvitationsDrawer } from './drawers/my-invitations-drawer'
@@ -78,7 +80,7 @@ export type DrawerPropsMap = {
     columnFilters: ColumnFiltersState
     onApply: (filters: ColumnFiltersState) => void
     availableStatuses: Array<{
-      value: IncomeOverviewStatus
+      value: IncomeInstanceStatus
       label: string
     }>
     availableAccounts: Array<{
@@ -271,6 +273,14 @@ export type DrawerPropsMap = {
   createHousehold: Record<string, never>
   editHousehold: Record<string, never>
   myInvitations: Record<string, never>
+  incomeRevisions: {
+    incomeId: string
+    name: string
+  }
+  billRevisions: {
+    billId: string
+    name: string
+  }
 }
 
 export type DrawerName = keyof DrawerPropsMap
@@ -390,6 +400,20 @@ export const drawerMeta = {
   myInvitations: {
     titleKey: 'drawers.myInvitations.title',
     descriptionKey: 'drawers.myInvitations.description'
+  },
+  incomeRevisions: {
+    titleKey: 'drawers.incomeRevisions.title',
+    descriptionKey: 'drawers.incomeRevisions.description',
+    descriptionParams: ({ name }) => ({
+      name
+    })
+  },
+  billRevisions: {
+    titleKey: 'drawers.billRevisions.title',
+    descriptionKey: 'drawers.billRevisions.description',
+    descriptionParams: ({ name }) => ({
+      name
+    })
   }
 } satisfies DrawerMeta
 
@@ -419,7 +443,9 @@ export const drawerComponents = {
   categoriesTableFilterDrawer: CategoriesTableFilterDrawer,
   createHousehold: CreateHouseholdDrawer,
   editHousehold: EditHouseholdDrawer,
-  myInvitations: MyInvitationsDrawer
+  myInvitations: MyInvitationsDrawer,
+  incomeRevisions: IncomeRevisionsDrawer,
+  billRevisions: BillRevisionsDrawer
 } satisfies {
   [K in keyof DrawerPropsMap]: ComponentType<
     DrawerPropsMap[K] & {

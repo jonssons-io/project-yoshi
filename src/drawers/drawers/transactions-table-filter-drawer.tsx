@@ -22,7 +22,10 @@ import type {
   TransactionDateFilterValue
 } from '@/routes/_authenticated/transactions/-components/transactions-table'
 
-type SelectOption = { value: string; label: string }
+type SelectOption = {
+  value: string
+  label: string
+}
 
 const TYPE_ORDER: TransactionType[] = [
   TransactionType.INCOME,
@@ -85,10 +88,13 @@ export function TransactionsTableFilterDrawer({
   )
   const [selectedConnections, setSelectedConnections] =
     useState<PresenceFilterValue>(() => readArrayFilter(columnFilters, 'name'))
-  const [amountRange, setAmountRange] =
-    useState<TransactionAmountFilterValue>(() =>
-      readAmountRangeFilter<TransactionAmountFilterValue>(columnFilters, 'amount')
-    )
+  const [amountRange, setAmountRange] = useState<TransactionAmountFilterValue>(
+    () =>
+      readAmountRangeFilter<TransactionAmountFilterValue>(
+        columnFilters,
+        'amount'
+      )
+  )
   const [selectedAccounts, setSelectedAccounts] = useState<string[]>(() =>
     readArrayFilter(columnFilters, 'account')
   )
@@ -107,7 +113,10 @@ export function TransactionsTableFilterDrawer({
     setSelectedTypes(readArrayFilter(columnFilters, 'type'))
     setSelectedConnections(readArrayFilter(columnFilters, 'name'))
     setAmountRange(
-      readAmountRangeFilter<TransactionAmountFilterValue>(columnFilters, 'amount')
+      readAmountRangeFilter<TransactionAmountFilterValue>(
+        columnFilters,
+        'amount'
+      )
     )
     setSelectedAccounts(readArrayFilter(columnFilters, 'account'))
     setSelectedBudgets(readArrayFilter(columnFilters, 'budget'))
@@ -115,7 +124,9 @@ export function TransactionsTableFilterDrawer({
     setSelectedRecipientsSenders(
       readArrayFilter(columnFilters, 'recipientSender')
     )
-  }, [columnFilters])
+  }, [
+    columnFilters
+  ])
 
   const typeLabel = (type: TransactionType): string => {
     if (type === TransactionType.INCOME) return t('transactions.income')
@@ -131,34 +142,56 @@ export function TransactionsTableFilterDrawer({
     const nextFilters = stripDrawerFilters(columnFilters, FILTER_IDS)
 
     const normalizedDateRange = normalizeDateRange(dateRange) satisfies
-      TransactionDateFilterValue | undefined
+      | TransactionDateFilterValue
+      | undefined
 
     if (normalizedDateRange) {
-      nextFilters.push({ id: 'date', value: normalizedDateRange })
+      nextFilters.push({
+        id: 'date',
+        value: normalizedDateRange
+      })
     }
 
     if (selectedTypes.length > 0) {
-      nextFilters.push({ id: 'type', value: selectedTypes })
+      nextFilters.push({
+        id: 'type',
+        value: selectedTypes
+      })
     }
 
     if (selectedConnections.length === 1) {
-      nextFilters.push({ id: 'name', value: selectedConnections })
+      nextFilters.push({
+        id: 'name',
+        value: selectedConnections
+      })
     }
 
     if (amountRange.min !== undefined || amountRange.max !== undefined) {
-      nextFilters.push({ id: 'amount', value: amountRange })
+      nextFilters.push({
+        id: 'amount',
+        value: amountRange
+      })
     }
 
     if (selectedAccounts.length > 0) {
-      nextFilters.push({ id: 'account', value: selectedAccounts })
+      nextFilters.push({
+        id: 'account',
+        value: selectedAccounts
+      })
     }
 
     if (selectedBudgets.length > 0) {
-      nextFilters.push({ id: 'budget', value: selectedBudgets })
+      nextFilters.push({
+        id: 'budget',
+        value: selectedBudgets
+      })
     }
 
     if (selectedCategories.length > 0) {
-      nextFilters.push({ id: 'category', value: selectedCategories })
+      nextFilters.push({
+        id: 'category',
+        value: selectedCategories
+      })
     }
 
     if (selectedRecipientsSenders.length > 0) {

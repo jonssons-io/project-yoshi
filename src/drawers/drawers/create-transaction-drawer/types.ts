@@ -4,7 +4,7 @@ import type { ComboboxValue } from '@/components/form'
 export type SplitRowValue = {
   id: string
   subtitle: string
-  amount: number
+  amount: number | null
   budgetId: string
   category: ComboboxValue | null
 }
@@ -12,7 +12,7 @@ export type SplitRowValue = {
 export type DrawerFormValues = {
   name: string
   date: Date
-  amount: number
+  amount: number | null
   transactionType: TransactionType
   accountId: string
   transferToAccountId: string
@@ -27,7 +27,7 @@ export function newSplitRow(): SplitRowValue {
   return {
     id: crypto.randomUUID(),
     subtitle: '',
-    amount: 0,
+    amount: null,
     budgetId: '',
     category: null
   }
@@ -36,7 +36,7 @@ export function newSplitRow(): SplitRowValue {
 export const DRAWER_DEFAULT_VALUES: DrawerFormValues = {
   name: '',
   date: new Date(),
-  amount: 0,
+  amount: null,
   transactionType: TransactionType.EXPENSE,
   accountId: '',
   transferToAccountId: '',

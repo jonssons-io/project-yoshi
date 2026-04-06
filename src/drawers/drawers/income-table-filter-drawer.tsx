@@ -2,6 +2,7 @@ import type { ColumnFiltersState } from '@tanstack/react-table'
 import { useEffect, useId, useState } from 'react'
 import type { DateRange } from 'react-day-picker'
 import { useTranslation } from 'react-i18next'
+import type { IncomeInstanceStatus } from '@/api/generated/types.gen'
 import { Checkbox } from '@/components/checkbox/checkbox'
 import { DateRangePicker } from '@/components/date-range-picker/date-range-picker'
 import { FilterMultiselect } from '@/components/filter-multiselect/filter-multiselect'
@@ -17,8 +18,7 @@ import {
 } from '@/drawers/filter-drawer-helpers'
 import type {
   IncomeAmountFilterValue,
-  IncomeDateFilterValue,
-  IncomeOverviewStatus
+  IncomeDateFilterValue
 } from '@/routes/_authenticated/income/-components/income-overview-table'
 
 type SelectOption = {
@@ -32,7 +32,7 @@ export type IncomeTableFilterDrawerProps = {
   columnFilters: ColumnFiltersState
   onApply: (filters: ColumnFiltersState) => void
   availableStatuses: Array<{
-    value: IncomeOverviewStatus
+    value: IncomeInstanceStatus
     label: string
   }>
   availableAccounts: SelectOption[]
@@ -77,10 +77,12 @@ export function IncomeTableFilterDrawer({
     readDateRangeFilter(columnFilters, 'expectedDate')
   )
   const [selectedStatuses, setSelectedStatuses] = useState<
-    IncomeOverviewStatus[]
+    IncomeInstanceStatus[]
   >(() => readArrayFilter(columnFilters, 'status', []))
   const [selectedConnections, setSelectedConnections] =
-    useState<PresenceFilterValue>(() => readArrayFilter(columnFilters, 'incomeName', []))
+    useState<PresenceFilterValue>(() =>
+      readArrayFilter(columnFilters, 'incomeName', [])
+    )
   const [selectedAccounts, setSelectedAccounts] = useState<string[]>(() =>
     readArrayFilter(columnFilters, 'account', [])
   )
@@ -104,13 +106,16 @@ export function IncomeTableFilterDrawer({
     setAmountRange(
       readAmountRangeFilter<IncomeAmountFilterValue>(columnFilters, 'amount')
     )
-  }, [columnFilters])
+  }, [
+    columnFilters
+  ])
 
   const handleApply = () => {
     const nextFilters = stripDrawerFilters(columnFilters, FILTER_IDS)
 
     const normalizedDateRange = normalizeDateRange(dateRange) satisfies
-      IncomeDateFilterValue | undefined
+      | IncomeDateFilterValue
+      | undefined
 
     const normalizedAmountRange: IncomeAmountFilterValue = {
       min: amountRange.min,

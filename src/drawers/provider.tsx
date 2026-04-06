@@ -28,7 +28,9 @@ type DrawerMetaEntry = {
   titleKey: string
   descriptionKey?: string
   titleParams?: (props: Record<string, unknown>) => Record<string, unknown>
-  descriptionParams?: (props: Record<string, unknown>) => Record<string, unknown>
+  descriptionParams?: (
+    props: Record<string, unknown>
+  ) => Record<string, unknown>
 }
 
 /** Runtime snapshot; typed entry is enforced at `openDrawer` call sites. */
@@ -159,7 +161,8 @@ export function DrawerProvider({ children }: { children: ReactNode }) {
   ])
 
   const shellDescription = useMemo(() => {
-    if (meta === undefined || meta.descriptionKey === undefined) return undefined
+    if (meta === undefined || meta.descriptionKey === undefined)
+      return undefined
     const params = meta.descriptionParams?.(activeDrawerProps ?? {}) ?? {}
     return t(meta.descriptionKey, params)
   }, [

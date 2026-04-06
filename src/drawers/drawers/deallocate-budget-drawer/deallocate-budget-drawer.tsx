@@ -22,7 +22,7 @@ export type DeallocateBudgetDrawerProps = {
 }
 
 const DEFAULT_VALUES = {
-  amount: 0
+  amount: null as number | null
 }
 
 const amountFormatter = new Intl.NumberFormat('sv-SE', {

@@ -1,11 +1,12 @@
 import { z } from 'zod'
 
 import { TransactionType } from '@/api/generated/types.gen'
+import { nullablePositiveNumber } from '@/lib/zod-nullable-number'
 
 export const splitRowSchema = z.object({
   id: z.string(),
   subtitle: z.string(),
-  amount: z.number().positive('validation.positive'),
+  amount: nullablePositiveNumber('validation.positive'),
   budgetId: z.string().min(1, 'validation.required'),
   category: z.union([
     z.string().min(1),
@@ -18,11 +19,12 @@ export const splitRowSchema = z.object({
 
 export const drawerFormSchema = z
   .object({
-    name: z.string().min(1, 'validation.nameRequired'),
+    /** Transfer uses API default label; the name field is not shown for TRANSFER. */
+    name: z.string(),
     date: z.date({
       message: 'validation.dateRequired'
     }),
-    amount: z.number().positive('validation.positive'),
+    amount: nullablePositiveNumber('validation.positive'),
     transactionType: z.enum(TransactionType),
     accountId: z.string().min(1, 'validation.accountRequired'),
     transferToAccountId: z.string().optional(),
@@ -61,6 +63,15 @@ export const drawerFormSchema = z
   })
   .superRefine((data, ctx) => {
     if (data.transactionType === TransactionType.TRANSFER) {
+      if (data.amount == null) {
+        ctx.addIssue({
+          code: 'custom',
+          message: 'validation.positive',
+          path: [
+            'amount'
+          ]
+        })
+      }
       if (
         !data.transferToAccountId ||
         data.transferToAccountId === data.accountId
@@ -76,9 +87,33 @@ export const drawerFormSchema = z
       return
     }
 
+    if (
+      data.transactionType === TransactionType.EXPENSE ||
+      data.transactionType === TransactionType.INCOME
+    ) {
+      if (!data.name.trim()) {
+        ctx.addIssue({
+          code: 'custom',
+          message: 'validation.nameRequired',
+          path: [
+            'name'
+          ]
+        })
+      }
+    }
+
     if (data.transactionType === TransactionType.EXPENSE) {
       const hasSplits = data.splits && data.splits.length > 0
       if (!hasSplits) {
+        if (data.amount == null) {
+          ctx.addIssue({
+            code: 'custom',
+            message: 'validation.positive',
+            path: [
+              'amount'
+            ]
+          })
+        }
         if (!data.budgetId) {
           ctx.addIssue({
             code: 'custom',
@@ -112,12 +147,32 @@ export const drawerFormSchema = z
               })
             }
           }
+          if (row.amount == null) {
+            ctx.addIssue({
+              code: 'custom',
+              message: 'validation.positive',
+              path: [
+                'splits',
+                i,
+                'amount'
+              ]
+            })
+          }
         })
       }
       return
     }
 
     if (data.transactionType === TransactionType.INCOME) {
+      if (data.amount == null) {
+        ctx.addIssue({
+          code: 'custom',
+          message: 'validation.positive',
+          path: [
+            'amount'
+          ]
+        })
+      }
       if (!data.category) {
         ctx.addIssue({
           code: 'custom',

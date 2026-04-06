@@ -12,7 +12,11 @@ import { type ReactNode, useCallback, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
-import { CategoryType, RecurrenceType } from '@/api/generated/types.gen'
+import {
+  CategoryType,
+  IncomeInstanceStatus,
+  RecurrenceType
+} from '@/api/generated/types.gen'
 import { DataTable, useDataTable } from '@/components/data-table'
 import {
   PageLayout,
@@ -43,7 +47,6 @@ import {
 import {
   createIncomeOverviewColumns,
   type IncomeOverviewRow,
-  type IncomeOverviewStatus,
   type LabelLookup
 } from './-components/income-overview-table'
 import {
@@ -385,14 +388,7 @@ function IncomePageContent({
     }
 
     return {
-      statuses: (
-        [
-          'overdue',
-          'upcoming',
-          'handled',
-          'received'
-        ] as IncomeOverviewStatus[]
-      ).map((s) => ({
+      statuses: Object.values(IncomeInstanceStatus).map((s) => ({
         value: s,
         label: t(`income.status.${s}`)
       })),
@@ -444,7 +440,7 @@ function IncomePageContent({
           name: income.name,
           recurrenceType: income.recurrenceType,
           customIntervalDays: income.customIntervalDays ?? null,
-          startDate: income.expectedDate,
+          expectedDate: income.expectedDate,
           endDate: income.endDate,
           amount: income.estimatedAmount,
           accountId: income.accountId,
@@ -455,7 +451,7 @@ function IncomePageContent({
             categoryById.get(income.categoryId) ?? t('common.uncategorized'),
           senderId: income.incomeSourceId,
           senderName: incomeSourceById.get(income.incomeSourceId) ?? '',
-          hasRevisions: income.hasRevisions
+          numberOfRevisions: income.numberOfRevisions
         }) satisfies IncomeSourceDataRow
     )
   }, [
@@ -482,7 +478,11 @@ function IncomePageContent({
       createIncomeSourceDataColumns({
         t,
         labelLookupRef: sourceDataLabelLookupRef,
-        onViewRevisions: () => void 0,
+        onViewRevisions: (incomeId) =>
+          openDrawer('incomeRevisions', {
+            incomeId,
+            name: incomes.find((i) => i.id === incomeId)?.name ?? ''
+          }),
         onEditUpcoming: (incomeId) =>
           openDrawer('editIncomeBlueprintUpcoming', {
             incomeId,
@@ -498,7 +498,8 @@ function IncomePageContent({
     [
       t,
       openDrawer,
-      handleDeleteSourceIncome
+      handleDeleteSourceIncome,
+      incomes
     ]
   )
 

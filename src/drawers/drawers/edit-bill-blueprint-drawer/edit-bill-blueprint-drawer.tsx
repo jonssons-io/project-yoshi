@@ -32,6 +32,7 @@ import {
   translateIfLikelyI18nKey
 } from '@/lib/form-validation'
 import { normalizeBackendSplits } from '@/lib/split-normalization'
+import { nullablePositiveNumber } from '@/lib/zod-nullable-number'
 import type { CreateBillDrawerForm } from '../create-bill-drawer/form-api'
 import { createBillDrawerSchema } from '../create-bill-drawer/schema'
 import { SplitBillBlock } from '../create-bill-drawer/split-bill-block'
@@ -207,7 +208,7 @@ export function EditBillBlueprintDrawer({
       const scopeChangeDateValue =
         extended.scopeChangeDate instanceof Date
           ? extended.scopeChangeDate
-          : bill?.startDate
+          : bill?.dueDate
 
       const hasSplits = useSplits && (value.splits?.length ?? 0) > 0
       const payload = {
@@ -234,9 +235,9 @@ export function EditBillBlueprintDrawer({
           mode,
           scopeChangeDate:
             mode === 'upcoming'
-              ? (scopeChangeDateValue ?? bill.startDate)
+              ? (scopeChangeDateValue ?? bill.dueDate)
               : undefined,
-          debitInstant: parsed.data.startDate,
+          debitInstant: parsed.data.dueDate,
           previousLastPaymentDate: bill.lastPaymentDate ?? undefined,
           templateHadSplitsAtOpen: templateHadSplitsAtOpenRef.current
         })
@@ -278,7 +279,7 @@ export function EditBillBlueprintDrawer({
         form.setFieldValue('splits', [
           row
         ])
-        form.setFieldValue('amount', 0)
+        form.setFieldValue('amount', null)
         form.setFieldValue('budgetId', '')
         form.setFieldValue('category', null)
         setExpandedSplitIds({
@@ -358,13 +359,13 @@ export function EditBillBlueprintDrawer({
       bill.paymentHandling ? String(bill.paymentHandling) : ''
     )
     form.setFieldValue(
-      'startDate',
+      'dueDate',
       mode === 'upcoming'
-        ? (bill.lastPaymentDate ?? bill.startDate)
-        : bill.startDate
+        ? (bill.lastPaymentDate ?? bill.dueDate)
+        : bill.dueDate
     )
     form.setFieldValue('endDate', bill.endDate ?? null)
-    form.setFieldValue('scopeChangeDate', bill.startDate)
+    form.setFieldValue('scopeChangeDate', bill.dueDate)
 
     if (normalized && normalized.length > 0) {
       setUseSplits(true)
@@ -417,9 +418,8 @@ export function EditBillBlueprintDrawer({
       t
     ]
   )
-  const startDateValidator = useMemo(
-    () =>
-      createTranslatedZodValidator(createBillDrawerSchema.shape.startDate, t),
+  const dueDateValidator = useMemo(
+    () => createTranslatedZodValidator(createBillDrawerSchema.shape.dueDate, t),
     [
       t
     ]
@@ -427,7 +427,7 @@ export function EditBillBlueprintDrawer({
   const amountWhenNotSplitValidator = useMemo(
     () =>
       createTranslatedZodValidator(
-        z.number().positive('validation.positive'),
+        nullablePositiveNumber('validation.positive'),
         t
       ),
     [
@@ -596,15 +596,15 @@ export function EditBillBlueprintDrawer({
         </form.AppField>
 
         <form.AppField
-          name="startDate"
+          name="dueDate"
           validators={{
-            onSubmit: startDateValidator
+            onSubmit: dueDateValidator
           }}
         >
           {(field) => (
             <field.DateField
               label={t('forms.startDate')}
-              description={
+              labelHelpText={
                 mode === 'upcoming'
                   ? t('bills.editBlueprintDrawer.debitDateHelpUpcoming')
                   : t('forms.billStartDateHelp')
@@ -618,7 +618,7 @@ export function EditBillBlueprintDrawer({
           {(field) => (
             <field.DateField
               label={t('forms.endDateOptional')}
-              description={t('forms.endDateDesc')}
+              labelHelpText={t('forms.endDateDesc')}
               calendarPosition="start"
             />
           )}

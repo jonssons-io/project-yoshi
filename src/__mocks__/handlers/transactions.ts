@@ -133,7 +133,10 @@ function listFilteredTransactions(url: URL) {
       const inst = incomeInstances.find((row) => row.id === incomeInstanceId)
       if (!inst?.transactionId || item.id !== inst.transactionId) return false
     }
-    if (dateFrom && new Date(item.date).getTime() < new Date(dateFrom).getTime()) {
+    if (
+      dateFrom &&
+      new Date(item.date).getTime() < new Date(dateFrom).getTime()
+    ) {
       return false
     }
     if (dateTo && new Date(item.date).getTime() > new Date(dateTo).getTime()) {

@@ -23,15 +23,24 @@ import type {
   BillOverviewStatus
 } from '@/routes/_authenticated/bills/-components/bill-overview-table'
 
-type SelectOption = { value: string; label: string }
+type SelectOption = {
+  value: string
+  label: string
+}
 
 type PresenceFilterValue = Array<'has' | 'doesNotHave'>
 
 export type BillOverviewFilterDrawerProps = {
   columnFilters: ColumnFiltersState
   onApply: (filters: ColumnFiltersState) => void
-  availableStatuses: Array<{ value: BillOverviewStatus; label: string }>
-  availableHandlings: Array<{ value: BillPaymentHandling; label: string }>
+  availableStatuses: Array<{
+    value: BillOverviewStatus
+    label: string
+  }>
+  availableHandlings: Array<{
+    value: BillPaymentHandling
+    label: string
+  }>
   availableAccounts: SelectOption[]
   availableBudgets: SelectOption[]
   availableCategories: SelectOption[]
@@ -79,11 +88,16 @@ export function BillOverviewFilterDrawer({
     BillOverviewStatus[]
   >(() => readArrayFilter(columnFilters, 'status', []))
   const [selectedConnections, setSelectedConnections] =
-    useState<PresenceFilterValue>(() => readArrayFilter(columnFilters, 'billName', []))
-  const [amountRange, setAmountRange] =
-    useState<BillOverviewAmountFilterValue>(() =>
-      readAmountRangeFilter<BillOverviewAmountFilterValue>(columnFilters, 'amount')
+    useState<PresenceFilterValue>(() =>
+      readArrayFilter(columnFilters, 'billName', [])
     )
+  const [amountRange, setAmountRange] = useState<BillOverviewAmountFilterValue>(
+    () =>
+      readAmountRangeFilter<BillOverviewAmountFilterValue>(
+        columnFilters,
+        'amount'
+      )
+  )
   const [selectedHandlings, setSelectedHandlings] = useState<string[]>(() =>
     readArrayFilter(columnFilters, 'paymentHandling', [])
   )
@@ -105,55 +119,88 @@ export function BillOverviewFilterDrawer({
     setSelectedConnections(readArrayFilter(columnFilters, 'billName', []))
     setSelectedStatuses(readArrayFilter(columnFilters, 'status', []))
     setAmountRange(
-      readAmountRangeFilter<BillOverviewAmountFilterValue>(columnFilters, 'amount')
+      readAmountRangeFilter<BillOverviewAmountFilterValue>(
+        columnFilters,
+        'amount'
+      )
     )
     setSelectedHandlings(readArrayFilter(columnFilters, 'paymentHandling', []))
     setSelectedAccounts(readArrayFilter(columnFilters, 'account', []))
     setSelectedBudgets(readArrayFilter(columnFilters, 'budget', []))
     setSelectedCategories(readArrayFilter(columnFilters, 'category', []))
     setSelectedRecipients(readArrayFilter(columnFilters, 'recipient', []))
-  }, [columnFilters])
+  }, [
+    columnFilters
+  ])
 
   const handleApply = () => {
     const nextFilters = stripDrawerFilters(columnFilters, FILTER_IDS)
 
     const normalizedDateRange = normalizeDateRange(dateRange) satisfies
-      BillOverviewDateFilterValue | undefined
+      | BillOverviewDateFilterValue
+      | undefined
 
     if (normalizedDateRange) {
-      nextFilters.push({ id: 'dueDate', value: normalizedDateRange })
+      nextFilters.push({
+        id: 'dueDate',
+        value: normalizedDateRange
+      })
     }
 
     if (selectedStatuses.length > 0) {
-      nextFilters.push({ id: 'status', value: selectedStatuses })
+      nextFilters.push({
+        id: 'status',
+        value: selectedStatuses
+      })
     }
 
     if (selectedConnections.length === 1) {
-      nextFilters.push({ id: 'billName', value: selectedConnections })
+      nextFilters.push({
+        id: 'billName',
+        value: selectedConnections
+      })
     }
 
     if (amountRange.min !== undefined || amountRange.max !== undefined) {
-      nextFilters.push({ id: 'amount', value: amountRange })
+      nextFilters.push({
+        id: 'amount',
+        value: amountRange
+      })
     }
 
     if (selectedHandlings.length > 0) {
-      nextFilters.push({ id: 'paymentHandling', value: selectedHandlings })
+      nextFilters.push({
+        id: 'paymentHandling',
+        value: selectedHandlings
+      })
     }
 
     if (selectedAccounts.length > 0) {
-      nextFilters.push({ id: 'account', value: selectedAccounts })
+      nextFilters.push({
+        id: 'account',
+        value: selectedAccounts
+      })
     }
 
     if (selectedBudgets.length > 0) {
-      nextFilters.push({ id: 'budget', value: selectedBudgets })
+      nextFilters.push({
+        id: 'budget',
+        value: selectedBudgets
+      })
     }
 
     if (selectedCategories.length > 0) {
-      nextFilters.push({ id: 'category', value: selectedCategories })
+      nextFilters.push({
+        id: 'category',
+        value: selectedCategories
+      })
     }
 
     if (selectedRecipients.length > 0) {
-      nextFilters.push({ id: 'recipient', value: selectedRecipients })
+      nextFilters.push({
+        id: 'recipient',
+        value: selectedRecipients
+      })
     }
 
     onApply(nextFilters)

@@ -12,11 +12,23 @@ import type { DateRangeValue } from '@/components/date-range-picker/date-range-p
  * suitable for passing to API query hooks (which call `.toISOString()`).
  */
 export function useDateRange() {
-  const { from, to } = useSearch({ from: '/_authenticated' })
+  const { from, to } = useSearch({
+    from: '/_authenticated'
+  })
   const navigate = useNavigate()
 
-  const dateFrom = useMemo(() => startOfDay(parseISO(from)), [from])
-  const dateTo = useMemo(() => endOfDay(parseISO(to)), [to])
+  const dateFrom = useMemo(
+    () => startOfDay(parseISO(from)),
+    [
+      from
+    ]
+  )
+  const dateTo = useMemo(
+    () => endOfDay(parseISO(to)),
+    [
+      to
+    ]
+  )
 
   /** Update the global date range from Date objects (e.g. from DateRangePicker). */
   const setDateRange = useCallback(
@@ -30,8 +42,16 @@ export function useDateRange() {
         })
       })
     },
-    [navigate]
+    [
+      navigate
+    ]
   )
 
-  return { from, to, dateFrom, dateTo, setDateRange } as const
+  return {
+    from,
+    to,
+    dateFrom,
+    dateTo,
+    setDateRange
+  } as const
 }

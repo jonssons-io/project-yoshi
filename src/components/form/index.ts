@@ -58,11 +58,14 @@ export {
 } from '@/hooks/form'
 // Validation helpers
 export {
+  applyZodIssuesToTanStackForm,
+  clearTanStackFieldErrors,
   createAsyncValidator,
   createFormValidator,
   createTranslatedZodValidator,
   createZodValidator,
   getZodErrors,
   safeValidateForm,
-  validateForm
+  validateForm,
+  zodIssuePathToDeepKey
 } from '@/lib/form-validation'

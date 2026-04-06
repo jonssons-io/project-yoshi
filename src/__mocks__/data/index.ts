@@ -76,7 +76,8 @@ export type Income = {
   endDate: string | null
   archived: boolean
   createdAt: string
-  hasRevisions?: boolean
+  /** Optional override; otherwise derived from {@link mockIncomeRevisions} in MSW. */
+  numberOfRevisions?: number
 }
 
 export type IncomeSource = {
@@ -139,7 +140,7 @@ export type Bill = {
   name: string
   recipientId: string
   accountId: string
-  startDate: string
+  dueDate: string
   recurrenceType: string
   customIntervalDays?: number | null
   estimatedAmount: number
@@ -160,8 +161,8 @@ export type Bill = {
   }>
   archived: boolean
   createdAt: string
-  /** Blueprint revision flag; echoed on API `Bill`. */
-  hasRevisions?: boolean
+  /** Optional override; otherwise derived from {@link mockBillRevisions} in MSW. */
+  numberOfRevisions?: number
 }
 
 /** MSW-only rows for `GET /bills/{billId}/revisions` (newest-first in handler). */
@@ -171,7 +172,8 @@ export type MockBillRevision = {
   userId: string
   createdAt: string
   effectiveFrom?: string | null
-  scope?: 'INSTANCE' | 'FUTURE' | 'ALL' | null
+  scope?: 'INSTANCE' | 'FUTURE' | 'ALL' | 'UPCOMING' | null
+  scheduled?: boolean
   changes: Array<{
     field: string
     previousValue: unknown
@@ -186,7 +188,8 @@ export type MockIncomeRevision = {
   userId: string
   createdAt: string
   effectiveFrom?: string | null
-  scope?: 'INSTANCE' | 'FUTURE' | 'ALL' | null
+  scope?: 'INSTANCE' | 'FUTURE' | 'ALL' | 'UPCOMING' | null
+  scheduled?: boolean
   changes: Array<{
     field: string
     previousValue: unknown
@@ -196,10 +199,27 @@ export type MockIncomeRevision = {
 
 export const mockBillRevisions: MockBillRevision[] = [
   {
+    id: 'brev_scheduled_1',
+    billId: 'bill_1',
+    userId: 'user_dev',
+    createdAt: '2026-02-01T12:00:00.000Z',
+    effectiveFrom: '2026-06-01T00:00:00.000Z',
+    scope: 'UPCOMING',
+    scheduled: true,
+    changes: [
+      {
+        field: 'name',
+        previousValue: 'Electricity',
+        newValue: 'Electricity (updated)'
+      }
+    ]
+  },
+  {
     id: 'brev_seed_1',
     billId: 'bill_1',
     userId: 'user_dev',
     createdAt: '2026-01-10T12:00:00.000Z',
+    effectiveFrom: '2026-01-10T12:00:00.000Z',
     scope: 'ALL',
     changes: [
       {
@@ -208,21 +228,98 @@ export const mockBillRevisions: MockBillRevision[] = [
         newValue: 120
       }
     ]
+  },
+  {
+    id: 'brev_creation',
+    billId: 'bill_1',
+    userId: 'user_dev',
+    createdAt: '2026-01-01T08:00:00.000Z',
+    effectiveFrom: '2026-01-01T08:00:00.000Z',
+    scope: 'ALL',
+    changes: [
+      {
+        field: 'name',
+        previousValue: null,
+        newValue: 'Electricity'
+      },
+      {
+        field: 'estimatedAmount',
+        previousValue: null,
+        newValue: 120
+      },
+      {
+        field: 'dueDate',
+        previousValue: null,
+        newValue: '2026-01-15T00:00:00.000Z'
+      },
+      {
+        field: 'recurrenceType',
+        previousValue: null,
+        newValue: 'MONTHLY'
+      }
+    ]
   }
 ]
 
 export const mockIncomeRevisions: MockIncomeRevision[] = [
   {
+    id: 'irev_scheduled_1',
+    incomeId: 'income_1',
+    userId: 'user_dev',
+    createdAt: '2026-02-01T12:00:00.000Z',
+    effectiveFrom: '2026-06-01T00:00:00.000Z',
+    scope: 'UPCOMING',
+    scheduled: true,
+    changes: [
+      {
+        field: 'estimatedAmount',
+        previousValue: 3000,
+        newValue: 3500
+      }
+    ]
+  },
+  {
     id: 'irev_seed_1',
     incomeId: 'income_1',
     userId: 'user_dev',
     createdAt: '2026-01-05T12:00:00.000Z',
+    effectiveFrom: '2026-01-05T12:00:00.000Z',
     scope: 'ALL',
     changes: [
       {
         field: 'estimatedAmount',
         previousValue: 3000,
         newValue: 3200
+      }
+    ]
+  },
+  {
+    id: 'irev_creation',
+    incomeId: 'income_1',
+    userId: 'user_dev',
+    createdAt: '2026-01-01T09:00:00.000Z',
+    effectiveFrom: '2026-01-01T09:00:00.000Z',
+    scope: 'ALL',
+    changes: [
+      {
+        field: 'name',
+        previousValue: null,
+        newValue: 'Salary'
+      },
+      {
+        field: 'estimatedAmount',
+        previousValue: null,
+        newValue: 3200
+      },
+      {
+        field: 'expectedDate',
+        previousValue: null,
+        newValue: '2026-01-01T00:00:00.000Z'
+      },
+      {
+        field: 'recurrenceType',
+        previousValue: null,
+        newValue: 'MONTHLY'
       }
     ]
   }
@@ -243,12 +340,17 @@ export type BillInstance = {
   categoryId?: string | null
   recurrenceType: string
   customIntervalDays?: number | null
-  startDate: string
   archived: boolean
+  /**
+   * Instance override; **`undefined`** inherits from parent bill (see `BillInstance.paymentHandling` in OpenAPI).
+   * **`null`** means override cleared — effective value comes from the parent bill in enrichment.
+   */
+  paymentHandling?: Bill['paymentHandling'] | null
   splits?: Array<{
     subtitle: string
     amount: number
     categoryId?: string | null
+    budgetId?: string
   }>
 }
 
@@ -461,8 +563,7 @@ export const incomes: Income[] = [
     recurrenceType: 'MONTHLY',
     endDate: null,
     archived: false,
-    createdAt: nowIso(),
-    hasRevisions: true
+    createdAt: '2026-01-01T09:00:00.000Z'
   }
 ]
 
@@ -588,7 +689,7 @@ export const bills: Bill[] = [
     name: 'Electricity',
     recipientId: 'rec_1',
     accountId: 'acc_1',
-    startDate: '2026-01-15',
+    dueDate: '2026-01-15',
     recurrenceType: 'MONTHLY',
     customIntervalDays: null,
     estimatedAmount: 120,
@@ -604,8 +705,7 @@ export const bills: Bill[] = [
       }
     ],
     archived: false,
-    createdAt: nowIso(),
-    hasRevisions: true
+    createdAt: '2026-01-01T08:00:00.000Z'
   }
 ]
 
@@ -624,7 +724,6 @@ export const billInstances: BillInstance[] = [
     categoryId: 'cat_1',
     recurrenceType: 'MONTHLY',
     customIntervalDays: null,
-    startDate: '2026-01-15',
     archived: false,
     splits: [
       {
@@ -648,7 +747,6 @@ export const billInstances: BillInstance[] = [
     categoryId: 'cat_1',
     recurrenceType: 'MONTHLY',
     customIntervalDays: null,
-    startDate: '2026-01-15',
     archived: false,
     splits: [
       {
@@ -672,7 +770,6 @@ export const billInstances: BillInstance[] = [
     categoryId: 'cat_1',
     recurrenceType: 'MONTHLY',
     customIntervalDays: null,
-    startDate: '2026-01-15',
     archived: false,
     splits: [
       {

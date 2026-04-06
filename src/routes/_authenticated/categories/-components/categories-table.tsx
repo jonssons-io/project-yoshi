@@ -11,7 +11,6 @@ import {
   TableRowMenu,
   type TableRowMenuItem
 } from '@/components/table-row-menu/table-row-menu'
-import { budgetBadgeColor } from './category-badge-utils'
 
 /** Turn off if the deployed API removes category archive. */
 const categoryArchiveSupported = true
@@ -151,13 +150,14 @@ export function createCategoriesTableColumns(params: {
           )
         }
         return (
-          <span className="flex flex-row flex-wrap gap-1">
+          <span className="flex flex-row flex-wrap gap-x-2 gap-y-1">
             {linked.map((b) => (
-              <Badge
+              <span
                 key={b.id}
-                color={budgetBadgeColor(b.id)}
-                label={b.name}
-              />
+                className="type-body-small text-foreground"
+              >
+                {b.name}
+              </span>
             ))}
           </span>
         )

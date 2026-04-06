@@ -5,7 +5,10 @@ import {
   getUnallocatedFundsOptions,
   transferAllocationMutation
 } from '@/api/generated/@tanstack/react-query.gen'
-import type { CreateAllocationResponse, TransferAllocationResponse } from '@/api/generated/types.gen'
+import type {
+  CreateAllocationResponse,
+  TransferAllocationResponse
+} from '@/api/generated/types.gen'
 import { invalidateByOperation } from './invalidate-by-operation'
 import type { MutationCallbacks } from './types'
 

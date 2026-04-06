@@ -25,7 +25,10 @@ import {
 import { cn } from '@/lib/utils'
 
 /** A fully-resolved range where both dates are present. */
-export type DateRangeValue = { from: Date; to: Date }
+export type DateRangeValue = {
+  from: Date
+  to: Date
+}
 
 export type DateRangePickerProps = {
   /** Current range — may be partial or undefined (e.g. filter drawers). */
@@ -44,8 +47,15 @@ export type DateRangePickerProps = {
 
 function formatRangeLabel(range: DateRange | undefined): string {
   if (!range?.from) return ''
-  if (!range.to) return format(range.from, 'P', { locale: sv })
-  return `${format(range.from, 'P', { locale: sv })} – ${format(range.to, 'P', { locale: sv })}`
+  if (!range.to)
+    return format(range.from, 'P', {
+      locale: sv
+    })
+  return `${format(range.from, 'P', {
+    locale: sv
+  })} – ${format(range.to, 'P', {
+    locale: sv
+  })}`
 }
 
 export function DateRangePicker({
@@ -83,7 +93,10 @@ export function DateRangePicker({
 
     if (range?.from && range?.to) {
       setPending(undefined)
-      onChange({ from: range.from, to: range.to })
+      onChange({
+        from: range.from,
+        to: range.to
+      })
       setOpen(false)
       return
     }

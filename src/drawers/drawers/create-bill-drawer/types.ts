@@ -4,7 +4,7 @@ import type { ComboboxValue } from '@/components/form'
 export type BillSplitRowValue = {
   id: string
   subtitle: string
-  amount: number
+  amount: number | null
   category: ComboboxValue | null
 }
 
@@ -13,11 +13,11 @@ export type CreateBillDrawerFormValues = {
   recipient: ComboboxValue | null
   accountId: string
   recurrenceType: RecurrenceType
-  customIntervalDays?: number
+  customIntervalDays?: number | null
   paymentHandling: string
-  startDate: Date
+  dueDate: Date
   endDate: Date | null
-  amount: number
+  amount: number | null
   budgetId: string
   category: ComboboxValue | null
   splits: BillSplitRowValue[]
@@ -27,7 +27,7 @@ export function newBillSplitRow(): BillSplitRowValue {
   return {
     id: crypto.randomUUID(),
     subtitle: '',
-    amount: 0,
+    amount: null,
     category: null
   }
 }
@@ -39,9 +39,9 @@ export const CREATE_BILL_DRAWER_DEFAULTS: CreateBillDrawerFormValues = {
   recurrenceType: RecurrenceType.MONTHLY,
   customIntervalDays: undefined,
   paymentHandling: '',
-  startDate: new Date(),
+  dueDate: new Date(),
   endDate: null,
-  amount: 0,
+  amount: null,
   budgetId: '',
   category: null,
   splits: []

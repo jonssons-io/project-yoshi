@@ -5,12 +5,52 @@ import {
 } from 'lucide-react'
 import * as React from 'react'
 import {
+  type ChevronProps,
   type DayButton,
   DayPicker,
-  getDefaultClassNames
+  getDefaultClassNames,
+  type RootProps
 } from 'react-day-picker'
 
 import { cn } from '@/lib/utils'
+
+function CalendarRoot({ className, rootRef, ...props }: RootProps) {
+  return (
+    <div
+      data-slot="calendar"
+      ref={rootRef}
+      className={cn(className)}
+      {...props}
+    />
+  )
+}
+
+function CalendarChevron({ className, orientation, ...props }: ChevronProps) {
+  if (orientation === 'left') {
+    return (
+      <ChevronLeftIcon
+        className={cn('size-4', className)}
+        {...props}
+      />
+    )
+  }
+
+  if (orientation === 'right') {
+    return (
+      <ChevronRightIcon
+        className={cn('size-4', className)}
+        {...props}
+      />
+    )
+  }
+
+  return (
+    <ChevronDownIcon
+      className={cn('size-4', className)}
+      {...props}
+    />
+  )
+}
 
 function Calendar({
   className,
@@ -131,42 +171,8 @@ function Calendar({
         ...classNames
       }}
       components={{
-        Root: ({ className, rootRef, ...props }) => {
-          return (
-            <div
-              data-slot="calendar"
-              ref={rootRef}
-              className={cn(className)}
-              {...props}
-            />
-          )
-        },
-        Chevron: ({ className, orientation, ...props }) => {
-          if (orientation === 'left') {
-            return (
-              <ChevronLeftIcon
-                className={cn('size-4', className)}
-                {...props}
-              />
-            )
-          }
-
-          if (orientation === 'right') {
-            return (
-              <ChevronRightIcon
-                className={cn('size-4', className)}
-                {...props}
-              />
-            )
-          }
-
-          return (
-            <ChevronDownIcon
-              className={cn('size-4', className)}
-              {...props}
-            />
-          )
-        },
+        Root: CalendarRoot,
+        Chevron: CalendarChevron,
         DayButton: CalendarDayButton,
         ...components
       }}

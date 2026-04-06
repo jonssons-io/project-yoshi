@@ -10,6 +10,10 @@ export function mapIncomeFormToCreateVariables(
   householdId: string,
   userId?: string | null
 ) {
+  if (data.amount == null) {
+    throw new Error('mapIncomeFormToCreateVariables: amount is required')
+  }
+
   const incomeSourcePart =
     data.incomeSource === null || data.incomeSource === undefined
       ? {}

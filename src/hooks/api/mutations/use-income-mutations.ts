@@ -5,21 +5,23 @@ import {
   createIncomeMutation,
   deleteIncomeMutation,
   getIncomeInstanceQueryKey,
+  getIncomeQueryKey,
   updateIncomeInstanceMutation,
   updateIncomeMutation
 } from '@/api/generated/@tanstack/react-query.gen'
-import type {
-  ArchiveIncomeRequest,
-  ArchiveIncomeResponse,
-  ArchiveIncomeSourceRequest,
-  ArchiveIncomeSourceResponse,
-  CreateIncomeRequest,
-  CreateIncomeResponse,
-  DeleteIncomeResponse,
-  UpdateIncomeInstanceRequest,
-  UpdateIncomeInstanceResponse,
-  UpdateIncomeRequest,
-  UpdateIncomeResponse
+import {
+  type ArchiveIncomeRequest,
+  type ArchiveIncomeResponse,
+  type ArchiveIncomeSourceRequest,
+  type ArchiveIncomeSourceResponse,
+  BlueprintPatchScope,
+  type CreateIncomeRequest,
+  type CreateIncomeResponse,
+  type DeleteIncomeResponse,
+  type UpdateIncomeInstanceRequest,
+  type UpdateIncomeInstanceResponse,
+  type UpdateIncomeRequest,
+  type UpdateIncomeResponse
 } from '@/api/generated/types.gen'
 import { toApiDate, toApiDateRequired } from '@/hooks/api/date-normalization'
 import { withTitleCasedNewCategoryNameForIncomeBody } from '@/lib/category-name-normalize'
@@ -36,9 +38,10 @@ type IncomeCreateVariables = {
 type IncomeUpdateVariables = {
   id: string
   userId?: string | null
-} & Omit<UpdateIncomeRequest, 'expectedDate' | 'endDate'> & {
+} & Omit<UpdateIncomeRequest, 'expectedDate' | 'endDate' | 'fromDate'> & {
     expectedDate?: string | Date
     endDate?: string | Date
+    fromDate?: string | Date
   }
 type IncomeDeleteVariables = {
   id: string
@@ -120,11 +123,23 @@ export function useUpdateIncome(
   const mutationOptions = updateIncomeMutation()
   return useMutation<UpdateIncomeResponse, Error, IncomeUpdateVariables>({
     mutationFn: async (variables: IncomeUpdateVariables) => {
-      const { id, userId: _userId, expectedDate, endDate, ...rest } = variables
+      const {
+        id,
+        userId: _userId,
+        expectedDate,
+        endDate,
+        fromDate,
+        ...rest
+      } = variables
       const body = withTitleCasedNewCategoryNameForIncomeBody({
         ...rest,
         expectedDate: toApiDate(expectedDate),
-        endDate: toApiDate(endDate)
+        endDate: toApiDate(endDate),
+        ...(fromDate !== undefined && fromDate !== null
+          ? {
+              fromDate: toApiDateRequired(fromDate)
+            }
+          : {})
       })
       const mutationFn = mutationOptions.mutationFn
       if (!mutationFn) throw new Error('Missing updateIncome mutation function')
@@ -144,6 +159,21 @@ export function useUpdateIncome(
       invalidateByOperation(queryClient, 'listIncomeInstancesFiltered')
       invalidateByOperation(queryClient, 'getIncomeInstancesSummary')
       invalidateByOperation(queryClient, 'listCategories')
+      const scope = variables.updateScope
+      if (
+        scope === BlueprintPatchScope.ALL ||
+        scope === BlueprintPatchScope.UPCOMING
+      ) {
+        invalidateByOperation(queryClient, 'listIncomeRevisions')
+        invalidateByOperation(queryClient, 'getHouseholdPeriodSummary')
+        void queryClient.invalidateQueries({
+          queryKey: getIncomeQueryKey({
+            path: {
+              incomeId: variables.id
+            }
+          })
+        })
+      }
       callbacks?.onSuccess?.(data, variables)
     },
     onError: (error, variables) => {
@@ -289,10 +319,10 @@ export function useUpdateIncomeInstance(
   >({
     mutationFn: async (variables: IncomeInstanceUpdateVariables) => {
       const { id, userId: _userId, expectedDate, ...rest } = variables
-      const body = {
+      const body = withTitleCasedNewCategoryNameForIncomeBody({
         ...rest,
         expectedDate: toApiDate(expectedDate)
-      }
+      })
       const mutationFn = mutationOptions.mutationFn
       if (!mutationFn) {
         throw new Error('Missing updateIncomeInstance mutation function')
@@ -311,6 +341,10 @@ export function useUpdateIncomeInstance(
       invalidateByOperation(queryClient, 'listIncomeInstances')
       invalidateByOperation(queryClient, 'listIncomeInstancesFiltered')
       invalidateByOperation(queryClient, 'getIncomeInstancesSummary')
+      invalidateByOperation(queryClient, 'listCategories')
+      if (variables.newIncomeSourceName) {
+        invalidateByOperation(queryClient, 'listIncomeSources')
+      }
       queryClient.invalidateQueries({
         queryKey: getIncomeInstanceQueryKey({
           path: {

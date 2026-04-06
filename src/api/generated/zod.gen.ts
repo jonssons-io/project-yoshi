@@ -293,17 +293,14 @@ export const zTransactionGroupedByCategory = z.object({
 });
 
 /**
- * How widely to apply changes to recurring blueprint instances (bills and incomes).
- * **INSTANCE**: only the targeted occurrence. **FUTURE**: that occurrence and every later occurrence for the same blueprint
- * (same bill or income): bill instances use **`dueDate`** ≥ the anchor instance’s **`dueDate`**; income instances use **`expectedDate`** ≥ the anchor’s **`expectedDate`**.
- * **ALL**: every instance for that blueprint. **Handled** occurrences (already linked to a transaction) may be updated like any other row; clients should keep linked **transactions** consistent if amounts or dates change.
+ * How a **blueprint** PATCH applies (bills and incomes). **ALL**: apply immediately to the template and to instance rows
+ * per propagation rules; **`fromDate` must be omitted**; **`recurrenceType`** and **`customIntervalDays`** must not be sent.
+ * **UPCOMING**: schedule one or more field changes from **`fromDate`** as **scheduled revisions** (one revision row **per request field whose effective value at `fromDate` actually changes**—unchanged values do not get a row);
+ * **`fromDate` is required** on the request. Scheduled rows are listed with **`GET …/revisions`**; cancel with **`DELETE …/revisions/{revisionId}`**
+ * while **`scheduled`** is true. The blueprint is updated when **`effectiveFrom` ≤ now** (background job), and the same revision row is kept (**`scheduled`** becomes false).
  *
  */
-export const zBlueprintUpdateScope = z.enum([
-    'INSTANCE',
-    'FUTURE',
-    'ALL'
-]);
+export const zBlueprintPatchScope = z.enum(['ALL', 'UPCOMING']);
 
 /**
  * A single field change within a blueprint revision entry.
@@ -315,8 +312,14 @@ export const zBillRevisionChange = z.object({
 });
 
 /**
- * One recorded change to a recurring **bill blueprint** (`PUT`/`PATCH` on the Bill resource).
+ * One logical revision entry for a recurring **bill blueprint** (`PUT`/`PATCH` on the Bill resource).
  * Instance-only edits (`PATCH` bill-instances) are not included.
+ * On **bill creation**, the server records one **initial** revision whose **`changes`** list contains every blueprint field
+ * with **`previousValue` null** (JSON null), **`newValue`** set to the initial value, and **`createdAt`** equal to the bill’s **`createdAt`**.
+ * Blueprint **`PATCH`** with **`updateScope` `ALL`** updates that same bundled snapshot in place (adjusted fields get new **`newValue`**; no extra logical revision).
+ * Other blueprint edits (e.g. **`UPCOMING`**, archive) add revisions with **exactly one** element in **`changes`** (one field per revision), matching one persisted row.
+ * The revision **`id`** is always a real persisted row id; for the bundled creation revision it is the **lexicographically smallest**
+ * row id among the merged snapshot rows (suitable for display only—**`DELETE …/revisions/{revisionId}`** still targets a single pending row by its own id).
  *
  */
 export const zBillRevision = z.object({
@@ -329,10 +332,11 @@ export const zBillRevision = z.object({
         z.null()
     ])),
     scope: z.optional(z.union([
-        zBlueprintUpdateScope,
+        z.string(),
         z.null()
     ])),
-    changes: z.array(zBillRevisionChange)
+    changes: z.array(zBillRevisionChange),
+    scheduled: z.optional(z.boolean())
 });
 
 export const zBillRevisionsEnvelope = z.object({
@@ -349,8 +353,12 @@ export const zIncomeRevisionChange = z.object({
 });
 
 /**
- * One recorded change to a recurring **income blueprint** (`PUT`/`PATCH` on the Income resource).
+ * One logical revision entry for a recurring **income blueprint** (`PUT`/`PATCH` on the Income resource).
  * Instance-only edits (`PATCH` income-instances) are not included.
+ * On **income creation**, the server records one **initial** revision whose **`changes`** list contains every blueprint field
+ * with **`previousValue` null** (JSON null), **`newValue`** set to the initial value, and **`createdAt`** equal to the income’s **`createdAt`**.
+ * **`updateScope` `ALL`** merges into that bundled snapshot in place. Other edits add revisions with **exactly one** element in **`changes`**.
+ * The revision **`id`** for the bundled creation revision is the **lexicographically smallest** row id among the merged snapshot rows.
  *
  */
 export const zIncomeRevision = z.object({
@@ -363,10 +371,11 @@ export const zIncomeRevision = z.object({
         z.null()
     ])),
     scope: z.optional(z.union([
-        zBlueprintUpdateScope,
+        z.string(),
         z.null()
     ])),
-    changes: z.array(zIncomeRevisionChange)
+    changes: z.array(zIncomeRevisionChange),
+    scheduled: z.optional(z.boolean())
 });
 
 export const zIncomeRevisionsEnvelope = z.object({
@@ -378,7 +387,7 @@ export const zBill = z.object({
     name: z.string(),
     recipient: zRelationRef,
     account: zRelationRef,
-    startDate: z.iso.datetime(),
+    dueDate: z.iso.datetime(),
     recurrenceType: zRecurrenceType,
     customIntervalDays: z.optional(z.union([
         z.int(),
@@ -402,7 +411,7 @@ export const zBill = z.object({
     household: zRelationRef,
     archived: z.boolean(),
     createdAt: z.iso.datetime(),
-    hasRevisions: z.boolean()
+    numberOfRevisions: z.int().gte(0)
 });
 
 /**
@@ -487,7 +496,6 @@ export const zBillInstance = z.object({
         zBillPaymentHandling,
         z.null()
     ])),
-    startDate: z.iso.datetime(),
     archived: z.boolean()
 });
 
@@ -562,7 +570,7 @@ export const zIncome = z.object({
     category: z.optional(zCategory),
     account: z.optional(zAccount),
     incomeSource: z.optional(zIncomeSource),
-    hasRevisions: z.boolean()
+    numberOfRevisions: z.int().gte(0)
 });
 
 export const zRecipient = z.object({
@@ -662,6 +670,11 @@ export const zHouseholdAccountBalanceChartAccountMeta = z.object({
  * state (same as list account balances), so the chart matches real-time balances even when today's snapshot
  * row is missing. Days after `today` still appear when `dateTo` extends into the future; they forward-fill
  * from the last known balance as of each day (typically flat after the last in-range snapshot).
+ *
+ * Optional query flag **`projectFromTransactions`**: when true, **pending** transactions whose UTC calendar
+ * `date` falls in the chart day range adjust balances from **`today`** forward (and include pending on
+ * **`today`**). **Effective** transactions are already reflected in snapshots and `currentBalance` and are
+ * not applied again. Chart days before **`today`** are unchanged.
  *
  */
 export const zHouseholdAccountBalanceChartResponse = z.object({
@@ -969,7 +982,7 @@ export const zCreateBillRequest = z.object({
         z.string(),
         z.null()
     ])),
-    startDate: z.iso.datetime(),
+    dueDate: z.iso.datetime(),
     recurrenceType: zRecurrenceType,
     customIntervalDays: z.optional(z.int().gte(1)),
     estimatedAmount: z.number().gt(0),
@@ -991,9 +1004,13 @@ export const zCreateBillRequest = z.object({
  * `budgetId` and `splits` are mutually exclusive: if `splits` is non-empty, `budgetId` must be null.
  * Top-level `categoryId` and `splits` are mutually exclusive: if `splits` is non-empty (after the update),
  * `categoryId` must be null.
+ * **`updateScope`**: **ALL** applies immediately (omit **`fromDate`**; do not send **`recurrenceType`** or **`customIntervalDays`**).
+ * **UPCOMING** requires **`fromDate`** and schedules changes without updating the blueprint row until they mature.
  *
  */
 export const zUpdateBillRequest = z.object({
+    updateScope: zBlueprintPatchScope,
+    fromDate: z.optional(z.iso.datetime()),
     name: z.optional(z.string()),
     recipientId: z.optional(z.string()),
     newRecipientName: z.optional(z.string().min(1)),
@@ -1002,7 +1019,7 @@ export const zUpdateBillRequest = z.object({
         z.string(),
         z.null()
     ])),
-    startDate: z.optional(z.iso.datetime()),
+    dueDate: z.optional(z.iso.datetime()),
     recurrenceType: z.optional(zRecurrenceType),
     customIntervalDays: z.optional(z.int().gte(1)),
     estimatedAmount: z.optional(z.number().gt(0)),
@@ -1030,23 +1047,60 @@ export const zArchiveBillRequest = z.object({
     archived: z.boolean()
 });
 
+/**
+ * Updates **only** the targeted bill instance (never other occurrences).
+ *
+ * **`recipient`** vs **`newRecipientName`**: mutually exclusive — send at most one. When **`newRecipientName`** is set,
+ * the server get-or-creates a recipient in the household (same as create bill).
+ *
+ * **`categoryId`** vs **`newCategoryName`**: mutually exclusive when used. Neither may be sent when the instance
+ * effectively has split lines: non-empty **`splits`** in this request, existing per-instance split lines, or the parent
+ * bill has blueprint split lines.
+ *
+ * **`budgetId`** and **`splits`**: if **`splits`** is non-empty, **`budgetId`** must be null (each split line may carry
+ * its own **`budgetId`**). When **`splits`** is present and empty, per-instance split overrides are removed and the
+ * instance **`categoryId`** / **`budgetId`** are reset from the current parent bill.
+ *
+ * **`paymentHandling`**: omit to leave the instance override unchanged; send **`null`** to clear the override (inherit
+ * from the parent bill); send an enum value to set an instance-specific override.
+ *
+ */
 export const zUpdateBillInstanceRequest = z.object({
-    updateType: zBlueprintUpdateScope,
     name: z.optional(z.string()),
     recipient: z.optional(z.string()),
+    newRecipientName: z.optional(z.string().min(1)),
     amount: z.optional(z.number().gt(0)),
     dueDate: z.optional(z.iso.datetime()),
     accountId: z.optional(z.string()),
-    categoryId: z.optional(z.string())
+    budgetId: z.optional(z.union([
+        z.string(),
+        z.null()
+    ])),
+    categoryId: z.optional(z.string()),
+    newCategoryName: z.optional(z.string().min(1)),
+    paymentHandling: z.optional(z.union([
+        zBillPaymentHandling,
+        z.null()
+    ])),
+    splits: z.optional(z.array(zBillSplitWrite))
 });
 
+/**
+ * Updates **only** the targeted income instance (never other occurrences).
+ * `categoryId` vs `newCategoryName`, and `incomeSourceId` vs `newIncomeSourceName`, are mutually exclusive: send at most
+ * one from each pair. When `newCategoryName` is set, the server creates an **INCOME** category and links it to **all**
+ * budgets in the household (same default linking as `CreateCategoryRequest` with `budgetIds` omitted).
+ *
+ */
 export const zUpdateIncomeInstanceRequest = z.object({
-    updateType: zBlueprintUpdateScope,
     name: z.optional(z.string()),
     amount: z.optional(z.number().gt(0)),
     expectedDate: z.optional(z.iso.datetime()),
     accountId: z.optional(z.string()),
-    categoryId: z.optional(z.string())
+    categoryId: z.optional(z.string()),
+    newCategoryName: z.optional(z.string().min(1)),
+    incomeSourceId: z.optional(z.string()),
+    newIncomeSourceName: z.optional(z.string().min(1))
 });
 
 export const zCreateTransferRequest = z.object({
@@ -1088,7 +1142,14 @@ export const zCreateIncomeRequest = z.object({
     ]))
 });
 
+/**
+ * **`updateScope`**: **ALL** applies immediately (omit **`fromDate`**; do not send **`recurrenceType`** or **`customIntervalDays`**).
+ * **UPCOMING** requires **`fromDate`** and schedules changes without updating the blueprint row until they mature.
+ *
+ */
 export const zUpdateIncomeRequest = z.object({
+    updateScope: zBlueprintPatchScope,
+    fromDate: z.optional(z.iso.datetime()),
     name: z.optional(z.string().min(1)),
     incomeSourceId: z.optional(z.string()),
     newIncomeSourceName: z.optional(z.string().min(1)),
@@ -1742,7 +1803,8 @@ export const zGetHouseholdAccountBalanceChartData = z.object({
         dateFrom: z.iso.datetime(),
         dateTo: z.iso.datetime(),
         accountIds: z.optional(z.array(z.string())),
-        includeArchived: z.optional(z.boolean())
+        includeArchived: z.optional(z.boolean()),
+        projectFromTransactions: z.optional(z.boolean())
     })
 });
 
@@ -2004,6 +2066,15 @@ export const zListBillRevisionsData = z.object({
  */
 export const zListBillRevisionsResponse = zBillRevisionsEnvelope;
 
+export const zDeleteBillScheduledRevisionData = z.object({
+    body: z.optional(z.never()),
+    path: z.object({
+        billId: z.string(),
+        revisionId: z.string()
+    }),
+    query: z.optional(z.never())
+});
+
 export const zArchiveBillData = z.object({
     body: zArchiveBillRequest,
     path: z.object({
@@ -2173,6 +2244,15 @@ export const zListIncomeRevisionsData = z.object({
  * Revision log for the income blueprint
  */
 export const zListIncomeRevisionsResponse = zIncomeRevisionsEnvelope;
+
+export const zDeleteIncomeScheduledRevisionData = z.object({
+    body: z.optional(z.never()),
+    path: z.object({
+        incomeId: z.string(),
+        revisionId: z.string()
+    }),
+    query: z.optional(z.never())
+});
 
 export const zListIncomeInstancesData = z.object({
     body: z.optional(z.never()),

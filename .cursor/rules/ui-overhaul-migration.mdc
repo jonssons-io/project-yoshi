@@ -46,14 +46,14 @@ Migrated list screens use a **shared table system**: one visual pattern everywhe
 
 ### Data table architecture (single source of truth)
 
-| Piece | Responsibility |
-| ----- | ---------------- |
-| **`src/components/data-table/types.ts`** | **`DataTableColumnMeta`**, **`DataTableColumnDef`**, **`ActiveFilter`**. Extend TanStack column defs via **`meta`** (e.g. **`globalSearchable`**, **`searchValue`**, **`filterable`**, **`filterLabel`**, **`filterPillValue`**). |
-| **`src/components/data-table/use-data-table.ts`** | **`useDataTable`** — wraps **`useReactTable`**: sorting, global filter, column filters, derived **`activeFilters`** (pills), optional pagination. Custom global filter iterates searchable columns and **`meta.searchValue`** where cells are not plain text. |
-| **`src/components/data-table/data-table-toolbar.tsx`** | Pure UI: debounced search, filter button (optional **`filterDisabled`**), filter pills, primary action. |
-| **`src/components/data-table/data-table.tsx`** | Shell: toolbar + header/body using **`Table`** wrapper + sort affordances. |
-| **`src/components/data-table/data-table-pagination.tsx`** | Shared pagination controls when pagination is enabled in the hook. |
-| **`src/components/data-table/index.ts`** | Barrel exports. |
+| Piece                                                     | Responsibility                                                                                                                                                                                                                                                |
+| --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`src/components/data-table/types.ts`**                  | **`DataTableColumnMeta`**, **`DataTableColumnDef`**, **`ActiveFilter`**. Extend TanStack column defs via **`meta`** (e.g. **`globalSearchable`**, **`searchValue`**, **`filterable`**, **`filterLabel`**, **`filterPillValue`**).                             |
+| **`src/components/data-table/use-data-table.ts`**         | **`useDataTable`** — wraps **`useReactTable`**: sorting, global filter, column filters, derived **`activeFilters`** (pills), optional pagination. Custom global filter iterates searchable columns and **`meta.searchValue`** where cells are not plain text. |
+| **`src/components/data-table/data-table-toolbar.tsx`**    | Pure UI: debounced search, filter button (optional **`filterDisabled`**), filter pills, primary action.                                                                                                                                                       |
+| **`src/components/data-table/data-table.tsx`**            | Shell: toolbar + header/body using **`Table`** wrapper + sort affordances.                                                                                                                                                                                    |
+| **`src/components/data-table/data-table-pagination.tsx`** | Shared pagination controls when pagination is enabled in the hook.                                                                                                                                                                                            |
+| **`src/components/data-table/index.ts`**                  | Barrel exports.                                                                                                                                                                                                                                               |
 
 ### Column definitions and search
 
@@ -136,12 +136,30 @@ If something in **Type 2** is later imported from a **second** route, **promote*
 
 ## Backend API gaps during migration
 
-When a migrated screen needs data or behavior that **`src/api`** (the generated client and OpenAPI-aligned contract) does **not** support, **do not** fake it in the frontend or patch generated code. Treat it as a **backend dependency** and write a **ticket for the backend team**.
+When a migrated screen needs data or behavior that **`src/api`** (the generated client and OpenAPI-aligned contract) does **not** support, **do not** fake it in the frontend or patch generated code. Treat it as a **backend dependency** and open a **GitHub issue** on the API repo (see below).
 
-**Ticket shape**
+### Backend handoff: GitHub CLI (`project-luigi`)
+
+Create tracking issues with the **`gh`** CLI against **`jonssons-io/project-luigi`**:
+
+1. **Repository**: always **`-R jonssons-io/project-luigi`** (org **`jonssons-io`**, repo **`project-luigi`**).
+2. **Classification**: label the issue as either **`bug`** or **`enhancement`** (pass **`--label bug`** or **`--label enhancement`**).
+3. **Project board**: add it to the GitHub org project **Yoshi** — (pass **`-p Yoshi`**).
+
+Example:
+
+```bash
+gh issue create -R jonssons-io/project-luigi \
+  --title "Short actionable title" \
+  --body-file path/to/issue-body.md \
+  --label feature \
+  -p Yoshi
+```
+
+**Ticket shape** (issue body)
 
 - **Title**: Short, actionable (what capability is missing).
-- **Description**: Markdown-friendly body the team can paste into Jira/Linear/GitHub. Structure it as a **user story**, then concrete API detail.
+- **Description**: Markdown-friendly. Structure it as a **user story**, then concrete API detail.
 
 **Description should include**
 

@@ -30,10 +30,17 @@ export function DashboardMultiSeriesLineChart({
       data.map((point) => ({
         ...point,
         date: point.originalDate
-          ? format(point.originalDate instanceof Date ? point.originalDate : new Date(point.originalDate), 'MMM d')
+          ? format(
+              point.originalDate instanceof Date
+                ? point.originalDate
+                : new Date(point.originalDate),
+              'MMM d'
+            )
           : point.date
       })),
-    [data]
+    [
+      data
+    ]
   )
 
   return (

@@ -1,16 +1,16 @@
 import { useQuery } from '@tanstack/react-query'
 import {
-  getIncomeInstancesSummaryOptions,
   getIncomeInstanceOptions,
+  getIncomeInstancesSummaryOptions,
   getIncomeOptions,
   listIncomeInstancesFilteredOptions,
   listIncomeSourcesOptions,
   listIncomesOptions
 } from '@/api/generated/@tanstack/react-query.gen'
 import type {
-  GetIncomeInstancesSummaryData,
   GetIncomeData,
   GetIncomeInstanceData,
+  GetIncomeInstancesSummaryData,
   ListIncomeInstancesFilteredData,
   ListIncomeSourcesData,
   ListIncomesData
@@ -123,7 +123,8 @@ export function useIncomeInstancesFilteredList(params: {
     }),
     enabled: enabled && !!householdId,
     select: (response) =>
-      (response.data ?? []) as import('@/api/generated/types.gen').IncomeInstance[]
+      (response.data ??
+        []) as import('@/api/generated/types.gen').IncomeInstance[]
   })
 }
 

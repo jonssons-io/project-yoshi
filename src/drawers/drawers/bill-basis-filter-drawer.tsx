@@ -21,7 +21,10 @@ import {
   toggleFilterValue
 } from '@/drawers/filter-drawer-helpers'
 
-type SelectOption = { value: string; label: string }
+type SelectOption = {
+  value: string
+  label: string
+}
 type PresenceFilterValue = Array<'has' | 'doesNotHave'>
 
 type BillBasisDateFilterValue = {
@@ -49,8 +52,14 @@ const FILTER_IDS = [
 export type BillBasisFilterDrawerProps = {
   columnFilters: ColumnFiltersState
   onApply: (filters: ColumnFiltersState) => void
-  availableRecurrences: Array<{ value: RecurrenceType; label: string }>
-  availableHandlings: Array<{ value: BillPaymentHandling; label: string }>
+  availableRecurrences: Array<{
+    value: RecurrenceType
+    label: string
+  }>
+  availableHandlings: Array<{
+    value: BillPaymentHandling
+    label: string
+  }>
   availableAccounts: SelectOption[]
   availableBudgets: SelectOption[]
   availableCategories: SelectOption[]
@@ -86,9 +95,12 @@ export function BillBasisFilterDrawer({
     RecurrenceType[]
   >(() => readArrayFilter(columnFilters, 'recurrence', []))
   const [selectedRevisionStates, setSelectedRevisionStates] =
-    useState<PresenceFilterValue>(() => readArrayFilter(columnFilters, 'revisions', []))
-  const [amountRange, setAmountRange] = useState<BillBasisAmountFilterValue>(() =>
-    readAmountRangeFilter<BillBasisAmountFilterValue>(columnFilters, 'amount')
+    useState<PresenceFilterValue>(() =>
+      readArrayFilter(columnFilters, 'revisions', [])
+    )
+  const [amountRange, setAmountRange] = useState<BillBasisAmountFilterValue>(
+    () =>
+      readAmountRangeFilter<BillBasisAmountFilterValue>(columnFilters, 'amount')
   )
   const [selectedHandlings, setSelectedHandlings] = useState<string[]>(() =>
     readArrayFilter(columnFilters, 'paymentHandling', [])
@@ -118,48 +130,78 @@ export function BillBasisFilterDrawer({
     setSelectedBudgets(readArrayFilter(columnFilters, 'budget', []))
     setSelectedCategories(readArrayFilter(columnFilters, 'category', []))
     setSelectedRecipients(readArrayFilter(columnFilters, 'recipient', []))
-  }, [columnFilters])
+  }, [
+    columnFilters
+  ])
 
   const handleApply = () => {
     const nextFilters = stripDrawerFilters(columnFilters, FILTER_IDS)
 
     const normalizedDateRange = normalizeDateRange(dateRange) satisfies
-      BillBasisDateFilterValue | undefined
+      | BillBasisDateFilterValue
+      | undefined
 
     if (normalizedDateRange) {
-      nextFilters.push({ id: 'period', value: normalizedDateRange })
+      nextFilters.push({
+        id: 'period',
+        value: normalizedDateRange
+      })
     }
 
     if (selectedRecurrences.length > 0) {
-      nextFilters.push({ id: 'recurrence', value: selectedRecurrences })
+      nextFilters.push({
+        id: 'recurrence',
+        value: selectedRecurrences
+      })
     }
 
     if (selectedRevisionStates.length === 1) {
-      nextFilters.push({ id: 'revisions', value: selectedRevisionStates })
+      nextFilters.push({
+        id: 'revisions',
+        value: selectedRevisionStates
+      })
     }
 
     if (amountRange.min !== undefined || amountRange.max !== undefined) {
-      nextFilters.push({ id: 'amount', value: amountRange })
+      nextFilters.push({
+        id: 'amount',
+        value: amountRange
+      })
     }
 
     if (selectedHandlings.length > 0) {
-      nextFilters.push({ id: 'paymentHandling', value: selectedHandlings })
+      nextFilters.push({
+        id: 'paymentHandling',
+        value: selectedHandlings
+      })
     }
 
     if (selectedAccounts.length > 0) {
-      nextFilters.push({ id: 'account', value: selectedAccounts })
+      nextFilters.push({
+        id: 'account',
+        value: selectedAccounts
+      })
     }
 
     if (selectedBudgets.length > 0) {
-      nextFilters.push({ id: 'budget', value: selectedBudgets })
+      nextFilters.push({
+        id: 'budget',
+        value: selectedBudgets
+      })
     }
 
     if (selectedCategories.length > 0) {
-      nextFilters.push({ id: 'category', value: selectedCategories })
+      nextFilters.push({
+        id: 'category',
+        value: selectedCategories
+      })
     }
 
     if (selectedRecipients.length > 0) {
-      nextFilters.push({ id: 'recipient', value: selectedRecipients })
+      nextFilters.push({
+        id: 'recipient',
+        value: selectedRecipients
+      })
     }
 
     onApply(nextFilters)
@@ -187,7 +229,9 @@ export function BillBasisFilterDrawer({
           <p className="type-label text-gray-600">{t('recurrence.label')}</p>
           <FilterMultiselect
             value={selectedRecurrences}
-            onChange={(values) => setSelectedRecurrences(values as RecurrenceType[])}
+            onChange={(values) =>
+              setSelectedRecurrences(values as RecurrenceType[])
+            }
             options={availableRecurrences}
             placeholder={t('common.selectAnOption')}
             searchPlaceholder={t('common.search')}

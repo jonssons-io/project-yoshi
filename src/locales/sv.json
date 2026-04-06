@@ -937,6 +937,57 @@
     "myInvitations": {
       "title": "Dina inbjudningar",
       "description": "Här ser du hushåll som bjudit in dig. Acceptera för att gå med, eller avböj om du inte vill ansluta."
+    },
+    "blueprintRevisions": {
+      "badgeCurrent": "Nuvarande",
+      "badgePlanned": "Planerad ändring",
+      "loading": "Laddar revisioner…",
+      "error": "Kunde inte ladda revisioner.",
+      "empty": "Inga revisioner att visa.",
+      "undoTitle": "Ta bort schemalagd ändring",
+      "undoSuccess": "Den schemalagda ändringen har tagits bort.",
+      "undoError": "Kunde inte ta bort ändringen: {{message}}",
+      "sectionAria": "Revisioner {{date}}",
+      "value": {
+        "empty": "—"
+      }
+    },
+    "incomeRevisions": {
+      "title": "Revisioner",
+      "description": "Här ser du alla ändringar som är gjorda för inkomsten ”{{name}}”.",
+      "badgeCreated": "Inkomst skapad",
+      "fields": {
+        "name": "Inkomstnamn",
+        "incomeSourceId": "Källa",
+        "accountId": "Till konto",
+        "estimatedAmount": "Beräknat belopp",
+        "recurrenceType": "Upprepning",
+        "customIntervalDays": "Intervall (dagar)",
+        "expectedDate": "Startdatum",
+        "endDate": "Slutdatum",
+        "categoryId": "Kategori",
+        "splits": "Delningar"
+      }
+    },
+    "billRevisions": {
+      "title": "Revisioner",
+      "description": "Här ser du alla ändringar som är gjorda för räkningen ”{{name}}”.",
+      "badgeCreated": "Räkning skapad",
+      "fields": {
+        "name": "Räkningsnamn",
+        "recipientId": "Mottagare",
+        "accountId": "Till konto",
+        "budgetId": "Budget",
+        "estimatedAmount": "Beräknat belopp",
+        "recurrenceType": "Upprepning",
+        "customIntervalDays": "Intervall (dagar)",
+        "dueDate": "Förfallodatum",
+        "endDate": "Slutdatum",
+        "lastPaymentDate": "Senaste betalning",
+        "paymentHandling": "Betalningssätt",
+        "categoryId": "Kategori",
+        "splits": "Delningar"
+      }
     }
   }
 }

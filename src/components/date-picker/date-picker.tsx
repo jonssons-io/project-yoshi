@@ -79,7 +79,9 @@ export function DatePicker({
             )}
           >
             {value
-              ? format(value, 'PPP', { locale: sv })
+              ? format(value, 'PPP', {
+                  locale: sv
+                })
               : effectivePlaceholder}
           </span>
           {calendarPosition === 'end' ? icon : null}

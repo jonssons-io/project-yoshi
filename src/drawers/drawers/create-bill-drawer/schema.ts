@@ -1,11 +1,15 @@
 import { z } from 'zod'
 
 import { BillPaymentHandling, RecurrenceType } from '@/api/generated/types.gen'
+import {
+  nullableNumber,
+  nullablePositiveNumber
+} from '@/lib/zod-nullable-number'
 
 export const billSplitRowSchema = z.object({
   id: z.string(),
   subtitle: z.string(),
-  amount: z.number().positive('validation.positive'),
+  amount: nullablePositiveNumber('validation.positive'),
   category: z.union([
     z.string().min(1),
     z.object({
@@ -30,13 +34,18 @@ export const createBillDrawerSchema = z
       .optional(),
     accountId: z.string().min(1, 'validation.accountRequired'),
     recurrenceType: z.enum(RecurrenceType),
-    customIntervalDays: z.number().int().positive().optional(),
+    customIntervalDays: z
+      .union([
+        z.null(),
+        z.number().int().positive()
+      ])
+      .optional(),
     paymentHandling: z.enum(BillPaymentHandling).optional().or(z.literal('')),
-    startDate: z.date({
+    dueDate: z.date({
       message: 'validation.dateRequired'
     }),
     endDate: z.date().nullable().optional(),
-    amount: z.number(),
+    amount: nullableNumber(),
     budgetId: z.string().optional(),
     category: z
       .union([
@@ -74,6 +83,7 @@ export const createBillDrawerSchema = z
     if (data.recurrenceType === RecurrenceType.CUSTOM) {
       if (
         data.customIntervalDays === undefined ||
+        data.customIntervalDays === null ||
         data.customIntervalDays < 1
       ) {
         ctx.addIssue({
@@ -89,7 +99,7 @@ export const createBillDrawerSchema = z
     const hasSplits = (data.splits?.length ?? 0) > 0
 
     if (!hasSplits) {
-      if (data.amount <= 0) {
+      if (data.amount == null || data.amount <= 0) {
         ctx.addIssue({
           code: 'custom',
           message: 'validation.positive',
@@ -141,6 +151,17 @@ export const createBillDrawerSchema = z
             ]
           })
         }
+      }
+      if (row.amount == null) {
+        ctx.addIssue({
+          code: 'custom',
+          message: 'validation.positive',
+          path: [
+            'splits',
+            i,
+            'amount'
+          ]
+        })
       }
     })
   })

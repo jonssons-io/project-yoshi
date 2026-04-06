@@ -1,5 +1,8 @@
 import { z } from 'zod'
 
+import { BillPaymentHandling } from '@/api/generated/types.gen'
+import { nullableNumber } from '@/lib/zod-nullable-number'
+
 import { billSplitRowSchema } from '../create-bill-drawer/schema'
 
 const categoryField = z
@@ -16,6 +19,7 @@ const categoryField = z
 export const editBillInstanceFormSchema = z
   .object({
     name: z.string().min(1, 'validation.nameRequired'),
+    paymentHandling: z.enum(BillPaymentHandling).optional().or(z.literal('')),
     recipient: z
       .union([
         z.string(),
@@ -30,7 +34,7 @@ export const editBillInstanceFormSchema = z
     dueDate: z.date({
       message: 'validation.dateRequired'
     }),
-    amount: z.number(),
+    amount: nullableNumber(),
     budgetId: z.string().optional(),
     category: categoryField,
     splits: z.array(billSplitRowSchema).optional()
@@ -50,18 +54,22 @@ export const editBillInstanceFormSchema = z
       ctx.addIssue({
         code: 'custom',
         message: 'validation.recipientRequired',
-        path: ['recipient']
+        path: [
+          'recipient'
+        ]
       })
     }
 
     const hasSplits = (data.splits?.length ?? 0) > 0
 
     if (!hasSplits) {
-      if (data.amount <= 0) {
+      if (data.amount == null || data.amount <= 0) {
         ctx.addIssue({
           code: 'custom',
           message: 'validation.positive',
-          path: ['amount']
+          path: [
+            'amount'
+          ]
         })
       }
       const c = data.category
@@ -77,7 +85,9 @@ export const editBillInstanceFormSchema = z
         ctx.addIssue({
           code: 'custom',
           message: 'validation.categoryRequired',
-          path: ['category']
+          path: [
+            'category'
+          ]
         })
       }
       return
@@ -89,11 +99,28 @@ export const editBillInstanceFormSchema = z
         for (const iss of parsed.error.issues) {
           ctx.addIssue({
             ...iss,
-            path: ['splits', i, ...(iss.path as (string | number)[])]
+            path: [
+              'splits',
+              i,
+              ...(iss.path as (string | number)[])
+            ]
           })
         }
+      }
+      if (row.amount == null) {
+        ctx.addIssue({
+          code: 'custom',
+          message: 'validation.positive',
+          path: [
+            'splits',
+            i,
+            'amount'
+          ]
+        })
       }
     })
   })
 
-export type ParsedEditBillInstanceForm = z.infer<typeof editBillInstanceFormSchema>
+export type ParsedEditBillInstanceForm = z.infer<
+  typeof editBillInstanceFormSchema
+>

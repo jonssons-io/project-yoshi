@@ -29,7 +29,7 @@ export type TransferBudgetAllocationDrawerProps = {
 const DEFAULT_VALUES = {
   fromBudgetId: '',
   toBudgetId: '',
-  amount: 0
+  amount: null as number | null
 }
 
 /**
@@ -70,7 +70,7 @@ export function TransferBudgetAllocationDrawer({
         .superRefine((data, context) => {
           if (data.fromBudgetId === data.toBudgetId) {
             context.addIssue({
-              code: z.ZodIssueCode.custom,
+              code: 'custom',
               message: 'allocation.transferDrawer.sameBudgetError',
               path: [
                 'toBudgetId'
@@ -83,7 +83,7 @@ export function TransferBudgetAllocationDrawer({
 
           if (data.amount > sourceAllocation) {
             context.addIssue({
-              code: z.ZodIssueCode.custom,
+              code: 'custom',
               message: 'allocation.exceedsSourceAllocation',
               path: [
                 'amount'

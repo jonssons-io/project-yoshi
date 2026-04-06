@@ -57,9 +57,9 @@ type BuildBodyParams = {
  */
 export function buildCreateBillBody(params: BuildBodyParams): Omit<
   CreateBillRequest,
-  'startDate' | 'endDate' | 'lastPaymentDate'
+  'dueDate' | 'endDate' | 'lastPaymentDate'
 > & {
-  startDate: Date
+  dueDate: Date
   endDate: Date | null | undefined
 } {
   const { t, data, hasSplits } = params
@@ -74,36 +74,50 @@ export function buildCreateBillBody(params: BuildBodyParams): Omit<
         }
 
   const rawHandling = data.paymentHandling as string | undefined
-  const paymentHandling: BillPaymentHandling | undefined =
-    rawHandling ? (rawHandling as BillPaymentHandling) : undefined
+  const paymentHandling: BillPaymentHandling | undefined = rawHandling
+    ? (rawHandling as BillPaymentHandling)
+    : undefined
 
   const base = {
     name: data.name,
     ...billRecipientFields(data.recipient),
     accountId: data.accountId,
-    startDate: data.startDate,
+    dueDate: data.dueDate,
     endDate: data.endDate ?? null,
     paymentHandling,
     ...recurrenceExtras
   }
 
   if (hasSplits && data.splits && data.splits.length > 0) {
-    const estimatedAmount = data.splits.reduce((s, r) => s + r.amount, 0)
+    const estimatedAmount = data.splits.reduce((s, r) => {
+      if (r.amount == null) {
+        throw new Error('buildCreateBillBody: split amount is required')
+      }
+      return s + r.amount
+    }, 0)
     return {
       ...base,
       budgetId: null,
       estimatedAmount,
-      splits: data.splits.map((row) => ({
-        subtitle:
-          row.subtitle.trim().length > 0
-            ? row.subtitle.trim()
-            : t('forms.namelessSection'),
-        amount: row.amount,
-        ...splitCategoryToApi(row.category)
-      }))
+      splits: data.splits.map((row) => {
+        if (row.amount == null) {
+          throw new Error('buildCreateBillBody: split amount is required')
+        }
+        return {
+          subtitle:
+            row.subtitle.trim().length > 0
+              ? row.subtitle.trim()
+              : t('forms.namelessSection'),
+          amount: row.amount,
+          ...splitCategoryToApi(row.category)
+        }
+      })
     }
   }
 
+  if (data.amount == null) {
+    throw new Error('buildCreateBillBody: amount is required')
+  }
   return {
     ...base,
     budgetId: data.budgetId ? data.budgetId : null,

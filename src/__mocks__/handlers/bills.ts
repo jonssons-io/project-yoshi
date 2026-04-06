@@ -33,7 +33,7 @@ type BillRequestBody = Partial<{
   newRecipientName: string
   accountId: string
   budgetId: string | null
-  startDate: string
+  dueDate: string
   recurrenceType: string
   customIntervalDays: number
   estimatedAmount: number
@@ -51,19 +51,36 @@ type BillRequestBody = Partial<{
 }>
 
 type BillInstanceRequestBody = Partial<{
-  updateType: 'INSTANCE' | 'FUTURE' | 'ALL'
   name: string
   recipient: string
+  newRecipientName: string
   amount: number
   dueDate: string
   accountId: string
-  categoryId: string
+  categoryId: string | null
+  newCategoryName: string
+  budgetId: string | null
+  paymentHandling: string | null
+  splits: Array<{
+    subtitle: string
+    amount: number
+    categoryId?: string
+    newCategoryName?: string
+    budgetId?: string
+  }>
 }>
 
 function normalizeRecurrenceType(value?: string): string {
   if (!value) return 'MONTHLY'
   const normalized = value.toUpperCase()
   return RECURRENCE_TYPES.has(normalized) ? normalized : 'MONTHLY'
+}
+
+function numberOfBillRevisions(bill: Record<string, unknown>): number {
+  if (typeof bill.numberOfRevisions === 'number') return bill.numberOfRevisions
+  const id = String(bill.id ?? '')
+  const rows = mockBillRevisions.filter((row) => row.billId === id).length
+  return Math.max(1, rows)
 }
 
 function normalizeBillPaymentHandling(
@@ -83,6 +100,72 @@ function normalizeBillPaymentHandling(
   }
 }
 
+function createExpenseCategoryLinkedToAllBudgets(
+  householdId: string,
+  name: string
+): string {
+  const category = {
+    id: nextId('cat'),
+    householdId,
+    name,
+    types: [
+      'EXPENSE'
+    ],
+    archived: false,
+    createdAt: nowIso()
+  }
+  categories.push(category)
+  for (const b of budgets) {
+    if (b.householdId === householdId && !b.categoryIds.includes(category.id)) {
+      b.categoryIds = [
+        ...b.categoryIds,
+        category.id
+      ]
+    }
+  }
+  return category.id
+}
+
+function resolveBillInstanceRecipientFromPatch(
+  householdId: string,
+  fallbackRecipientId: string,
+  body: BillInstanceRequestBody
+): string {
+  if (
+    typeof body.newRecipientName === 'string' &&
+    body.newRecipientName.trim().length > 0
+  ) {
+    const name = body.newRecipientName.trim()
+    const existing = recipients.find(
+      (r) =>
+        r.householdId === householdId &&
+        r.name.toLowerCase() === name.toLowerCase()
+    )
+    if (existing) return existing.id
+    const created = {
+      id: nextId('rec'),
+      householdId,
+      name,
+      createdAt: nowIso()
+    }
+    recipients.push(created)
+    return created.id
+  }
+  if (typeof body.recipient === 'string' && body.recipient.length > 0) {
+    return body.recipient
+  }
+  return fallbackRecipientId
+}
+
+function normalizeBillInstanceDueDateForStorage(
+  raw: string,
+  fallback: string
+): string {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw
+  if (raw.length >= 10) return raw.slice(0, 10)
+  return fallback
+}
+
 function toBillResponse(
   bill: Record<string, unknown>,
   budgetIdFallback?: string
@@ -93,13 +176,13 @@ function toBillResponse(
       : typeof bill.amount === 'number'
         ? bill.amount
         : 0
-  const startDateRaw =
-    typeof bill.startDate === 'string'
-      ? bill.startDate
+  const dueDateRaw =
+    typeof bill.dueDate === 'string'
+      ? bill.dueDate
       : typeof bill.createdAt === 'string'
         ? bill.createdAt.slice(0, 10)
         : nowIso().slice(0, 10)
-  const startDate = toUtcIsoDateTime(startDateRaw)
+  const dueDate = toUtcIsoDateTime(dueDateRaw)
   const recipient = recipients.find((item) => item.id === bill.recipientId)
   const account = accounts.find((item) => item.id === bill.accountId)
   const category =
@@ -136,7 +219,7 @@ function toBillResponse(
     name: String(bill.name ?? 'New Bill'),
     recipient: toRelationRef(recipient),
     account: toRelationRef(account),
-    startDate,
+    dueDate,
     recurrenceType: normalizeRecurrenceType(
       typeof bill.recurrenceType === 'string' ? bill.recurrenceType : undefined
     ),
@@ -159,13 +242,7 @@ function toBillResponse(
     splits: Array.isArray(bill.splits) ? bill.splits : [],
     archived: Boolean(bill.archived),
     createdAt: String(bill.createdAt ?? nowIso()),
-    hasRevisions: Boolean(
-      (
-        bill as {
-          hasRevisions?: boolean
-        }
-      ).hasRevisions ?? false
-    )
+    numberOfRevisions: numberOfBillRevisions(bill)
   }
 }
 
@@ -232,7 +309,10 @@ function listFilteredBillInstances(url: URL) {
 
 function enrichBillInstance(instance: (typeof billInstances)[number]) {
   const bill = bills.find((item) => item.id === instance.billId)
-  const paymentHandling = bill?.paymentHandling ?? null
+  const paymentHandling =
+    typeof instance.paymentHandling === 'string'
+      ? instance.paymentHandling
+      : (bill?.paymentHandling ?? null)
   const budget = instance.budgetId
     ? budgets.find((item) => item.id === instance.budgetId)
     : null
@@ -285,7 +365,6 @@ function enrichBillInstance(instance: (typeof billInstances)[number]) {
     recurrenceType: instance.recurrenceType,
     customIntervalDays: instance.customIntervalDays ?? null,
     paymentHandling,
-    startDate: toUtcIsoDateTime(instance.startDate),
     archived: instance.archived
   }
 }
@@ -334,6 +413,57 @@ export const billHandlers = [
       .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))
     return HttpResponse.json({
       data
+    })
+  }),
+
+  http.delete(`${BASE}/bills/:billId/revisions/:revisionId`, ({ params }) => {
+    const bill = bills.find((item) => item.id === params.billId)
+    if (!bill) {
+      return HttpResponse.json(
+        {
+          error: {
+            code: 'NOT_FOUND',
+            message: 'Bill not found'
+          }
+        },
+        {
+          status: 404
+        }
+      )
+    }
+    const idx = mockBillRevisions.findIndex(
+      (row) => row.billId === params.billId && row.id === params.revisionId
+    )
+    if (idx === -1) {
+      return HttpResponse.json(
+        {
+          error: {
+            code: 'NOT_FOUND',
+            message: 'Revision not found'
+          }
+        },
+        {
+          status: 404
+        }
+      )
+    }
+    const row = mockBillRevisions[idx]
+    if (row.scheduled !== true) {
+      return HttpResponse.json(
+        {
+          error: {
+            code: 'NOT_FOUND',
+            message: 'Revision not found'
+          }
+        },
+        {
+          status: 404
+        }
+      )
+    }
+    mockBillRevisions.splice(idx, 1)
+    return HttpResponse.json({
+      success: true
     })
   }),
 
@@ -420,7 +550,7 @@ export const billHandlers = [
     async ({ request, params }) => {
       const body = await readJson<BillRequestBody>(request)
       const estimatedAmount = body.estimatedAmount ?? 0
-      const startDate = body.startDate ?? nowIso().slice(0, 10)
+      const dueDate = body.dueDate ?? nowIso().slice(0, 10)
       const createdRecipient = body.newRecipientName
         ? {
             id: nextId('rec'),
@@ -440,7 +570,7 @@ export const billHandlers = [
         name: body.name ?? 'New Bill',
         recipientId: body.recipientId ?? createdRecipient?.id ?? 'rec_1',
         accountId: body.accountId ?? 'acc_1',
-        startDate,
+        dueDate,
         recurrenceType: normalizeRecurrenceType(body.recurrenceType),
         customIntervalDays: body.customIntervalDays ?? null,
         estimatedAmount,
@@ -455,7 +585,7 @@ export const billHandlers = [
         })),
         archived: false,
         createdAt: nowIso(),
-        hasRevisions: false
+        numberOfRevisions: 1
       }
       bills.push(bill)
       const instance = {
@@ -466,14 +596,13 @@ export const billHandlers = [
         recipientId: bill.recipientId,
         budgetId: bill.budgetId,
         amount: bill.estimatedAmount,
-        dueDate: startDate,
+        dueDate,
         status: 'UPCOMING' as const,
         transactionId: null,
         accountId: bill.accountId,
         categoryId: bill.categoryId,
         recurrenceType: bill.recurrenceType,
         customIntervalDays: bill.customIntervalDays,
-        startDate: bill.startDate,
         archived: bill.archived,
         splits: bill.splits
       }
@@ -500,10 +629,12 @@ export const billHandlers = [
       )
     }
     const body = await readJson<Record<string, unknown>>(request)
+    const { updateScope: _us, fromDate: _fd, ...patch } = body
+    const current = bills[index] as unknown as Record<string, unknown>
     bills[index] = {
       ...bills[index],
-      ...body,
-      hasRevisions: true
+      ...patch,
+      numberOfRevisions: numberOfBillRevisions(current) + 1
     }
     return HttpResponse.json(toBillResponse(bills[index]))
   }),
@@ -563,8 +694,7 @@ export const billHandlers = [
         : !bills[index].archived
     bills[index] = {
       ...bills[index],
-      archived,
-      hasRevisions: true
+      archived
     }
     return HttpResponse.json(toBillResponse(bills[index]))
   }),
@@ -608,75 +738,113 @@ export const billHandlers = [
       }
       const body = await readJson<BillInstanceRequestBody>(request)
       const sourceInstance = billInstances[index]
-      const updateType = body.updateType ?? 'INSTANCE'
-      const targetIndexes = billInstances
-        .map((item, itemIndex) => ({
-          item,
-          itemIndex
-        }))
-        .filter(({ item }) => {
-          if (item.billId !== sourceInstance.billId) return false
-          if (updateType === 'ALL') return true
-          if (updateType === 'FUTURE') {
-            return item.dueDate >= sourceInstance.dueDate
+      const householdId = getBillInstanceHouseholdId(sourceInstance)
+      if (!householdId) {
+        return HttpResponse.json(
+          {
+            error: {
+              code: 'INTERNAL',
+              message: 'Could not resolve household for bill instance'
+            }
+          },
+          {
+            status: 500
           }
-          return item.id === sourceInstance.id
-        })
-        .map(({ itemIndex }) => itemIndex)
+        )
+      }
 
-      const recipientId =
-        body.recipient && body.recipient.length > 0
-          ? (recipients.find((item) => item.name === body.recipient)?.id ??
-            sourceInstance.recipientId)
-          : sourceInstance.recipientId
+      const next: (typeof billInstances)[number] = {
+        ...sourceInstance,
+        name: typeof body.name === 'string' ? body.name : sourceInstance.name,
+        recipientId: resolveBillInstanceRecipientFromPatch(
+          householdId,
+          sourceInstance.recipientId,
+          body
+        ),
+        amount:
+          typeof body.amount === 'number' ? body.amount : sourceInstance.amount,
+        dueDate:
+          typeof body.dueDate === 'string'
+            ? normalizeBillInstanceDueDateForStorage(
+                body.dueDate,
+                sourceInstance.dueDate
+              )
+            : sourceInstance.dueDate,
+        accountId:
+          typeof body.accountId === 'string'
+            ? body.accountId
+            : sourceInstance.accountId
+      }
 
-      for (const targetIndex of targetIndexes) {
-        billInstances[targetIndex] = {
-          ...billInstances[targetIndex],
-          name: body.name ?? billInstances[targetIndex].name,
-          recipientId,
-          amount:
-            typeof body.amount === 'number'
-              ? body.amount
-              : billInstances[targetIndex].amount,
-          dueDate:
-            typeof body.dueDate === 'string'
-              ? body.dueDate
-              : billInstances[targetIndex].dueDate,
-          accountId:
-            typeof body.accountId === 'string'
-              ? body.accountId
-              : billInstances[targetIndex].accountId,
-          categoryId:
-            typeof body.categoryId === 'string'
-              ? body.categoryId
-              : billInstances[targetIndex].categoryId
+      if (Object.hasOwn(body, 'paymentHandling')) {
+        if (body.paymentHandling === null) {
+          next.paymentHandling = null
+        } else if (typeof body.paymentHandling === 'string') {
+          next.paymentHandling = normalizeBillPaymentHandling(
+            body.paymentHandling
+          )
         }
       }
 
-      const billIndex = bills.findIndex(
-        (item) => item.id === sourceInstance.billId
-      )
-      if (billIndex !== -1 && updateType !== 'INSTANCE') {
-        bills[billIndex] = {
-          ...bills[billIndex],
-          name: body.name ?? bills[billIndex].name,
-          recipientId,
-          accountId:
-            typeof body.accountId === 'string'
-              ? body.accountId
-              : bills[billIndex].accountId,
-          categoryId:
-            typeof body.categoryId === 'string'
-              ? body.categoryId
-              : bills[billIndex].categoryId,
-          estimatedAmount:
-            typeof body.amount === 'number'
-              ? body.amount
-              : bills[billIndex].estimatedAmount
+      if (body.splits !== undefined) {
+        const lines = body.splits
+        if (Array.isArray(lines) && lines.length === 0) {
+          const bill = bills.find((b) => b.id === sourceInstance.billId)
+          next.budgetId = bill?.budgetId ?? sourceInstance.budgetId
+          next.categoryId = bill?.categoryId ?? null
+          delete next.splits
+        } else if (Array.isArray(lines) && lines.length > 0) {
+          next.splits = lines.map((line) => {
+            let categoryId: string | null | undefined = line.categoryId
+            if (
+              typeof line.newCategoryName === 'string' &&
+              line.newCategoryName.trim().length > 0
+            ) {
+              categoryId = createExpenseCategoryLinkedToAllBudgets(
+                householdId,
+                line.newCategoryName.trim()
+              )
+            }
+            return {
+              subtitle: line.subtitle,
+              amount: line.amount,
+              categoryId: categoryId ?? null,
+              ...(typeof line.budgetId === 'string'
+                ? {
+                    budgetId: line.budgetId
+                  }
+                : {})
+            }
+          })
+          next.categoryId = null
+          next.budgetId = ''
+        }
+      } else {
+        if (
+          typeof body.newCategoryName === 'string' &&
+          body.newCategoryName.trim().length > 0
+        ) {
+          next.categoryId = createExpenseCategoryLinkedToAllBudgets(
+            householdId,
+            body.newCategoryName.trim()
+          )
+        } else if (Object.hasOwn(body, 'categoryId')) {
+          if (body.categoryId === null) {
+            next.categoryId = null
+          } else if (typeof body.categoryId === 'string') {
+            next.categoryId = body.categoryId
+          }
+        }
+        if (Object.hasOwn(body, 'budgetId')) {
+          if (body.budgetId === null) {
+            next.budgetId = ''
+          } else if (typeof body.budgetId === 'string') {
+            next.budgetId = body.budgetId
+          }
         }
       }
 
+      billInstances[index] = next
       return HttpResponse.json(enrichBillInstance(billInstances[index]))
     }
   )

@@ -188,3 +188,96 @@ export function safeValidateForm<T>(
     errors: getZodErrors(result.error)
   }
 }
+
+const emptyTanstackFieldMeta = {
+  isValidating: false,
+  isTouched: false,
+  isBlurred: false,
+  isDirty: false,
+  isPristine: true,
+  isValid: true,
+  isDefaultValue: true,
+  errors: [] as string[],
+  errorMap: {} as Record<string, unknown>,
+  errorSourceMap: {} as Record<string, unknown>
+}
+
+/**
+ * Maps a Zod issue path to TanStack Form `DeepKeys` string (e.g. `['splits', 0, 'amount']` → `splits[0].amount`).
+ */
+export function zodIssuePathToDeepKey(
+  path: ReadonlyArray<string | number | symbol>
+): string {
+  let out = ''
+  for (const p of path) {
+    if (typeof p === 'symbol') continue
+    if (typeof p === 'number') {
+      out += `[${p}]`
+    } else if (out === '') {
+      out = String(p)
+    } else {
+      out += `.${String(p)}`
+    }
+  }
+  return out
+}
+
+type FormApiWithSetFieldMeta = {
+  setFieldMeta: (field: string, updater: (prev: unknown) => unknown) => void
+}
+
+function asFormMetaApi(formApi: unknown): FormApiWithSetFieldMeta {
+  return formApi as FormApiWithSetFieldMeta
+}
+
+/**
+ * Pushes Zod issue messages onto matching TanStack Form fields via `setFieldMeta`.
+ */
+export function applyZodIssuesToTanStackForm(
+  formApi: unknown,
+  issues: z.core.$ZodIssue[],
+  mapMessage: (raw: string) => string
+): void {
+  const api = asFormMetaApi(formApi)
+  for (const issue of issues) {
+    const fieldName = zodIssuePathToDeepKey(issue.path)
+    if (!fieldName) continue
+    const msg = mapMessage(issue.message)
+    api.setFieldMeta(fieldName, (prev) => {
+      const base =
+        prev && typeof prev === 'object'
+          ? (prev as Record<string, unknown>)
+          : emptyTanstackFieldMeta
+      return {
+        ...emptyTanstackFieldMeta,
+        ...base,
+        errors: [
+          msg
+        ],
+        isTouched: true,
+        isValid: false
+      }
+    })
+  }
+}
+
+/** Clears `errors` on the given TanStack Form field names (e.g. before re-applying Zod issues). */
+export function clearTanStackFieldErrors(
+  formApi: unknown,
+  fieldNames: string[]
+): void {
+  const api = asFormMetaApi(formApi)
+  for (const fieldName of fieldNames) {
+    api.setFieldMeta(fieldName, (prev) => {
+      const base =
+        prev && typeof prev === 'object'
+          ? (prev as Record<string, unknown>)
+          : emptyTanstackFieldMeta
+      return {
+        ...emptyTanstackFieldMeta,
+        ...base,
+        errors: []
+      }
+    })
+  }
+}

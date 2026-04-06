@@ -29,7 +29,7 @@ function SyncBillSplitTotalToAmount({
   useEffect(() => {
     const sum = splits.reduce((s, r) => s + (Number(r.amount) || 0), 0)
     const rounded = Number(sum.toFixed(2))
-    const current = form.getFieldValue('amount')
+    const current = form.getFieldValue('amount') ?? 0
     if (Math.abs(rounded - current) > 0.001) {
       form.setFieldValue('amount', rounded)
     }

@@ -26,8 +26,9 @@ export function readDateRangeFilter(
   columnFilters: ColumnFiltersState,
   columnId: string
 ): DateRange | undefined {
-  const match = columnFilters.find((filter) => filter.id === columnId)
-    ?.value as DateRangeFilterValue | undefined
+  const match = columnFilters.find((filter) => filter.id === columnId)?.value as
+    | DateRangeFilterValue
+    | undefined
   if (!match?.from && !match?.to) return undefined
   return {
     from: match?.from ? new Date(match.from) : undefined,
@@ -50,7 +51,12 @@ export function toggleFilterValue<T extends string>(
   checked: boolean
 ): T[] {
   if (checked) {
-    return current.includes(nextValue) ? current : [...current, nextValue]
+    return current.includes(nextValue)
+      ? current
+      : [
+          ...current,
+          nextValue
+        ]
   }
   return current.filter((value) => value !== nextValue)
 }
@@ -67,7 +73,9 @@ export function normalizeDateRange(
 ): DateRangeFilterValue | undefined {
   if (!dateRange?.from && !dateRange?.to) return undefined
   return {
-    from: dateRange?.from ? startOfDay(dateRange.from).toISOString() : undefined,
+    from: dateRange?.from
+      ? startOfDay(dateRange.from).toISOString()
+      : undefined,
     to: dateRange?.to ? endOfDay(dateRange.to).toISOString() : undefined
   }
 }

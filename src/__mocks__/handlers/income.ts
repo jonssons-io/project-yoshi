@@ -1,6 +1,7 @@
 import { HttpResponse, http } from 'msw'
 import {
   accounts,
+  budgets,
   categories,
   incomeInstances,
   incomeSources,
@@ -17,16 +18,25 @@ import {
 const BASE = '/api/v1'
 
 function toRelationRef(
-  entity?: { id: string; name?: string | null } | null
+  entity?: {
+    id: string
+    name?: string | null
+  } | null
 ) {
-  return entity ? { id: entity.id, name: entity.name ?? null } : null
+  return entity
+    ? {
+        id: entity.id,
+        name: entity.name ?? null
+      }
+    : null
 }
 
 function deriveIncomeInstanceStatus(
   instance: (typeof incomeInstances)[number]
 ): 'UPCOMING' | 'HANDLED' | 'OVERDUE' | 'RECEIVED' {
   const hasTransaction = !!instance.transactionId
-  const isPastOrPresent = new Date(instance.expectedDate).getTime() <= Date.now()
+  const isPastOrPresent =
+    new Date(instance.expectedDate).getTime() <= Date.now()
 
   if (hasTransaction && isPastOrPresent) return 'RECEIVED'
   if (hasTransaction) return 'HANDLED'
@@ -68,6 +78,50 @@ function listFilteredIncomeInstances(url: URL) {
   })
 }
 
+function numberOfIncomeRevisions(income: (typeof incomes)[number]): number {
+  if (typeof income.numberOfRevisions === 'number')
+    return income.numberOfRevisions
+  const rows = mockIncomeRevisions.filter(
+    (row) => row.incomeId === String(income.id)
+  ).length
+  return Math.max(1, rows)
+}
+
+function createIncomeCategoryLinkedToAllBudgets(
+  householdId: string,
+  name: string
+): string {
+  const category = {
+    id: nextId('cat'),
+    householdId,
+    name,
+    types: [
+      'INCOME'
+    ],
+    archived: false,
+    createdAt: nowIso()
+  }
+  categories.push(category)
+  for (const b of budgets) {
+    if (b.householdId === householdId && !b.categoryIds.includes(category.id)) {
+      b.categoryIds = [
+        ...b.categoryIds,
+        category.id
+      ]
+    }
+  }
+  return category.id
+}
+
+function normalizeIncomeInstanceExpectedDateForStorage(
+  raw: string,
+  fallback: string
+): string {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw
+  if (raw.length >= 10) return raw.slice(0, 10)
+  return fallback
+}
+
 function enrichIncomeInstance(instance: (typeof incomeInstances)[number]) {
   const transaction = instance.transactionId
     ? transactions.find((item) => item.id === instance.transactionId)
@@ -85,7 +139,7 @@ const enrichIncome = (income: (typeof incomes)[number]) => ({
   ...income,
   expectedDate: toUtcIsoDateTime(income.expectedDate),
   endDate: income.endDate ? toUtcIsoDateTime(income.endDate) : null,
-  hasRevisions: Boolean(income.hasRevisions ?? false),
+  numberOfRevisions: numberOfIncomeRevisions(income),
   account: accounts.find((item) => item.id === income.accountId),
   category: categories.find((item) => item.id === income.categoryId),
   incomeSource: incomeSources.find((item) => item.id === income.incomeSourceId)
@@ -102,15 +156,74 @@ export const incomeHandlers = [
             message: 'Income not found'
           }
         },
-        { status: 404 }
+        {
+          status: 404
+        }
       )
     }
     const data = mockIncomeRevisions
       .filter((row) => row.incomeId === params.incomeId)
       .slice()
       .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))
-    return HttpResponse.json({ data })
+    return HttpResponse.json({
+      data
+    })
   }),
+
+  http.delete(
+    `${BASE}/incomes/:incomeId/revisions/:revisionId`,
+    ({ params }) => {
+      const income = incomes.find((item) => item.id === params.incomeId)
+      if (!income) {
+        return HttpResponse.json(
+          {
+            error: {
+              code: 'NOT_FOUND',
+              message: 'Income not found'
+            }
+          },
+          {
+            status: 404
+          }
+        )
+      }
+      const idx = mockIncomeRevisions.findIndex(
+        (row) =>
+          row.incomeId === params.incomeId && row.id === params.revisionId
+      )
+      if (idx === -1) {
+        return HttpResponse.json(
+          {
+            error: {
+              code: 'NOT_FOUND',
+              message: 'Revision not found'
+            }
+          },
+          {
+            status: 404
+          }
+        )
+      }
+      const row = mockIncomeRevisions[idx]
+      if (row.scheduled !== true) {
+        return HttpResponse.json(
+          {
+            error: {
+              code: 'NOT_FOUND',
+              message: 'Revision not found'
+            }
+          },
+          {
+            status: 404
+          }
+        )
+      }
+      mockIncomeRevisions.splice(idx, 1)
+      return HttpResponse.json({
+        success: true
+      })
+    }
+  ),
 
   http.get(`${BASE}/households/:householdId/incomes`, ({ request, params }) => {
     const url = new URL(request.url)
@@ -175,7 +288,7 @@ export const incomeHandlers = [
         endDate: body.endDate ?? null,
         archived: false,
         createdAt: nowIso(),
-        hasRevisions: false
+        numberOfRevisions: 1
       }
       incomes.push(income)
       return HttpResponse.json(enrichIncome(income), {
@@ -287,6 +400,7 @@ export const incomeHandlers = [
       )
     }
     const body = await readJson<Record<string, unknown>>(request)
+    const { updateScope: _us, fromDate: _fd, ...patchBody } = body
     const createdIncomeSource =
       typeof body.newIncomeSourceName === 'string' &&
       body.newIncomeSourceName.length > 0
@@ -305,15 +419,16 @@ export const incomeHandlers = [
       typeof body.amount === 'number'
         ? body.amount
         : incomes[index].estimatedAmount
+    const current = incomes[index]
     incomes[index] = {
-      ...incomes[index],
-      ...body,
+      ...current,
+      ...patchBody,
       estimatedAmount: amount,
       incomeSourceId:
         typeof body.incomeSourceId === 'string'
           ? body.incomeSourceId
-          : (createdIncomeSource?.id ?? incomes[index].incomeSourceId),
-      hasRevisions: true
+          : (createdIncomeSource?.id ?? current.incomeSourceId),
+      numberOfRevisions: numberOfIncomeRevisions(current) + 1
     }
     return HttpResponse.json(enrichIncome(incomes[index]))
   }),
@@ -338,61 +453,66 @@ export const incomeHandlers = [
         )
       }
       const body = await readJson<Record<string, unknown>>(request)
-      const updateType = body.updateType
+      const current = incomeInstances[index]
+
+      let incomeSourceId = current.incomeSourceId
       if (
-        updateType !== 'INSTANCE' &&
-        updateType !== 'FUTURE' &&
-        updateType !== 'ALL'
+        typeof body.newIncomeSourceName === 'string' &&
+        body.newIncomeSourceName.trim().length > 0
       ) {
-        return HttpResponse.json(
-          {
-            error: {
-              code: 'VALIDATION_ERROR',
-              message: 'updateType is required (INSTANCE, FUTURE, or ALL)'
-            }
-          },
-          { status: 400 }
+        const created = {
+          id: nextId('isrc'),
+          householdId: current.householdId,
+          name: body.newIncomeSourceName.trim(),
+          createdAt: nowIso()
+        }
+        incomeSources.push(created)
+        incomeSourceId = created.id
+      } else if (
+        typeof body.incomeSourceId === 'string' &&
+        body.incomeSourceId.length > 0
+      ) {
+        incomeSourceId = body.incomeSourceId
+      }
+
+      let categoryId: string | null | undefined = current.categoryId
+      if (
+        typeof body.newCategoryName === 'string' &&
+        body.newCategoryName.trim().length > 0
+      ) {
+        categoryId = createIncomeCategoryLinkedToAllBudgets(
+          current.householdId,
+          body.newCategoryName.trim()
         )
-      }
-
-      const source = incomeInstances[index]
-      const targetIndexes: number[] = []
-      for (let i = 0; i < incomeInstances.length; i += 1) {
-        const item = incomeInstances[i]
-        if (item.incomeId !== source.incomeId) continue
-        if (updateType === 'INSTANCE') {
-          if (item.id === source.id) targetIndexes.push(i)
-          continue
-        }
-        if (item.transactionId) continue
-        if (updateType === 'ALL') {
-          targetIndexes.push(i)
-          continue
-        }
-        if (
-          updateType === 'FUTURE' &&
-          item.expectedDate >= source.expectedDate
-        ) {
-          targetIndexes.push(i)
+      } else if (Object.hasOwn(body, 'categoryId')) {
+        if (body.categoryId === null) {
+          categoryId = null
+        } else if (typeof body.categoryId === 'string') {
+          categoryId = body.categoryId
         }
       }
 
-      const name = body.name
-      const amount = body.amount
-      const expectedDate = body.expectedDate
-      const accountId = body.accountId
-      const categoryId = body.categoryId
+      const name = typeof body.name === 'string' ? body.name : current.name
+      const amount =
+        typeof body.amount === 'number' ? body.amount : current.amount
+      const expectedDate =
+        typeof body.expectedDate === 'string'
+          ? normalizeIncomeInstanceExpectedDateForStorage(
+              body.expectedDate,
+              current.expectedDate
+            )
+          : current.expectedDate
+      const accountId =
+        typeof body.accountId === 'string' ? body.accountId : current.accountId
 
-      for (const targetIndex of targetIndexes) {
-        const current = incomeInstances[targetIndex]
-        incomeInstances[targetIndex] = {
-          ...current,
-          ...(typeof name === 'string' ? { name } : {}),
-          ...(typeof amount === 'number' ? { amount } : {}),
-          ...(typeof expectedDate === 'string' ? { expectedDate } : {}),
-          ...(typeof accountId === 'string' ? { accountId } : {}),
-          ...(typeof categoryId === 'string' ? { categoryId } : {})
-        }
+      incomeInstances[index] = {
+        ...current,
+        name,
+        amount,
+        expectedDate,
+        accountId,
+        categoryId,
+        incomeSourceId
       }
 
       return HttpResponse.json(enrichIncomeInstance(incomeInstances[index]))
@@ -437,8 +557,7 @@ export const incomeHandlers = [
     }
     incomes[index] = {
       ...incomes[index],
-      archived: !incomes[index].archived,
-      hasRevisions: true
+      archived: !incomes[index].archived
     }
     return HttpResponse.json(enrichIncome(incomes[index]))
   })

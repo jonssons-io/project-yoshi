@@ -5,9 +5,9 @@ import { toast } from 'sonner'
 
 import {
   BillPaymentHandling,
-  BlueprintUpdateScope,
   type BillSplit,
-  CategoryType
+  CategoryType,
+  type UpdateBillInstanceRequest
 } from '@/api/generated/types.gen'
 import { Alert } from '@/components/alert/alert'
 import { Button } from '@/components/button/button'
@@ -41,32 +41,52 @@ import {
   type ParsedEditBillInstanceForm
 } from './schema'
 
+function recipientToBillInstancePatch(
+  r: ParsedEditBillInstanceForm['recipient']
+): Pick<UpdateBillInstanceRequest, 'recipient' | 'newRecipientName'> {
+  if (r == null || r === undefined) return {}
+  if (typeof r === 'string' && r.length > 0) {
+    return {
+      recipient: r
+    }
+  }
+  if (typeof r === 'object' && r !== null && 'isNew' in r && r.isNew) {
+    return {
+      newRecipientName: r.name.trim()
+    }
+  }
+  return {}
+}
+
+function categoryToBillInstancePatch(
+  c: ParsedEditBillInstanceForm['category']
+): Pick<UpdateBillInstanceRequest, 'categoryId' | 'newCategoryName'> {
+  if (c == null || c === undefined) return {}
+  if (typeof c === 'string' && c.length > 0) {
+    return {
+      categoryId: c
+    }
+  }
+  if (typeof c === 'object' && c !== null && 'isNew' in c && c.isNew) {
+    return {
+      newCategoryName: c.name.trim()
+    }
+  }
+  return {}
+}
+
 export type EditBillInstanceDrawerProps = {
   instanceId: string
   onClose: () => void
 }
 
-const PAYMENT_HANDLING_LABEL_KEY: Record<
-  BillPaymentHandling,
-  | 'bills.paymentHandling.AUTOGIRO'
-  | 'bills.paymentHandling.E_INVOICE'
-  | 'bills.paymentHandling.MAIL'
-  | 'bills.paymentHandling.PORTAL'
-  | 'bills.paymentHandling.PAPER'
-> = {
-  [BillPaymentHandling.AUTOGIRO]: 'bills.paymentHandling.AUTOGIRO',
-  [BillPaymentHandling.E_INVOICE]: 'bills.paymentHandling.E_INVOICE',
-  [BillPaymentHandling.MAIL]: 'bills.paymentHandling.MAIL',
-  [BillPaymentHandling.PORTAL]: 'bills.paymentHandling.PORTAL',
-  [BillPaymentHandling.PAPER]: 'bills.paymentHandling.PAPER'
-}
-
 const EDIT_INSTANCE_DEFAULTS = {
   name: '',
+  paymentHandling: '' as string,
   recipient: null as ComboboxValue | null,
   accountId: '',
   dueDate: new Date(),
-  amount: 0,
+  amount: null as number | null,
   budgetId: '',
   category: null as ComboboxValue | null,
   splits: [] as BillSplitRowValue[]
@@ -79,13 +99,6 @@ function billSplitsToFormRows(splits: BillSplit[]): BillSplitRowValue[] {
     amount: s.amount,
     category: s.categoryId
   }))
-}
-
-function topLevelCategoryId(
-  c: ParsedEditBillInstanceForm['category']
-): string | undefined {
-  if (typeof c === 'string' && c.length > 0) return c
-  return undefined
 }
 
 export function EditBillInstanceDrawer({
@@ -167,6 +180,34 @@ export function EditBillInstanceDrawer({
     ]
   )
 
+  const paymentHandlingOptions = useMemo(
+    () => [
+      {
+        value: BillPaymentHandling.AUTOGIRO,
+        label: t('bills.paymentHandling.AUTOGIRO')
+      },
+      {
+        value: BillPaymentHandling.E_INVOICE,
+        label: t('bills.paymentHandling.E_INVOICE')
+      },
+      {
+        value: BillPaymentHandling.MAIL,
+        label: t('bills.paymentHandling.MAIL')
+      },
+      {
+        value: BillPaymentHandling.PORTAL,
+        label: t('bills.paymentHandling.PORTAL')
+      },
+      {
+        value: BillPaymentHandling.PAPER,
+        label: t('bills.paymentHandling.PAPER')
+      }
+    ],
+    [
+      t
+    ]
+  )
+
   const budgetIdForCategories = instance?.budget?.id ?? ''
 
   const { data: expenseCategories = [] } = useCategoriesList({
@@ -212,27 +253,35 @@ export function EditBillInstanceDrawer({
         return
       }
 
-      const recipient = result.data.recipient
-      if (typeof recipient !== 'string' || recipient.length === 0) {
-        toast.error(t('validation.recipientRequired'))
-        return
-      }
-
-      const catId = topLevelCategoryId(result.data.category)
-
       try {
         await updateBillInstanceAsync({
           id: instance.id,
           userId,
-          updateType: BlueprintUpdateScope.INSTANCE,
           name: result.data.name,
-          recipient,
+          ...recipientToBillInstancePatch(result.data.recipient),
           amount: hasSplits
-            ? (result.data.splits ?? []).reduce((s, r) => s + r.amount, 0)
-            : result.data.amount,
+            ? (result.data.splits ?? []).reduce((s, r) => {
+                if (r.amount == null) {
+                  throw new Error('edit bill instance: split amount required')
+                }
+                return s + r.amount
+              }, 0)
+            : (() => {
+                const a = result.data.amount
+                if (a == null) {
+                  throw new Error('edit bill instance: amount required')
+                }
+                return a
+              })(),
           dueDate: result.data.dueDate,
           accountId: result.data.accountId,
-          ...(!hasSplits && catId ? { categoryId: catId } : {})
+          ...(!hasSplits
+            ? categoryToBillInstancePatch(result.data.category)
+            : {}),
+          paymentHandling:
+            result.data.paymentHandling === ''
+              ? null
+              : result.data.paymentHandling
         })
         toast.success(t('bills.updateSuccess'))
         onClose()
@@ -250,7 +299,7 @@ export function EditBillInstanceDrawer({
         form.setFieldValue('splits', [
           row
         ])
-        form.setFieldValue('amount', 0)
+        form.setFieldValue('amount', null)
         form.setFieldValue('category', null)
         setExpandedSplitIds({
           [row.id]: true
@@ -322,6 +371,7 @@ export function EditBillInstanceDrawer({
     const normalized = normalizeBackendSplits(instance.splits)
 
     form.setFieldValue('name', instance.name)
+    form.setFieldValue('paymentHandling', instance.paymentHandling ?? '')
     form.setFieldValue('recipient', instance.recipient.id)
     form.setFieldValue('accountId', instance.account?.id ?? '')
     form.setFieldValue('dueDate', instance.dueDate)
@@ -394,8 +444,8 @@ export function EditBillInstanceDrawer({
   const amountWhenNotSplitValidator = useMemo(
     () =>
       ({ value }: { value: unknown }) => {
-        const n = value as number
-        if (n <= 0) return t('validation.positive')
+        const n = value as number | null
+        if (n == null || n <= 0) return t('validation.positive')
         return undefined
       },
     [
@@ -478,6 +528,8 @@ export function EditBillInstanceDrawer({
               searchPlaceholder={t('forms.searchPlaceholder')}
               emptyText={t('forms.noMatches')}
               options={recipientOptions}
+              allowCreate
+              createLabel={t('forms.addRecipient')}
             />
           )}
         </form.AppField>
@@ -497,13 +549,15 @@ export function EditBillInstanceDrawer({
           )}
         </form.AppField>
 
-        {instance.paymentHandling ? (
-          <p className="type-caption text-muted-foreground">
-            {t('bills.editInstanceDrawer.handlingWithValue', {
-              value: t(PAYMENT_HANDLING_LABEL_KEY[instance.paymentHandling])
-            })}
-          </p>
-        ) : null}
+        <form.AppField name="paymentHandling">
+          {(field) => (
+            <field.SelectField
+              label={t('common.handling')}
+              placeholder={t('forms.selectHandling')}
+              options={paymentHandlingOptions}
+            />
+          )}
+        </form.AppField>
 
         <form.AppField
           name="dueDate"
@@ -587,6 +641,8 @@ export function EditBillInstanceDrawer({
                   searchPlaceholder={t('forms.searchCategories')}
                   emptyText={t('forms.noCategories')}
                   options={expenseCategoryOptions}
+                  allowCreate
+                  createLabel={t('forms.createExpenseCategory')}
                 />
               )}
             </form.AppField>

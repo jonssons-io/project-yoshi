@@ -50,6 +50,10 @@ export function useCreateAccount(
     },
     onSuccess: (data, variables) => {
       invalidateByOperation(queryClient, 'listAccounts')
+      invalidateByOperation(queryClient, 'listAccountBalances')
+      invalidateByOperation(queryClient, 'getHouseholdPeriodSummary')
+      invalidateByOperation(queryClient, 'getUnallocatedFunds')
+      invalidateByOperation(queryClient, 'getHouseholdAccountBalanceChart')
       callbacks?.onSuccess?.(data, variables)
     },
     onError: (error, variables) => callbacks?.onError?.(error, variables)

@@ -150,14 +150,23 @@ export function useAccountBalancesList(params: {
  * that returns a shared date axis and per-account series.
  */
 export function useAccountBalanceChart(params: {
-  householdId?: GetHouseholdAccountBalanceChartData['path']['householdId'] | null
+  householdId?:
+    | GetHouseholdAccountBalanceChartData['path']['householdId']
+    | null
   accountIds?: string[]
   dateFrom?: Date
   dateTo?: Date
   includeArchived?: boolean
   enabled?: boolean
 }) {
-  const { householdId, accountIds, dateFrom, dateTo, includeArchived, enabled = true } = params
+  const {
+    householdId,
+    accountIds,
+    dateFrom,
+    dateTo,
+    includeArchived,
+    enabled = true
+  } = params
   const dateFromIso = dateFrom?.toISOString()
   const dateToIso = dateTo?.toISOString()
 
@@ -169,7 +178,8 @@ export function useAccountBalanceChart(params: {
       query: {
         dateFrom: dateFromIso ?? '',
         dateTo: dateToIso ?? '',
-        accountIds: accountIds && accountIds.length > 0 ? accountIds : undefined,
+        accountIds:
+          accountIds && accountIds.length > 0 ? accountIds : undefined,
         includeArchived
       }
     }),

@@ -4,7 +4,11 @@ import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { z } from 'zod'
 
-import { BillPaymentHandling, CategoryType, RecurrenceType } from '@/api/generated/types.gen'
+import {
+  BillPaymentHandling,
+  CategoryType,
+  RecurrenceType
+} from '@/api/generated/types.gen'
 import { Button } from '@/components/button/button'
 import {
   type ComboboxValue,
@@ -25,6 +29,7 @@ import {
   safeValidateForm,
   translateIfLikelyI18nKey
 } from '@/lib/form-validation'
+import { nullablePositiveNumber } from '@/lib/zod-nullable-number'
 import type { CreateBillDrawerForm } from './form-api'
 import { buildCreateBillBody } from './map-to-request'
 import { createBillDrawerSchema } from './schema'
@@ -206,7 +211,9 @@ export function CreateBillDrawer({ onClose }: CreateBillDrawerProps) {
         label: t('bills.paymentHandling.PAPER')
       }
     ],
-    [t]
+    [
+      t
+    ]
   )
 
   const nameValidator = useMemo(
@@ -222,9 +229,8 @@ export function CreateBillDrawer({ onClose }: CreateBillDrawerProps) {
       t
     ]
   )
-  const startDateValidator = useMemo(
-    () =>
-      createTranslatedZodValidator(createBillDrawerSchema.shape.startDate, t),
+  const dueDateValidator = useMemo(
+    () => createTranslatedZodValidator(createBillDrawerSchema.shape.dueDate, t),
     [
       t
     ]
@@ -232,7 +238,7 @@ export function CreateBillDrawer({ onClose }: CreateBillDrawerProps) {
   const amountWhenNotSplitValidator = useMemo(
     () =>
       createTranslatedZodValidator(
-        z.number().positive('validation.positive'),
+        nullablePositiveNumber('validation.positive'),
         t
       ),
     [
@@ -277,7 +283,7 @@ export function CreateBillDrawer({ onClose }: CreateBillDrawerProps) {
         form.setFieldValue('splits', [
           row
         ])
-        form.setFieldValue('amount', 0)
+        form.setFieldValue('amount', null)
         form.setFieldValue('budgetId', '')
         form.setFieldValue('category', null)
         setExpandedSplitIds({
@@ -432,15 +438,15 @@ export function CreateBillDrawer({ onClose }: CreateBillDrawerProps) {
         </form.AppField>
 
         <form.AppField
-          name="startDate"
+          name="dueDate"
           validators={{
-            onSubmit: startDateValidator
+            onSubmit: dueDateValidator
           }}
         >
           {(field) => (
             <field.DateField
               label={t('forms.startDate')}
-              description={t('forms.billStartDateHelp')}
+              labelHelpText={t('forms.billStartDateHelp')}
               calendarPosition="start"
             />
           )}
@@ -450,7 +456,7 @@ export function CreateBillDrawer({ onClose }: CreateBillDrawerProps) {
           {(field) => (
             <field.DateField
               label={t('forms.endDateOptional')}
-              description={t('forms.endDateDesc')}
+              labelHelpText={t('forms.endDateDesc')}
               calendarPosition="start"
             />
           )}

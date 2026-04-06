@@ -313,26 +313,24 @@ export type TransactionGroupedByCategory = {
 };
 
 /**
- * How widely to apply changes to recurring blueprint instances (bills and incomes).
- * **INSTANCE**: only the targeted occurrence. **FUTURE**: that occurrence and every later occurrence for the same blueprint
- * (same bill or income): bill instances use **`dueDate`** ≥ the anchor instance’s **`dueDate`**; income instances use **`expectedDate`** ≥ the anchor’s **`expectedDate`**.
- * **ALL**: every instance for that blueprint. **Handled** occurrences (already linked to a transaction) may be updated like any other row; clients should keep linked **transactions** consistent if amounts or dates change.
+ * How a **blueprint** PATCH applies (bills and incomes). **ALL**: apply immediately to the template and to instance rows
+ * per propagation rules; **`fromDate` must be omitted**; **`recurrenceType`** and **`customIntervalDays`** must not be sent.
+ * **UPCOMING**: schedule one or more field changes from **`fromDate`** as **scheduled revisions** (one revision row **per request field whose effective value at `fromDate` actually changes**—unchanged values do not get a row);
+ * **`fromDate` is required** on the request. Scheduled rows are listed with **`GET …/revisions`**; cancel with **`DELETE …/revisions/{revisionId}`**
+ * while **`scheduled`** is true. The blueprint is updated when **`effectiveFrom` ≤ now** (background job), and the same revision row is kept (**`scheduled`** becomes false).
  *
  */
-export const BlueprintUpdateScope = {
-    INSTANCE: 'INSTANCE',
-    FUTURE: 'FUTURE',
-    ALL: 'ALL'
-} as const;
+export const BlueprintPatchScope = { ALL: 'ALL', UPCOMING: 'UPCOMING' } as const;
 
 /**
- * How widely to apply changes to recurring blueprint instances (bills and incomes).
- * **INSTANCE**: only the targeted occurrence. **FUTURE**: that occurrence and every later occurrence for the same blueprint
- * (same bill or income): bill instances use **`dueDate`** ≥ the anchor instance’s **`dueDate`**; income instances use **`expectedDate`** ≥ the anchor’s **`expectedDate`**.
- * **ALL**: every instance for that blueprint. **Handled** occurrences (already linked to a transaction) may be updated like any other row; clients should keep linked **transactions** consistent if amounts or dates change.
+ * How a **blueprint** PATCH applies (bills and incomes). **ALL**: apply immediately to the template and to instance rows
+ * per propagation rules; **`fromDate` must be omitted**; **`recurrenceType`** and **`customIntervalDays`** must not be sent.
+ * **UPCOMING**: schedule one or more field changes from **`fromDate`** as **scheduled revisions** (one revision row **per request field whose effective value at `fromDate` actually changes**—unchanged values do not get a row);
+ * **`fromDate` is required** on the request. Scheduled rows are listed with **`GET …/revisions`**; cancel with **`DELETE …/revisions/{revisionId}`**
+ * while **`scheduled`** is true. The blueprint is updated when **`effectiveFrom` ≤ now** (background job), and the same revision row is kept (**`scheduled`** becomes false).
  *
  */
-export type BlueprintUpdateScope = typeof BlueprintUpdateScope[keyof typeof BlueprintUpdateScope];
+export type BlueprintPatchScope = typeof BlueprintPatchScope[keyof typeof BlueprintPatchScope];
 
 /**
  * A single field change within a blueprint revision entry.
@@ -347,8 +345,14 @@ export type BillRevisionChange = {
 };
 
 /**
- * One recorded change to a recurring **bill blueprint** (`PUT`/`PATCH` on the Bill resource).
+ * One logical revision entry for a recurring **bill blueprint** (`PUT`/`PATCH` on the Bill resource).
  * Instance-only edits (`PATCH` bill-instances) are not included.
+ * On **bill creation**, the server records one **initial** revision whose **`changes`** list contains every blueprint field
+ * with **`previousValue` null** (JSON null), **`newValue`** set to the initial value, and **`createdAt`** equal to the bill’s **`createdAt`**.
+ * Blueprint **`PATCH`** with **`updateScope` `ALL`** updates that same bundled snapshot in place (adjusted fields get new **`newValue`**; no extra logical revision).
+ * Other blueprint edits (e.g. **`UPCOMING`**, archive) add revisions with **exactly one** element in **`changes`** (one field per revision), matching one persisted row.
+ * The revision **`id`** is always a real persisted row id; for the bundled creation revision it is the **lexicographically smallest**
+ * row id among the merged snapshot rows (suitable for display only—**`DELETE …/revisions/{revisionId}`** still targets a single pending row by its own id).
  *
  */
 export type BillRevision = {
@@ -360,14 +364,26 @@ export type BillRevision = {
     userId: string;
     createdAt: string;
     /**
-     * Present when schedule-related fields changed; typically the blueprint `startDate` after the edit.
+     * For **immediate** edits: set when a schedule-related field was changed (typically blueprint `dueDate` after the edit).
+     * For **scheduled** (`UPCOMING`) revisions: the instant from which the change applies to instances and, once reached, to the blueprint.
+     * On the **bundled creation** revision, set to the same instant as **`createdAt`** (the blueprint’s **`createdAt`**).
+     *
      */
     effectiveFrom?: string | null;
     /**
-     * Blueprint template updates are recorded as **ALL** when scope applies; otherwise null.
+     * Recorded patch scope when applicable (**ALL**, **UPCOMING**). Older rows may contain legacy values (**INSTANCE**, **FUTURE**).
+     *
      */
-    scope?: BlueprintUpdateScope | null;
+    scope?: string | null;
+    /**
+     * Field-level deltas for this revision. One entry per later edit; all initial fields for the creation snapshot.
+     */
     changes: Array<BillRevisionChange>;
+    /**
+     * **true** when this revision is not yet applied to the blueprint (pending scheduled change). Omitted when the change is already on the template (history).
+     *
+     */
+    scheduled?: boolean;
 };
 
 export type BillRevisionsEnvelope = {
@@ -387,8 +403,12 @@ export type IncomeRevisionChange = {
 };
 
 /**
- * One recorded change to a recurring **income blueprint** (`PUT`/`PATCH` on the Income resource).
+ * One logical revision entry for a recurring **income blueprint** (`PUT`/`PATCH` on the Income resource).
  * Instance-only edits (`PATCH` income-instances) are not included.
+ * On **income creation**, the server records one **initial** revision whose **`changes`** list contains every blueprint field
+ * with **`previousValue` null** (JSON null), **`newValue`** set to the initial value, and **`createdAt`** equal to the income’s **`createdAt`**.
+ * **`updateScope` `ALL`** merges into that bundled snapshot in place. Other edits add revisions with **exactly one** element in **`changes`**.
+ * The revision **`id`** for the bundled creation revision is the **lexicographically smallest** row id among the merged snapshot rows.
  *
  */
 export type IncomeRevision = {
@@ -400,14 +420,26 @@ export type IncomeRevision = {
     userId: string;
     createdAt: string;
     /**
-     * Present when schedule-related fields changed; typically the blueprint `expectedDate` after the edit.
+     * For **immediate** edits: set when a schedule-related field was changed (typically blueprint `expectedDate` after the edit).
+     * For **scheduled** (`UPCOMING`) revisions: the instant from which the change applies to instances and, once reached, to the blueprint.
+     * On the **bundled creation** revision, set to the same instant as **`createdAt`** (the blueprint’s **`createdAt`**).
+     *
      */
     effectiveFrom?: string | null;
     /**
-     * Blueprint template updates are recorded as **ALL** when scope applies; otherwise null.
+     * Recorded patch scope when applicable (**ALL**, **UPCOMING**). Older rows may contain legacy values (**INSTANCE**, **FUTURE**).
+     *
      */
-    scope?: BlueprintUpdateScope | null;
+    scope?: string | null;
+    /**
+     * Field-level deltas for this revision. One entry per later edit; all initial fields for the creation snapshot.
+     */
     changes: Array<IncomeRevisionChange>;
+    /**
+     * **true** when this revision is not yet applied to the blueprint (pending scheduled change). Omitted when the change is already on the template (history).
+     *
+     */
+    scheduled?: boolean;
 };
 
 export type IncomeRevisionsEnvelope = {
@@ -420,11 +452,11 @@ export type Bill = {
     recipient: RelationRef;
     account: RelationRef;
     /**
-     * Timezone-aware instant anchoring the bill schedule. Prefer UTC (`Z`); offset local start-of-day is acceptable
+     * Timezone-aware instant anchoring the bill recurrence schedule (blueprint anchor). Prefer UTC (`Z`); offset local start-of-day is acceptable
      * when the client cannot normalize (see `BillInstanceStatus` / `BillInstance.dueDate`).
      *
      */
-    startDate: string;
+    dueDate: string;
     recurrenceType: RecurrenceType;
     customIntervalDays?: number | null;
     estimatedAmount: number;
@@ -440,9 +472,13 @@ export type Bill = {
     archived: boolean;
     createdAt: string;
     /**
-     * True when this blueprint has at least one recorded blueprint-level revision.
+     * Count of **logical** blueprint revision entries returned by **`GET …/revisions`** (newest first).
+     * **`1`** immediately after blueprint creation (the bundled initial snapshot only).
+     * Blueprint patches with **`updateScope` `ALL`** merge into that creation bundle (they do not add a new logical revision).
+     * **`> 1`** after at least one change that adds its own revision (e.g. **`updateScope` `UPCOMING`**, archive, or other non–ALL-bundle edits).
+     *
      */
-    hasRevisions: boolean;
+    numberOfRevisions: number;
 };
 
 /**
@@ -475,10 +511,11 @@ export type BillInstance = {
     recurrenceType: RecurrenceType;
     customIntervalDays?: number | null;
     /**
-     * Copied from the parent recurring bill; null when the bill has no handling set or no parent bill.
+     * When the instance row has an explicit **`paymentHandling`** override, that value is returned; otherwise the value
+     * is copied from the parent recurring bill. Null means either the parent has no handling or there is no parent bill.
+     *
      */
     paymentHandling?: BillPaymentHandling | null;
-    startDate: string;
     archived: boolean;
 };
 
@@ -604,9 +641,12 @@ export type Income = {
     account?: Account;
     incomeSource?: IncomeSource;
     /**
-     * True when this blueprint has at least one recorded blueprint-level revision.
+     * Count of **logical** blueprint revision entries from **`GET …/incomes/{incomeId}/revisions`**.
+     * **`1`** right after blueprint creation (bundled initial snapshot). **`updateScope` `ALL`** merges into that bundle instead of adding a revision.
+     * **`> 1`** when a separate revision exists (e.g. **`UPCOMING`**, archive, etc.).
+     *
      */
-    hasRevisions: boolean;
+    numberOfRevisions: number;
 };
 
 export type IncomeSource = {
@@ -711,6 +751,11 @@ export type HouseholdAccountBalanceChartAccountMeta = {
  * state (same as list account balances), so the chart matches real-time balances even when today's snapshot
  * row is missing. Days after `today` still appear when `dateTo` extends into the future; they forward-fill
  * from the last known balance as of each day (typically flat after the last in-range snapshot).
+ *
+ * Optional query flag **`projectFromTransactions`**: when true, **pending** transactions whose UTC calendar
+ * `date` falls in the chart day range adjust balances from **`today`** forward (and include pending on
+ * **`today`**). **Effective** transactions are already reflected in snapshots and `currentBalance` and are
+ * not applied again. Chart days before **`today`** are unchanged.
  *
  */
 export type HouseholdAccountBalanceChartResponse = {
@@ -1020,7 +1065,7 @@ export type CreateBillRequest = {
     /**
      * Timezone-aware instant; prefer UTC (`Z`), or offset local start-of-day if needed (see `BillInstance.dueDate`).
      */
-    startDate: string;
+    dueDate: string;
     recurrenceType: RecurrenceType;
     customIntervalDays?: number;
     estimatedAmount: number;
@@ -1042,9 +1087,16 @@ export type CreateBillRequest = {
  * `budgetId` and `splits` are mutually exclusive: if `splits` is non-empty, `budgetId` must be null.
  * Top-level `categoryId` and `splits` are mutually exclusive: if `splits` is non-empty (after the update),
  * `categoryId` must be null.
+ * **`updateScope`**: **ALL** applies immediately (omit **`fromDate`**; do not send **`recurrenceType`** or **`customIntervalDays`**).
+ * **UPCOMING** requires **`fromDate`** and schedules changes without updating the blueprint row until they mature.
  *
  */
 export type UpdateBillRequest = {
+    updateScope: BlueprintPatchScope;
+    /**
+     * Required when **`updateScope`** is **UPCOMING**; must be omitted when **ALL**.
+     */
+    fromDate?: string;
     name?: string;
     recipientId?: string;
     newRecipientName?: string;
@@ -1056,7 +1108,7 @@ export type UpdateBillRequest = {
     /**
      * Timezone-aware instant; prefer UTC (`Z`), or offset local start-of-day if needed (see `BillInstance.dueDate`).
      */
-    startDate?: string;
+    dueDate?: string;
     recurrenceType?: RecurrenceType;
     customIntervalDays?: number;
     estimatedAmount?: number;
@@ -1081,27 +1133,73 @@ export type ArchiveBillRequest = {
     archived: boolean;
 };
 
+/**
+ * Updates **only** the targeted bill instance (never other occurrences).
+ *
+ * **`recipient`** vs **`newRecipientName`**: mutually exclusive — send at most one. When **`newRecipientName`** is set,
+ * the server get-or-creates a recipient in the household (same as create bill).
+ *
+ * **`categoryId`** vs **`newCategoryName`**: mutually exclusive when used. Neither may be sent when the instance
+ * effectively has split lines: non-empty **`splits`** in this request, existing per-instance split lines, or the parent
+ * bill has blueprint split lines.
+ *
+ * **`budgetId`** and **`splits`**: if **`splits`** is non-empty, **`budgetId`** must be null (each split line may carry
+ * its own **`budgetId`**). When **`splits`** is present and empty, per-instance split overrides are removed and the
+ * instance **`categoryId`** / **`budgetId`** are reset from the current parent bill.
+ *
+ * **`paymentHandling`**: omit to leave the instance override unchanged; send **`null`** to clear the override (inherit
+ * from the parent bill); send an enum value to set an instance-specific override.
+ *
+ */
 export type UpdateBillInstanceRequest = {
-    updateType: BlueprintUpdateScope;
     name?: string;
+    /**
+     * Existing recipient id; omit when using **`newRecipientName`**.
+     */
     recipient?: string;
+    /**
+     * Get-or-create recipient by name; omit when using **`recipient`**.
+     */
+    newRecipientName?: string;
     amount?: number;
     /**
      * Timezone-aware instant; prefer UTC (`Z`), or offset local start-of-day if needed (see `BillInstance.dueDate`).
      */
     dueDate?: string;
     accountId?: string;
-    categoryId?: string;
-};
-
-export type UpdateIncomeInstanceRequest = {
     /**
-     * Scope of the update (`BlueprintUpdateScope`). **INSTANCE**: only this occurrence.
-     * **FUTURE**: this occurrence and every later one for the same income (`expectedDate` ≥ this instance’s `expectedDate`).
-     * **ALL**: every income instance for that income. Handled/received rows (linked transaction) may be updated; see **`BlueprintUpdateScope`**.
+     * Used when there are no split lines on the instance. Must be null when **`splits`** is non-empty.
+     */
+    budgetId?: string | null;
+    /**
+     * Must be omitted when **`newCategoryName`** is set or when split lines apply.
+     */
+    categoryId?: string;
+    /**
+     * Create a new **EXPENSE** category by name; omit when **`categoryId`** is set.
+     */
+    newCategoryName?: string;
+    /**
+     * Set, clear, or leave unchanged; see schema description above.
+     */
+    paymentHandling?: BillPaymentHandling | null;
+    /**
+     * When present and non-empty, top-level **`budgetId`** and top-level category fields must be unset.
+     * When present and **empty**, per-instance split overrides are removed and **`categoryId`** / **`budgetId`** are reset
+     * from the parent bill; do not send top-level **`categoryId`**, **`newCategoryName`**, or **`budgetId`** in the same request.
      *
      */
-    updateType: BlueprintUpdateScope;
+    splits?: Array<BillSplitWrite>;
+};
+
+/**
+ * Updates **only** the targeted income instance (never other occurrences).
+ * `categoryId` vs `newCategoryName`, and `incomeSourceId` vs `newIncomeSourceName`, are mutually exclusive: send at most
+ * one from each pair. When `newCategoryName` is set, the server creates an **INCOME** category and links it to **all**
+ * budgets in the household (same default linking as `CreateCategoryRequest` with `budgetIds` omitted).
+ *
+ */
+export type UpdateIncomeInstanceRequest = {
     name?: string;
     amount?: number;
     /**
@@ -1109,7 +1207,22 @@ export type UpdateIncomeInstanceRequest = {
      */
     expectedDate?: string;
     accountId?: string;
+    /**
+     * Must be omitted when `newCategoryName` is set.
+     */
     categoryId?: string;
+    /**
+     * Create a new **INCOME** category by name; must be omitted when `categoryId` is set.
+     */
+    newCategoryName?: string;
+    /**
+     * Must be omitted when `newIncomeSourceName` is set.
+     */
+    incomeSourceId?: string;
+    /**
+     * Get-or-create an income source by name in the household; must be omitted when `incomeSourceId` is set.
+     */
+    newIncomeSourceName?: string;
 };
 
 export type CreateTransferRequest = {
@@ -1145,7 +1258,17 @@ export type CreateIncomeRequest = {
     endDate?: string | null;
 };
 
+/**
+ * **`updateScope`**: **ALL** applies immediately (omit **`fromDate`**; do not send **`recurrenceType`** or **`customIntervalDays`**).
+ * **UPCOMING** requires **`fromDate`** and schedules changes without updating the blueprint row until they mature.
+ *
+ */
 export type UpdateIncomeRequest = {
+    updateScope: BlueprintPatchScope;
+    /**
+     * Required when **`updateScope`** is **UPCOMING**; must be omitted when **ALL**.
+     */
+    fromDate?: string;
     name?: string;
     incomeSourceId?: string;
     newIncomeSourceName?: string;
@@ -2186,6 +2309,12 @@ export type GetHouseholdAccountBalanceChartData = {
         dateTo: string;
         accountIds?: Array<string>;
         includeArchived?: boolean;
+        /**
+         * When true, adjust balances from the chart's current UTC day onward using pending transactions dated
+         * within the chart's UTC day range (see `HouseholdAccountBalanceChartResponse`).
+         *
+         */
+        projectFromTransactions?: boolean;
     };
     url: '/households/{householdId}/dashboard/account-balance-chart';
 };
@@ -2584,6 +2713,30 @@ export type ListBillRevisionsResponses = {
 
 export type ListBillRevisionsResponse = ListBillRevisionsResponses[keyof ListBillRevisionsResponses];
 
+export type DeleteBillScheduledRevisionData = {
+    body?: never;
+    path: {
+        billId: string;
+        revisionId: string;
+    };
+    query?: never;
+    url: '/bills/{billId}/revisions/{revisionId}';
+};
+
+export type DeleteBillScheduledRevisionErrors = {
+    /**
+     * Bill or scheduled revision not found
+     */
+    404: unknown;
+};
+
+export type DeleteBillScheduledRevisionResponses = {
+    /**
+     * Removed
+     */
+    200: unknown;
+};
+
 export type ArchiveBillData = {
     body: ArchiveBillRequest;
     path: {
@@ -2843,6 +2996,30 @@ export type ListIncomeRevisionsResponses = {
 };
 
 export type ListIncomeRevisionsResponse = ListIncomeRevisionsResponses[keyof ListIncomeRevisionsResponses];
+
+export type DeleteIncomeScheduledRevisionData = {
+    body?: never;
+    path: {
+        incomeId: string;
+        revisionId: string;
+    };
+    query?: never;
+    url: '/incomes/{incomeId}/revisions/{revisionId}';
+};
+
+export type DeleteIncomeScheduledRevisionErrors = {
+    /**
+     * Income or scheduled revision not found
+     */
+    404: unknown;
+};
+
+export type DeleteIncomeScheduledRevisionResponses = {
+    /**
+     * Removed
+     */
+    200: unknown;
+};
 
 export type ListIncomeInstancesData = {
     body?: never;

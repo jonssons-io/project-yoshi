@@ -5,7 +5,7 @@ import type { ComboboxValue } from '@/components/form'
 export type CreateIncomeDrawerFormState = {
   name: string
   incomeSource: ComboboxValue | null
-  amount: number
+  amount: number | null
   expectedDate: Date
   accountId: string
   category: ComboboxValue
@@ -17,7 +17,7 @@ export type CreateIncomeDrawerFormState = {
 export const CREATE_INCOME_DEFAULT_VALUES: CreateIncomeDrawerFormState = {
   name: '',
   incomeSource: null,
-  amount: 0,
+  amount: null,
   expectedDate: new Date(),
   accountId: '',
   category: '',

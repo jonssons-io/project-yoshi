@@ -3,9 +3,13 @@ import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
-import { BlueprintUpdateScope, CategoryType } from '@/api/generated/types.gen'
+import {
+  CategoryType,
+  type UpdateIncomeInstanceRequest
+} from '@/api/generated/types.gen'
 import { Alert } from '@/components/alert/alert'
 import { Button } from '@/components/button/button'
+import type { ComboboxValue } from '@/components/form'
 import {
   createTranslatedZodValidator,
   safeValidateForm,
@@ -24,9 +28,40 @@ import { translateIfLikelyI18nKey } from '@/lib/form-validation'
 import { filterIncomeCategories } from '../create-income-drawer/types'
 
 import {
+  type EditIncomeInstanceFormValues,
   editIncomeInstanceObjectSchema,
   editIncomeInstanceSchema
 } from './schema'
+
+function incomeSourceToUpdate(
+  v: EditIncomeInstanceFormValues['incomeSource']
+): Pick<UpdateIncomeInstanceRequest, 'incomeSourceId' | 'newIncomeSourceName'> {
+  if (typeof v === 'object' && v !== null && 'isNew' in v && v.isNew) {
+    return {
+      newIncomeSourceName: v.name
+    }
+  }
+  return {
+    incomeSourceId: v as string
+  }
+}
+
+function categoryToUpdate(
+  c: EditIncomeInstanceFormValues['category']
+): Pick<UpdateIncomeInstanceRequest, 'categoryId' | 'newCategoryName'> {
+  if (c == null || c === undefined) return {}
+  if (typeof c === 'object' && 'isNew' in c && c.isNew) {
+    return {
+      newCategoryName: c.name
+    }
+  }
+  if (typeof c === 'string' && c.length > 0) {
+    return {
+      categoryId: c
+    }
+  }
+  return {}
+}
 
 export type EditIncomeInstanceDrawerProps = {
   instanceId: string
@@ -35,11 +70,11 @@ export type EditIncomeInstanceDrawerProps = {
 
 const DEFAULT_VALUES = {
   name: '',
-  incomeSourceId: '',
+  incomeSource: '' as ComboboxValue,
   accountId: '',
   amount: 0,
   expectedDate: new Date(),
-  categoryId: '' as string | undefined
+  category: null as ComboboxValue | null
 }
 
 export function EditIncomeInstanceDrawer({
@@ -162,21 +197,21 @@ export function EditIncomeInstanceDrawer({
         return
       }
 
-      const trimmedCategory = result.data.categoryId?.trim()
+      const amount = result.data.amount
+      if (amount == null) {
+        toast.error(t('validation.positive'))
+        return
+      }
       try {
         await updateIncomeInstanceAsync({
           id: instance.id,
           userId,
-          updateType: BlueprintUpdateScope.INSTANCE,
           name: result.data.name,
-          amount: result.data.amount,
+          amount,
           expectedDate: result.data.expectedDate,
           accountId: result.data.accountId,
-          ...(trimmedCategory
-            ? {
-                categoryId: trimmedCategory
-              }
-            : {})
+          ...incomeSourceToUpdate(result.data.incomeSource),
+          ...categoryToUpdate(result.data.category)
         })
         toast.success(t('income.instanceUpdateSuccess'))
         onClose()
@@ -197,11 +232,11 @@ export function EditIncomeInstanceDrawer({
     if (!instance || hasInitializedForm) return
 
     form.setFieldValue('name', instance.name)
-    form.setFieldValue('incomeSourceId', instance.incomeSourceId)
+    form.setFieldValue('incomeSource', instance.incomeSourceId)
     form.setFieldValue('accountId', instance.accountId)
     form.setFieldValue('amount', instance.amount)
     form.setFieldValue('expectedDate', instance.expectedDate)
-    form.setFieldValue('categoryId', instance.categoryId ?? '')
+    form.setFieldValue('category', instance.categoryId ?? null)
     setHasInitializedForm(true)
   }, [
     instance,
@@ -260,10 +295,10 @@ export function EditIncomeInstanceDrawer({
         </form.AppField>
 
         <form.AppField
-          name="incomeSourceId"
+          name="incomeSource"
           validators={{
             onChange: createTranslatedZodValidator(
-              editIncomeInstanceObjectSchema.shape.incomeSourceId,
+              editIncomeInstanceObjectSchema.shape.incomeSource,
               t
             )
           }}
@@ -275,8 +310,8 @@ export function EditIncomeInstanceDrawer({
               searchPlaceholder={t('forms.searchPlaceholder')}
               emptyText={t('forms.noMatches')}
               options={sourceOptions}
-              disabled
-              labelHelpText={t('income.editInstanceDrawer.senderHelp')}
+              allowCreate
+              createLabel={t('forms.addSender')}
             />
           )}
         </form.AppField>
@@ -335,7 +370,7 @@ export function EditIncomeInstanceDrawer({
           )}
         </form.AppField>
 
-        <form.AppField name="categoryId">
+        <form.AppField name="category">
           {(field) => (
             <field.ComboboxField
               label={t('common.category')}
@@ -343,6 +378,8 @@ export function EditIncomeInstanceDrawer({
               searchPlaceholder={t('forms.searchPlaceholder')}
               emptyText={t('forms.noMatches')}
               options={categoryOptions}
+              allowCreate
+              createLabel={t('forms.createIncomeCategory')}
             />
           )}
         </form.AppField>

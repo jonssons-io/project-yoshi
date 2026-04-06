@@ -5,18 +5,15 @@ import {
   Grid2x2PlusIcon,
   Trash2Icon
 } from 'lucide-react'
-import { type Dispatch, type SetStateAction, useEffect, useMemo } from 'react'
+import { type Dispatch, type SetStateAction, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { CategoryType } from '@/api/generated/types.gen'
 import { Button } from '@/components/button/button'
-import type { ComboboxValue } from '@/components/form'
-import { createTranslatedZodValidator } from '@/components/form'
 import { useBudgetsList, useCategoriesList } from '@/hooks/api'
 import { formatCurrency } from '@/lib/utils'
 
 import type { CreateTransactionDrawerForm } from './form-api'
-import { splitRowSchema } from './schema'
 import type { SplitRowValue } from './types'
 
 function SyncSplitTotalToAmount({
@@ -29,7 +26,7 @@ function SyncSplitTotalToAmount({
   useEffect(() => {
     const sum = splits.reduce((s, r) => s + (Number(r.amount) || 0), 0)
     const rounded = Number(sum.toFixed(2))
-    const current = form.getFieldValue('amount')
+    const current = form.getFieldValue('amount') ?? 0
     if (Math.abs(rounded - current) > 0.001) {
       form.setFieldValue('amount', rounded)
     }
@@ -242,18 +239,6 @@ function CreateTransactionSplitSectionFields({
 }) {
   const { t } = useTranslation()
 
-  const amountValidator = useMemo(
-    () => createTranslatedZodValidator(splitRowSchema.shape.amount, t),
-    [
-      t
-    ]
-  )
-  const budgetValidator = useMemo(
-    () => createTranslatedZodValidator(splitRowSchema.shape.budgetId, t),
-    [
-      t
-    ]
-  )
   const { data: budgets = [] } = useBudgetsList({
     householdId,
     userId,
@@ -291,21 +276,11 @@ function CreateTransactionSplitSectionFields({
         )}
       </form.AppField>
 
-      <form.AppField
-        name={`splits[${index}].amount`}
-        validators={{
-          onSubmit: amountValidator
-        }}
-      >
+      <form.AppField name={`splits[${index}].amount`}>
         {(field) => <field.NumberField label={t('common.amount')} />}
       </form.AppField>
 
-      <form.AppField
-        name={`splits[${index}].budgetId`}
-        validators={{
-          onSubmit: budgetValidator
-        }}
-      >
+      <form.AppField name={`splits[${index}].budgetId`}>
         {(field) => (
           <field.SelectField
             label={t('allocation.drawer.budget')}
@@ -315,25 +290,7 @@ function CreateTransactionSplitSectionFields({
         )}
       </form.AppField>
 
-      <form.AppField
-        name={`splits[${index}].category`}
-        validators={{
-          onSubmit: ({ value }: { value: unknown }) => {
-            const v = value as ComboboxValue | null
-            if (typeof v === 'string' && v.length > 0) return undefined
-            if (
-              typeof v === 'object' &&
-              v !== null &&
-              'isNew' in v &&
-              v.isNew &&
-              v.name.trim().length > 0
-            ) {
-              return undefined
-            }
-            return t('validation.categoryRequired')
-          }
-        }}
-      >
+      <form.AppField name={`splits[${index}].category`}>
         {(field) => (
           <field.ComboboxField
             label={t('common.category')}

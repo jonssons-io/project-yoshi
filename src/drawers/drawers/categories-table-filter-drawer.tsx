@@ -48,8 +48,8 @@ export function CategoriesTableFilterDrawer({
   const { t } = useTranslation()
   const idPrefix = useId()
 
-  const [selectedTypes, setSelectedTypes] = useState<string[]>(() =>
-    readArrayFilter(columnFilters, 'categoryTypes', [])
+  const [selectedTypes, setSelectedTypes] = useState<CategoryType[]>(() =>
+    readArrayFilter<CategoryType>(columnFilters, 'categoryTypes', [])
   )
   const [selectedBudgetIds, setSelectedBudgetIds] = useState<string[]>(() =>
     readArrayFilter(columnFilters, 'budgetIds', [])
@@ -59,7 +59,9 @@ export function CategoriesTableFilterDrawer({
   )
 
   useEffect(() => {
-    setSelectedTypes(readArrayFilter(columnFilters, 'categoryTypes', []))
+    setSelectedTypes(
+      readArrayFilter<CategoryType>(columnFilters, 'categoryTypes', [])
+    )
     setSelectedBudgetIds(readArrayFilter(columnFilters, 'budgetIds', []))
     setSelectedArchived(readArrayFilter(columnFilters, 'archived', []))
   }, [
@@ -113,13 +115,25 @@ export function CategoriesTableFilterDrawer({
       <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto">
         <div className="flex flex-col gap-2">
           <p className="type-label text-gray-600">{t('categories.type')}</p>
-          <FilterMultiselect
-            value={selectedTypes}
-            onChange={setSelectedTypes}
-            options={availableTypes}
-            placeholder={t('common.selectAnOption')}
-            searchPlaceholder={t('common.search')}
-          />
+          <div className="flex flex-col gap-3">
+            {availableTypes.map((opt) => (
+              <Checkbox
+                key={opt.value}
+                id={`${idPrefix}-categories-type-${opt.value}`}
+                checked={selectedTypes.includes(opt.value as CategoryType)}
+                onCheckedChange={(checked) => {
+                  setSelectedTypes((current) =>
+                    toggleFilterValue(
+                      current,
+                      opt.value as CategoryType,
+                      checked
+                    )
+                  )
+                }}
+                label={opt.label}
+              />
+            ))}
+          </div>
         </div>
         <div className="flex flex-col gap-2">
           <p className="type-label text-gray-600">{t('categories.budgets')}</p>

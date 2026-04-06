@@ -4,18 +4,20 @@ import {
   createBillMutation,
   deleteBillMutation,
   getBillInstanceQueryKey,
+  getBillQueryKey,
   updateBillInstanceMutation,
   updateBillMutation
 } from '@/api/generated/@tanstack/react-query.gen'
-import type {
-  ArchiveBillRequest,
-  ArchiveBillResponse,
-  CreateBillRequest,
-  CreateBillResponse,
-  UpdateBillInstanceRequest,
-  UpdateBillInstanceResponse,
-  UpdateBillRequest,
-  UpdateBillResponse
+import {
+  type ArchiveBillRequest,
+  type ArchiveBillResponse,
+  BlueprintPatchScope,
+  type CreateBillRequest,
+  type CreateBillResponse,
+  type UpdateBillInstanceRequest,
+  type UpdateBillInstanceResponse,
+  type UpdateBillRequest,
+  type UpdateBillResponse
 } from '@/api/generated/types.gen'
 import { toApiDate, toApiDateRequired } from '@/hooks/api/date-normalization'
 import { withTitleCasedCategoryFieldsForBillBody } from '@/lib/category-name-normalize'
@@ -25,18 +27,22 @@ import type { MutationCallbacks } from '../types'
 type BillCreateVariables = {
   householdId: string
   userId?: string | null
-} & Omit<CreateBillRequest, 'startDate' | 'endDate' | 'lastPaymentDate'> & {
-    startDate: string | Date
+} & Omit<CreateBillRequest, 'dueDate' | 'endDate' | 'lastPaymentDate'> & {
+    dueDate: string | Date
     endDate?: string | Date | null
     lastPaymentDate?: string | Date
   }
 type BillUpdateVariables = {
   id: string
   userId?: string | null
-} & Omit<UpdateBillRequest, 'startDate' | 'endDate' | 'lastPaymentDate'> & {
-    startDate?: string | Date
+} & Omit<
+  UpdateBillRequest,
+  'dueDate' | 'endDate' | 'lastPaymentDate' | 'fromDate'
+> & {
+    dueDate?: string | Date
     endDate?: string | Date | null
     lastPaymentDate?: string | Date
+    fromDate?: string | Date
   }
 type BillDeleteVariables = {
   id: string
@@ -67,14 +73,14 @@ export function useCreateBill(
       const {
         householdId,
         userId: _userId,
-        startDate,
+        dueDate,
         endDate,
         lastPaymentDate,
         ...rest
       } = variables
       const body = withTitleCasedCategoryFieldsForBillBody({
         ...rest,
-        startDate: toApiDateRequired(startDate),
+        dueDate: toApiDateRequired(dueDate),
         endDate: toApiDate(endDate),
         lastPaymentDate: toApiDate(lastPaymentDate)
       })
@@ -113,16 +119,26 @@ export function useUpdateBill(
       const {
         id,
         userId: _userId,
-        startDate,
+        dueDate,
         endDate,
         lastPaymentDate,
+        fromDate,
         ...rest
       } = variables
       const body = withTitleCasedCategoryFieldsForBillBody({
         ...rest,
-        startDate: toApiDate(startDate),
+        ...(dueDate !== undefined && dueDate !== null
+          ? {
+              dueDate: toApiDate(dueDate)
+            }
+          : {}),
         endDate: toApiDate(endDate),
-        lastPaymentDate: toApiDate(lastPaymentDate)
+        lastPaymentDate: toApiDate(lastPaymentDate),
+        ...(fromDate !== undefined && fromDate !== null
+          ? {
+              fromDate: toApiDateRequired(fromDate)
+            }
+          : {})
       })
       const mutationFn = mutationOptions.mutationFn
       if (!mutationFn) throw new Error('Missing updateBill mutation function')
@@ -140,6 +156,20 @@ export function useUpdateBill(
       invalidateByOperation(queryClient, 'listBills')
       invalidateByOperation(queryClient, 'listBillInstances')
       invalidateByOperation(queryClient, 'getBillInstancesSummary')
+      const scope = variables.updateScope
+      if (
+        scope === BlueprintPatchScope.ALL ||
+        scope === BlueprintPatchScope.UPCOMING
+      ) {
+        invalidateByOperation(queryClient, 'listBillRevisions')
+        void queryClient.invalidateQueries({
+          queryKey: getBillQueryKey({
+            path: {
+              billId: variables.id
+            }
+          })
+        })
+      }
       callbacks?.onSuccess?.(data, variables)
     },
     onError: (error, variables) => callbacks?.onError?.(error, variables)
@@ -222,7 +252,7 @@ export function useArchiveBill(
 }
 
 /**
- * Hook to update a single bill instance or propagate changes using updateType.
+ * Hook to update a single bill instance (no propagation to other occurrences).
  */
 export function useUpdateBillInstance(
   callbacks?: MutationCallbacks<
@@ -240,10 +270,10 @@ export function useUpdateBillInstance(
   >({
     mutationFn: async (variables: BillInstanceUpdateVariables) => {
       const { id, userId: _userId, dueDate, ...rest } = variables
-      const body = {
+      const body = withTitleCasedCategoryFieldsForBillBody({
         ...rest,
         dueDate: toApiDate(dueDate)
-      }
+      })
       const mutationFn = mutationOptions.mutationFn
       if (!mutationFn) {
         throw new Error('Missing updateBillInstance mutation function')
@@ -262,6 +292,10 @@ export function useUpdateBillInstance(
       invalidateByOperation(queryClient, 'listBills')
       invalidateByOperation(queryClient, 'listBillInstances')
       invalidateByOperation(queryClient, 'getBillInstancesSummary')
+      invalidateByOperation(queryClient, 'listCategories')
+      if (variables.newRecipientName) {
+        invalidateByOperation(queryClient, 'listRecipients')
+      }
       queryClient.invalidateQueries({
         queryKey: getBillInstanceQueryKey({
           path: {

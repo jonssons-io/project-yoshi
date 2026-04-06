@@ -1,15 +1,12 @@
 import { ArrowLeftRightIcon } from 'lucide-react'
 import { type Dispatch, type SetStateAction, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { z } from 'zod'
 
 import { CategoryType, TransactionType } from '@/api/generated/types.gen'
-import { createTranslatedZodValidator } from '@/components/form'
 import { Switch } from '@/components/ui/switch'
 import { useCategoriesList } from '@/hooks/api'
 
 import type { CreateTransactionDrawerForm } from './form-api'
-import { drawerFormSchema } from './schema'
 import { SplitExpenseBlock } from './split-expense-block'
 
 export function ExpenseIncomeTransferFields({
@@ -65,48 +62,6 @@ export function ExpenseIncomeTransferFields({
 }) {
   const { t } = useTranslation()
 
-  const nameValidator = useMemo(
-    () => createTranslatedZodValidator(drawerFormSchema.shape.name, t),
-    [
-      t
-    ]
-  )
-  const dateValidator = useMemo(
-    () => createTranslatedZodValidator(drawerFormSchema.shape.date, t),
-    [
-      t
-    ]
-  )
-  const amountValidator = useMemo(
-    () => createTranslatedZodValidator(drawerFormSchema.shape.amount, t),
-    [
-      t
-    ]
-  )
-  const accountValidator = useMemo(
-    () => createTranslatedZodValidator(drawerFormSchema.shape.accountId, t),
-    [
-      t
-    ]
-  )
-  const transferToValidator = useMemo(
-    () =>
-      createTranslatedZodValidator(
-        z.string().min(1, 'validation.accountRequired'),
-        t
-      ),
-    [
-      t
-    ]
-  )
-  const budgetRequiredValidator = useMemo(
-    () =>
-      createTranslatedZodValidator(z.string().min(1, 'validation.required'), t),
-    [
-      t
-    ]
-  )
-
   const { data: expenseCategories = [] } = useCategoriesList({
     householdId,
     userId,
@@ -155,12 +110,7 @@ export function ExpenseIncomeTransferFields({
   if (transactionType === TransactionType.TRANSFER) {
     return (
       <>
-        <form.AppField
-          name="accountId"
-          validators={{
-            onSubmit: accountValidator
-          }}
-        >
+        <form.AppField name="accountId">
           {(field) => (
             <field.SelectField
               label={t('transfers.fromAccount')}
@@ -170,12 +120,7 @@ export function ExpenseIncomeTransferFields({
           )}
         </form.AppField>
 
-        <form.AppField
-          name="transferToAccountId"
-          validators={{
-            onSubmit: transferToValidator
-          }}
-        >
+        <form.AppField name="transferToAccountId">
           {(field) => (
             <field.SelectField
               label={t('transfers.toAccount')}
@@ -185,12 +130,7 @@ export function ExpenseIncomeTransferFields({
           )}
         </form.AppField>
 
-        <form.AppField
-          name="date"
-          validators={{
-            onSubmit: dateValidator
-          }}
-        >
+        <form.AppField name="date">
           {(field) => (
             <field.DateField
               label={t('forms.transactionDate')}
@@ -199,12 +139,7 @@ export function ExpenseIncomeTransferFields({
           )}
         </form.AppField>
 
-        <form.AppField
-          name="amount"
-          validators={{
-            onSubmit: amountValidator
-          }}
-        >
+        <form.AppField name="amount">
           {(field) => <field.NumberField label={t('common.amount')} />}
         </form.AppField>
       </>
@@ -213,12 +148,7 @@ export function ExpenseIncomeTransferFields({
 
   return (
     <>
-      <form.AppField
-        name="name"
-        validators={{
-          onSubmit: nameValidator
-        }}
-      >
+      <form.AppField name="name">
         {(field) => (
           <field.TextField
             label={t('forms.transactionName')}
@@ -228,12 +158,7 @@ export function ExpenseIncomeTransferFields({
         )}
       </form.AppField>
 
-      <form.AppField
-        name="date"
-        validators={{
-          onSubmit: dateValidator
-        }}
-      >
+      <form.AppField name="date">
         {(field) => (
           <field.DateField
             label={t('forms.transactionDate')}
@@ -273,12 +198,7 @@ export function ExpenseIncomeTransferFields({
       )}
 
       {transactionType === TransactionType.EXPENSE ? (
-        <form.AppField
-          name="accountId"
-          validators={{
-            onSubmit: accountValidator
-          }}
-        >
+        <form.AppField name="accountId">
           {(field) => (
             <field.SelectField
               label={t('transfers.fromAccount')}
@@ -288,12 +208,7 @@ export function ExpenseIncomeTransferFields({
           )}
         </form.AppField>
       ) : (
-        <form.AppField
-          name="accountId"
-          validators={{
-            onSubmit: accountValidator
-          }}
-        >
+        <form.AppField name="accountId">
           {(field) => (
             <field.SelectField
               label={t('forms.depositAccount')}
@@ -335,21 +250,11 @@ export function ExpenseIncomeTransferFields({
 
       {transactionType === TransactionType.EXPENSE && !useSplits ? (
         <>
-          <form.AppField
-            name="amount"
-            validators={{
-              onSubmit: amountValidator
-            }}
-          >
+          <form.AppField name="amount">
             {(field) => <field.NumberField label={t('common.amount')} />}
           </form.AppField>
 
-          <form.AppField
-            name="budgetId"
-            validators={{
-              onSubmit: budgetRequiredValidator
-            }}
-          >
+          <form.AppField name="budgetId">
             {(field) => (
               <field.SelectField
                 label={t('allocation.drawer.budget')}
@@ -377,12 +282,7 @@ export function ExpenseIncomeTransferFields({
 
       {transactionType === TransactionType.INCOME ? (
         <>
-          <form.AppField
-            name="amount"
-            validators={{
-              onSubmit: amountValidator
-            }}
-          >
+          <form.AppField name="amount">
             {(field) => <field.NumberField label={t('common.amount')} />}
           </form.AppField>
 

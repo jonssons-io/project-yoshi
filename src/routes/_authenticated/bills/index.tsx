@@ -532,7 +532,7 @@ function BillsPageContent({
           name: bill.name,
           recurrenceType: bill.recurrenceType,
           customIntervalDays: bill.customIntervalDays ?? null,
-          startDate: bill.startDate,
+          dueDate: bill.dueDate,
           endDate: bill.endDate,
           amount: bill.estimatedAmount,
           paymentHandling: bill.paymentHandling as
@@ -550,7 +550,7 @@ function BillsPageContent({
           categoryName: bill.category?.name ?? t('common.uncategorized'),
           recipientId: bill.recipient.id,
           recipientName: bill.recipient.name ?? '',
-          hasRevisions: bill.hasRevisions
+          numberOfRevisions: bill.numberOfRevisions
         }) satisfies BillBasisRow
     )
   }, [
@@ -595,7 +595,11 @@ function BillsPageContent({
       createBillBasisColumns({
         t,
         labelLookupRef: basisLabelLookupRef,
-        onViewRevisions: () => void 0,
+        onViewRevisions: (billId) =>
+          openDrawer('billRevisions', {
+            billId,
+            name: bills.find((b) => b.id === billId)?.name ?? ''
+          }),
         onEditUpcoming: (billId) =>
           openDrawer('editBillBlueprintUpcoming', {
             billId
@@ -609,7 +613,8 @@ function BillsPageContent({
     [
       t,
       openDrawer,
-      handleDeleteBasisBill
+      handleDeleteBasisBill,
+      bills
     ]
   )
 
