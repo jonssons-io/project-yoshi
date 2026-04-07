@@ -1,7 +1,13 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { DateRangeOption } from '@/lib/dashboard-utils'
 
 const STORAGE_PREFIX = 'yoshi-dashboard-settings-v1'
+
+function sameAccountIdSet(a: string[], b: string[]): boolean {
+  if (a.length !== b.length) return false
+  const setB = new Set(b)
+  return a.every((id) => setB.has(id))
+}
 
 type AccountLike = {
   id: string
@@ -53,6 +59,8 @@ export function useDashboardSettings({
   const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>([])
   const [isAccountSelectionInitialized, setIsAccountSelectionInitialized] =
     useState(false)
+  /** Last known full account id list; used to detect "all accounts" chart selection after new accounts appear. */
+  const prevAllAccountIdsRef = useRef<string[] | null>(null)
 
   useEffect(() => {
     const stored = localStorage.getItem(dateRangeKey)
@@ -79,11 +87,12 @@ export function useDashboardSettings({
           const validIds = parsed.filter((id) =>
             accounts.some((account) => account.id === id)
           )
-          setSelectedAccountIds(
+          const initial =
             validIds.length > 0
               ? validIds
               : accounts.map((account) => account.id)
-          )
+          setSelectedAccountIds(initial)
+          prevAllAccountIdsRef.current = accounts.map((account) => account.id)
           setIsAccountSelectionInitialized(true)
           return
         }
@@ -92,13 +101,44 @@ export function useDashboardSettings({
       }
     }
 
-    setSelectedAccountIds(accounts.map((account) => account.id))
+    const allIds = accounts.map((account) => account.id)
+    setSelectedAccountIds(allIds)
+    prevAllAccountIdsRef.current = allIds
     setIsAccountSelectionInitialized(true)
   }, [
     accounts,
     isAccountSelectionInitialized,
     accountSelectionKey
   ])
+
+  useEffect(() => {
+    if (!accounts || !isAccountSelectionInitialized) return
+
+    const allIds = accounts.map((a) => a.id)
+    const allIdsSet = new Set(allIds)
+    const prevAllIds = prevAllAccountIdsRef.current
+
+    if (!prevAllIds) {
+      prevAllAccountIdsRef.current = allIds
+      return
+    }
+
+    setSelectedAccountIds((prev) => {
+      const pruned = prev.filter((id) => allIdsSet.has(id))
+      const hadFullSelection = sameAccountIdSet(prev, prevAllIds)
+      const next =
+        hadFullSelection ? allIds : pruned.length > 0 ? pruned : allIds
+
+      if (sameAccountIdSet(next, prev)) {
+        return prev
+      }
+
+      localStorage.setItem(accountSelectionKey, JSON.stringify(next))
+      return next
+    })
+
+    prevAllAccountIdsRef.current = allIds
+  }, [accounts, isAccountSelectionInitialized, accountSelectionKey])
 
   const setQuickSelection = (value: DateRangeOption) => {
     setQuickSelectionState(value)
