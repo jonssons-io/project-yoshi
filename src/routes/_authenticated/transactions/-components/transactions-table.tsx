@@ -5,7 +5,6 @@ import type { TFunction } from 'i18next'
 import {
   ArrowRight,
   CopyIcon,
-  Layers,
   Link2,
   PencilIcon,
   TrashIcon
@@ -16,7 +15,17 @@ import { type Transaction, TransactionType } from '@/api/generated/types.gen'
 import { Badge } from '@/components/badge/badge'
 import type { DataTableColumnDef } from '@/components/data-table'
 import { IconButton } from '@/components/icon-button/icon-button'
+import {
+  SplitLinesTableCell,
+  splitLinesSortKey,
+  splitLinesToolbarSearchText
+} from '@/components/split-lines-table-cell/split-lines-table-cell'
 import { TableRowMenu } from '@/components/table-row-menu/table-row-menu'
+import {
+  transactionSplitsBudgetSearchBlob,
+  transactionSplitsCategorySearchBlob,
+  transactionSplitsTooltipSummary
+} from '@/lib/split-line-labels'
 import { formatCurrency } from '@/lib/utils'
 
 export type TransactionListItem = Omit<Transaction, 'date'> & {
@@ -80,15 +89,29 @@ function accountSearchText(transaction: TransactionListItem): string {
 }
 
 /** Plain text matched by the toolbar global search for the category column. */
-function categorySearchText(row: TransactionListItem, t: TFunction): string {
+function categorySearchText(
+  row: TransactionListItem,
+  t: TFunction,
+  lookups: TransactionLabelLookup
+): string {
   if (row.type === TransactionType.TRANSFER) {
     return ''
   }
-  const splits = row.splits
-  if (splits && splits.length > 0) {
-    return `${splits.length} ${t('common.splits')}`
+  const n = row.splits?.length ?? 0
+  const uncategorized = t('common.uncategorized')
+  if (n > 0) {
+    return [
+      splitLinesToolbarSearchText(n, t),
+      transactionSplitsCategorySearchBlob(
+        row.splits,
+        lookups.categories,
+        uncategorized
+      )
+    ]
+      .filter(Boolean)
+      .join(' ')
   }
-  return row.category?.name ?? t('common.uncategorized')
+  return row.category?.name ?? uncategorized
 }
 
 function isLinkedToScheduledInstance(
@@ -175,37 +198,140 @@ function recipientSenderCell(transaction: TransactionListItem): ReactNode {
 
 function categorySortValue(transaction: TransactionListItem): string {
   if (transaction.type === TransactionType.TRANSFER) return ''
-  const splits = transaction.splits
-  if (splits && splits.length > 0) {
-    return `splits-${splits.length}`
-  }
-  return (transaction.category?.name ?? '').toLowerCase()
+  const n = transaction.splits?.length ?? 0
+  return splitLinesSortKey(n, transaction.category?.name ?? '')
 }
 
 function categoryCell(
   transaction: TransactionListItem,
-  t: TFunction
+  t: TFunction,
+  lookups: TransactionLabelLookup
 ): ReactNode {
   if (transaction.type === TransactionType.TRANSFER) {
     return <span className="text-gray-600">{emptyCellDash}</span>
   }
-  const splits = transaction.splits
-  if (splits && splits.length > 0) {
+  const n = transaction.splits?.length ?? 0
+  if (n > 0) {
     return (
-      <span className="inline-flex items-center gap-1">
-        <Layers
-          className="size-4 shrink-0 text-gray-600"
-          strokeWidth={1.5}
-          aria-hidden={true}
-        />
-        <Badge
-          color="gray"
-          label={`${splits.length} ${t('common.splits')}`}
-        />
-      </span>
+      <SplitLinesTableCell
+        lineCount={n}
+        t={t}
+        title={transactionSplitsTooltipSummary(
+          transaction.splits,
+          lookups.categories,
+          lookups.budgets,
+          t('common.uncategorized')
+        )}
+      />
     )
   }
   return <span>{transaction.category?.name ?? t('common.uncategorized')}</span>
+}
+
+function budgetSortValue(transaction: TransactionListItem): string {
+  if (transaction.type === TransactionType.TRANSFER) return ''
+  const n = transaction.splits?.length ?? 0
+  return splitLinesSortKey(n, transaction.budget?.name ?? '')
+}
+
+function budgetSearchText(
+  transaction: TransactionListItem,
+  t: TFunction,
+  lookups: TransactionLabelLookup
+): string {
+  if (transaction.type === TransactionType.TRANSFER) return ''
+  const n = transaction.splits?.length ?? 0
+  if (n > 0) {
+    return [
+      splitLinesToolbarSearchText(n, t),
+      transactionSplitsBudgetSearchBlob(transaction.splits, lookups.budgets)
+    ]
+      .filter(Boolean)
+      .join(' ')
+  }
+  return transaction.budget?.name || ''
+}
+
+function budgetCell(
+  transaction: TransactionListItem,
+  t: TFunction,
+  lookups: TransactionLabelLookup
+): ReactNode {
+  if (transaction.type === TransactionType.TRANSFER) {
+    return <span className="text-gray-600">{emptyCellDash}</span>
+  }
+  const n = transaction.splits?.length ?? 0
+  if (n > 0) {
+    return (
+      <SplitLinesTableCell
+        lineCount={n}
+        t={t}
+        title={transactionSplitsTooltipSummary(
+          transaction.splits,
+          lookups.categories,
+          lookups.budgets,
+          t('common.uncategorized')
+        )}
+      />
+    )
+  }
+  return <span>{transaction.budget?.name ?? emptyCellDash}</span>
+}
+
+/** Budget ids on the row (top-level and each split line) for column filters. */
+function transactionBudgetIdsForFilter(tx: TransactionListItem): Set<string> {
+  const ids = new Set<string>()
+  if (tx.type === TransactionType.TRANSFER) return ids
+  const top = tx.budget?.id
+  if (top) ids.add(top)
+  for (const s of tx.splits ?? []) {
+    const id = s.budgetId ?? s.budget?.id
+    if (id) ids.add(id)
+  }
+  return ids
+}
+
+/** Category ids on the row (top-level and each split line) for column filters. */
+function transactionCategoryIdsForFilter(tx: TransactionListItem): Set<string> {
+  const ids = new Set<string>()
+  if (tx.type === TransactionType.TRANSFER) return ids
+  const top = tx.category?.id
+  if (top) ids.add(top)
+  for (const s of tx.splits ?? []) {
+    const id = s.categoryId ?? s.category?.id
+    if (id) ids.add(id)
+  }
+  return ids
+}
+
+function matchesTransactionBudgetFilter(
+  tx: TransactionListItem,
+  filterValue: string[]
+): boolean {
+  if (!Array.isArray(filterValue) || filterValue.length === 0) return true
+  if (tx.type === TransactionType.TRANSFER) {
+    return filterValue.includes(tx.budget?.id ?? '')
+  }
+  const ids = transactionBudgetIdsForFilter(tx)
+  return filterValue.some((sel) => {
+    if (sel === '') return ids.size === 0
+    return ids.has(sel)
+  })
+}
+
+function matchesTransactionCategoryFilter(
+  tx: TransactionListItem,
+  filterValue: string[]
+): boolean {
+  if (!Array.isArray(filterValue) || filterValue.length === 0) return true
+  if (tx.type === TransactionType.TRANSFER) {
+    return filterValue.includes(tx.category?.id ?? '')
+  }
+  const ids = transactionCategoryIdsForFilter(tx)
+  return filterValue.some((sel) => {
+    if (sel === '') return ids.size === 0
+    return ids.has(sel)
+  })
 }
 
 function typeBadgeLabel(type: TransactionType, t: TFunction): string {
@@ -440,26 +566,26 @@ export function createTransactionTableColumns({
       },
       cell: (ctx) => accountCell(ctx.row.original)
     }),
-    columnHelper.accessor((row) => (row.budget?.name ?? '').toLowerCase(), {
+    columnHelper.accessor((row) => budgetSortValue(row), {
       id: 'budget',
       header: t('common.budget'),
-      sortingFn: (rowA, rowB) => {
-        const a = (rowA.original.budget?.name ?? '').toLowerCase()
-        const b = (rowB.original.budget?.name ?? '').toLowerCase()
-        return a.localeCompare(b, undefined, {
-          numeric: true
-        })
-      },
+      sortingFn: (rowA, rowB) =>
+        budgetSortValue(rowA.original).localeCompare(
+          budgetSortValue(rowB.original),
+          undefined,
+          {
+            numeric: true
+          }
+        ),
       filterFn: (
         row: Row<TransactionListItem>,
         _columnId: string,
         filterValue: string[]
-      ) => {
-        return filterValue.includes(row.original.budget?.id ?? '')
-      },
+      ) => matchesTransactionBudgetFilter(row.original, filterValue),
       meta: {
         globalSearchable: true,
-        searchValue: (row: TransactionListItem) => row.budget?.name ?? '',
+        searchValue: (row: TransactionListItem) =>
+          budgetSearchText(row, t, labelLookupRef.current),
         filterable: true,
         filterLabel: t('common.budget'),
         filterPillValue: (value: unknown) => {
@@ -470,7 +596,7 @@ export function createTransactionTableColumns({
             .join(', ')
         }
       },
-      cell: (ctx) => ctx.row.original.budget?.name ?? emptyCellDash
+      cell: (ctx) => budgetCell(ctx.row.original, t, labelLookupRef.current)
     }),
     columnHelper.accessor((row) => categorySortValue(row), {
       id: 'category',
@@ -487,12 +613,11 @@ export function createTransactionTableColumns({
         row: Row<TransactionListItem>,
         _columnId: string,
         filterValue: string[]
-      ) => {
-        return filterValue.includes(row.original.category?.id ?? '')
-      },
+      ) => matchesTransactionCategoryFilter(row.original, filterValue),
       meta: {
         globalSearchable: true,
-        searchValue: (row: TransactionListItem) => categorySearchText(row, t),
+        searchValue: (row: TransactionListItem) =>
+          categorySearchText(row, t, labelLookupRef.current),
         filterable: true,
         filterLabel: t('common.category'),
         filterPillValue: (value: unknown) => {
@@ -503,7 +628,7 @@ export function createTransactionTableColumns({
             .join(', ')
         }
       },
-      cell: (ctx) => categoryCell(ctx.row.original, t)
+      cell: (ctx) => categoryCell(ctx.row.original, t, labelLookupRef.current)
     }),
     columnHelper.accessor((row) => recipientSenderSortValue(row), {
       id: 'recipientSender',

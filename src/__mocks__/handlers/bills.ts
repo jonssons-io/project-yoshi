@@ -239,26 +239,73 @@ function toBillResponse(
     category: toRelationRef(category),
     budget: toRelationRef(budget),
     household: toRelationRef(household),
-    splits: Array.isArray(bill.splits) ? bill.splits : [],
+    splits: (() => {
+      const raw = Array.isArray(bill.splits) ? bill.splits : []
+      const defaultBudgetForLines =
+        typeof bill.budgetId === 'string' && bill.budgetId.length > 0
+          ? bill.budgetId
+          : budgetId
+      return enrichSplitsWithRelations(raw, defaultBudgetForLines).map(
+        (split, index) => ({
+          id: `split_${String(bill.id)}_${index + 1}`,
+          billId: String(bill.id),
+          billInstanceId: null,
+          categoryId: split.categoryId ?? '',
+          budgetId: split.budgetId,
+          amount: split.amount,
+          subtitle: split.subtitle,
+          category: split.category,
+          budget: split.budget
+        })
+      )
+    })(),
     archived: Boolean(bill.archived),
     createdAt: String(bill.createdAt ?? nowIso()),
     numberOfRevisions: numberOfBillRevisions(bill)
   }
 }
 
-function enrichSplits(
-  splits?: Array<{
+function enrichSplitsWithRelations(
+  splits: Array<{
     subtitle: string
     amount: number
     categoryId?: string | null
-  }>
+    budgetId?: string | null
+  }>,
+  defaultBudgetId?: string | null
 ) {
-  return (splits ?? []).map((split) => ({
-    ...split,
-    category: split.categoryId
-      ? (categories.find((item) => item.id === split.categoryId) ?? null)
+  return splits.map((split) => {
+    const effectiveBudgetId =
+      typeof split.budgetId === 'string' && split.budgetId.length > 0
+        ? split.budgetId
+        : typeof defaultBudgetId === 'string' && defaultBudgetId.length > 0
+          ? defaultBudgetId
+          : null
+    const categoryEntity = split.categoryId
+      ? categories.find((item) => item.id === split.categoryId)
       : null
-  }))
+    const budgetEntity = effectiveBudgetId
+      ? budgets.find((item) => item.id === effectiveBudgetId)
+      : null
+    return {
+      subtitle: split.subtitle,
+      amount: split.amount,
+      categoryId: split.categoryId ?? null,
+      budgetId: effectiveBudgetId,
+      category: categoryEntity
+        ? {
+            id: categoryEntity.id,
+            name: categoryEntity.name ?? null
+          }
+        : null,
+      budget: budgetEntity
+        ? {
+            id: budgetEntity.id,
+            name: budgetEntity.name ?? null
+          }
+        : null
+    }
+  })
 }
 
 function deriveBillInstanceStatus(
@@ -353,14 +400,19 @@ function enrichBillInstance(instance: (typeof billInstances)[number]) {
         ? categories.find((item) => item.id === instance.categoryId)
         : null
     ),
-    splits: enrichSplits(instance.splits).map((split, index) => ({
+    splits: enrichSplitsWithRelations(
+      instance.splits ?? [],
+      instance.budgetId
+    ).map((split, index) => ({
       id: `split_${instance.id}_${index + 1}`,
       billId: instance.billId,
       billInstanceId: instance.id,
       categoryId: split.categoryId ?? '',
+      budgetId: split.budgetId,
       amount: split.amount,
       subtitle: split.subtitle,
-      category: split.category
+      category: split.category,
+      budget: split.budget
     })),
     recurrenceType: instance.recurrenceType,
     customIntervalDays: instance.customIntervalDays ?? null,

@@ -104,6 +104,9 @@
     "update": "Uppdatera transaktion",
     "createSuccess": "Transaktion skapad",
     "updateSuccess": "Transaktion uppdaterad",
+    "editInlineCategoryNotSupported": "Nya kategorier kan inte skapas vid redigering. Välj en befintlig kategori.",
+    "editInlineRecipientNotSupported": "Nya mottagare kan inte skapas vid redigering. Välj en befintlig mottagare.",
+    "editInlineSenderNotSupported": "Nya avsändare kan inte skapas vid redigering. Välj en befintlig avsändare.",
     "deleteSuccess": "Transaktion borttagen",
     "cloneSuccess": "Transaktion klonad",
     "scheduledLink": "Kopplad till räkning eller inkomst"
@@ -858,6 +861,10 @@
     },
     "createTransaction": {
       "title": "Skapa transaktion",
+      "description": "En transaktion är en debitering eller kreditering på dina konton."
+    },
+    "editTransaction": {
+      "title": "Editera transaktion",
       "description": "En transaktion är en debitering eller kreditering på dina konton."
     },
     "createIncome": {

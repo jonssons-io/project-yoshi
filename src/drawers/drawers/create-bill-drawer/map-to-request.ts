@@ -2,6 +2,7 @@ import type { TFunction } from 'i18next'
 
 import {
   type BillPaymentHandling,
+  type BillSplitWrite,
   type CreateBillRequest,
   RecurrenceType
 } from '@/api/generated/types.gen'
@@ -11,6 +12,32 @@ import {
   splitCategoryToApi
 } from '../create-transaction-drawer/map-to-request'
 import type { ParsedCreateBillDrawerValues } from './schema'
+import type { BillSplitRowValue } from './types'
+
+/**
+ * Maps split rows from bill drawers to API bill split write lines (create bill, update blueprint, update instance).
+ */
+export function mapBillSplitFormRowsToBillSplitWrite(
+  t: TFunction,
+  rows: BillSplitRowValue[]
+): BillSplitWrite[] {
+  return rows.map((row) => {
+    if (row.amount == null) {
+      throw new Error(
+        'mapBillSplitFormRowsToBillSplitWrite: split amount is required'
+      )
+    }
+    return {
+      subtitle:
+        row.subtitle.trim().length > 0
+          ? row.subtitle.trim()
+          : t('forms.namelessSection'),
+      amount: row.amount,
+      budgetId: row.budgetId,
+      ...splitCategoryToApi(row.category)
+    }
+  })
+}
 
 /** {@link CreateBillRequest} uses `recipientId?: string`, not `null`. */
 function billRecipientFields(
@@ -89,29 +116,16 @@ export function buildCreateBillBody(params: BuildBodyParams): Omit<
   }
 
   if (hasSplits && data.splits && data.splits.length > 0) {
-    const estimatedAmount = data.splits.reduce((s, r) => {
-      if (r.amount == null) {
-        throw new Error('buildCreateBillBody: split amount is required')
-      }
-      return s + r.amount
-    }, 0)
+    const splitsPayload = mapBillSplitFormRowsToBillSplitWrite(t, data.splits)
+    const estimatedAmount = splitsPayload.reduce(
+      (s, line) => s + line.amount,
+      0
+    )
     return {
       ...base,
       budgetId: null,
       estimatedAmount,
-      splits: data.splits.map((row) => {
-        if (row.amount == null) {
-          throw new Error('buildCreateBillBody: split amount is required')
-        }
-        return {
-          subtitle:
-            row.subtitle.trim().length > 0
-              ? row.subtitle.trim()
-              : t('forms.namelessSection'),
-          amount: row.amount,
-          ...splitCategoryToApi(row.category)
-        }
-      })
+      splits: splitsPayload
     }
   }
 

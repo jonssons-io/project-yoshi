@@ -5,7 +5,13 @@ export type BillSplitRowValue = {
   id: string
   subtitle: string
   amount: number | null
+  budgetId: string
   category: ComboboxValue | null
+  /**
+   * When hydrating from the API, label for the category combobox until budget-scoped options load
+   * (or when the id is not in the current option list). Not sent to the API.
+   */
+  prefillCategoryName?: string
 }
 
 export type CreateBillDrawerFormValues = {
@@ -28,6 +34,7 @@ export function newBillSplitRow(): BillSplitRowValue {
     id: crypto.randomUUID(),
     subtitle: '',
     amount: null,
+    budgetId: '',
     category: null
   }
 }

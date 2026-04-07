@@ -479,6 +479,12 @@ export type Bill = {
      *
      */
     numberOfRevisions: number;
+    /**
+     * Present when the blueprint uses per-line categories/budgets. Each item includes nested **`category`** and **`budget`**
+     * (when IDs are set) for display and form prefill, same as **`BillInstance.splits`**. Omitted when the bill has no split lines.
+     *
+     */
+    splits?: Array<BillSplit>;
 };
 
 /**
@@ -577,6 +583,10 @@ export type BillSplit = {
     budgetId?: string | null;
     amount: number;
     subtitle: string;
+    /**
+     * Display name copied from the category row. Prefer nested **`category.name`** for new clients; this field remains for compatibility.
+     *
+     */
     categoryName?: string | null;
     category?: Category;
     budget?: NullableRelationRef;

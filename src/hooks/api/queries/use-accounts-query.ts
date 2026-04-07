@@ -180,7 +180,8 @@ export function useAccountBalanceChart(params: {
         dateTo: dateToIso ?? '',
         accountIds:
           accountIds && accountIds.length > 0 ? accountIds : undefined,
-        includeArchived
+        includeArchived,
+        projectFromTransactions: true
       }
     }),
     enabled: Boolean(enabled && householdId && dateFromIso && dateToIso),

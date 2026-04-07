@@ -686,6 +686,13 @@ components:
             **`1`** immediately after blueprint creation (the bundled initial snapshot only).
             Blueprint patches with **`updateScope` `ALL`** merge into that creation bundle (they do not add a new logical revision).
             **`> 1`** after at least one change that adds its own revision (e.g. **`updateScope` `UPCOMING`**, archive, or other non–ALL-bundle edits).
+        splits:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillSplit'
+          description: |
+            Present when the blueprint uses per-line categories/budgets. Each item includes nested **`category`** and **`budget`**
+            (when IDs are set) for display and form prefill, same as **`BillInstance.splits`**. Omitted when the bill has no split lines.
       required:
         [
           id,
@@ -827,6 +834,8 @@ components:
           type: string
         categoryName:
           type: [string, "null"]
+          description: |
+            Display name copied from the category row. Prefer nested **`category.name`** for new clients; this field remains for compatibility.
         category:
           $ref: '#/components/schemas/Category'
         budget:

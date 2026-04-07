@@ -14,6 +14,7 @@ import { toast } from 'sonner'
 
 import {
   type BillPaymentHandling,
+  type BillSplit,
   RecurrenceType
 } from '@/api/generated/types.gen'
 import { DataTable, useDataTable } from '@/components/data-table'
@@ -31,6 +32,7 @@ import {
   useBillInstancesSummary,
   useBillsList,
   useBudgetsList,
+  useCategoriesList,
   useDeleteBill
 } from '@/hooks/api'
 import { useDateRange } from '@/hooks/use-date-range'
@@ -41,6 +43,13 @@ import {
   readDateRangeFilter,
   readSingleSelectFilter
 } from '@/lib/column-filter-utils'
+import {
+  billSplitBudgetDisplayName,
+  billSplitCategoryDisplayName,
+  billSplitsBudgetSearchBlob,
+  billSplitsCategorySearchBlob,
+  billSplitsTooltipSummary
+} from '@/lib/split-line-labels'
 
 import {
   BILL_BASIS_NO_ACCOUNT_FILTER_VALUE,
@@ -67,6 +76,54 @@ type BillTab = 'overview' | 'basis'
 const EMPTY_OVERVIEW_ROWS: BillOverviewRow[] = []
 const EMPTY_BASIS_ROWS: BillBasisRow[] = []
 
+function billSplitFilterFields(
+  splits: BillSplit[] | undefined,
+  uncategorizedLabel: string,
+  categoryById: Map<string, string>,
+  budgetById: Map<string, string>
+): {
+  splitBudgetIds: string[]
+  splitCategoryIds: string[]
+  splitCategoryLabels: Record<string, string>
+  splitBudgetLabels: Record<string, string>
+} {
+  const list = splits ?? []
+  const splitBudgetIds = [
+    ...new Set(
+      list
+        .map((s) => s.budgetId ?? s.budget?.id)
+        .filter((id): id is string => Boolean(id))
+    )
+  ]
+  const splitCategoryLabels: Record<string, string> = {}
+  for (const s of list) {
+    const cid = s.categoryId ?? s.category?.id
+    if (!cid) continue
+    if (splitCategoryLabels[cid] === undefined) {
+      splitCategoryLabels[cid] = billSplitCategoryDisplayName(
+        s,
+        categoryById,
+        uncategorizedLabel
+      )
+    }
+  }
+  const splitBudgetLabels: Record<string, string> = {}
+  for (const s of list) {
+    const bid = s.budgetId ?? s.budget?.id
+    if (!bid) continue
+    if (splitBudgetLabels[bid] === undefined) {
+      const label = billSplitBudgetDisplayName(s, budgetById)
+      splitBudgetLabels[bid] = label || bid
+    }
+  }
+  return {
+    splitBudgetIds,
+    splitCategoryIds: Object.keys(splitCategoryLabels),
+    splitCategoryLabels,
+    splitBudgetLabels
+  }
+}
+
 function BillsPage() {
   const { userId, householdId } = useAuth()
 
@@ -89,12 +146,19 @@ function BillsPage() {
     enabled: !!householdId
   })
 
+  const { data: categories = [] } = useCategoriesList({
+    householdId,
+    userId,
+    enabled: !!householdId
+  })
+
   return (
     <BillsPageContent
       householdId={householdId}
       bills={bills}
       accounts={accounts}
       budgets={budgets}
+      categories={categories}
       billsLoading={billsLoading}
     />
   )
@@ -105,6 +169,7 @@ interface BillsPageContentProps {
   bills: ReturnType<typeof useBillsList>['data'] & {}
   accounts: ReturnType<typeof useAccountsList>['data'] & {}
   budgets: ReturnType<typeof useBudgetsList>['data'] & {}
+  categories: ReturnType<typeof useCategoriesList>['data'] & {}
   billsLoading: boolean
 }
 
@@ -113,6 +178,7 @@ function BillsPageContent({
   bills,
   accounts,
   budgets,
+  categories,
   billsLoading
 }: BillsPageContentProps) {
   const { t } = useTranslation()
@@ -139,6 +205,19 @@ function BillsPageContent({
       ),
     [
       budgets
+    ]
+  )
+
+  const categoryById = useMemo(
+    () =>
+      new Map(
+        categories.map((c) => [
+          c.id,
+          c.name
+        ])
+      ),
+    [
+      categories
     ]
   )
 
@@ -172,6 +251,24 @@ function BillsPageContent({
 
     return rawInstances.map((inst) => {
       const hasTransaction = !!inst.transaction?.id
+      const uncategorized = t('common.uncategorized')
+      const {
+        splitBudgetIds,
+        splitCategoryIds,
+        splitCategoryLabels,
+        splitBudgetLabels
+      } = billSplitFilterFields(
+        inst.splits,
+        uncategorized,
+        categoryById,
+        budgetById
+      )
+      const splitPrefillLines = (inst.splits ?? []).map((s) => ({
+        subtitle: s.subtitle ?? '',
+        amount: s.amount,
+        budgetId: s.budgetId ?? s.budget?.id ?? null,
+        categoryId: s.categoryId ?? s.category?.id ?? ''
+      }))
 
       return {
         id: inst.id,
@@ -194,6 +291,27 @@ function BillsPageContent({
           budgetById.get(inst.budget?.id ?? '') ?? t('common.uncategorized'),
         categoryId: inst.category?.id ?? null,
         categoryName: inst.category?.name ?? t('common.uncategorized'),
+        splitLineCount: inst.splits?.length ?? 0,
+        splitBudgetIds,
+        splitCategoryIds,
+        splitCategoryLabels,
+        splitBudgetLabels,
+        splitLinesTooltip: billSplitsTooltipSummary(
+          inst.splits,
+          categoryById,
+          budgetById,
+          uncategorized
+        ),
+        splitCategorySearchBlob: billSplitsCategorySearchBlob(
+          inst.splits,
+          categoryById,
+          uncategorized
+        ),
+        splitBudgetSearchBlob: billSplitsBudgetSearchBlob(
+          inst.splits,
+          budgetById
+        ),
+        splitPrefillLines,
         recipientId: inst.recipient.id,
         recipientName: inst.recipient.name ?? ''
       } satisfies BillOverviewRow
@@ -202,6 +320,7 @@ function BillsPageContent({
     rawInstances,
     accountById,
     budgetById,
+    categoryById,
     t
   ])
 
@@ -226,6 +345,22 @@ function BillsPageContent({
     ]
   )
 
+  const overviewCategoryLookup = useMemo(() => {
+    const m = new Map<string, string>(categoryById)
+    for (const r of overviewRows) {
+      if (r.categoryId) {
+        m.set(r.categoryId, r.categoryName)
+      }
+      for (const [id, label] of Object.entries(r.splitCategoryLabels)) {
+        m.set(id, label)
+      }
+    }
+    return m
+  }, [
+    categoryById,
+    overviewRows
+  ])
+
   const labelLookupRef = useRef<LabelLookup>({
     accounts: new Map(),
     budgets: new Map(),
@@ -235,12 +370,7 @@ function BillsPageContent({
   labelLookupRef.current = {
     accounts: accountById,
     budgets: budgetById,
-    categories: new Map(
-      overviewRows.map((r) => [
-        r.categoryId ?? '__none__',
-        r.categoryName
-      ])
-    ),
+    categories: overviewCategoryLookup,
     recipients: recipientMap
   }
 
@@ -263,7 +393,11 @@ function BillsPageContent({
               accountId: row.accountId,
               categoryId: row.categoryId,
               budgetId: row.budgetId,
-              recipientId: row.recipientId
+              recipientId: row.recipientId,
+              splits:
+                row.splitPrefillLines.length > 0
+                  ? row.splitPrefillLines
+                  : undefined
             }
           })
       }),
@@ -431,6 +565,11 @@ function BillsPageContent({
       if (row.budgetId && !seen.has(row.budgetId)) {
         seen.set(row.budgetId, row.budgetName)
       }
+      for (const bid of row.splitBudgetIds) {
+        if (!seen.has(bid)) {
+          seen.set(bid, row.splitBudgetLabels[bid] ?? budgetById.get(bid) ?? bid)
+        }
+      }
     }
     return [
       ...seen
@@ -439,14 +578,21 @@ function BillsPageContent({
       label
     }))
   }, [
-    overviewRows
+    overviewRows,
+    budgetById
   ])
+
 
   const availableOverviewCategories = useMemo(() => {
     const seen = new Map<string, string>()
     for (const row of overviewRows) {
       if (row.categoryId && !seen.has(row.categoryId)) {
         seen.set(row.categoryId, row.categoryName)
+      }
+      for (const cid of row.splitCategoryIds) {
+        if (!seen.has(cid)) {
+          seen.set(cid, row.splitCategoryLabels[cid] ?? cid)
+        }
       }
     }
     return [
@@ -525,38 +671,70 @@ function BillsPageContent({
   const basisRows = useMemo(() => {
     if (bills.length === 0) return EMPTY_BASIS_ROWS
 
-    return bills.map(
-      (bill) =>
-        ({
-          id: bill.id,
-          name: bill.name,
-          recurrenceType: bill.recurrenceType,
-          customIntervalDays: bill.customIntervalDays ?? null,
-          dueDate: bill.dueDate,
-          endDate: bill.endDate,
-          amount: bill.estimatedAmount,
-          paymentHandling: bill.paymentHandling as
-            | BillPaymentHandling
-            | null
-            | undefined,
-          accountId: bill.account?.id ?? null,
-          accountName:
-            accountById.get(bill.account?.id ?? '') ??
-            t('common.uncategorized'),
-          budgetId: bill.budget?.id ?? null,
-          budgetName:
-            budgetById.get(bill.budget?.id ?? '') ?? t('common.uncategorized'),
-          categoryId: bill.category?.id ?? null,
-          categoryName: bill.category?.name ?? t('common.uncategorized'),
-          recipientId: bill.recipient.id,
-          recipientName: bill.recipient.name ?? '',
-          numberOfRevisions: bill.numberOfRevisions
-        }) satisfies BillBasisRow
-    )
+    return bills.map((bill) => {
+      const uncategorized = t('common.uncategorized')
+      const {
+        splitBudgetIds,
+        splitCategoryIds,
+        splitCategoryLabels,
+        splitBudgetLabels
+      } = billSplitFilterFields(
+        bill.splits,
+        uncategorized,
+        categoryById,
+        budgetById
+      )
+
+      return {
+        id: bill.id,
+        name: bill.name,
+        recurrenceType: bill.recurrenceType,
+        customIntervalDays: bill.customIntervalDays ?? null,
+        dueDate: bill.dueDate,
+        endDate: bill.endDate,
+        amount: bill.estimatedAmount,
+        paymentHandling: bill.paymentHandling as
+          | BillPaymentHandling
+          | null
+          | undefined,
+        accountId: bill.account?.id ?? null,
+        accountName:
+          accountById.get(bill.account?.id ?? '') ?? t('common.uncategorized'),
+        budgetId: bill.budget?.id ?? null,
+        budgetName:
+          budgetById.get(bill.budget?.id ?? '') ?? t('common.uncategorized'),
+        categoryId: bill.category?.id ?? null,
+        categoryName: bill.category?.name ?? t('common.uncategorized'),
+        splitLineCount: bill.splits?.length ?? 0,
+        splitBudgetIds,
+        splitCategoryIds,
+        splitCategoryLabels,
+        splitBudgetLabels,
+        splitLinesTooltip: billSplitsTooltipSummary(
+          bill.splits,
+          categoryById,
+          budgetById,
+          uncategorized
+        ),
+        splitCategorySearchBlob: billSplitsCategorySearchBlob(
+          bill.splits,
+          categoryById,
+          uncategorized
+        ),
+        splitBudgetSearchBlob: billSplitsBudgetSearchBlob(
+          bill.splits,
+          budgetById
+        ),
+        recipientId: bill.recipient.id,
+        recipientName: bill.recipient.name ?? '',
+        numberOfRevisions: bill.numberOfRevisions
+      } satisfies BillBasisRow
+    })
   }, [
     bills,
     accountById,
     budgetById,
+    categoryById,
     t
   ])
 
@@ -566,6 +744,28 @@ function BillsPageContent({
     categories: new Map(),
     recipients: new Map()
   })
+  const basisCategoryLookup = useMemo(() => {
+    const m = new Map<string, string>([
+      ...categoryById,
+      [
+        BILL_BASIS_NO_CATEGORY_FILTER_VALUE,
+        t('common.uncategorized')
+      ]
+    ])
+    for (const row of basisRows) {
+      const cv = row.categoryId ?? BILL_BASIS_NO_CATEGORY_FILTER_VALUE
+      m.set(cv, row.categoryName)
+      for (const [id, label] of Object.entries(row.splitCategoryLabels)) {
+        m.set(id, label)
+      }
+    }
+    return m
+  }, [
+    basisRows,
+    categoryById,
+    t
+  ])
+
   basisLabelLookupRef.current = {
     accounts: new Map([
       ...accountById,
@@ -581,12 +781,7 @@ function BillsPageContent({
         t('common.uncategorized')
       ]
     ]),
-    categories: new Map(
-      basisRows.map((row) => [
-        row.categoryId ?? BILL_BASIS_NO_CATEGORY_FILTER_VALUE,
-        row.categoryName
-      ])
-    ),
+    categories: basisCategoryLookup,
     recipients: recipientMap
   }
 
@@ -667,11 +862,21 @@ function BillsPageContent({
       if (!budgetsSeen.has(budgetValue)) {
         budgetsSeen.set(budgetValue, row.budgetName)
       }
+      for (const bid of row.splitBudgetIds) {
+        if (!budgetsSeen.has(bid)) {
+          budgetsSeen.set(bid, row.splitBudgetLabels[bid] ?? budgetById.get(bid) ?? bid)
+        }
+      }
 
       const categoryValue =
         row.categoryId ?? BILL_BASIS_NO_CATEGORY_FILTER_VALUE
       if (!categoriesSeen.has(categoryValue)) {
         categoriesSeen.set(categoryValue, row.categoryName)
+      }
+      for (const cid of row.splitCategoryIds) {
+        if (!categoriesSeen.has(cid)) {
+          categoriesSeen.set(cid, row.splitCategoryLabels[cid] ?? cid)
+        }
       }
 
       if (!recipientsSeen.has(row.recipientId)) {
@@ -739,6 +944,7 @@ function BillsPageContent({
     }
   }, [
     basisRows,
+    budgetById,
     t
   ])
 

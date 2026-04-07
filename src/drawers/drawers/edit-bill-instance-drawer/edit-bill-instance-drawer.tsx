@@ -5,7 +5,6 @@ import { toast } from 'sonner'
 
 import {
   BillPaymentHandling,
-  type BillSplit,
   CategoryType,
   type UpdateBillInstanceRequest
 } from '@/api/generated/types.gen'
@@ -30,7 +29,10 @@ import {
 import { getErrorMessage } from '@/lib/api-error'
 import { translateIfLikelyI18nKey } from '@/lib/form-validation'
 import { normalizeBackendSplits } from '@/lib/split-normalization'
+import { withSplitTotalsCoercedForValidation } from '../create-bill-drawer/bill-split-form-payload'
+import { mapBillSplitsToFormRows } from '../create-bill-drawer/bill-split-rows'
 import type { CreateBillDrawerForm } from '../create-bill-drawer/form-api'
+import { mapBillSplitFormRowsToBillSplitWrite } from '../create-bill-drawer/map-to-request'
 import { SplitBillBlock } from '../create-bill-drawer/split-bill-block'
 import {
   type BillSplitRowValue,
@@ -90,15 +92,6 @@ const EDIT_INSTANCE_DEFAULTS = {
   budgetId: '',
   category: null as ComboboxValue | null,
   splits: [] as BillSplitRowValue[]
-}
-
-function billSplitsToFormRows(splits: BillSplit[]): BillSplitRowValue[] {
-  return splits.map((s) => ({
-    id: s.id,
-    subtitle: s.subtitle ?? '',
-    amount: s.amount,
-    category: s.categoryId
-  }))
 }
 
 export function EditBillInstanceDrawer({
@@ -234,14 +227,42 @@ export function EditBillInstanceDrawer({
   const form = useAppForm({
     defaultValues: EDIT_INSTANCE_DEFAULTS,
     canSubmitWhenInvalid: true,
+    onSubmitInvalid: ({ formApi }) => {
+      const formErrors = formApi.state.errors as unknown[]
+      for (const err of formErrors) {
+        if (typeof err === 'string' && err.length > 0) {
+          toast.error(translateIfLikelyI18nKey(err, t))
+          return
+        }
+      }
+      for (const meta of Object.values(formApi.state.fieldMeta)) {
+        const m = meta as {
+          errors?: unknown[]
+        }
+        const first = m?.errors?.[0]
+        if (typeof first === 'string' && first.length > 0) {
+          toast.error(translateIfLikelyI18nKey(first, t))
+          return
+        }
+      }
+      toast.error(t('common.error'))
+    },
     onSubmit: async ({ value }) => {
-      const hasSplits = useSplits && (value.splits?.length ?? 0) > 0
+      const hasSplits = (value.splits?.length ?? 0) > 0
       const payload: Record<string, unknown> = {
         ...value,
         splits: hasSplits ? value.splits : []
       }
 
-      const result = safeValidateForm(editBillInstanceFormSchema, payload)
+      const result = safeValidateForm(
+        editBillInstanceFormSchema,
+        withSplitTotalsCoercedForValidation(
+          payload as {
+            splits?: BillSplitRowValue[]
+            amount?: number | null
+          }
+        )
+      )
       if (!result.success) {
         const msg = result.errors[0]?.message ?? 'common.error'
         toast.error(translateIfLikelyI18nKey(msg, t))
@@ -254,35 +275,52 @@ export function EditBillInstanceDrawer({
       }
 
       try {
-        await updateBillInstanceAsync({
-          id: instance.id,
-          userId,
-          name: result.data.name,
-          ...recipientToBillInstancePatch(result.data.recipient),
-          amount: hasSplits
-            ? (result.data.splits ?? []).reduce((s, r) => {
-                if (r.amount == null) {
-                  throw new Error('edit bill instance: split amount required')
-                }
-                return s + r.amount
-              }, 0)
-            : (() => {
-                const a = result.data.amount
-                if (a == null) {
-                  throw new Error('edit bill instance: amount required')
-                }
-                return a
-              })(),
-          dueDate: result.data.dueDate,
-          accountId: result.data.accountId,
-          ...(!hasSplits
-            ? categoryToBillInstancePatch(result.data.category)
-            : {}),
-          paymentHandling:
-            result.data.paymentHandling === ''
-              ? null
-              : result.data.paymentHandling
-        })
+        if (hasSplits) {
+          const splitsPayload = mapBillSplitFormRowsToBillSplitWrite(
+            t,
+            result.data.splits ?? []
+          )
+          const totalAmount = splitsPayload.reduce(
+            (s, line) => s + line.amount,
+            0
+          )
+          await updateBillInstanceAsync({
+            id: instance.id,
+            userId,
+            name: result.data.name,
+            ...recipientToBillInstancePatch(result.data.recipient),
+            amount: totalAmount,
+            budgetId: null,
+            dueDate: result.data.dueDate,
+            accountId: result.data.accountId,
+            splits: splitsPayload,
+            paymentHandling:
+              result.data.paymentHandling === ''
+                ? null
+                : result.data.paymentHandling
+          })
+        } else {
+          await updateBillInstanceAsync({
+            id: instance.id,
+            userId,
+            name: result.data.name,
+            ...recipientToBillInstancePatch(result.data.recipient),
+            amount: (() => {
+              const a = result.data.amount
+              if (a == null) {
+                throw new Error('edit bill instance: amount required')
+              }
+              return a
+            })(),
+            dueDate: result.data.dueDate,
+            accountId: result.data.accountId,
+            ...categoryToBillInstancePatch(result.data.category),
+            paymentHandling:
+              result.data.paymentHandling === ''
+                ? null
+                : result.data.paymentHandling
+          })
+        }
         toast.success(t('bills.updateSuccess'))
         onClose()
       } catch (err) {
@@ -295,7 +333,14 @@ export function EditBillInstanceDrawer({
     (checked: boolean) => {
       setUseSplits(checked)
       if (checked) {
+        const parentBudget =
+          (form.getFieldValue('budgetId') as string) ||
+          instance?.budget?.id ||
+          ''
         const row = newBillSplitRow()
+        if (parentBudget.length > 0) {
+          row.budgetId = parentBudget
+        }
         form.setFieldValue('splits', [
           row
         ])
@@ -309,7 +354,8 @@ export function EditBillInstanceDrawer({
       }
     },
     [
-      form
+      form,
+      instance?.budget?.id
     ]
   )
 
@@ -322,8 +368,13 @@ export function EditBillInstanceDrawer({
   ])
 
   const addSplit = useCallback(() => {
+    const prev = form.getFieldValue('splits') as BillSplitRowValue[] | undefined
+    const template = prev?.[prev.length - 1]?.budgetId ?? ''
     const row = newBillSplitRow()
-    form.setFieldValue('splits', (prev) => [
+    if (template.length > 0) {
+      row.budgetId = template
+    }
+    form.setFieldValue('splits', [
       ...(prev ?? []),
       row
     ])
@@ -381,7 +432,9 @@ export function EditBillInstanceDrawer({
 
     if (normalized && normalized.length > 0) {
       setUseSplits(true)
-      const rows = billSplitsToFormRows(normalized)
+      const rows = mapBillSplitsToFormRows(normalized, {
+        defaultBudgetId: instance.budget?.id
+      })
       form.setFieldValue('splits', rows)
       form.setFieldValue(
         'amount',
@@ -606,7 +659,13 @@ export function EditBillInstanceDrawer({
             <form.AppField
               name="amount"
               validators={{
-                onChange: amountWhenNotSplitValidator
+                onChange: (opts) => {
+                  const splitRows = form.getFieldValue('splits') as
+                    | BillSplitRowValue[]
+                    | undefined
+                  if ((splitRows?.length ?? 0) > 0) return undefined
+                  return amountWhenNotSplitValidator(opts)
+                }
               }}
             >
               {(field) => (

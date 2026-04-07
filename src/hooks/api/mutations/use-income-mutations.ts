@@ -104,6 +104,9 @@ export function useCreateIncome(
       invalidateByOperation(queryClient, 'listIncomeInstancesFiltered')
       invalidateByOperation(queryClient, 'getIncomeInstancesSummary')
       invalidateByOperation(queryClient, 'listCategories')
+      if (variables.newIncomeSourceName?.trim()) {
+        invalidateByOperation(queryClient, 'listIncomeSources')
+      }
       invalidateByOperation(queryClient, 'getHouseholdPeriodSummary')
       callbacks?.onSuccess?.(data, variables)
     },
@@ -159,6 +162,9 @@ export function useUpdateIncome(
       invalidateByOperation(queryClient, 'listIncomeInstancesFiltered')
       invalidateByOperation(queryClient, 'getIncomeInstancesSummary')
       invalidateByOperation(queryClient, 'listCategories')
+      if (variables.newIncomeSourceName?.trim()) {
+        invalidateByOperation(queryClient, 'listIncomeSources')
+      }
       const scope = variables.updateScope
       if (
         scope === BlueprintPatchScope.ALL ||

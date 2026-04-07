@@ -1,19 +1,20 @@
-import { PlusIcon } from 'lucide-react'
+import { Check } from 'lucide-react'
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
-import { TransactionType } from '@/api/generated/types.gen'
+import { type Transaction, TransactionType } from '@/api/generated/types.gen'
+import { Alert } from '@/components/alert/alert'
 import { Button } from '@/components/button/button'
 import { useAppForm } from '@/components/form'
-import { TransactionTypeSegmentedControl } from '@/components/transaction-type-segmented-control/transaction-type-segmented-control'
 import { useAuth } from '@/contexts/auth-context'
 import {
   useAccountBalancesList,
   useBudgetsList,
-  useCreateTransaction,
   useIncomeSourcesList,
-  useRecipientsList
+  useRecipientsList,
+  useTransactionById,
+  useUpdateTransaction
 } from '@/hooks/api'
 import { getErrorMessage } from '@/lib/api-error'
 import {
@@ -23,76 +24,128 @@ import {
 } from '@/lib/form-validation'
 import { formatCurrency } from '@/lib/utils'
 
-import { ExpenseIncomeTransferFields } from './expense-income-transfer-fields'
-import { buildCreateTransactionBody } from './map-to-request'
-import { drawerFormSchema } from './schema'
+import { ExpenseIncomeTransferFields } from '../create-transaction-drawer/expense-income-transfer-fields'
+import { drawerFormSchema } from '../create-transaction-drawer/schema'
 import {
   DRAWER_DEFAULT_VALUES,
   type DrawerFormValues,
   newSplitRow,
   type SplitRowValue
-} from './types'
+} from '../create-transaction-drawer/types'
+import { buildUpdateTransactionBody } from './map-to-update-request'
 
-export type IncomeInstancePrefill = {
-  instanceId: string
-  name: string
-  amount: number
-  date: Date
-  accountId: string
-  categoryId: string | null
-  senderName: string
-}
-
-export type BillInstanceSplitPrefill = {
-  subtitle: string
-  amount: number
-  budgetId: string | null
-  categoryId: string
-}
-
-export type BillInstancePrefill = {
-  instanceId: string
-  name: string
-  amount: number
-  date: Date
-  accountId: string | null
-  categoryId: string | null
-  budgetId: string | null
-  recipientId: string
-  splits?: BillInstanceSplitPrefill[]
-}
-
-export type CreateTransactionDrawerProps = {
+export type EditTransactionDrawerProps = {
+  transactionId: string
   onClose: () => void
-  incomeInstance?: IncomeInstancePrefill
-  billInstance?: BillInstancePrefill
 }
 
-export function CreateTransactionDrawer({
-  onClose,
-  incomeInstance,
-  billInstance
-}: CreateTransactionDrawerProps) {
+type TransactionWithUiDate = Omit<Transaction, 'date'> & {
+  date: Date
+}
+
+function transactionToFormValues(tx: TransactionWithUiDate): DrawerFormValues {
+  const base: DrawerFormValues = {
+    ...DRAWER_DEFAULT_VALUES,
+    transactionType: tx.type,
+    date: tx.date,
+    accountId: tx.account.id
+  }
+
+  if (tx.type === TransactionType.TRANSFER) {
+    return {
+      ...base,
+      name: tx.name,
+      amount: tx.amount,
+      transferToAccountId: tx.transferToAccount?.id ?? '',
+      recipient: null,
+      sender: null,
+      budgetId: '',
+      category: null,
+      splits: []
+    }
+  }
+
+  if (tx.type === TransactionType.INCOME) {
+    return {
+      ...base,
+      name: tx.name,
+      amount: tx.amount,
+      category: tx.category?.id ?? null,
+      sender: tx.incomeSource?.id ?? null,
+      transferToAccountId: '',
+      budgetId: '',
+      recipient: null,
+      splits: []
+    }
+  }
+
+  const splitLines = tx.splits
+  if (splitLines && splitLines.length > 0) {
+    return {
+      ...base,
+      name: tx.name,
+      amount: 0,
+      budgetId: '',
+      category: null,
+      recipient: tx.recipient?.id ?? null,
+      sender: null,
+      transferToAccountId: '',
+      splits: splitLines.map((s) => ({
+        id: s.id,
+        subtitle: s.subtitle ?? '',
+        amount: s.amount,
+        budgetId: s.budgetId ?? s.budget?.id ?? '',
+        category: s.categoryId ?? s.category?.id ?? null
+      }))
+    }
+  }
+
+  return {
+    ...base,
+    name: tx.name,
+    amount: tx.amount,
+    budgetId: tx.budget?.id ?? '',
+    category: tx.category?.id ?? null,
+    recipient: tx.recipient?.id ?? null,
+    sender: null,
+    transferToAccountId: '',
+    splits: []
+  }
+}
+
+export function EditTransactionDrawer({
+  transactionId,
+  onClose
+}: EditTransactionDrawerProps) {
   const { t } = useTranslation()
   const { userId, householdId } = useAuth()
-  const [useSplits, setUseSplits] = useState(
-    () => (billInstance?.splits?.length ?? 0) > 0
-  )
+  const [hasInitializedForm, setHasInitializedForm] = useState(false)
+  const [useSplits, setUseSplits] = useState(false)
   const [expandedSplitIds, setExpandedSplitIds] = useState<
     Record<string, boolean>
   >({})
   const splitSwitchId = useId()
+  const loadedTypeRef = useRef<TransactionType | null>(null)
 
-  const isInstanceLinked = !!incomeInstance || !!billInstance
-
-  const { mutate: createTransaction, isPending } = useCreateTransaction()
-
-  const { data: accountBalances = [] } = useAccountBalancesList({
-    householdId,
-    userId,
-    enabled: Boolean(householdId),
-    includeArchived: false
+  const {
+    data: transaction,
+    isPending: isTransactionPending,
+    isError: isTransactionError
+  } = useTransactionById({
+    transactionId,
+    enabled: Boolean(transactionId)
   })
+
+  const { mutate: updateTransaction, isPending } = useUpdateTransaction()
+
+  const { data: accountBalances = [], isFetched: accountBalancesFetched } =
+    useAccountBalancesList({
+      householdId,
+      userId,
+      enabled: Boolean(householdId),
+      /** Editing older rows may use archived accounts; options must include them for Select pre-fill. */
+      includeArchived: true
+    })
 
   const { data: budgets = [] } = useBudgetsList({
     householdId,
@@ -125,60 +178,8 @@ export function CreateTransactionDrawer({
     ]
   )
 
-  const defaultValues = useMemo<DrawerFormValues>(() => {
-    if (incomeInstance) {
-      return {
-        ...DRAWER_DEFAULT_VALUES,
-        transactionType: TransactionType.INCOME,
-        name: incomeInstance.name,
-        amount: incomeInstance.amount,
-        date: incomeInstance.date,
-        accountId: incomeInstance.accountId,
-        category: incomeInstance.categoryId
-      }
-    }
-    if (billInstance) {
-      const splitLines = billInstance.splits
-      if (splitLines && splitLines.length > 0) {
-        return {
-          ...DRAWER_DEFAULT_VALUES,
-          transactionType: TransactionType.EXPENSE,
-          name: billInstance.name,
-          amount: 0,
-          date: billInstance.date,
-          accountId: billInstance.accountId ?? '',
-          category: null,
-          budgetId: '',
-          recipient: billInstance.recipientId,
-          splits: splitLines.map((s) => ({
-            id: crypto.randomUUID(),
-            subtitle: s.subtitle,
-            amount: s.amount,
-            budgetId: s.budgetId ?? billInstance.budgetId ?? '',
-            category: s.categoryId || null
-          }))
-        }
-      }
-      return {
-        ...DRAWER_DEFAULT_VALUES,
-        transactionType: TransactionType.EXPENSE,
-        name: billInstance.name,
-        amount: billInstance.amount,
-        date: billInstance.date,
-        accountId: billInstance.accountId ?? '',
-        category: billInstance.categoryId,
-        budgetId: billInstance.budgetId ?? '',
-        recipient: billInstance.recipientId
-      }
-    }
-    return DRAWER_DEFAULT_VALUES
-  }, [
-    incomeInstance,
-    billInstance
-  ])
-
   const form = useAppForm({
-    defaultValues,
+    defaultValues: DRAWER_DEFAULT_VALUES,
     canSubmitWhenInvalid: true,
     onSubmitInvalid: ({ formApi }) => {
       for (const meta of Object.values(formApi.state.fieldMeta)) {
@@ -258,28 +259,39 @@ export function CreateTransactionDrawer({
         return
       }
 
-      const data = zodResult.data
-      let body: ReturnType<typeof buildCreateTransactionBody>
+      if (!transaction) return
+
+      const instanceId =
+        transaction.billInstance?.id ?? transaction.incomeInstance?.id ?? null
+
+      let body: ReturnType<typeof buildUpdateTransactionBody>
       try {
-        body = buildCreateTransactionBody({
+        body = buildUpdateTransactionBody({
           t,
-          data,
+          data: zodResult.data,
           hasSplits,
-          instanceId: incomeInstance?.instanceId ?? billInstance?.instanceId
+          instanceId
         })
       } catch (err) {
-        toast.error(getErrorMessage(err))
+        toast.error(translateIfLikelyI18nKey(getErrorMessage(err), t))
         return
       }
 
-      createTransaction(
+      updateTransaction(
         {
+          id: transactionId,
           userId,
+          date: zodResult.data.date,
           ...body
         },
         {
           onSuccess: () => {
-            toast.success(t('transactions.createSuccess'))
+            const kind = loadedTypeRef.current
+            toast.success(
+              kind === TransactionType.TRANSFER
+                ? t('transfers.updateSuccess')
+                : t('transactions.updateSuccess')
+            )
             onClose()
           },
           onError: (err) => {
@@ -290,63 +302,56 @@ export function CreateTransactionDrawer({
     }
   })
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: props.transactionId drives reset when opening another row
   useEffect(() => {
-    if (!billInstance?.splits?.length) return
-    const timeoutId = window.setTimeout(() => {
-      const splits = form.getFieldValue('splits') as SplitRowValue[] | undefined
-      if (splits?.length) {
-        setExpandedSplitIds(
-          Object.fromEntries(
-            splits.map((r) => [
-              r.id,
-              true
-            ])
-          )
+    setHasInitializedForm(false)
+    loadedTypeRef.current = null
+  }, [
+    transactionId
+  ])
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: load-once when GET transaction resolves
+  useEffect(() => {
+    if (!transaction || hasInitializedForm) return
+    if (householdId && !accountBalancesFetched) return
+
+    const v = transactionToFormValues(transaction)
+    form.setFieldValue('transactionType', v.transactionType)
+    form.setFieldValue('name', v.name)
+    form.setFieldValue('date', v.date)
+    form.setFieldValue('amount', v.amount)
+    form.setFieldValue('accountId', v.accountId)
+    form.setFieldValue('transferToAccountId', v.transferToAccountId)
+    form.setFieldValue('recipient', v.recipient)
+    form.setFieldValue('sender', v.sender)
+    form.setFieldValue('budgetId', v.budgetId)
+    form.setFieldValue('category', v.category)
+    form.setFieldValue('splits', v.splits)
+
+    const hadSplits = (transaction.splits?.length ?? 0) > 0
+    setUseSplits(hadSplits)
+    loadedTypeRef.current = transaction.type
+
+    if (hadSplits && v.splits.length > 0) {
+      setExpandedSplitIds(
+        Object.fromEntries(
+          v.splits.map((r) => [
+            r.id,
+            true
+          ])
         )
-      }
-    }, 0)
-    return () => window.clearTimeout(timeoutId)
-  }, [
-    billInstance,
-    form
-  ])
-
-  const senderPrefilled = useRef(false)
-  useEffect(() => {
-    if (!incomeInstance?.senderName || senderPrefilled.current) return
-    if (incomeSources.length === 0) return
-    senderPrefilled.current = true
-    const match = incomeSources.find(
-      (s) => s.name.toLowerCase() === incomeInstance.senderName.toLowerCase()
-    )
-    if (match) {
-      form.setFieldValue('sender', match.id)
+      )
+    } else {
+      setExpandedSplitIds({})
     }
-  }, [
-    incomeInstance,
-    incomeSources,
-    form
-  ])
 
-  const typeOptions = useMemo(
-    () => [
-      {
-        value: TransactionType.EXPENSE,
-        label: t('transactions.expense')
-      },
-      {
-        value: TransactionType.INCOME,
-        label: t('transactions.income')
-      },
-      {
-        value: TransactionType.TRANSFER,
-        label: t('common.transfer')
-      }
-    ],
-    [
-      t
-    ]
-  )
+    setHasInitializedForm(true)
+  }, [
+    transaction,
+    hasInitializedForm,
+    householdId,
+    accountBalancesFetched
+  ])
 
   const accountOptions = useMemo(
     () =>
@@ -385,31 +390,6 @@ export function CreateTransactionDrawer({
     ]
   )
 
-  const handleTypeChange = useCallback(
-    (next: TransactionType) => {
-      form.setFieldValue('transferToAccountId', '')
-      form.setFieldValue('category', null)
-      if (next !== TransactionType.EXPENSE) {
-        setUseSplits(false)
-        form.setFieldValue('splits', [])
-        form.setFieldValue('budgetId', '')
-      }
-      if (next === TransactionType.TRANSFER) {
-        form.setFieldValue('recipient', null)
-        form.setFieldValue('sender', null)
-      }
-      if (next === TransactionType.EXPENSE) {
-        form.setFieldValue('sender', null)
-      }
-      if (next === TransactionType.INCOME) {
-        form.setFieldValue('recipient', null)
-      }
-    },
-    [
-      form
-    ]
-  )
-
   const toggleSplit = useCallback(
     (checked: boolean) => {
       setUseSplits(checked)
@@ -436,9 +416,14 @@ export function CreateTransactionDrawer({
   )
 
   const turnOffSplits = useCallback(() => {
+    const splits = form.getFieldValue('splits') as SplitRowValue[]
+    const total = splits.reduce((s, r) => s + (r.amount ?? 0), 0)
     setUseSplits(false)
     form.setFieldValue('splits', [])
     setExpandedSplitIds({})
+    if (total > 0) {
+      form.setFieldValue('amount', total)
+    }
   }, [
     form
   ])
@@ -484,6 +469,35 @@ export function CreateTransactionDrawer({
     ]
   )
 
+  if (isTransactionError) {
+    return (
+      <Alert variant="error">
+        <span className="font-medium">{t('transactions.notFound')}</span>
+      </Alert>
+    )
+  }
+
+  const waitingForAccountOptions = Boolean(
+    householdId && transaction && !accountBalancesFetched
+  )
+
+  if ((isTransactionPending && !transaction) || waitingForAccountOptions) {
+    return (
+      <p className="type-body-medium text-gray-600">
+        {t('transactions.loadingArgs')}
+      </p>
+    )
+  }
+
+  if (!transaction) {
+    return null
+  }
+
+  const submitLabel =
+    transaction.type === TransactionType.TRANSFER
+      ? t('transfers.update')
+      : t('transactions.update')
+
   return (
     <form
       className="flex h-full min-h-0 flex-1 flex-col"
@@ -494,21 +508,6 @@ export function CreateTransactionDrawer({
       }}
     >
       <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto">
-        {!isInstanceLinked && (
-          <form.AppField name="transactionType">
-            {(field) => (
-              <TransactionTypeSegmentedControl
-                value={field.state.value}
-                onChange={(v) => {
-                  field.handleChange(v)
-                  handleTypeChange(v)
-                }}
-                options={typeOptions}
-              />
-            )}
-          </form.AppField>
-        )}
-
         <form.Subscribe
           selector={(s) => ({
             transactionType: s.values.transactionType,
@@ -555,9 +554,9 @@ export function CreateTransactionDrawer({
               type="submit"
               variant="filled"
               color="primary"
-              icon={<PlusIcon aria-hidden />}
-              label={t('transactions.createTransaction')}
-              disabled={isSubmitting || isPending}
+              icon={<Check aria-hidden />}
+              label={submitLabel}
+              disabled={isSubmitting || isPending || !hasInitializedForm}
               onClick={() => void 0}
             />
           )}

@@ -10,13 +10,15 @@ export const billSplitRowSchema = z.object({
   id: z.string(),
   subtitle: z.string(),
   amount: nullablePositiveNumber('validation.positive'),
+  budgetId: z.string().min(1, 'validation.required'),
   category: z.union([
     z.string().min(1),
     z.object({
       isNew: z.literal(true),
       name: z.string().min(1)
     })
-  ])
+  ]),
+  prefillCategoryName: z.string().optional()
 })
 
 export const createBillDrawerSchema = z

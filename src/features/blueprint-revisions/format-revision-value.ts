@@ -1,6 +1,7 @@
 import type { TFunction } from 'i18next'
 
-import type { RecurrenceType } from '@/api/generated/types.gen'
+import type { BillSplit, RecurrenceType } from '@/api/generated/types.gen'
+import { billSplitsTooltipSummary } from '@/lib/split-line-labels'
 import { formatCurrency } from '@/lib/utils'
 
 export type RevisionLabelLookups = {
@@ -117,6 +118,20 @@ export function formatBlueprintRevisionValue(
     case 'name':
       if (typeof value === 'string') return value
       break
+    case 'splits': {
+      if (!Array.isArray(value)) break
+      if (value.length === 0) {
+        return t('drawers.blueprintRevisions.value.empty')
+      }
+      const uncategorized = t('common.uncategorized')
+      const budgets = lookups.budgetById ?? new Map<string, string>()
+      return billSplitsTooltipSummary(
+        value as BillSplit[],
+        lookups.categoryById,
+        budgets,
+        uncategorized
+      )
+    }
     default:
       break
   }

@@ -29,6 +29,7 @@ import { EditBudgetDrawer } from './drawers/edit-budget-drawer'
 import { EditHouseholdDrawer } from './drawers/edit-household-drawer'
 import { EditIncomeBlueprintDrawer } from './drawers/edit-income-blueprint-drawer'
 import { EditIncomeInstanceDrawer } from './drawers/edit-income-instance-drawer'
+import { EditTransactionDrawer } from './drawers/edit-transaction-drawer/edit-transaction-drawer'
 import { IncomeRevisionsDrawer } from './drawers/income-revisions-drawer'
 import { IncomeSourceFilterDrawer } from './drawers/income-source-filter-drawer'
 import { IncomeTableFilterDrawer } from './drawers/income-table-filter-drawer'
@@ -100,6 +101,9 @@ export type DrawerPropsMap = {
       max?: number
     }
   }
+  editTransaction: {
+    transactionId: string
+  }
   createTransaction: {
     incomeInstance?: {
       instanceId: string
@@ -119,6 +123,13 @@ export type DrawerPropsMap = {
       categoryId: string | null
       budgetId: string | null
       recipientId: string
+      /** When the bill instance uses split lines, prefill the expense split form. */
+      splits?: Array<{
+        subtitle: string
+        amount: number
+        budgetId: string | null
+        categoryId: string
+      }>
     }
   }
   createIncome: Record<string, never>
@@ -312,6 +323,10 @@ export const drawerMeta = {
     titleKey: 'drawers.createTransaction.title',
     descriptionKey: 'drawers.createTransaction.description'
   },
+  editTransaction: {
+    titleKey: 'drawers.editTransaction.title',
+    descriptionKey: 'drawers.editTransaction.description'
+  },
   createIncome: {
     titleKey: 'drawers.createIncome.title',
     descriptionKey: 'drawers.shared.incomeDescription'
@@ -422,6 +437,7 @@ export const drawerComponents = {
   transactionsTableFilterDrawer: TransactionsTableFilterDrawer,
   incomeTableFilterDrawer: IncomeTableFilterDrawer,
   createTransaction: CreateTransactionDrawer,
+  editTransaction: EditTransactionDrawer,
   createIncome: CreateIncomeDrawer,
   createBill: CreateBillDrawer,
   createBudget: CreateBudgetDrawer,

@@ -11,6 +11,7 @@ import type {
   CreateTransactionRequest,
   CreateTransactionResponse,
   DeleteTransactionResponse,
+  TransactionSplitWrite,
   UpdateTransactionRequest,
   UpdateTransactionResponse
 } from '@/api/generated/types.gen'
@@ -33,6 +34,45 @@ type UpdateTransactionVariables = {
 type TransactionIdVariables = {
   id: string
   userId?: string | null
+}
+
+function splitCreatesCategory(s: TransactionSplitWrite): boolean {
+  if (
+    typeof s.newCategoryName === 'string' &&
+    s.newCategoryName.trim() !== ''
+  ) {
+    return true
+  }
+  const inline = s.newCategory
+  return (
+    inline != null &&
+    typeof inline.name === 'string' &&
+    inline.name.trim() !== ''
+  )
+}
+
+function createTransactionTouchedCatalogs(v: CreateTransactionVariables): {
+  categories: boolean
+  recipients: boolean
+} {
+  const topCategory =
+    v.newCategory != null &&
+    typeof v.newCategory.name === 'string' &&
+    v.newCategory.name.trim() !== ''
+  const categories =
+    topCategory || (v.splits?.some(splitCreatesCategory) ?? false)
+  const recipients =
+    typeof v.newRecipientName === 'string' && v.newRecipientName.trim() !== ''
+  return {
+    categories,
+    recipients
+  }
+}
+
+function updateTransactionCreatesCategory(
+  v: UpdateTransactionVariables
+): boolean {
+  return v.splits?.some(splitCreatesCategory) ?? false
 }
 
 /**
@@ -85,6 +125,14 @@ export function useCreateTransaction(
       }
       if (variables.newIncomeSourceName) {
         invalidateByOperation(queryClient, 'listIncomeSources')
+      }
+      const { categories, recipients } =
+        createTransactionTouchedCatalogs(variables)
+      if (categories) {
+        invalidateByOperation(queryClient, 'listCategories')
+      }
+      if (recipients) {
+        invalidateByOperation(queryClient, 'listRecipients')
       }
       callbacks?.onSuccess?.(data, variables)
     },
@@ -141,6 +189,9 @@ export function useUpdateTransaction(
           }
         })
       })
+      if (updateTransactionCreatesCategory(variables)) {
+        invalidateByOperation(queryClient, 'listCategories')
+      }
       callbacks?.onSuccess?.(data, variables)
     },
     onError: (error, variables) => callbacks?.onError?.(error, variables)

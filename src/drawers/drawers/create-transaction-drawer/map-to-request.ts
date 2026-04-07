@@ -144,6 +144,7 @@ export function buildCreateTransactionBody(params: {
       date: data.date,
       budgetId: null,
       categoryId: null,
+      instanceId: instanceId ?? null,
       splits: splitRows.map((row) => {
         if (row.amount == null) {
           throw new Error(

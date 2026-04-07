@@ -17,6 +17,7 @@ import { useAuth } from '@/contexts/auth-context'
 import { useDrawer } from '@/drawers'
 import { NoData } from '@/features/no-data/no-data'
 import {
+  useCategoriesList,
   useCloneTransaction,
   useDeleteTransaction,
   useTransactionsList,
@@ -104,6 +105,25 @@ function TransactionsPage() {
     enabled: !!householdId
   })
 
+  const { data: categories = [] } = useCategoriesList({
+    householdId,
+    userId,
+    enabled: !!householdId
+  })
+
+  const categoryById = useMemo(
+    () =>
+      new Map(
+        categories.map((c) => [
+          c.id,
+          c.name
+        ])
+      ),
+    [
+      categories
+    ]
+  )
+
   const { mutate: deleteTransaction } = useDeleteTransaction({
     onSuccess: () => {
       refetch()
@@ -124,13 +144,36 @@ function TransactionsPage() {
     }
   })
 
-  const handleEditTransaction = useCallback(() => {
-    void 0
-  }, [])
+  const handleEditTransaction = useCallback(
+    (tx: TransactionListItem) => {
+      openDrawer('editTransaction', {
+        transactionId: tx.id
+      })
+    },
+    [
+      openDrawer
+    ]
+  )
 
-  const handleEditTransfer = useCallback(() => {
-    void 0
-  }, [])
+  const handleEditTransfer = useCallback(
+    (transfer: {
+      id: string
+      name: string
+      budgetId?: string | null
+      amount: number
+      date: Date
+      fromAccountId: string
+      toAccountId?: string | null
+      notes: string | null
+    }) => {
+      openDrawer('editTransaction', {
+        transactionId: transfer.id
+      })
+    },
+    [
+      openDrawer
+    ]
+  )
 
   const handleDeleteTransaction = useCallback(
     (transaction: TransactionListItem) => {
@@ -306,6 +349,12 @@ function TransactionsPage() {
       if (tx.budget?.id && !seen.has(tx.budget.id)) {
         seen.set(tx.budget.id, tx.budget.name ?? tx.budget.id)
       }
+      for (const s of tx.splits ?? []) {
+        const id = s.budgetId ?? s.budget?.id
+        if (id && !seen.has(id)) {
+          seen.set(id, s.budget?.name ?? id)
+        }
+      }
     }
     labelLookupRef.current.budgets = seen
     return [
@@ -319,10 +368,16 @@ function TransactionsPage() {
   ])
 
   const availableCategories = useMemo(() => {
-    const seen = new Map<string, string>()
+    const seen = new Map<string, string>(categoryById)
     for (const tx of tableData) {
       if (tx.category?.id && !seen.has(tx.category.id)) {
         seen.set(tx.category.id, tx.category.name ?? tx.category.id)
+      }
+      for (const s of tx.splits ?? []) {
+        const id = s.categoryId ?? s.category?.id
+        if (id && !seen.has(id)) {
+          seen.set(id, s.category?.name ?? categoryById.get(id) ?? id)
+        }
       }
     }
     labelLookupRef.current.categories = seen
@@ -333,6 +388,7 @@ function TransactionsPage() {
       label
     }))
   }, [
+    categoryById,
     tableData
   ])
 

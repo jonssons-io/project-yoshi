@@ -9,6 +9,11 @@ import { Badge } from '@/components/badge/badge'
 import type { DataTableColumnDef } from '@/components/data-table'
 import { IconButton } from '@/components/icon-button/icon-button'
 import {
+  SplitLinesTableCell,
+  splitLinesSortKey,
+  splitLinesToolbarSearchText
+} from '@/components/split-lines-table-cell/split-lines-table-cell'
+import {
   TableRowMenu,
   type TableRowMenuItem
 } from '@/components/table-row-menu/table-row-menu'
@@ -29,6 +34,20 @@ export type BillBasisRow = {
   budgetName: string
   categoryId: string | null
   categoryName: string
+  /** Blueprint split lines when the recurring bill uses splits (not a single budget/category). */
+  splitLineCount: number
+  /** Budget ids from split lines (top-level `budgetId` is null when splits are used). */
+  splitBudgetIds: string[]
+  /** Category ids from split lines. */
+  splitCategoryIds: string[]
+  /** Display names for `splitCategoryIds` (filter dropdown labels). */
+  splitCategoryLabels: Record<string, string>
+  /** Display names for `splitBudgetIds` from nested split `budget` when present. */
+  splitBudgetLabels: Record<string, string>
+  /** Tooltip on the split badge. */
+  splitLinesTooltip: string
+  splitCategorySearchBlob: string
+  splitBudgetSearchBlob: string
   recipientId: string
   recipientName: string
   /** Logical revision count from the API (`GET …/revisions`); 1 = creation snapshot only. */
@@ -91,6 +110,44 @@ const RECURRENCE_ORDER: RecurrenceType[] = [
   RecurrenceType.YEARLY,
   RecurrenceType.CUSTOM
 ]
+
+function billBasisBudgetIdSet(row: BillBasisRow): Set<string> {
+  const ids = new Set<string>()
+  if (row.budgetId) ids.add(row.budgetId)
+  for (const id of row.splitBudgetIds) ids.add(id)
+  return ids
+}
+
+function billBasisCategoryIdSet(row: BillBasisRow): Set<string> {
+  const ids = new Set<string>()
+  if (row.categoryId) ids.add(row.categoryId)
+  for (const id of row.splitCategoryIds) ids.add(id)
+  return ids
+}
+
+function billBasisBudgetFilterMatch(
+  row: BillBasisRow,
+  filterValue: string[]
+): boolean {
+  if (!Array.isArray(filterValue) || filterValue.length === 0) return true
+  const ids = billBasisBudgetIdSet(row)
+  return filterValue.some((sel) => {
+    if (sel === BILL_BASIS_NO_BUDGET_FILTER_VALUE) return ids.size === 0
+    return ids.has(sel)
+  })
+}
+
+function billBasisCategoryFilterMatch(
+  row: BillBasisRow,
+  filterValue: string[]
+): boolean {
+  if (!Array.isArray(filterValue) || filterValue.length === 0) return true
+  const ids = billBasisCategoryIdSet(row)
+  return filterValue.some((sel) => {
+    if (sel === BILL_BASIS_NO_CATEGORY_FILTER_VALUE) return ids.size === 0
+    return ids.has(sel)
+  })
+}
 
 const HANDLING_BADGE_COLOR: Record<BillPaymentHandling, BadgeColor> = {
   [BillPaymentHandling.AUTOGIRO]: 'yellow',
@@ -352,16 +409,45 @@ export function createBillBasisColumns({
     },
     {
       id: 'budget',
-      accessorKey: 'budgetName',
+      accessorFn: (row) =>
+        splitLinesSortKey(row.splitLineCount, row.budgetName),
       header: t('common.budget'),
-      filterFn: (row, _columnId, filterValue: string[]) => {
-        if (!Array.isArray(filterValue) || filterValue.length === 0) return true
-        return filterValue.includes(
-          row.original.budgetId ?? BILL_BASIS_NO_BUDGET_FILTER_VALUE
-        )
-      },
+      sortingFn: (rowA, rowB) =>
+        splitLinesSortKey(
+          rowA.original.splitLineCount,
+          rowA.original.budgetName
+        ).localeCompare(
+          splitLinesSortKey(
+            rowB.original.splitLineCount,
+            rowB.original.budgetName
+          ),
+          undefined,
+          {
+            numeric: true
+          }
+        ),
+      cell: ({ row }) =>
+        row.original.splitLineCount > 0 ? (
+          <SplitLinesTableCell
+            lineCount={row.original.splitLineCount}
+            t={t}
+            title={row.original.splitLinesTooltip}
+          />
+        ) : (
+          row.original.budgetName
+        ),
+      filterFn: (row, _columnId, filterValue: string[]) =>
+        billBasisBudgetFilterMatch(row.original, filterValue),
       meta: {
         globalSearchable: true,
+        searchValue: (row: BillBasisRow) =>
+          [
+            splitLinesToolbarSearchText(row.splitLineCount, t),
+            row.splitLineCount > 0 ? row.splitBudgetSearchBlob : '',
+            row.budgetName
+          ]
+            .filter(Boolean)
+            .join(' '),
         filterable: true,
         filterLabel: t('common.budget'),
         filterPillValue: (value: unknown) => {
@@ -375,16 +461,45 @@ export function createBillBasisColumns({
     },
     {
       id: 'category',
-      accessorKey: 'categoryName',
+      accessorFn: (row) =>
+        splitLinesSortKey(row.splitLineCount, row.categoryName),
       header: t('common.category'),
-      filterFn: (row, _columnId, filterValue: string[]) => {
-        if (!Array.isArray(filterValue) || filterValue.length === 0) return true
-        return filterValue.includes(
-          row.original.categoryId ?? BILL_BASIS_NO_CATEGORY_FILTER_VALUE
-        )
-      },
+      sortingFn: (rowA, rowB) =>
+        splitLinesSortKey(
+          rowA.original.splitLineCount,
+          rowA.original.categoryName
+        ).localeCompare(
+          splitLinesSortKey(
+            rowB.original.splitLineCount,
+            rowB.original.categoryName
+          ),
+          undefined,
+          {
+            numeric: true
+          }
+        ),
+      cell: ({ row }) =>
+        row.original.splitLineCount > 0 ? (
+          <SplitLinesTableCell
+            lineCount={row.original.splitLineCount}
+            t={t}
+            title={row.original.splitLinesTooltip}
+          />
+        ) : (
+          row.original.categoryName
+        ),
+      filterFn: (row, _columnId, filterValue: string[]) =>
+        billBasisCategoryFilterMatch(row.original, filterValue),
       meta: {
         globalSearchable: true,
+        searchValue: (row: BillBasisRow) =>
+          [
+            splitLinesToolbarSearchText(row.splitLineCount, t),
+            row.splitLineCount > 0 ? row.splitCategorySearchBlob : '',
+            row.categoryName
+          ]
+            .filter(Boolean)
+            .join(' '),
         filterable: true,
         filterLabel: t('common.category'),
         filterPillValue: (value: unknown) => {

@@ -9,7 +9,7 @@ import { formatBlueprintRevisionValue } from './format-revision-value'
 import {
   type BlueprintRevisionLike,
   groupRevisionsByCalendarDayDescending,
-  resolveCurrentRevisionDay,
+  resolveCurrentRevisionBadgePlacement,
   revisionCalendarDay,
   splitTrailingCreationRevision
 } from './revision-helpers'
@@ -144,15 +144,19 @@ export function BlueprintRevisionTimeline({
     ]
   )
 
-  const currentDay = useMemo(() => {
-    if (timelineRevisions.length > 0) {
-      return resolveCurrentRevisionDay(timelineRevisions)
-    }
-    return resolveCurrentRevisionDay(revisions)
-  }, [
-    timelineRevisions,
-    revisions
-  ])
+  const currentBadge = useMemo(
+    () =>
+      resolveCurrentRevisionBadgePlacement(
+        revisions,
+        timelineRevisions,
+        creationTail
+      ),
+    [
+      revisions,
+      timelineRevisions,
+      creationTail
+    ]
+  )
 
   const dayGroups = useMemo(
     () => groupRevisionsByCalendarDayDescending(timelineRevisions),
@@ -167,7 +171,8 @@ export function BlueprintRevisionTimeline({
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto pr-1">
       {dayGroups.map(({ day, revisions: dayRevisions }) => {
-        const showCurrent = currentDay !== null && day === currentDay
+        const showCurrent =
+          currentBadge?.kind === 'day' && currentBadge.day === day
         const showPlanned = dayRevisions.some((r) => r.scheduled === true)
 
         return (
@@ -224,6 +229,12 @@ export function BlueprintRevisionTimeline({
                   : t('drawers.billRevisions.badgeCreated')
               }
             />
+            {currentBadge?.kind === 'creation' ? (
+              <Badge
+                color="green"
+                label={t('drawers.blueprintRevisions.badgeCurrent')}
+              />
+            ) : null}
             {creationTail.scheduled === true ? (
               <Badge
                 color="orange"

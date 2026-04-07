@@ -12,7 +12,7 @@ import { CategoryType } from '@/api/generated/types.gen'
 import { Button } from '@/components/button/button'
 import type { ComboboxValue } from '@/components/form'
 import { createTranslatedZodValidator } from '@/components/form'
-import { useCategoriesList } from '@/hooks/api'
+import { useBudgetsList, useCategoriesList } from '@/hooks/api'
 import { formatCurrency } from '@/lib/utils'
 
 import type { CreateBillDrawerForm } from './form-api'
@@ -27,12 +27,10 @@ function SyncBillSplitTotalToAmount({
   splits: BillSplitRowValue[]
 }) {
   useEffect(() => {
+    if (splits.length === 0) return
     const sum = splits.reduce((s, r) => s + (Number(r.amount) || 0), 0)
     const rounded = Number(sum.toFixed(2))
-    const current = form.getFieldValue('amount') ?? 0
-    if (Math.abs(rounded - current) > 0.001) {
-      form.setFieldValue('amount', rounded)
-    }
+    form.setFieldValue('amount', rounded)
   }, [
     form,
     splits
@@ -142,15 +140,29 @@ function CreateBillSplitSection({
           | {
               subtitle?: string
               amount?: number
+              budgetId?: string
+              category?: unknown
+              prefillCategoryName?: string
             }
           | undefined
+        const selectedCategoryId =
+          typeof row?.category === 'string' ? row.category : ''
         return {
           subtitle: row?.subtitle ?? '',
-          amount: row?.amount ?? 0
+          amount: row?.amount ?? 0,
+          budgetId: row?.budgetId ?? '',
+          prefillCategoryName: row?.prefillCategoryName,
+          selectedCategoryId
         }
       }}
     >
-      {({ subtitle, amount }) => {
+      {({
+        subtitle,
+        amount,
+        budgetId,
+        prefillCategoryName,
+        selectedCategoryId
+      }) => {
         const title =
           subtitle.trim().length > 0
             ? subtitle.trim()
@@ -209,14 +221,17 @@ function CreateBillSplitSection({
               </button>
             </div>
 
-            {expanded ? (
+            <div hidden={!expanded}>
               <CreateBillSplitSectionFields
                 form={form}
                 index={index}
                 householdId={householdId}
                 userId={userId}
+                budgetId={budgetId}
+                prefillCategoryName={prefillCategoryName}
+                selectedCategoryId={selectedCategoryId}
               />
-            ) : null}
+            </div>
           </div>
         )
       }}
@@ -228,12 +243,18 @@ function CreateBillSplitSectionFields({
   form,
   index,
   householdId,
-  userId
+  userId,
+  budgetId,
+  prefillCategoryName,
+  selectedCategoryId
 }: {
   form: CreateBillDrawerForm
   index: number
   householdId: string
   userId: string
+  budgetId: string
+  prefillCategoryName?: string
+  selectedCategoryId: string
 }) {
   const { t } = useTranslation()
 
@@ -244,19 +265,53 @@ function CreateBillSplitSectionFields({
     ]
   )
 
-  const { data: categories = [] } = useCategoriesList({
+  const { data: budgets = [] } = useBudgetsList({
     householdId,
     userId,
-    type: CategoryType.EXPENSE,
     enabled: Boolean(householdId)
   })
 
-  const categoryOptions = categories
-    .filter((c) => !c.archived && c.types.includes(CategoryType.EXPENSE))
-    .map((c) => ({
-      value: c.id,
-      label: c.name
-    }))
+  const { data: categories = [] } = useCategoriesList({
+    householdId,
+    userId,
+    budgetId: budgetId || undefined,
+    type: CategoryType.EXPENSE,
+    enabled: Boolean(householdId && budgetId)
+  })
+
+  const budgetOptions = budgets.map((b) => ({
+    value: b.id,
+    label: b.name
+  }))
+
+  const categoryOptions = useMemo(() => {
+    const base = categories
+      .filter((c) => !c.archived && c.types.includes(CategoryType.EXPENSE))
+      .map((c) => ({
+        value: c.id,
+        label: c.name
+      }))
+    if (
+      selectedCategoryId.length > 0 &&
+      !base.some((o) => o.value === selectedCategoryId)
+    ) {
+      return [
+        ...base,
+        {
+          value: selectedCategoryId,
+          label:
+            prefillCategoryName && prefillCategoryName.length > 0
+              ? prefillCategoryName
+              : selectedCategoryId
+        }
+      ]
+    }
+    return base
+  }, [
+    categories,
+    prefillCategoryName,
+    selectedCategoryId
+  ])
 
   return (
     <div className="flex flex-col gap-4">
@@ -277,6 +332,16 @@ function CreateBillSplitSectionFields({
         }}
       >
         {(field) => <field.NumberField label={t('common.amount')} />}
+      </form.AppField>
+
+      <form.AppField name={`splits[${index}].budgetId`}>
+        {(field) => (
+          <field.SelectField
+            label={t('allocation.drawer.budget')}
+            placeholder={t('forms.selectBudget')}
+            options={budgetOptions}
+          />
+        )}
       </form.AppField>
 
       <form.AppField

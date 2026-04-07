@@ -100,6 +100,10 @@ export function useCreateBill(
       invalidateByOperation(queryClient, 'listBills')
       invalidateByOperation(queryClient, 'listBillInstances')
       invalidateByOperation(queryClient, 'getBillInstancesSummary')
+      invalidateByOperation(queryClient, 'listCategories')
+      if (variables.newRecipientName?.trim()) {
+        invalidateByOperation(queryClient, 'listRecipients')
+      }
       callbacks?.onSuccess?.(data, variables)
     },
     onError: (error, variables) => callbacks?.onError?.(error, variables)
@@ -156,6 +160,24 @@ export function useUpdateBill(
       invalidateByOperation(queryClient, 'listBills')
       invalidateByOperation(queryClient, 'listBillInstances')
       invalidateByOperation(queryClient, 'getBillInstancesSummary')
+      const body = variables as BillUpdateVariables & {
+        newCategoryName?: string | null
+      }
+      const createdCategoryViaSplits = variables.splits?.some(
+        (s) =>
+          typeof s.newCategoryName === 'string' &&
+          s.newCategoryName.trim() !== ''
+      )
+      if (
+        (typeof body.newCategoryName === 'string' &&
+          body.newCategoryName.trim() !== '') ||
+        createdCategoryViaSplits
+      ) {
+        invalidateByOperation(queryClient, 'listCategories')
+      }
+      if (variables.newRecipientName?.trim()) {
+        invalidateByOperation(queryClient, 'listRecipients')
+      }
       const scope = variables.updateScope
       if (
         scope === BlueprintPatchScope.ALL ||

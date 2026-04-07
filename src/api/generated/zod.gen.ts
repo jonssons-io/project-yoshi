@@ -382,38 +382,6 @@ export const zIncomeRevisionsEnvelope = z.object({
     data: z.array(zIncomeRevision)
 });
 
-export const zBill = z.object({
-    id: z.string(),
-    name: z.string(),
-    recipient: zRelationRef,
-    account: zRelationRef,
-    dueDate: z.iso.datetime(),
-    recurrenceType: zRecurrenceType,
-    customIntervalDays: z.optional(z.union([
-        z.int(),
-        z.null()
-    ])),
-    estimatedAmount: z.number(),
-    endDate: z.optional(z.union([
-        z.iso.datetime(),
-        z.null()
-    ])),
-    lastPaymentDate: z.optional(z.union([
-        z.iso.datetime(),
-        z.null()
-    ])),
-    paymentHandling: z.optional(z.union([
-        zBillPaymentHandling,
-        z.null()
-    ])),
-    category: z.optional(zNullableRelationRef),
-    budget: z.optional(zNullableRelationRef),
-    household: zRelationRef,
-    archived: z.boolean(),
-    createdAt: z.iso.datetime(),
-    numberOfRevisions: z.int().gte(0)
-});
-
 /**
  * Counts of bill instances in each **derived** status bucket (see `BillInstanceStatus`), for filters aligned with
  * `GET /bill-instances`. **UTC now** at request time determines upcoming vs overdue vs each instance `dueDate`;
@@ -463,6 +431,39 @@ export const zBillSplit = z.object({
     ])),
     category: z.optional(zCategory),
     budget: z.optional(zNullableRelationRef)
+});
+
+export const zBill = z.object({
+    id: z.string(),
+    name: z.string(),
+    recipient: zRelationRef,
+    account: zRelationRef,
+    dueDate: z.iso.datetime(),
+    recurrenceType: zRecurrenceType,
+    customIntervalDays: z.optional(z.union([
+        z.int(),
+        z.null()
+    ])),
+    estimatedAmount: z.number(),
+    endDate: z.optional(z.union([
+        z.iso.datetime(),
+        z.null()
+    ])),
+    lastPaymentDate: z.optional(z.union([
+        z.iso.datetime(),
+        z.null()
+    ])),
+    paymentHandling: z.optional(z.union([
+        zBillPaymentHandling,
+        z.null()
+    ])),
+    category: z.optional(zNullableRelationRef),
+    budget: z.optional(zNullableRelationRef),
+    household: zRelationRef,
+    archived: z.boolean(),
+    createdAt: z.iso.datetime(),
+    numberOfRevisions: z.int().gte(0),
+    splits: z.optional(z.array(zBillSplit))
 });
 
 /**

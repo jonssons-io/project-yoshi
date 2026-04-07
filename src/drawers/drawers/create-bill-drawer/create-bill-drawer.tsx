@@ -30,11 +30,13 @@ import {
   translateIfLikelyI18nKey
 } from '@/lib/form-validation'
 import { nullablePositiveNumber } from '@/lib/zod-nullable-number'
+import { withSplitTotalsCoercedForValidation } from './bill-split-form-payload'
 import type { CreateBillDrawerForm } from './form-api'
 import { buildCreateBillBody } from './map-to-request'
 import { createBillDrawerSchema } from './schema'
 import { SplitBillBlock } from './split-bill-block'
 import {
+  type BillSplitRowValue,
   CREATE_BILL_DRAWER_DEFAULTS,
   type CreateBillDrawerFormValues,
   newBillSplitRow
@@ -77,15 +79,38 @@ export function CreateBillDrawer({ onClose }: CreateBillDrawerProps) {
   const form = useAppForm({
     defaultValues: CREATE_BILL_DRAWER_DEFAULTS,
     canSubmitWhenInvalid: true,
+    onSubmitInvalid: ({ formApi }) => {
+      const formErrors = formApi.state.errors as unknown[]
+      for (const err of formErrors) {
+        if (typeof err === 'string' && err.length > 0) {
+          toast.error(translateIfLikelyI18nKey(err, t))
+          return
+        }
+      }
+      for (const meta of Object.values(formApi.state.fieldMeta)) {
+        const m = meta as {
+          errors?: unknown[]
+        }
+        const first = m?.errors?.[0]
+        if (typeof first === 'string' && first.length > 0) {
+          toast.error(translateIfLikelyI18nKey(first, t))
+          return
+        }
+      }
+      toast.error(t('common.error'))
+    },
     onSubmit: async ({ value }) => {
-      const hasSplits = useSplits && (value.splits?.length ?? 0) > 0
+      const hasSplits = (value.splits?.length ?? 0) > 0
 
       const payload: CreateBillDrawerFormValues = {
         ...value,
         splits: hasSplits ? value.splits : []
       }
 
-      const parsed = safeValidateForm(createBillDrawerSchema, payload)
+      const parsed = safeValidateForm(
+        createBillDrawerSchema,
+        withSplitTotalsCoercedForValidation(payload)
+      )
       if (!parsed.success) {
         const msg = parsed.errors[0]?.message ?? 'common.error'
         toast.error(translateIfLikelyI18nKey(msg, t))
@@ -279,7 +304,11 @@ export function CreateBillDrawer({ onClose }: CreateBillDrawerProps) {
     (checked: boolean) => {
       setUseSplits(checked)
       if (checked) {
+        const parentBudget = form.getFieldValue('budgetId') as string
         const row = newBillSplitRow()
+        if (typeof parentBudget === 'string' && parentBudget.length > 0) {
+          row.budgetId = parentBudget
+        }
         form.setFieldValue('splits', [
           row
         ])
@@ -307,8 +336,13 @@ export function CreateBillDrawer({ onClose }: CreateBillDrawerProps) {
   ])
 
   const addSplit = useCallback(() => {
+    const prev = form.getFieldValue('splits') as BillSplitRowValue[] | undefined
+    const template = prev?.[prev.length - 1]?.budgetId ?? ''
     const row = newBillSplitRow()
-    form.setFieldValue('splits', (prev) => [
+    if (template.length > 0) {
+      row.budgetId = template
+    }
+    form.setFieldValue('splits', [
       ...(prev ?? []),
       row
     ])
@@ -495,7 +529,8 @@ export function CreateBillDrawer({ onClose }: CreateBillDrawerProps) {
               name="amount"
               validators={{
                 onSubmit: (opts) => {
-                  if (useSplits) return undefined
+                  const splitRows = form.getFieldValue('splits')
+                  if ((splitRows?.length ?? 0) > 0) return undefined
                   return amountWhenNotSplitValidator(opts)
                 }
               }}
@@ -506,7 +541,11 @@ export function CreateBillDrawer({ onClose }: CreateBillDrawerProps) {
             <form.AppField
               name="budgetId"
               validators={{
-                onSubmit: budgetRequiredValidator
+                onSubmit: (opts) => {
+                  const splitRows = form.getFieldValue('splits')
+                  if ((splitRows?.length ?? 0) > 0) return undefined
+                  return budgetRequiredValidator(opts)
+                }
               }}
             >
               {(field) => (
@@ -601,6 +640,8 @@ function BillCategoryField({
       name="category"
       validators={{
         onSubmit: ({ value }: { value: unknown }) => {
+          const splitRows = form.getFieldValue('splits')
+          if ((splitRows?.length ?? 0) > 0) return undefined
           const v = value as ComboboxValue | null
           if (typeof v === 'string' && v.length > 0) return undefined
           if (

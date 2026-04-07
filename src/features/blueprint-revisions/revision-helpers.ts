@@ -26,47 +26,62 @@ function localIsoDate(d = new Date()): string {
   return `${y}-${m}-${day}`
 }
 
+export type CurrentRevisionBadgePlacement =
+  | {
+      kind: 'day'
+      day: string
+    }
+  | {
+      kind: 'creation'
+    }
+
 /**
- * Calendar day (YYYY-MM-DD) for the revision group that should show the “Nuvarande” badge.
- *
- * Primary rule: newest-first list — use the calendar day of the revision immediately before
- * the first `scheduled === true` row. If none are scheduled, the newest revision’s day.
- * If the list starts with a scheduled row, fall back to today / last revision on or before today.
+ * Where to show the “Nuvarande” badge: today’s day if any revision falls on today; otherwise
+ * the latest revision calendar day strictly before today. If that day is only represented by
+ * the bundled creation snapshot (no timeline rows for that day), the badge belongs on the
+ * creation row next to “Inkomst skapad” / “Räkning skapad”.
  */
-export function resolveCurrentRevisionDay(
-  revisions: BlueprintRevisionLike[]
-): string | null {
-  if (revisions.length === 0) return null
-
-  const firstScheduledIdx = revisions.findIndex((r) => r.scheduled === true)
-
-  if (firstScheduledIdx > 0) {
-    const beforeScheduled = revisions[firstScheduledIdx - 1]
-    if (beforeScheduled) return revisionCalendarDay(beforeScheduled)
-  }
-  if (firstScheduledIdx === -1) {
-    const newest = revisions[0]
-    if (newest) return revisionCalendarDay(newest)
-    return null
-  }
+export function resolveCurrentRevisionBadgePlacement(
+  allRevisions: BlueprintRevisionLike[],
+  timelineRevisions: BlueprintRevisionLike[],
+  creationTail: BlueprintRevisionLike | null
+): CurrentRevisionBadgePlacement | null {
+  if (allRevisions.length === 0) return null
 
   const today = localIsoDate()
-  const days = revisions.map((r) => revisionCalendarDay(r))
-  if (days.includes(today)) return today
+  const daySet = new Set(allRevisions.map((r) => revisionCalendarDay(r)))
 
-  const pastOrToday = days.filter((d) => d <= today)
-  if (pastOrToday.length > 0) {
-    const sorted = [
-      ...pastOrToday
-    ].sort((a, b) => b.localeCompare(a))
-    const best = sorted[0]
-    if (best) return best
+  let currentDay: string | null = null
+  if (daySet.has(today)) {
+    currentDay = today
+  } else {
+    const strictlyBeforeToday = [
+      ...daySet
+    ].filter((d) => d < today)
+    if (strictlyBeforeToday.length > 0) {
+      strictlyBeforeToday.sort((a, b) => b.localeCompare(a))
+      currentDay = strictlyBeforeToday[0] ?? null
+    }
   }
 
-  const sortedDays = [
-    ...days
-  ].sort((a, b) => b.localeCompare(a))
-  return sortedDays[0] ?? null
+  if (currentDay === null) return null
+
+  const creationDay =
+    creationTail !== null ? revisionCalendarDay(creationTail) : null
+  if (
+    creationDay !== null &&
+    currentDay === creationDay &&
+    !timelineRevisions.some((r) => revisionCalendarDay(r) === currentDay)
+  ) {
+    return {
+      kind: 'creation'
+    }
+  }
+
+  return {
+    kind: 'day',
+    day: currentDay
+  }
 }
 
 export type RevisionDayGroup = {

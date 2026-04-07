@@ -6,7 +6,6 @@ import { z } from 'zod'
 
 import {
   BillPaymentHandling,
-  type BillSplit,
   CategoryType,
   RecurrenceType
 } from '@/api/generated/types.gen'
@@ -33,6 +32,8 @@ import {
 } from '@/lib/form-validation'
 import { normalizeBackendSplits } from '@/lib/split-normalization'
 import { nullablePositiveNumber } from '@/lib/zod-nullable-number'
+import { withSplitTotalsCoercedForValidation } from '../create-bill-drawer/bill-split-form-payload'
+import { mapBillSplitsToFormRows } from '../create-bill-drawer/bill-split-rows'
 import type { CreateBillDrawerForm } from '../create-bill-drawer/form-api'
 import { createBillDrawerSchema } from '../create-bill-drawer/schema'
 import { SplitBillBlock } from '../create-bill-drawer/split-bill-block'
@@ -55,15 +56,6 @@ export type EditBillBlueprintDrawerProps = {
 const BLUEPRINT_FORM_DEFAULTS = {
   ...CREATE_BILL_DRAWER_DEFAULTS,
   scopeChangeDate: new Date()
-}
-
-function billSplitsToFormRows(splits: BillSplit[]): BillSplitRowValue[] {
-  return splits.map((s) => ({
-    id: s.id,
-    subtitle: s.subtitle ?? '',
-    amount: s.amount,
-    category: s.categoryId
-  }))
 }
 
 export function EditBillBlueprintDrawer({
@@ -201,6 +193,26 @@ export function EditBillBlueprintDrawer({
   const form = useAppForm({
     defaultValues: BLUEPRINT_FORM_DEFAULTS,
     canSubmitWhenInvalid: true,
+    onSubmitInvalid: ({ formApi }) => {
+      const formErrors = formApi.state.errors as unknown[]
+      for (const err of formErrors) {
+        if (typeof err === 'string' && err.length > 0) {
+          toast.error(translateIfLikelyI18nKey(err, t))
+          return
+        }
+      }
+      for (const meta of Object.values(formApi.state.fieldMeta)) {
+        const m = meta as {
+          errors?: unknown[]
+        }
+        const first = m?.errors?.[0]
+        if (typeof first === 'string' && first.length > 0) {
+          toast.error(translateIfLikelyI18nKey(first, t))
+          return
+        }
+      }
+      toast.error(t('common.error'))
+    },
     onSubmit: async ({ value }) => {
       const extended = value as typeof value & {
         scopeChangeDate?: Date
@@ -210,13 +222,16 @@ export function EditBillBlueprintDrawer({
           ? extended.scopeChangeDate
           : bill?.dueDate
 
-      const hasSplits = useSplits && (value.splits?.length ?? 0) > 0
+      const hasSplits = (value.splits?.length ?? 0) > 0
       const payload = {
         ...value,
         splits: hasSplits ? value.splits : []
       }
 
-      const parsed = safeValidateForm(createBillDrawerSchema, payload)
+      const parsed = safeValidateForm(
+        createBillDrawerSchema,
+        withSplitTotalsCoercedForValidation(payload)
+      )
       if (!parsed.success) {
         const msg = parsed.errors[0]?.message ?? 'common.error'
         toast.error(translateIfLikelyI18nKey(msg, t))
@@ -275,7 +290,11 @@ export function EditBillBlueprintDrawer({
     (checked: boolean) => {
       setUseSplits(checked)
       if (checked) {
+        const parentBudget = form.getFieldValue('budgetId') as string
         const row = newBillSplitRow()
+        if (typeof parentBudget === 'string' && parentBudget.length > 0) {
+          row.budgetId = parentBudget
+        }
         form.setFieldValue('splits', [
           row
         ])
@@ -303,8 +322,13 @@ export function EditBillBlueprintDrawer({
   ])
 
   const addSplit = useCallback(() => {
+    const prev = form.getFieldValue('splits') as BillSplitRowValue[] | undefined
+    const template = prev?.[prev.length - 1]?.budgetId ?? ''
     const row = newBillSplitRow()
-    form.setFieldValue('splits', (prev) => [
+    if (template.length > 0) {
+      row.budgetId = template
+    }
+    form.setFieldValue('splits', [
       ...(prev ?? []),
       row
     ])
@@ -369,7 +393,9 @@ export function EditBillBlueprintDrawer({
 
     if (normalized && normalized.length > 0) {
       setUseSplits(true)
-      const rows = billSplitsToFormRows(normalized)
+      const rows = mapBillSplitsToFormRows(normalized, {
+        defaultBudgetId: bill.budget?.id
+      })
       form.setFieldValue('splits', rows)
       form.setFieldValue(
         'amount',
@@ -657,7 +683,8 @@ export function EditBillBlueprintDrawer({
               name="amount"
               validators={{
                 onSubmit: (opts) => {
-                  if (useSplits) return undefined
+                  const splitRows = form.getFieldValue('splits')
+                  if ((splitRows?.length ?? 0) > 0) return undefined
                   return amountWhenNotSplitValidator(opts)
                 }
               }}
@@ -669,7 +696,8 @@ export function EditBillBlueprintDrawer({
               name="budgetId"
               validators={{
                 onSubmit: (opts) => {
-                  if (useSplits) return undefined
+                  const splitRows = form.getFieldValue('splits')
+                  if ((splitRows?.length ?? 0) > 0) return undefined
                   return budgetRequiredValidator(opts)
                 }
               }}
@@ -766,6 +794,8 @@ function BlueprintBillCategoryField({
       name="category"
       validators={{
         onSubmit: ({ value }: { value: unknown }) => {
+          const splitRows = form.getFieldValue('splits')
+          if ((splitRows?.length ?? 0) > 0) return undefined
           const v = value as ComboboxValue | null
           if (typeof v === 'string' && v.length > 0) return undefined
           if (
