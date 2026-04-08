@@ -145,8 +145,14 @@ export function DateRangePicker({
         side={side}
       >
         <Calendar
+          key={
+            open
+              ? `range-${value?.from?.getTime() ?? 'none'}-${value?.to?.getTime() ?? 'none'}`
+              : 'closed'
+          }
           mode="range"
           selected={displayed}
+          defaultMonth={value?.from}
           onSelect={handleSelect}
           resetOnSelect
           autoFocus

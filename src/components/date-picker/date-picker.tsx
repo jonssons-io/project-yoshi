@@ -92,8 +92,10 @@ export function DatePicker({
         align="start"
       >
         <Calendar
+          key={open ? `single-${value?.getTime() ?? 'none'}` : 'closed'}
           mode="single"
           selected={value}
+          defaultMonth={value}
           onSelect={(date) => {
             if (date) {
               onChange(date)
