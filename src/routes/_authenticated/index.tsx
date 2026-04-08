@@ -93,12 +93,21 @@ function Dashboard() {
         name: account.name
       })),
       selectedAccountIds: dashboardSettings.selectedAccountIds,
-      onApply: dashboardSettings.updateSelectedAccounts
+      projectFromBillAndIncomeEstimates:
+        dashboardSettings.projectFromBillAndIncomeEstimates,
+      onApply: ({ accountIds, projectFromBillAndIncomeEstimates }) => {
+        dashboardSettings.updateSelectedAccounts(accountIds)
+        dashboardSettings.setProjectFromBillAndIncomeEstimates(
+          projectFromBillAndIncomeEstimates
+        )
+      }
     })
   }, [
     dashboardAccounts,
     dashboardSettings.selectedAccountIds,
+    dashboardSettings.projectFromBillAndIncomeEstimates,
     dashboardSettings.updateSelectedAccounts,
+    dashboardSettings.setProjectFromBillAndIncomeEstimates,
     openDrawer
   ])
 

@@ -50,6 +50,7 @@ import {
   billSplitsCategorySearchBlob,
   billSplitsTooltipSummaryByField
 } from '@/lib/split-line-labels'
+import { formatCurrency } from '@/lib/utils'
 
 import {
   BILL_BASIS_NO_ACCOUNT_FILTER_VALUE,
@@ -483,33 +484,61 @@ function BillsPageContent({
     isOverviewLoading || (overviewTotalRowCount > 0 && summaryLoading)
   const effectiveOverviewError =
     hasOverviewError || (overviewTotalRowCount > 0 && summaryError)
-  const fallbackOverviewCounts = useMemo(
-    () =>
-      overviewTable.getFilteredRowModel().rows.reduce(
-        (counts, row) => {
-          counts[row.original.status] += 1
-          return counts
-        },
-        {
-          upcoming: 0,
-          overdue: 0,
-          handled: 0,
-          paid: 0
-        } satisfies Record<BillOverviewStatus, number>
-      ),
-    [
-      overviewTable
-    ]
-  )
-  const summaryCounts =
+  const fallbackOverviewSummary = useMemo(() => {
+    const empty = {
+      upcoming: {
+        count: 0,
+        amount: 0
+      },
+      overdue: {
+        count: 0,
+        amount: 0
+      },
+      handled: {
+        count: 0,
+        amount: 0
+      },
+      paid: {
+        count: 0,
+        amount: 0
+      }
+    } satisfies Record<
+      BillOverviewStatus,
+      {
+        count: number
+        amount: number
+      }
+    >
+    return overviewTable.getFilteredRowModel().rows.reduce((acc, row) => {
+      const s = row.original.status
+      acc[s].count += 1
+      acc[s].amount += row.original.amount
+      return acc
+    }, empty)
+  }, [
+    overviewTable
+  ])
+  const summaryBuckets =
     canUseOverviewSummary && overviewSummary
       ? {
-          upcoming: overviewSummary.upcomingCount,
-          overdue: overviewSummary.overdueCount,
-          handled: overviewSummary.handledCount,
-          paid: overviewSummary.paidCount
+          upcoming: {
+            count: overviewSummary.upcomingCount,
+            amount: overviewSummary.upcomingAmount
+          },
+          overdue: {
+            count: overviewSummary.overdueCount,
+            amount: overviewSummary.overdueAmount
+          },
+          handled: {
+            count: overviewSummary.handledCount,
+            amount: overviewSummary.handledAmount
+          },
+          paid: {
+            count: overviewSummary.paidCount,
+            amount: overviewSummary.paidAmount
+          }
         }
-      : fallbackOverviewCounts
+      : fallbackOverviewSummary
 
   const overviewFilterDisabled =
     overviewTotalRowCount === 0 ||
@@ -575,7 +604,10 @@ function BillsPageContent({
       }
       for (const bid of row.splitBudgetIds) {
         if (!seen.has(bid)) {
-          seen.set(bid, row.splitBudgetLabels[bid] ?? budgetById.get(bid) ?? bid)
+          seen.set(
+            bid,
+            row.splitBudgetLabels[bid] ?? budgetById.get(bid) ?? bid
+          )
         }
       }
     }
@@ -589,7 +621,6 @@ function BillsPageContent({
     overviewRows,
     budgetById
   ])
-
 
   const availableOverviewCategories = useMemo(() => {
     const seen = new Map<string, string>()
@@ -880,7 +911,10 @@ function BillsPageContent({
       }
       for (const bid of row.splitBudgetIds) {
         if (!budgetsSeen.has(bid)) {
-          budgetsSeen.set(bid, row.splitBudgetLabels[bid] ?? budgetById.get(bid) ?? bid)
+          budgetsSeen.set(
+            bid,
+            row.splitBudgetLabels[bid] ?? budgetById.get(bid) ?? bid
+          )
         }
       }
 
@@ -1010,8 +1044,11 @@ function BillsPageContent({
                 aria-hidden
               />
             ),
-            label: t('bills.summary.upcoming'),
-            value: summaryCounts.upcoming
+            label: t('common.summaryLabelWithCount', {
+              label: t('bills.summary.upcoming'),
+              count: summaryBuckets.upcoming.count
+            }),
+            value: formatCurrency(summaryBuckets.upcoming.amount)
           },
           {
             id: 'overdue',
@@ -1022,8 +1059,11 @@ function BillsPageContent({
                 aria-hidden
               />
             ),
-            label: t('bills.summary.overdue'),
-            value: summaryCounts.overdue
+            label: t('common.summaryLabelWithCount', {
+              label: t('bills.summary.overdue'),
+              count: summaryBuckets.overdue.count
+            }),
+            value: formatCurrency(summaryBuckets.overdue.amount)
           },
           {
             id: 'handled',
@@ -1034,8 +1074,11 @@ function BillsPageContent({
                 aria-hidden
               />
             ),
-            label: t('bills.summary.handled'),
-            value: summaryCounts.handled
+            label: t('common.summaryLabelWithCount', {
+              label: t('bills.summary.handled'),
+              count: summaryBuckets.handled.count
+            }),
+            value: formatCurrency(summaryBuckets.handled.amount)
           },
           {
             id: 'paid',
@@ -1046,8 +1089,11 @@ function BillsPageContent({
                 aria-hidden
               />
             ),
-            label: t('bills.summary.paid'),
-            value: summaryCounts.paid
+            label: t('common.summaryLabelWithCount', {
+              label: t('bills.summary.paid'),
+              count: summaryBuckets.paid.count
+            }),
+            value: formatCurrency(summaryBuckets.paid.amount)
           }
         ]
 

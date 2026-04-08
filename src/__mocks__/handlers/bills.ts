@@ -94,6 +94,7 @@ function normalizeBillPaymentHandling(
     case 'MAIL':
     case 'PORTAL':
     case 'PAPER':
+    case 'CARD':
       return v
     default:
       return null
@@ -555,17 +556,34 @@ export const billHandlers = [
     const summary = listFilteredBillInstances(url).reduce(
       (acc, item) => {
         const status = deriveBillInstanceStatus(item)
-        if (status === 'UPCOMING') acc.upcomingCount += 1
-        if (status === 'HANDLED') acc.handledCount += 1
-        if (status === 'OVERDUE') acc.overdueCount += 1
-        if (status === 'PAID') acc.paidCount += 1
+        const amt = Number(item.amount ?? 0)
+        if (status === 'UPCOMING') {
+          acc.upcomingCount += 1
+          acc.upcomingAmount += amt
+        }
+        if (status === 'HANDLED') {
+          acc.handledCount += 1
+          acc.handledAmount += amt
+        }
+        if (status === 'OVERDUE') {
+          acc.overdueCount += 1
+          acc.overdueAmount += amt
+        }
+        if (status === 'PAID') {
+          acc.paidCount += 1
+          acc.paidAmount += amt
+        }
         return acc
       },
       {
         upcomingCount: 0,
         handledCount: 0,
         overdueCount: 0,
-        paidCount: 0
+        paidCount: 0,
+        upcomingAmount: 0,
+        handledAmount: 0,
+        overdueAmount: 0,
+        paidAmount: 0
       }
     )
 

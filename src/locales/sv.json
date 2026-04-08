@@ -38,6 +38,7 @@
     "decrease": "Minska",
     "new": "Ny",
     "total": "Summa",
+    "summaryLabelWithCount": "{{label}} · {{count}} st",
     "selectAnOption": "Välj ett alternativ",
     "search": "Sök...",
     "filter": "Filtrera",
@@ -454,6 +455,8 @@
     "createAccountDesc": "Ett konto spårar dina verkliga finansiella konton som checkkonto, sparkonto eller kreditkort.",
     "createAccountButton": "Skapa konto",
     "chartSettings": "Diagraminställningar",
+    "projectFromBillAndIncomeEstimates": "Räkna in räkningar och inkomster utan transaktion",
+    "projectFromBillAndIncomeEstimatesDesc": "Projicerar framtida saldo med förväntade belopp från schemalagda instanser när ingen transaktion finns ännu. Kombineras med väntande transaktioner utan dubbelräkning.",
     "dateRange": "Tidsperiod",
     "currentMonth": "Innevarande månad",
     "threeMonths": "3 månader",
@@ -583,6 +586,7 @@
       "MAIL": "E-post",
       "PORTAL": "Portal",
       "PAPER": "Papper",
+      "CARD": "Kort",
       "E_MAILBOX": "E-brevlåda"
     },
     "noBills": "Inga räkningar hittades. Skapa din första räkning för att komma igång.",
@@ -853,7 +857,8 @@
       "incomeDescription": "Inkomster används för att hålla koll på att dina förväntade inbetalningar kommer in som dom ska."
     },
     "dashboardChartSettings": {
-      "title": "Diagraminställningar"
+      "title": "Diagraminställningar",
+      "accountsLabel": "Konton"
     },
     "transactionsTableFilterDrawer": {
       "title": "Filtrera"

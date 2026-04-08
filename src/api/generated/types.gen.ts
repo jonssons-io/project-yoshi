@@ -118,7 +118,8 @@ export const IncomeInstanceStatus = {
 export type IncomeInstanceStatus = typeof IncomeInstanceStatus[keyof typeof IncomeInstanceStatus];
 
 /**
- * How the recurring bill is paid or delivered (Swedish UI “Hantering”): direct debit, e-invoice, mail, vendor portal, paper, etc.
+ * How the recurring bill is paid or delivered (Swedish UI “Hantering”): direct debit, e-invoice, mail, vendor portal, paper, card, etc.
+ * **CARD** covers debit/credit card payments; whether to distinguish debit vs credit is a product policy (not modeled here).
  *
  */
 export const BillPaymentHandling = {
@@ -126,11 +127,13 @@ export const BillPaymentHandling = {
     E_INVOICE: 'E_INVOICE',
     MAIL: 'MAIL',
     PORTAL: 'PORTAL',
-    PAPER: 'PAPER'
+    PAPER: 'PAPER',
+    CARD: 'CARD'
 } as const;
 
 /**
- * How the recurring bill is paid or delivered (Swedish UI “Hantering”): direct debit, e-invoice, mail, vendor portal, paper, etc.
+ * How the recurring bill is paid or delivered (Swedish UI “Hantering”): direct debit, e-invoice, mail, vendor portal, paper, card, etc.
+ * **CARD** covers debit/credit card payments; whether to distinguish debit vs credit is a product policy (not modeled here).
  *
  */
 export type BillPaymentHandling = typeof BillPaymentHandling[keyof typeof BillPaymentHandling];
@@ -526,9 +529,13 @@ export type BillInstance = {
 };
 
 /**
- * Counts of bill instances in each **derived** status bucket (see `BillInstanceStatus`), for filters aligned with
- * `GET /bill-instances`. **UTC now** at request time determines upcoming vs overdue vs each instance `dueDate`;
- * **HANDLED** / **PAID** require a linked transaction (`transactionId`).
+ * Counts and amount totals of bill instances in each **derived** status bucket (see `BillInstanceStatus`), for filters
+ * aligned with `GET /bill-instances`. **UTC now** at request time determines upcoming vs overdue vs each instance
+ * `dueDate`; **HANDLED** / **PAID** require a linked transaction (`transactionId`). Each bucket’s **count** and
+ * **amount** sum the **same** set of rows. **Amount** for an instance is always the stored **`BillInstance.amount`**
+ * (the same value as **`amount`** on each `BillInstance` in list/detail responses). When an instance has
+ * **`splits`**, that top-level **`amount`** is still the instance total the API exposes; bucket totals use this
+ * value, not a recomputation from split lines. **`paidAmount`** on instances is not used for these buckets.
  *
  */
 export type BillInstancesSummary = {
@@ -548,12 +555,30 @@ export type BillInstancesSummary = {
      * Due instant on or before UTC now; linked transaction.
      */
     paidCount: number;
+    /**
+     * Sum of `BillInstance.amount` for instances counted in `upcomingCount`.
+     */
+    upcomingAmount: number;
+    /**
+     * Sum of `BillInstance.amount` for instances counted in `handledCount`.
+     */
+    handledAmount: number;
+    /**
+     * Sum of `BillInstance.amount` for instances counted in `overdueCount`.
+     */
+    overdueAmount: number;
+    /**
+     * Sum of `BillInstance.amount` for instances counted in `paidCount`.
+     */
+    paidAmount: number;
 };
 
 /**
- * Counts of income instances in each **derived** status bucket (see `IncomeInstanceStatus`), for filters aligned with
- * `GET /income-instances`. **UTC now** at request time determines upcoming vs overdue vs each instance `expectedDate`;
- * **HANDLED** / **RECEIVED** require a linked transaction (`transactionId`).
+ * Counts and amount totals of income instances in each **derived** status bucket (see `IncomeInstanceStatus`), for
+ * filters aligned with `GET /income-instances`. **UTC now** at request time determines upcoming vs overdue vs each
+ * instance `expectedDate`; **HANDLED** / **RECEIVED** require a linked transaction (`transactionId`). Each bucket’s
+ * **count** and **amount** sum the **same** set of rows. **Amount** for an instance is **`IncomeInstance.amount`**
+ * (same as **`amount`** on each `IncomeInstance` in list/detail responses).
  *
  */
 export type IncomeInstancesSummary = {
@@ -573,6 +598,22 @@ export type IncomeInstancesSummary = {
      * Expected instant on or before UTC now; linked transaction.
      */
     receivedCount: number;
+    /**
+     * Sum of `IncomeInstance.amount` for instances counted in `upcomingCount`.
+     */
+    upcomingAmount: number;
+    /**
+     * Sum of `IncomeInstance.amount` for instances counted in `handledCount`.
+     */
+    handledAmount: number;
+    /**
+     * Sum of `IncomeInstance.amount` for instances counted in `overdueCount`.
+     */
+    overdueAmount: number;
+    /**
+     * Sum of `IncomeInstance.amount` for instances counted in `receivedCount`.
+     */
+    receivedAmount: number;
 };
 
 export type BillSplit = {
@@ -595,6 +636,8 @@ export type BillSplit = {
 /**
  * Line item for bill splits. When `splits` is non-empty, top-level bill `budgetId` and top-level category fields
  * must be unset; each line carries its own category and may reference a household budget via `budgetId`.
+ * When several split lines in the **same** request use `newCategoryName` values that match after normalizing whitespace
+ * and case, the server creates **one** new expense category and reuses it for all those lines.
  *
  */
 export type BillSplitWrite = {
@@ -766,6 +809,15 @@ export type HouseholdAccountBalanceChartAccountMeta = {
  * `date` falls in the chart day range adjust balances from **`today`** forward (and include pending on
  * **`today`**). **Effective** transactions are already reflected in snapshots and `currentBalance` and are
  * not applied again. Chart days before **`today`** are unchanged.
+ *
+ * Optional query flag **`projectFromBillAndIncomeEstimates`**: when true, **bill and income instances** whose
+ * UTC calendar **due** or **expected** day falls in the chart range adjust balances from **`today`** forward (same
+ * cumulative overlay rules as `projectFromTransactions`). Unlinked instances use the instance **amount**;
+ * instances linked to a transaction use the **transaction** amount (and **transaction** UTC calendar day) when
+ * the transaction is **pending**; **effective** linked transactions are omitted here because they are already
+ * reflected in snapshots and `currentBalance`. The two projection flags are **independent** and may be combined;
+ * when both are true, pending transactions linked to an instance are applied only via the pending-transaction
+ * projection (not double-counted with the estimate path).
  *
  */
 export type HouseholdAccountBalanceChartResponse = {
@@ -947,6 +999,9 @@ export type SplitInlineNewCategory = {
 /**
  * Set exactly one of `categoryId`, `newCategoryName`, or `newCategory` to assign a category to the split line.
  * For effective `EXPENSE` transactions with splits, each line must include `budgetId` (envelope) for that split amount.
+ * When several split lines in the **same** create or update request introduce new categories that match after normalizing
+ * whitespace and case (`newCategoryName` and/or `newCategory` with the same implied or explicit type), the server creates
+ * **one** category row and reuses its id for all those lines.
  *
  */
 export type TransactionSplitWrite = {
@@ -2325,6 +2380,13 @@ export type GetHouseholdAccountBalanceChartData = {
          *
          */
         projectFromTransactions?: boolean;
+        /**
+         * When true, adjust balances from the chart's current UTC day onward using bill and income **instances**
+         * dated within the chart's UTC day range (see `HouseholdAccountBalanceChartResponse`). Composes independently
+         * with `projectFromTransactions`; linked instances use the transaction amount when a transaction exists.
+         *
+         */
+        projectFromBillAndIncomeEstimates?: boolean;
     };
     url: '/households/{householdId}/dashboard/account-balance-chart';
 };

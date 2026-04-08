@@ -52,7 +52,11 @@ export type DrawerPropsMap = {
       name: string
     }[]
     selectedAccountIds: string[]
-    onApply: (accountIds: string[]) => void
+    projectFromBillAndIncomeEstimates: boolean
+    onApply: (settings: {
+      accountIds: string[]
+      projectFromBillAndIncomeEstimates: boolean
+    }) => void
   }
   transactionsTableFilterDrawer: {
     columnFilters: ColumnFiltersState

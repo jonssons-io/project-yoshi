@@ -552,6 +552,8 @@ export const getHouseholdPeriodSummary = <ThrowOnError extends boolean = false>(
  * When `accountIds` is omitted, all **non-archived** household accounts are included unless `includeArchived` is true.
  * Optional **`projectFromTransactions`**: when true, extends the series using **pending** transactions in the
  * chart date range (see response schema); effective rows are not double-counted.
+ * Optional **`projectFromBillAndIncomeEstimates`**: when true, extends the series using **bill and income
+ * instances** in the chart (see `HouseholdAccountBalanceChartResponse`).
  *
  */
 export const getHouseholdAccountBalanceChart = <ThrowOnError extends boolean = false>(options: Options<GetHouseholdAccountBalanceChartData, ThrowOnError>) => (options.client ?? client).get<GetHouseholdAccountBalanceChartResponses, GetHouseholdAccountBalanceChartErrors, ThrowOnError>({

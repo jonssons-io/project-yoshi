@@ -152,6 +152,7 @@ export type Bill = {
     | 'MAIL'
     | 'PORTAL'
     | 'PAPER'
+    | 'CARD'
     | null
   categoryId?: string | null
   splits?: Array<{

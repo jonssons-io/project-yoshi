@@ -180,7 +180,8 @@ export function EditBillBlueprintDrawer({
         BillPaymentHandling.E_INVOICE,
         BillPaymentHandling.MAIL,
         BillPaymentHandling.PORTAL,
-        BillPaymentHandling.PAPER
+        BillPaymentHandling.PAPER,
+        BillPaymentHandling.CARD
       ].map((value) => ({
         value,
         label: t(`bills.paymentHandling.${value}`)

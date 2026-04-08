@@ -157,6 +157,8 @@ export function useAccountBalanceChart(params: {
   dateFrom?: Date
   dateTo?: Date
   includeArchived?: boolean
+  /** See OpenAPI `projectFromBillAndIncomeEstimates`; default false. */
+  projectFromBillAndIncomeEstimates?: boolean
   enabled?: boolean
 }) {
   const {
@@ -165,6 +167,7 @@ export function useAccountBalanceChart(params: {
     dateFrom,
     dateTo,
     includeArchived,
+    projectFromBillAndIncomeEstimates = false,
     enabled = true
   } = params
   const dateFromIso = dateFrom?.toISOString()
@@ -181,7 +184,8 @@ export function useAccountBalanceChart(params: {
         accountIds:
           accountIds && accountIds.length > 0 ? accountIds : undefined,
         includeArchived,
-        projectFromTransactions: true
+        projectFromTransactions: true,
+        projectFromBillAndIncomeEstimates
       }
     }),
     enabled: Boolean(enabled && householdId && dateFromIso && dateToIso),

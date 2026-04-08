@@ -194,6 +194,10 @@ export function EditBillInstanceDrawer({
       {
         value: BillPaymentHandling.PAPER,
         label: t('bills.paymentHandling.PAPER')
+      },
+      {
+        value: BillPaymentHandling.CARD,
+        label: t('bills.paymentHandling.CARD')
       }
     ],
     [

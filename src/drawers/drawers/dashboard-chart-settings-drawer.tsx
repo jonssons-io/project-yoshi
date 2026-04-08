@@ -1,12 +1,14 @@
 import { CheckIcon, Undo2Icon } from 'lucide-react'
 import { useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { z } from 'zod'
 import { Button } from '@/components/button/button'
 import { useAppForm } from '@/hooks/form'
 import { createZodValidator, safeValidateForm } from '@/lib/form-validation'
 
 const chartSettingsSchema = z.object({
-  accountIds: z.array(z.string())
+  accountIds: z.array(z.string()),
+  projectFromBillAndIncomeEstimates: z.boolean()
 })
 
 type ChartSettingsFormValues = z.infer<typeof chartSettingsSchema>
@@ -17,16 +19,22 @@ export type DashboardChartSettingsDrawerProps = {
     name: string
   }[]
   selectedAccountIds: string[]
-  onApply: (accountIds: string[]) => void
+  projectFromBillAndIncomeEstimates: boolean
+  onApply: (settings: {
+    accountIds: string[]
+    projectFromBillAndIncomeEstimates: boolean
+  }) => void
   onClose: () => void
 }
 
 export function DashboardChartSettingsDrawer({
   accounts,
   selectedAccountIds,
+  projectFromBillAndIncomeEstimates,
   onApply,
   onClose
 }: DashboardChartSettingsDrawerProps) {
+  const { t } = useTranslation()
   const allAccountIds = useMemo(
     () => accounts.map((account) => account.id),
     [
@@ -49,14 +57,19 @@ export function DashboardChartSettingsDrawer({
     defaultValues: {
       accountIds: [
         ...selectedAccountIds
-      ]
+      ],
+      projectFromBillAndIncomeEstimates
     } satisfies ChartSettingsFormValues,
     onSubmit: async ({ value }) => {
       const result = safeValidateForm(chartSettingsSchema, value)
       if (!result.success) {
         return
       }
-      onApply(result.data.accountIds)
+      onApply({
+        accountIds: result.data.accountIds,
+        projectFromBillAndIncomeEstimates:
+          result.data.projectFromBillAndIncomeEstimates
+      })
       onClose()
     }
   })
@@ -65,6 +78,7 @@ export function DashboardChartSettingsDrawer({
     form.setFieldValue('accountIds', [
       ...allAccountIds
     ])
+    form.setFieldValue('projectFromBillAndIncomeEstimates', false)
   }
 
   return (
@@ -77,7 +91,7 @@ export function DashboardChartSettingsDrawer({
           form.handleSubmit()
         }}
       >
-        <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="min-h-0 flex-1 overflow-y-auto flex flex-col gap-6">
           <form.AppField
             name="accountIds"
             validators={{
@@ -86,8 +100,18 @@ export function DashboardChartSettingsDrawer({
           >
             {(field) => (
               <field.CheckboxGroupField
-                label="Konton"
+                label={t('drawers.dashboardChartSettings.accountsLabel')}
                 options={checkboxOptions}
+              />
+            )}
+          </form.AppField>
+          <form.AppField name="projectFromBillAndIncomeEstimates">
+            {(field) => (
+              <field.SwitchField
+                label={t('dashboard.projectFromBillAndIncomeEstimates')}
+                description={t(
+                  'dashboard.projectFromBillAndIncomeEstimatesDesc'
+                )}
               />
             )}
           </form.AppField>

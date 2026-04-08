@@ -315,17 +315,34 @@ export const incomeHandlers = [
     const summary = listFilteredIncomeInstances(url).reduce(
       (acc, item) => {
         const status = deriveIncomeInstanceStatus(item)
-        if (status === 'UPCOMING') acc.upcomingCount += 1
-        if (status === 'HANDLED') acc.handledCount += 1
-        if (status === 'OVERDUE') acc.overdueCount += 1
-        if (status === 'RECEIVED') acc.receivedCount += 1
+        const amt = Number(item.amount ?? 0)
+        if (status === 'UPCOMING') {
+          acc.upcomingCount += 1
+          acc.upcomingAmount += amt
+        }
+        if (status === 'HANDLED') {
+          acc.handledCount += 1
+          acc.handledAmount += amt
+        }
+        if (status === 'OVERDUE') {
+          acc.overdueCount += 1
+          acc.overdueAmount += amt
+        }
+        if (status === 'RECEIVED') {
+          acc.receivedCount += 1
+          acc.receivedAmount += amt
+        }
         return acc
       },
       {
         upcomingCount: 0,
         handledCount: 0,
         overdueCount: 0,
-        receivedCount: 0
+        receivedCount: 0,
+        upcomingAmount: 0,
+        handledAmount: 0,
+        overdueAmount: 0,
+        receivedAmount: 0
       }
     )
 

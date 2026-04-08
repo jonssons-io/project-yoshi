@@ -43,6 +43,7 @@ import {
   readDateRangeFilter,
   readSingleSelectFilter
 } from '@/lib/column-filter-utils'
+import { formatCurrency } from '@/lib/utils'
 
 import {
   createIncomeOverviewColumns,
@@ -345,6 +346,57 @@ function IncomePageContent({
   const effectiveOverviewError =
     hasOverviewError || (totalRowCount > 0 && summaryError)
 
+  const fallbackIncomeSummary = useMemo(() => {
+    const empty = {
+      [IncomeInstanceStatus.UPCOMING]: {
+        count: 0,
+        amount: 0
+      },
+      [IncomeInstanceStatus.OVERDUE]: {
+        count: 0,
+        amount: 0
+      },
+      [IncomeInstanceStatus.HANDLED]: {
+        count: 0,
+        amount: 0
+      },
+      [IncomeInstanceStatus.RECEIVED]: {
+        count: 0,
+        amount: 0
+      }
+    }
+    return table.getFilteredRowModel().rows.reduce((acc, row) => {
+      const s = row.original.status
+      acc[s].count += 1
+      acc[s].amount += row.original.amount
+      return acc
+    }, empty)
+  }, [
+    table
+  ])
+
+  const incomeSummaryBuckets =
+    canUseOverviewSummary && overviewSummary
+      ? {
+          [IncomeInstanceStatus.UPCOMING]: {
+            count: overviewSummary.upcomingCount,
+            amount: overviewSummary.upcomingAmount
+          },
+          [IncomeInstanceStatus.OVERDUE]: {
+            count: overviewSummary.overdueCount,
+            amount: overviewSummary.overdueAmount
+          },
+          [IncomeInstanceStatus.HANDLED]: {
+            count: overviewSummary.handledCount,
+            amount: overviewSummary.handledAmount
+          },
+          [IncomeInstanceStatus.RECEIVED]: {
+            count: overviewSummary.receivedCount,
+            amount: overviewSummary.receivedAmount
+          }
+        }
+      : fallbackIncomeSummary
+
   const filterOptions = useMemo(() => {
     const accountsSeen = new Set<string>()
     const categoriesSeen = new Set<string>()
@@ -628,8 +680,13 @@ function IncomePageContent({
                 aria-hidden
               />
             ),
-            label: t('income.status.UPCOMING'),
-            value: overviewSummary?.upcomingCount ?? 0
+            label: t('common.summaryLabelWithCount', {
+              label: t('income.status.UPCOMING'),
+              count: incomeSummaryBuckets[IncomeInstanceStatus.UPCOMING].count
+            }),
+            value: formatCurrency(
+              incomeSummaryBuckets[IncomeInstanceStatus.UPCOMING].amount
+            )
           },
           {
             id: 'overdue',
@@ -640,8 +697,13 @@ function IncomePageContent({
                 aria-hidden
               />
             ),
-            label: t('income.status.OVERDUE'),
-            value: overviewSummary?.overdueCount ?? 0
+            label: t('common.summaryLabelWithCount', {
+              label: t('income.status.OVERDUE'),
+              count: incomeSummaryBuckets[IncomeInstanceStatus.OVERDUE].count
+            }),
+            value: formatCurrency(
+              incomeSummaryBuckets[IncomeInstanceStatus.OVERDUE].amount
+            )
           },
           {
             id: 'handled',
@@ -652,8 +714,13 @@ function IncomePageContent({
                 aria-hidden
               />
             ),
-            label: t('income.status.HANDLED'),
-            value: overviewSummary?.handledCount ?? 0
+            label: t('common.summaryLabelWithCount', {
+              label: t('income.status.HANDLED'),
+              count: incomeSummaryBuckets[IncomeInstanceStatus.HANDLED].count
+            }),
+            value: formatCurrency(
+              incomeSummaryBuckets[IncomeInstanceStatus.HANDLED].amount
+            )
           },
           {
             id: 'received',
@@ -664,8 +731,13 @@ function IncomePageContent({
                 aria-hidden
               />
             ),
-            label: t('income.status.RECEIVED'),
-            value: overviewSummary?.receivedCount ?? 0
+            label: t('common.summaryLabelWithCount', {
+              label: t('income.status.RECEIVED'),
+              count: incomeSummaryBuckets[IncomeInstanceStatus.RECEIVED].count
+            }),
+            value: formatCurrency(
+              incomeSummaryBuckets[IncomeInstanceStatus.RECEIVED].amount
+            )
           }
         ]
 

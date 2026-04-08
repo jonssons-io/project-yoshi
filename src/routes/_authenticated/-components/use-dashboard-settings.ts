@@ -26,6 +26,9 @@ export type UseDashboardSettingsResult = {
   setCustomDateRange: (start?: Date, end?: Date) => void
   selectedAccountIds: string[]
   updateSelectedAccounts: (newIds: string[]) => void
+  /** When true, balance chart includes projected bill/income instance amounts (see API `projectFromBillAndIncomeEstimates`). */
+  projectFromBillAndIncomeEstimates: boolean
+  setProjectFromBillAndIncomeEstimates: (value: boolean) => void
 }
 
 /**
@@ -37,6 +40,12 @@ export function useDashboardSettings({
 }: UseDashboardSettingsParams): UseDashboardSettingsResult {
   const accountSelectionKey = useMemo(
     () => `${STORAGE_PREFIX}-accounts-${userId}`,
+    [
+      userId
+    ]
+  )
+  const projectEstimatesKey = useMemo(
+    () => `${STORAGE_PREFIX}-project-estimates-${userId}`,
     [
       userId
     ]
@@ -57,10 +66,22 @@ export function useDashboardSettings({
     undefined
   )
   const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>([])
+  const [
+    projectFromBillAndIncomeEstimates,
+    setProjectFromBillAndIncomeEstimatesState
+  ] = useState(false)
   const [isAccountSelectionInitialized, setIsAccountSelectionInitialized] =
     useState(false)
   /** Last known full account id list; used to detect "all accounts" chart selection after new accounts appear. */
   const prevAllAccountIdsRef = useRef<string[] | null>(null)
+
+  useEffect(() => {
+    const stored = localStorage.getItem(projectEstimatesKey)
+    if (stored === 'true') setProjectFromBillAndIncomeEstimatesState(true)
+    if (stored === 'false') setProjectFromBillAndIncomeEstimatesState(false)
+  }, [
+    projectEstimatesKey
+  ])
 
   useEffect(() => {
     const stored = localStorage.getItem(dateRangeKey)
@@ -126,8 +147,11 @@ export function useDashboardSettings({
     setSelectedAccountIds((prev) => {
       const pruned = prev.filter((id) => allIdsSet.has(id))
       const hadFullSelection = sameAccountIdSet(prev, prevAllIds)
-      const next =
-        hadFullSelection ? allIds : pruned.length > 0 ? pruned : allIds
+      const next = hadFullSelection
+        ? allIds
+        : pruned.length > 0
+          ? pruned
+          : allIds
 
       if (sameAccountIdSet(next, prev)) {
         return prev
@@ -138,7 +162,11 @@ export function useDashboardSettings({
     })
 
     prevAllAccountIdsRef.current = allIds
-  }, [accounts, isAccountSelectionInitialized, accountSelectionKey])
+  }, [
+    accounts,
+    isAccountSelectionInitialized,
+    accountSelectionKey
+  ])
 
   const setQuickSelection = (value: DateRangeOption) => {
     setQuickSelectionState(value)
@@ -158,6 +186,11 @@ export function useDashboardSettings({
     }
   }
 
+  const setProjectFromBillAndIncomeEstimates = (value: boolean) => {
+    setProjectFromBillAndIncomeEstimatesState(value)
+    localStorage.setItem(projectEstimatesKey, value ? 'true' : 'false')
+  }
+
   return {
     quickSelection,
     setQuickSelection,
@@ -165,6 +198,8 @@ export function useDashboardSettings({
     customEndDate,
     setCustomDateRange,
     selectedAccountIds,
-    updateSelectedAccounts
+    updateSelectedAccounts,
+    projectFromBillAndIncomeEstimates,
+    setProjectFromBillAndIncomeEstimates
   }
 }

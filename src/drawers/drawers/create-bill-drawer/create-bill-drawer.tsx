@@ -234,6 +234,10 @@ export function CreateBillDrawer({ onClose }: CreateBillDrawerProps) {
       {
         value: BillPaymentHandling.PAPER,
         label: t('bills.paymentHandling.PAPER')
+      },
+      {
+        value: BillPaymentHandling.CARD,
+        label: t('bills.paymentHandling.CARD')
       }
     ],
     [

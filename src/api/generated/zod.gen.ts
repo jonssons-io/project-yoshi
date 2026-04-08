@@ -72,7 +72,8 @@ export const zIncomeInstanceStatus = z.enum([
 ]);
 
 /**
- * How the recurring bill is paid or delivered (Swedish UI “Hantering”): direct debit, e-invoice, mail, vendor portal, paper, etc.
+ * How the recurring bill is paid or delivered (Swedish UI “Hantering”): direct debit, e-invoice, mail, vendor portal, paper, card, etc.
+ * **CARD** covers debit/credit card payments; whether to distinguish debit vs credit is a product policy (not modeled here).
  *
  */
 export const zBillPaymentHandling = z.enum([
@@ -80,7 +81,8 @@ export const zBillPaymentHandling = z.enum([
     'E_INVOICE',
     'MAIL',
     'PORTAL',
-    'PAPER'
+    'PAPER',
+    'CARD'
 ]);
 
 export const zHousehold = z.object({
@@ -383,29 +385,43 @@ export const zIncomeRevisionsEnvelope = z.object({
 });
 
 /**
- * Counts of bill instances in each **derived** status bucket (see `BillInstanceStatus`), for filters aligned with
- * `GET /bill-instances`. **UTC now** at request time determines upcoming vs overdue vs each instance `dueDate`;
- * **HANDLED** / **PAID** require a linked transaction (`transactionId`).
+ * Counts and amount totals of bill instances in each **derived** status bucket (see `BillInstanceStatus`), for filters
+ * aligned with `GET /bill-instances`. **UTC now** at request time determines upcoming vs overdue vs each instance
+ * `dueDate`; **HANDLED** / **PAID** require a linked transaction (`transactionId`). Each bucket’s **count** and
+ * **amount** sum the **same** set of rows. **Amount** for an instance is always the stored **`BillInstance.amount`**
+ * (the same value as **`amount`** on each `BillInstance` in list/detail responses). When an instance has
+ * **`splits`**, that top-level **`amount`** is still the instance total the API exposes; bucket totals use this
+ * value, not a recomputation from split lines. **`paidAmount`** on instances is not used for these buckets.
  *
  */
 export const zBillInstancesSummary = z.object({
     upcomingCount: z.int().gte(0),
     handledCount: z.int().gte(0),
     overdueCount: z.int().gte(0),
-    paidCount: z.int().gte(0)
+    paidCount: z.int().gte(0),
+    upcomingAmount: z.number().gte(0),
+    handledAmount: z.number().gte(0),
+    overdueAmount: z.number().gte(0),
+    paidAmount: z.number().gte(0)
 });
 
 /**
- * Counts of income instances in each **derived** status bucket (see `IncomeInstanceStatus`), for filters aligned with
- * `GET /income-instances`. **UTC now** at request time determines upcoming vs overdue vs each instance `expectedDate`;
- * **HANDLED** / **RECEIVED** require a linked transaction (`transactionId`).
+ * Counts and amount totals of income instances in each **derived** status bucket (see `IncomeInstanceStatus`), for
+ * filters aligned with `GET /income-instances`. **UTC now** at request time determines upcoming vs overdue vs each
+ * instance `expectedDate`; **HANDLED** / **RECEIVED** require a linked transaction (`transactionId`). Each bucket’s
+ * **count** and **amount** sum the **same** set of rows. **Amount** for an instance is **`IncomeInstance.amount`**
+ * (same as **`amount`** on each `IncomeInstance` in list/detail responses).
  *
  */
 export const zIncomeInstancesSummary = z.object({
     upcomingCount: z.int().gte(0),
     handledCount: z.int().gte(0),
     overdueCount: z.int().gte(0),
-    receivedCount: z.int().gte(0)
+    receivedCount: z.int().gte(0),
+    upcomingAmount: z.number().gte(0),
+    handledAmount: z.number().gte(0),
+    overdueAmount: z.number().gte(0),
+    receivedAmount: z.number().gte(0)
 });
 
 export const zBillSplit = z.object({
@@ -503,6 +519,8 @@ export const zBillInstance = z.object({
 /**
  * Line item for bill splits. When `splits` is non-empty, top-level bill `budgetId` and top-level category fields
  * must be unset; each line carries its own category and may reference a household budget via `budgetId`.
+ * When several split lines in the **same** request use `newCategoryName` values that match after normalizing whitespace
+ * and case, the server creates **one** new expense category and reuses it for all those lines.
  *
  */
 export const zBillSplitWrite = z.object({
@@ -676,6 +694,15 @@ export const zHouseholdAccountBalanceChartAccountMeta = z.object({
  * `date` falls in the chart day range adjust balances from **`today`** forward (and include pending on
  * **`today`**). **Effective** transactions are already reflected in snapshots and `currentBalance` and are
  * not applied again. Chart days before **`today`** are unchanged.
+ *
+ * Optional query flag **`projectFromBillAndIncomeEstimates`**: when true, **bill and income instances** whose
+ * UTC calendar **due** or **expected** day falls in the chart range adjust balances from **`today`** forward (same
+ * cumulative overlay rules as `projectFromTransactions`). Unlinked instances use the instance **amount**;
+ * instances linked to a transaction use the **transaction** amount (and **transaction** UTC calendar day) when
+ * the transaction is **pending**; **effective** linked transactions are omitted here because they are already
+ * reflected in snapshots and `currentBalance`. The two projection flags are **independent** and may be combined;
+ * when both are true, pending transactions linked to an instance are applied only via the pending-transaction
+ * projection (not double-counted with the estimate path).
  *
  */
 export const zHouseholdAccountBalanceChartResponse = z.object({
@@ -859,6 +886,9 @@ export const zSplitInlineNewCategory = z.object({
 /**
  * Set exactly one of `categoryId`, `newCategoryName`, or `newCategory` to assign a category to the split line.
  * For effective `EXPENSE` transactions with splits, each line must include `budgetId` (envelope) for that split amount.
+ * When several split lines in the **same** create or update request introduce new categories that match after normalizing
+ * whitespace and case (`newCategoryName` and/or `newCategory` with the same implied or explicit type), the server creates
+ * **one** category row and reuses its id for all those lines.
  *
  */
 export const zTransactionSplitWrite = z.object({
@@ -1805,7 +1835,8 @@ export const zGetHouseholdAccountBalanceChartData = z.object({
         dateTo: z.iso.datetime(),
         accountIds: z.optional(z.array(z.string())),
         includeArchived: z.optional(z.boolean()),
-        projectFromTransactions: z.optional(z.boolean())
+        projectFromTransactions: z.optional(z.boolean()),
+        projectFromBillAndIncomeEstimates: z.optional(z.boolean())
     })
 });
 

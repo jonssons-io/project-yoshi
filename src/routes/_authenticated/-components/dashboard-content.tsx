@@ -128,6 +128,8 @@ export function DashboardContent({
       accountIds: chartAccountIds,
       dateFrom,
       dateTo,
+      projectFromBillAndIncomeEstimates:
+        dashboardSettings.projectFromBillAndIncomeEstimates,
       enabled: chartAccountIds.length > 0 && !!householdId
     })
 

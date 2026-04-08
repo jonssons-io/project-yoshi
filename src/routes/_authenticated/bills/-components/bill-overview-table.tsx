@@ -106,7 +106,8 @@ const HANDLING_BADGE_COLOR: Record<BillPaymentHandling, BadgeColor> = {
   [BillPaymentHandling.E_INVOICE]: 'green',
   [BillPaymentHandling.MAIL]: 'teal',
   [BillPaymentHandling.PORTAL]: 'red',
-  [BillPaymentHandling.PAPER]: 'orange'
+  [BillPaymentHandling.PAPER]: 'orange',
+  [BillPaymentHandling.CARD]: 'lilac'
 }
 
 export type LabelLookup = {
