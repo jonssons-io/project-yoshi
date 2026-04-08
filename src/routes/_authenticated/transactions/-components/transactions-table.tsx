@@ -24,7 +24,7 @@ import { TableRowMenu } from '@/components/table-row-menu/table-row-menu'
 import {
   transactionSplitsBudgetSearchBlob,
   transactionSplitsCategorySearchBlob,
-  transactionSplitsTooltipSummary
+  transactionSplitsTooltipSummaryByField
 } from '@/lib/split-line-labels'
 import { formatCurrency } from '@/lib/utils'
 
@@ -216,8 +216,9 @@ function categoryCell(
       <SplitLinesTableCell
         lineCount={n}
         t={t}
-        title={transactionSplitsTooltipSummary(
+        title={transactionSplitsTooltipSummaryByField(
           transaction.splits,
+          'category',
           lookups.categories,
           lookups.budgets,
           t('common.uncategorized')
@@ -266,8 +267,9 @@ function budgetCell(
       <SplitLinesTableCell
         lineCount={n}
         t={t}
-        title={transactionSplitsTooltipSummary(
+        title={transactionSplitsTooltipSummaryByField(
           transaction.splits,
+          'budget',
           lookups.categories,
           lookups.budgets,
           t('common.uncategorized')

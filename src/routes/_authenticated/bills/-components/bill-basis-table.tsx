@@ -44,8 +44,10 @@ export type BillBasisRow = {
   splitCategoryLabels: Record<string, string>
   /** Display names for `splitBudgetIds` from nested split `budget` when present. */
   splitBudgetLabels: Record<string, string>
-  /** Tooltip on the split badge. */
-  splitLinesTooltip: string
+  /** Split-badge tooltip for the budget column (budget per line). */
+  splitLinesTooltipBudget: string
+  /** Split-badge tooltip for the category column (category per line). */
+  splitLinesTooltipCategory: string
   splitCategorySearchBlob: string
   splitBudgetSearchBlob: string
   recipientId: string
@@ -431,7 +433,7 @@ export function createBillBasisColumns({
           <SplitLinesTableCell
             lineCount={row.original.splitLineCount}
             t={t}
-            title={row.original.splitLinesTooltip}
+            title={row.original.splitLinesTooltipBudget}
           />
         ) : (
           row.original.budgetName
@@ -483,7 +485,7 @@ export function createBillBasisColumns({
           <SplitLinesTableCell
             lineCount={row.original.splitLineCount}
             t={t}
-            title={row.original.splitLinesTooltip}
+            title={row.original.splitLinesTooltipCategory}
           />
         ) : (
           row.original.categoryName

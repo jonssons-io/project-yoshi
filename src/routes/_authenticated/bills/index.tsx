@@ -48,7 +48,7 @@ import {
   billSplitCategoryDisplayName,
   billSplitsBudgetSearchBlob,
   billSplitsCategorySearchBlob,
-  billSplitsTooltipSummary
+  billSplitsTooltipSummaryByField
 } from '@/lib/split-line-labels'
 
 import {
@@ -296,8 +296,16 @@ function BillsPageContent({
         splitCategoryIds,
         splitCategoryLabels,
         splitBudgetLabels,
-        splitLinesTooltip: billSplitsTooltipSummary(
+        splitLinesTooltipCategory: billSplitsTooltipSummaryByField(
           inst.splits,
+          'category',
+          categoryById,
+          budgetById,
+          uncategorized
+        ),
+        splitLinesTooltipBudget: billSplitsTooltipSummaryByField(
+          inst.splits,
+          'budget',
           categoryById,
           budgetById,
           uncategorized
@@ -710,8 +718,16 @@ function BillsPageContent({
         splitCategoryIds,
         splitCategoryLabels,
         splitBudgetLabels,
-        splitLinesTooltip: billSplitsTooltipSummary(
+        splitLinesTooltipCategory: billSplitsTooltipSummaryByField(
           bill.splits,
+          'category',
+          categoryById,
+          budgetById,
+          uncategorized
+        ),
+        splitLinesTooltipBudget: billSplitsTooltipSummaryByField(
+          bill.splits,
+          'budget',
           categoryById,
           budgetById,
           uncategorized

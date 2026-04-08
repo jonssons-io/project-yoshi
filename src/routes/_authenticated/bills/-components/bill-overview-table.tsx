@@ -58,8 +58,10 @@ export type BillOverviewRow = {
   splitCategoryLabels: Record<string, string>
   /** Display names for `splitBudgetIds` (filter dropdown + search), from nested split `budget` when present. */
   splitBudgetLabels: Record<string, string>
-  /** Tooltip on the split badge: subtitle · category · budget per line. */
-  splitLinesTooltip: string
+  /** Split-badge tooltip for the budget column (budget per line). */
+  splitLinesTooltipBudget: string
+  /** Split-badge tooltip for the category column (category per line). */
+  splitLinesTooltipCategory: string
   /** Precomputed search text for category column when splits are used. */
   splitCategorySearchBlob: string
   /** Precomputed search text for budget column when splits are used. */
@@ -406,7 +408,7 @@ export function createBillOverviewColumns(opts: {
           <SplitLinesTableCell
             lineCount={row.original.splitLineCount}
             t={t}
-            title={row.original.splitLinesTooltip}
+            title={row.original.splitLinesTooltipBudget}
           />
         ) : (
           row.original.budgetName
@@ -458,7 +460,7 @@ export function createBillOverviewColumns(opts: {
           <SplitLinesTableCell
             lineCount={row.original.splitLineCount}
             t={t}
-            title={row.original.splitLinesTooltip}
+            title={row.original.splitLinesTooltipCategory}
           />
         ) : (
           <span>{row.original.categoryName}</span>

@@ -86,7 +86,32 @@ export function billSplitsSearchBlob(
     .join(' ')
 }
 
-/** Short summary for `title` on split badges (e.g. `Sub · Cat · Budget | …`). */
+/** Which bill split field a table column’s split-badge tooltip should describe. */
+export type BillSplitTooltipField = 'subtitle' | 'category' | 'budget'
+
+/**
+ * Split-badge tooltip for one field only (e.g. category: `CatA · CatB`), matching the column.
+ */
+export function billSplitsTooltipSummaryByField(
+  splits: BillSplit[] | undefined | null,
+  field: BillSplitTooltipField,
+  categoryById: Map<string, string>,
+  budgetById: Map<string, string>,
+  uncategorized: string
+): string {
+  if (!splits?.length) return ''
+  return splits
+    .map((s) => {
+      if (field === 'subtitle') return s.subtitle?.trim() ?? ''
+      if (field === 'category') {
+        return billSplitCategoryDisplayName(s, categoryById, uncategorized)
+      }
+      return billSplitBudgetDisplayName(s, budgetById)
+    })
+    .join(' · ')
+}
+
+/** Full-row summary (e.g. blueprint revision diff), not for per-column table tooltips. */
 export function billSplitsTooltipSummary(
   splits: BillSplit[] | undefined | null,
   categoryById: Map<string, string>,
@@ -145,7 +170,9 @@ export function transactionSplitsCategorySearchBlob(
 ): string {
   if (!splits?.length) return ''
   return splits
-    .map((s) => transactionSplitCategoryDisplayName(s, categoryById, uncategorized))
+    .map((s) =>
+      transactionSplitCategoryDisplayName(s, categoryById, uncategorized)
+    )
     .filter(Boolean)
     .join(' ')
 }
@@ -170,7 +197,11 @@ export function transactionSplitsSearchBlob(
   if (!splits?.length) return ''
   return splits
     .map((s) => {
-      const c = transactionSplitCategoryDisplayName(s, categoryById, uncategorized)
+      const c = transactionSplitCategoryDisplayName(
+        s,
+        categoryById,
+        uncategorized
+      )
       const b = transactionSplitBudgetDisplayName(s, budgetById)
       const sub = s.subtitle?.trim() ?? ''
       return [
@@ -185,6 +216,32 @@ export function transactionSplitsSearchBlob(
     .join(' ')
 }
 
+export type TransactionSplitTooltipField = 'subtitle' | 'category' | 'budget'
+
+export function transactionSplitsTooltipSummaryByField(
+  splits: TransactionSplit[] | undefined | null,
+  field: TransactionSplitTooltipField,
+  categoryById: Map<string, string>,
+  budgetById: Map<string, string>,
+  uncategorized: string
+): string {
+  if (!splits?.length) return ''
+  return splits
+    .map((s) => {
+      if (field === 'subtitle') return s.subtitle?.trim() ?? ''
+      if (field === 'category') {
+        return transactionSplitCategoryDisplayName(
+          s,
+          categoryById,
+          uncategorized
+        )
+      }
+      return transactionSplitBudgetDisplayName(s, budgetById)
+    })
+    .join(' · ')
+}
+
+/** Full-row summary (non-table contexts); table cells should use {@link transactionSplitsTooltipSummaryByField}. */
 export function transactionSplitsTooltipSummary(
   splits: TransactionSplit[] | undefined | null,
   categoryById: Map<string, string>,
@@ -194,7 +251,11 @@ export function transactionSplitsTooltipSummary(
   if (!splits?.length) return ''
   return splits
     .map((s) => {
-      const c = transactionSplitCategoryDisplayName(s, categoryById, uncategorized)
+      const c = transactionSplitCategoryDisplayName(
+        s,
+        categoryById,
+        uncategorized
+      )
       const b = transactionSplitBudgetDisplayName(s, budgetById)
       const sub = s.subtitle?.trim() ?? ''
       return [
