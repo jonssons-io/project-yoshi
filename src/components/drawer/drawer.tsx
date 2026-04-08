@@ -31,10 +31,11 @@ export function DrawerShell({
   return (
     <Drawer
       direction="right"
+      handleOnly
       open={open}
       onOpenChange={onOpenChange}
     >
-      <DrawerContent className="flex h-full max-h-screen min-h-0 w-full max-w-md flex-col p-0 sm:max-w-lg">
+      <DrawerContent className="flex h-full max-h-screen min-h-0 w-full max-w-md flex-col select-text! p-0 sm:max-w-lg">
         <div className="flex shrink-0 flex-row items-start justify-between gap-4 border-b px-4 py-4">
           <div className="flex min-w-0 flex-1 flex-col gap-1">
             {title ? (
