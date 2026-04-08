@@ -284,6 +284,8 @@
     "selectCategoryType": "Välj om detta är en inkomst- eller utgiftskategori (eller båda).",
     "atleastOneTypeRequired": "Minst en kategorityp måste väljas.",
     "linkToBudgets": "Länka till budgetar",
+    "drawerBudgetAvailability": "Budgettillgänglighet",
+    "drawerSelectAtLeastOneBudget": "Välj minst en budget.",
     "selectBudgets": "Välj vilka budgetar som ska ha tillgång till denna kategori. Alla budgetar är valda som standard.",
     "notFoundOrInvalid": "Kategorin hittades inte eller är ogiltig",
     "notFound": "Kategorin hittades inte",
@@ -879,6 +881,10 @@
     },
     "createAccount": {
       "title": "Skapa konto"
+    },
+    "createCategory": {
+      "title": "Skapa kategori",
+      "description": "Kategorier låter dig finfördela utgifter och inkomster, så att du lättare kan kartlägga din ekonomi."
     },
     "allocateBudget": {
       "title": "Budgetera till {{budgetName}}"

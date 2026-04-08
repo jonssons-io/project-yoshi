@@ -129,8 +129,10 @@ function CategoriesPage() {
   )
 
   const handleCreateCategory = useCallback(() => {
-    void 0
-  }, [])
+    openDrawer('createCategory', {})
+  }, [
+    openDrawer
+  ])
 
   const handleArchive = useCallback(
     (row: CategoryTableRow, archived: boolean) => {

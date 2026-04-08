@@ -16,6 +16,7 @@ import { CategoriesTableFilterDrawer } from './drawers/categories-table-filter-d
 import { CreateAccountDrawer } from './drawers/create-account-drawer'
 import { CreateBillDrawer } from './drawers/create-bill-drawer'
 import { CreateBudgetDrawer } from './drawers/create-budget-drawer'
+import { CreateCategoryDrawer } from './drawers/create-category-drawer/create-category-drawer'
 import { CreateHouseholdDrawer } from './drawers/create-household-drawer'
 import { CreateIncomeDrawer } from './drawers/create-income-drawer/create-income-drawer'
 import { CreateTransactionDrawer } from './drawers/create-transaction-drawer'
@@ -137,6 +138,7 @@ export type DrawerPropsMap = {
   createBill: Record<string, never>
   createBudget: Record<string, never>
   createAccount: Record<string, never>
+  createCategory: Record<string, never>
   allocateBudget: {
     budgetId: string
     budgetName: string
@@ -347,6 +349,10 @@ export const drawerMeta = {
     titleKey: 'drawers.createAccount.title',
     descriptionKey: 'drawers.shared.accountDescription'
   },
+  createCategory: {
+    titleKey: 'drawers.createCategory.title',
+    descriptionKey: 'drawers.createCategory.description'
+  },
   allocateBudget: {
     titleKey: 'drawers.allocateBudget.title',
     descriptionKey: 'drawers.shared.budgetDescription',
@@ -450,6 +456,7 @@ export const drawerComponents = {
   createBill: CreateBillDrawer,
   createBudget: CreateBudgetDrawer,
   createAccount: CreateAccountDrawer,
+  createCategory: CreateCategoryDrawer,
   allocateBudget: AllocateBudgetDrawer,
   deallocateBudget: DeallocateBudgetDrawer,
   transferBudgetAllocation: TransferBudgetAllocationDrawer,
