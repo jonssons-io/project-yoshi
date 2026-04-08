@@ -123,7 +123,6 @@ export function MultiselectField({
                   <Pill
                     key={v}
                     onRemove={() => remove(v)}
-                    decorativeRemove
                     removeLabel={t('common.delete')}
                   >
                     {labelByValue(v)}
@@ -156,7 +155,12 @@ export function MultiselectField({
             className="h-px w-full shrink-0 bg-gray-300"
             aria-hidden
           />
-          <div className="flex max-h-[min(300px,var(--radix-popover-content-available-height))] flex-col gap-2 overflow-y-auto">
+          <div
+            className="flex max-h-[min(300px,var(--radix-popover-content-available-height))] min-h-0 flex-col gap-2 overflow-y-auto overscroll-contain"
+            onWheel={(e) => {
+              e.stopPropagation()
+            }}
+          >
             {filteredOptions.length === 0 ? (
               <p className="type-label px-2 py-1 text-center text-black">
                 {emptyText ?? textValues.emptyText}

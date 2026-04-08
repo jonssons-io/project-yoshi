@@ -1,21 +1,22 @@
+import { useQueryClient } from '@tanstack/react-query'
 import { Check, NotebookPen } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { z } from 'zod'
 
+import {
+  getBudgetQueryKey,
+  linkCategoryToBudgetMutation,
+  unlinkCategoryFromBudgetMutation
+} from '@/api/generated/@tanstack/react-query.gen'
 import { CategoryType } from '@/api/generated/types.gen'
 import { Alert } from '@/components/alert'
 import { Button } from '@/components/button/button'
 import { createTranslatedZodValidator, useAppForm } from '@/components/form'
 import { useAuth } from '@/contexts/auth-context'
-import {
-  useBudgetById,
-  useCategoriesList,
-  useLinkBudgetCategory,
-  useUnlinkBudgetCategory,
-  useUpdateBudget
-} from '@/hooks/api'
+import { useBudgetById, useCategoriesList, useUpdateBudget } from '@/hooks/api'
+import { invalidateByOperation } from '@/hooks/api/invalidate-by-operation'
 import { getErrorMessage } from '@/lib/api-error'
 import {
   safeValidateForm,
@@ -35,6 +36,7 @@ const DEFAULT_VALUES = {
 
 export function EditBudgetDrawer({ id, onClose }: EditBudgetDrawerProps) {
   const { t } = useTranslation()
+  const queryClient = useQueryClient()
   const { userId, householdId } = useAuth()
   const [hasInitializedForm, setHasInitializedForm] = useState(false)
 
@@ -62,8 +64,15 @@ export function EditBudgetDrawer({ id, onClose }: EditBudgetDrawerProps) {
     })
 
   const { mutateAsync: updateBudgetAsync } = useUpdateBudget()
-  const { mutateAsync: linkBudgetCategoryAsync } = useLinkBudgetCategory()
-  const { mutateAsync: unlinkBudgetCategoryAsync } = useUnlinkBudgetCategory()
+
+  const linkUnlinkMutations = useMemo(() => {
+    const linkOpts = linkCategoryToBudgetMutation()
+    const unlinkOpts = unlinkCategoryFromBudgetMutation()
+    return {
+      linkFn: linkOpts.mutationFn,
+      unlinkFn: unlinkOpts.mutationFn
+    }
+  }, [])
 
   const categoryOptions = useMemo(
     () =>
@@ -133,22 +142,43 @@ export function EditBudgetDrawer({ id, onClose }: EditBudgetDrawerProps) {
           ...currentCategoryIds
         ].filter((categoryId) => !nextCategoryIds.has(categoryId))
 
-        await Promise.all([
-          ...categoryIdsToLink.map((categoryId) =>
-            linkBudgetCategoryAsync({
-              budgetId: budget.id,
-              categoryId,
-              userId
-            })
-          ),
-          ...categoryIdsToUnlink.map((categoryId) =>
-            unlinkBudgetCategoryAsync({
-              budgetId: budget.id,
-              categoryId,
-              userId
-            })
+        const { linkFn, unlinkFn } = linkUnlinkMutations
+        if (!linkFn || !unlinkFn) {
+          toast.error(t('common.error'))
+          return
+        }
+
+        for (const categoryId of categoryIdsToLink) {
+          await linkFn(
+            {
+              path: {
+                budgetId: budget.id,
+                categoryId
+              }
+            },
+            {} as never
           )
-        ])
+        }
+        for (const categoryId of categoryIdsToUnlink) {
+          await unlinkFn(
+            {
+              path: {
+                budgetId: budget.id,
+                categoryId
+              }
+            },
+            {} as never
+          )
+        }
+
+        await queryClient.invalidateQueries({
+          queryKey: getBudgetQueryKey({
+            path: {
+              budgetId: budget.id
+            }
+          })
+        })
+        await invalidateByOperation(queryClient, 'listCategories')
 
         toast.success(t('budgets.updateSuccess'))
         onClose()

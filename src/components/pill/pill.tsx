@@ -47,7 +47,10 @@ export function Pill({
             inputIconClassName,
             'text-gray-500 hover:text-gray-800'
           )}
-          onClick={onRemove}
+          onClick={(e) => {
+            e.stopPropagation()
+            onRemove()
+          }}
           aria-label={removeLabel ?? 'Remove'}
         >
           <XIcon

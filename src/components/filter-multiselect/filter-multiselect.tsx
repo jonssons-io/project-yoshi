@@ -113,7 +113,6 @@ export function FilterMultiselect({
                   key={item}
                   onRemove={() => remove(item)}
                   removeLabel={t('common.delete')}
-                  decorativeRemove
                 >
                   {labelByValue.get(item) ?? item}
                 </Pill>
@@ -145,7 +144,12 @@ export function FilterMultiselect({
           className="h-px w-full shrink-0 bg-gray-300"
           aria-hidden={true}
         />
-        <div className="flex max-h-[min(300px,var(--radix-popover-content-available-height))] flex-col gap-2 overflow-y-auto">
+        <div
+          className="flex max-h-[min(300px,var(--radix-popover-content-available-height))] min-h-0 flex-col gap-2 overflow-y-auto overscroll-contain"
+          onWheel={(e) => {
+            e.stopPropagation()
+          }}
+        >
           {filteredOptions.length === 0 ? (
             <p className="type-label px-2 py-1 text-center text-black">
               {emptyText ?? t('common.noResultsFound')}

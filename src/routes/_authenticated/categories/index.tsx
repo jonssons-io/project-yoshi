@@ -117,9 +117,16 @@ function CategoriesPage() {
     }
   })
 
-  const handleEditCategory = useCallback(() => {
-    void 0
-  }, [])
+  const handleEditCategory = useCallback(
+    (row: CategoryTableRow) => {
+      openDrawer('editCategory', {
+        categoryId: row.id
+      })
+    },
+    [
+      openDrawer
+    ]
+  )
 
   const handleCreateCategory = useCallback(() => {
     void 0

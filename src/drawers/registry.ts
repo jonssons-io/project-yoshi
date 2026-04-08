@@ -26,6 +26,7 @@ import { EditBillBlueprintAllDrawer } from './drawers/edit-bill-blueprint-drawer
 import { EditBillBlueprintUpcomingDrawer } from './drawers/edit-bill-blueprint-drawer/edit-bill-blueprint-upcoming-drawer'
 import { EditBillInstanceDrawer } from './drawers/edit-bill-instance-drawer'
 import { EditBudgetDrawer } from './drawers/edit-budget-drawer'
+import { EditCategoryDrawer } from './drawers/edit-category-drawer/edit-category-drawer'
 import { EditHouseholdDrawer } from './drawers/edit-household-drawer'
 import { EditIncomeBlueprintDrawer } from './drawers/edit-income-blueprint-drawer'
 import { EditIncomeInstanceDrawer } from './drawers/edit-income-instance-drawer'
@@ -160,6 +161,9 @@ export type DrawerPropsMap = {
   }
   editAccount: {
     id: string
+  }
+  editCategory: {
+    categoryId: string
   }
   editIncomeInstance: {
     instanceId: string
@@ -369,6 +373,10 @@ export const drawerMeta = {
     titleKey: 'drawers.editAccount.title',
     descriptionKey: 'drawers.shared.accountDescription'
   },
+  editCategory: {
+    titleKey: 'drawers.editCategory.title',
+    descriptionKey: 'categories.editDesc'
+  },
   editIncomeInstance: {
     titleKey: 'drawers.editIncomeInstance.title',
     descriptionKey: 'drawers.shared.incomeDescription'
@@ -447,6 +455,7 @@ export const drawerComponents = {
   transferBudgetAllocation: TransferBudgetAllocationDrawer,
   editBudget: EditBudgetDrawer,
   editAccount: EditAccountDrawer,
+  editCategory: EditCategoryDrawer,
   editIncomeInstance: EditIncomeInstanceDrawer,
   editIncomeBlueprintUpcoming: EditIncomeBlueprintDrawer,
   editIncomeBlueprintAll: EditIncomeBlueprintDrawer,
