@@ -125,9 +125,15 @@ export const categoryHandlers = [
         }
       )
     }
+    const linkedBudgets = budgets.filter(
+      (b) =>
+        b.householdId === category.householdId &&
+        b.categoryIds.includes(category.id)
+    )
     return HttpResponse.json({
       ...category,
-      archived: category.archived ?? false
+      archived: category.archived ?? false,
+      budgets: linkedBudgets
     })
   }),
 

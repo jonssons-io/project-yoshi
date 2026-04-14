@@ -11,6 +11,7 @@ import { useAuth } from '@/contexts/auth-context'
 import {
   useAccountBalancesList,
   useBudgetsList,
+  useCategoryById,
   useIncomeSourcesList,
   useRecipientsList,
   useTransactionById,
@@ -126,6 +127,7 @@ export function EditTransactionDrawer({
   >({})
   const splitSwitchId = useId()
   const loadedTypeRef = useRef<TransactionType | null>(null)
+  const expenseBudgetHydrationDoneRef = useRef(false)
 
   const {
     data: transaction,
@@ -163,6 +165,20 @@ export function EditTransactionDrawer({
     householdId,
     userId,
     enabled: !!householdId
+  })
+
+  const expenseCategoryIdForBudgetHydration = useMemo(() => {
+    if (!transaction) return null
+    if (transaction.type !== TransactionType.EXPENSE) return null
+    if ((transaction.splits?.length ?? 0) > 0) return null
+    if (transaction.budget?.id) return null
+    return transaction.category?.id ?? null
+  }, [transaction])
+
+  const { data: categoryDetailForBudget } = useCategoryById({
+    categoryId: expenseCategoryIdForBudgetHydration,
+    userId,
+    enabled: Boolean(expenseCategoryIdForBudgetHydration)
   })
 
   const senderOptions = useMemo(
@@ -306,6 +322,7 @@ export function EditTransactionDrawer({
   useEffect(() => {
     setHasInitializedForm(false)
     loadedTypeRef.current = null
+    expenseBudgetHydrationDoneRef.current = false
   }, [
     transactionId
   ])
@@ -351,6 +368,35 @@ export function EditTransactionDrawer({
     hasInitializedForm,
     householdId,
     accountBalancesFetched
+  ])
+
+  /**
+   * Some API responses include the expense category but omit the top-level `budget` relation.
+   * Category detail lists linked budgets; hydrate `budgetId` so category options load and PATCH validation passes.
+   */
+  useEffect(() => {
+    if (!hasInitializedForm) return
+    if (!expenseCategoryIdForBudgetHydration) return
+    if (categoryDetailForBudget?.id !== expenseCategoryIdForBudgetHydration) {
+      return
+    }
+    if (expenseBudgetHydrationDoneRef.current) return
+    const linked = categoryDetailForBudget?.budgets
+    if (!linked?.length) return
+    const derivedBudgetId = linked[0]?.id
+    if (!derivedBudgetId) return
+    const current = form.getFieldValue('budgetId') as string
+    if (current) {
+      expenseBudgetHydrationDoneRef.current = true
+      return
+    }
+    form.setFieldValue('budgetId', derivedBudgetId)
+    expenseBudgetHydrationDoneRef.current = true
+  }, [
+    categoryDetailForBudget,
+    expenseCategoryIdForBudgetHydration,
+    hasInitializedForm,
+    form
   ])
 
   const accountOptions = useMemo(
