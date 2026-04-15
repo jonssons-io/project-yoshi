@@ -38,7 +38,8 @@ const createCategorySchema = (t: (key: string) => string) =>
         ])
       )
       .min(1, t('validation.categoryTypeRequired')),
-    budgetIds: z.array(z.string()).optional()
+    /** Registered field — must stay in form state so PATCH includes `budgetIds`. */
+    budgetIds: z.array(z.string())
   })
 
 function mapFormTypesToApi(types: ('INCOME' | 'EXPENSE')[]): CategoryType[] {
@@ -83,9 +84,6 @@ function EditCategoryFormBody({
   const incomeCheckboxId = useId()
   const expenseCheckboxId = useId()
 
-  const [selectedBudgets, setSelectedBudgets] = useState(
-    defaultValues.budgetIds
-  )
   const [selectedTypes, setSelectedTypes] = useState(defaultValues.types)
 
   const form = useAppForm({
@@ -98,8 +96,7 @@ function EditCategoryFormBody({
     onSubmit: async ({ value }) => {
       const result = safeValidateForm(categorySchema, {
         ...value,
-        types: selectedTypes,
-        budgetIds: selectedBudgets
+        types: selectedTypes
       })
       if (!result.success) {
         console.error('Category form validation failed', result.errors)
@@ -112,7 +109,7 @@ function EditCategoryFormBody({
           userId,
           name: result.data.name,
           types: mapFormTypesToApi(result.data.types),
-          budgetIds: result.data.budgetIds ?? []
+          budgetIds: result.data.budgetIds
         })
         toast.success(t('categories.updateSuccess'))
         onClose()
@@ -121,17 +118,6 @@ function EditCategoryFormBody({
       }
     }
   })
-
-  const toggleBudget = (budgetId: string) => {
-    setSelectedBudgets((prev) =>
-      prev.includes(budgetId)
-        ? prev.filter((id) => id !== budgetId)
-        : [
-            ...prev,
-            budgetId
-          ]
-    )
-  }
 
   const toggleType = (type: 'INCOME' | 'EXPENSE') => {
     setSelectedTypes((prev) => {
@@ -211,31 +197,19 @@ function EditCategoryFormBody({
         </div>
 
         {budgets.length > 0 && (
-          <div className="space-y-3 pt-2">
-            <Label>{t('categories.linkToBudgets')}</Label>
-            <p className="text-sm text-muted-foreground">
-              {t('categories.selectBudgets')}
-            </p>
-            <div className="space-y-2">
-              {budgets.map((budget) => (
-                <div
-                  key={budget.id}
-                  className="flex items-center space-x-2"
-                >
-                  <Checkbox
-                    id={`budget-${budget.id}`}
-                    checked={selectedBudgets.includes(budget.id)}
-                    onCheckedChange={() => toggleBudget(budget.id)}
-                  />
-                  <Label
-                    htmlFor={`budget-${budget.id}`}
-                    className="text-sm font-normal cursor-pointer"
-                  >
-                    {budget.name}
-                  </Label>
-                </div>
-              ))}
-            </div>
+          <div className="pt-2">
+            <form.AppField name="budgetIds">
+              {(field) => (
+                <field.CheckboxGroupField
+                  label={t('categories.linkToBudgets')}
+                  description={t('categories.selectBudgets')}
+                  options={budgets.map((b) => ({
+                    value: b.id,
+                    label: b.name
+                  }))}
+                />
+              )}
+            </form.AppField>
           </div>
         )}
       </div>

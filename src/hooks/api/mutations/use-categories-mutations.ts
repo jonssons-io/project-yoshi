@@ -3,6 +3,7 @@ import {
   archiveCategoryMutation,
   createCategoryMutation,
   deleteCategoryMutation,
+  getCategoryQueryKey,
   updateCategoryMutation
 } from '@/api/generated/@tanstack/react-query.gen'
 import type {
@@ -107,6 +108,13 @@ export function useUpdateCategory(
     },
     onSuccess: (data, variables) => {
       invalidateByOperation(queryClient, 'listCategories')
+      void queryClient.invalidateQueries({
+        queryKey: getCategoryQueryKey({
+          path: {
+            categoryId: variables.id
+          }
+        })
+      })
       callbacks?.onSuccess?.(data, variables)
     },
     onError: (error, variables) => callbacks?.onError?.(error, variables)
