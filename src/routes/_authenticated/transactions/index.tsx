@@ -17,6 +17,7 @@ import { useAuth } from '@/contexts/auth-context'
 import { useDrawer } from '@/drawers'
 import { NoData } from '@/features/no-data/no-data'
 import {
+  useAccountsList,
   useCategoriesList,
   useCloneTransaction,
   useDeleteTransaction,
@@ -26,6 +27,7 @@ import {
 import { useConfirmDialog } from '@/hooks/use-confirm-dialog'
 import { useDateRange } from '@/hooks/use-date-range'
 import { getErrorMessage } from '@/lib/api-error'
+import { accountsById } from '@/lib/accounts'
 import { getAmountBounds } from '@/lib/column-filter-utils'
 import { formatCurrency } from '@/lib/utils'
 import {
@@ -110,6 +112,17 @@ function TransactionsPage() {
     userId,
     enabled: !!householdId
   })
+
+  const { data: accounts = [] } = useAccountsList({
+    householdId,
+    userId,
+    enabled: !!householdId,
+    excludeArchived: false
+  })
+
+  const accountLabelById = useMemo(() => accountsById(accounts), [
+    accounts
+  ])
 
   const categoryById = useMemo(
     () =>
@@ -323,12 +336,19 @@ function TransactionsPage() {
     const seen = new Map<string, string>()
     for (const tx of tableData) {
       if (tx.account?.id && !seen.has(tx.account.id)) {
-        seen.set(tx.account.id, tx.account.name ?? tx.account.id)
+        seen.set(
+          tx.account.id,
+          accountLabelById.get(tx.account.id) ??
+            tx.account.name ??
+            tx.account.id
+        )
       }
       if (tx.transferToAccount?.id && !seen.has(tx.transferToAccount.id)) {
         seen.set(
           tx.transferToAccount.id,
-          tx.transferToAccount.name ?? tx.transferToAccount.id
+          accountLabelById.get(tx.transferToAccount.id) ??
+            tx.transferToAccount.name ??
+            tx.transferToAccount.id
         )
       }
     }
@@ -340,6 +360,7 @@ function TransactionsPage() {
       label
     }))
   }, [
+    accountLabelById,
     tableData
   ])
 

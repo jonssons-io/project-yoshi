@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { z } from 'zod'
 import { Button } from '@/components/button/button'
 import { useAppForm } from '@/hooks/form'
+import { formatAccountLabel } from '@/lib/accounts'
 import { createZodValidator, safeValidateForm } from '@/lib/form-validation'
 
 const chartSettingsSchema = z.object({
@@ -17,6 +18,7 @@ export type DashboardChartSettingsDrawerProps = {
   accounts: {
     id: string
     name: string
+    externalIdentifier?: string | null
   }[]
   selectedAccountIds: string[]
   projectFromBillAndIncomeEstimates: boolean
@@ -46,7 +48,7 @@ export function DashboardChartSettingsDrawer({
     () =>
       accounts.map((account) => ({
         value: account.id,
-        label: account.name
+        label: formatAccountLabel(account)
       })),
     [
       accounts

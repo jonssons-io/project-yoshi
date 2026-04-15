@@ -50,6 +50,7 @@ export type DrawerPropsMap = {
     accounts: {
       id: string
       name: string
+      externalIdentifier?: string | null
     }[]
     selectedAccountIds: string[]
     projectFromBillAndIncomeEstimates: boolean

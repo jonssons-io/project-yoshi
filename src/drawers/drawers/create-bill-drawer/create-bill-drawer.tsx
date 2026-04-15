@@ -25,6 +25,7 @@ import {
   useRecipientsList
 } from '@/hooks/api'
 import { getErrorMessage } from '@/lib/api-error'
+import { formatAccountLabel } from '@/lib/accounts'
 import {
   safeValidateForm,
   translateIfLikelyI18nKey
@@ -152,7 +153,7 @@ export function CreateBillDrawer({ onClose }: CreateBillDrawerProps) {
     () =>
       accounts.map((a) => ({
         value: a.id,
-        label: a.name
+        label: formatAccountLabel(a)
       })),
     [
       accounts

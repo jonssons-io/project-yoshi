@@ -189,7 +189,7 @@ function BillsPageContent({
   const { dateFrom, dateTo } = useDateRange()
   const [tab, setTab] = useState<BillTab>('overview')
 
-  const accountById = useMemo(
+  const accountLabelById = useMemo(
     () => accountsById(accounts),
     [
       accounts
@@ -285,8 +285,7 @@ function BillsPageContent({
           | null
           | undefined,
         accountId: inst.account?.id ?? null,
-        accountName:
-          accountById.get(inst.account?.id ?? '') ?? t('common.uncategorized'),
+        accountName: inst.account?.name ?? uncategorized,
         budgetId: inst.budget?.id ?? null,
         budgetName:
           budgetById.get(inst.budget?.id ?? '') ?? t('common.uncategorized'),
@@ -327,7 +326,6 @@ function BillsPageContent({
     })
   }, [
     rawInstances,
-    accountById,
     budgetById,
     categoryById,
     t
@@ -377,7 +375,7 @@ function BillsPageContent({
     recipients: new Map()
   })
   labelLookupRef.current = {
-    accounts: accountById,
+    accounts: accountLabelById,
     budgets: budgetById,
     categories: overviewCategoryLookup,
     recipients: recipientMap
@@ -583,7 +581,10 @@ function BillsPageContent({
     const seen = new Map<string, string>()
     for (const row of overviewRows) {
       if (row.accountId && !seen.has(row.accountId)) {
-        seen.set(row.accountId, row.accountName)
+        seen.set(
+          row.accountId,
+          accountLabelById.get(row.accountId) ?? row.accountName
+        )
       }
     }
     return [
@@ -593,6 +594,7 @@ function BillsPageContent({
       label
     }))
   }, [
+    accountLabelById,
     overviewRows
   ])
 
@@ -737,8 +739,7 @@ function BillsPageContent({
           | null
           | undefined,
         accountId: bill.account?.id ?? null,
-        accountName:
-          accountById.get(bill.account?.id ?? '') ?? t('common.uncategorized'),
+        accountName: bill.account?.name ?? t('common.uncategorized'),
         budgetId: bill.budget?.id ?? null,
         budgetName:
           budgetById.get(bill.budget?.id ?? '') ?? t('common.uncategorized'),
@@ -779,7 +780,6 @@ function BillsPageContent({
     })
   }, [
     bills,
-    accountById,
     budgetById,
     categoryById,
     t
@@ -815,7 +815,7 @@ function BillsPageContent({
 
   basisLabelLookupRef.current = {
     accounts: new Map([
-      ...accountById,
+      ...accountLabelById,
       [
         BILL_BASIS_NO_ACCOUNT_FILTER_VALUE,
         t('common.uncategorized')
@@ -902,7 +902,11 @@ function BillsPageContent({
 
       const accountValue = row.accountId ?? BILL_BASIS_NO_ACCOUNT_FILTER_VALUE
       if (!accountsSeen.has(accountValue)) {
-        accountsSeen.set(accountValue, row.accountName)
+        const label =
+          accountValue === BILL_BASIS_NO_ACCOUNT_FILTER_VALUE
+            ? row.accountName
+            : (accountLabelById.get(accountValue) ?? row.accountName)
+        accountsSeen.set(accountValue, label)
       }
 
       const budgetValue = row.budgetId ?? BILL_BASIS_NO_BUDGET_FILTER_VALUE
@@ -993,6 +997,7 @@ function BillsPageContent({
       }))
     }
   }, [
+    accountLabelById,
     basisRows,
     budgetById,
     t

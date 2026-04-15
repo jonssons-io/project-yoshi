@@ -18,6 +18,7 @@ import {
   useIncomeList
 } from '@/hooks/api'
 import { getErrorMessage } from '@/lib/api-error'
+import { formatAccountLabel } from '@/lib/accounts'
 import { translateIfLikelyI18nKey } from '@/lib/form-validation'
 
 import { mapIncomeFormToCreateVariables } from './map-to-request'
@@ -99,7 +100,7 @@ export function CreateIncomeDrawer({ onClose }: CreateIncomeDrawerProps) {
     () =>
       accounts.map((a) => ({
         value: a.id,
-        label: a.name
+        label: formatAccountLabel(a)
       })),
     [
       accounts

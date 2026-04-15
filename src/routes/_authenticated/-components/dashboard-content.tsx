@@ -31,6 +31,7 @@ import { useDrawer } from '@/drawers'
 import { useAccountBalanceChart, useHouseholdPeriodSummary } from '@/hooks/api'
 import { useDateRange } from '@/hooks/use-date-range'
 import type { ChartDataPoint } from '@/lib/dashboard-utils'
+import { formatAccountLabel } from '@/lib/accounts'
 import { formatCurrency } from '@/lib/utils'
 import type { UseDashboardSettingsResult } from './use-dashboard-settings'
 
@@ -112,6 +113,17 @@ export function DashboardContent({
     [
       accounts,
       selectedAccountIds
+    ]
+  )
+
+  const chartSeries = useMemo(
+    () =>
+      chartAccounts.map((account) => ({
+        id: account.id,
+        name: formatAccountLabel(account)
+      })),
+    [
+      chartAccounts
     ]
   )
 
@@ -340,7 +352,7 @@ export function DashboardContent({
           <div className="min-h-0 flex-1 overflow-hidden pb-4">
             <DashboardMultiSeriesLineChart
               data={chartData}
-              series={chartAccounts}
+              series={chartSeries}
             />
           </div>
         </div>

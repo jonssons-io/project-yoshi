@@ -10,6 +10,7 @@ import { useAppForm } from '@/components/form'
 import { useAuth } from '@/contexts/auth-context'
 import {
   useAccountBalancesList,
+  useAccountsList,
   useBudgetsList,
   useCategoryById,
   useIncomeSourcesList,
@@ -18,6 +19,7 @@ import {
   useUpdateTransaction
 } from '@/hooks/api'
 import { getErrorMessage } from '@/lib/api-error'
+import { accountsById } from '@/lib/accounts'
 import {
   applyZodIssuesToTanStackForm,
   clearTanStackFieldErrors,
@@ -148,6 +150,20 @@ export function EditTransactionDrawer({
       /** Editing older rows may use archived accounts; options must include them for Select pre-fill. */
       includeArchived: true
     })
+
+  const { data: accountsForLabels = [] } = useAccountsList({
+    householdId,
+    userId,
+    enabled: Boolean(householdId),
+    excludeArchived: false
+  })
+
+  const accountLabelById = useMemo(
+    () => accountsById(accountsForLabels),
+    [
+      accountsForLabels
+    ]
+  )
 
   const { data: budgets = [] } = useBudgetsList({
     householdId,
@@ -402,14 +418,17 @@ export function EditTransactionDrawer({
   const accountOptions = useMemo(
     () =>
       accountBalances.map((b) => {
-        const name = b.account.name?.trim() || t('common.account')
+        const displayName =
+          accountLabelById.get(b.account.id) ??
+          (b.account.name?.trim() || t('common.account'))
         return {
           value: b.account.id,
-          label: `${name}: ${formatCurrency(b.currentBalance)} SEK`
+          label: `${displayName}: ${formatCurrency(b.currentBalance)} SEK`
         }
       }),
     [
       accountBalances,
+      accountLabelById,
       t
     ]
   )

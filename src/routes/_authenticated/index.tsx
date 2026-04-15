@@ -90,7 +90,8 @@ function Dashboard() {
     openDrawer('dashboardChartSettings', {
       accounts: dashboardAccounts.map((account) => ({
         id: account.id,
-        name: account.name
+        name: account.name,
+        externalIdentifier: account.externalIdentifier
       })),
       selectedAccountIds: dashboardSettings.selectedAccountIds,
       projectFromBillAndIncomeEstimates:

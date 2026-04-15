@@ -121,7 +121,7 @@ function IncomePageContent({
   const { dateFrom, dateTo } = useDateRange()
   const [tab, setTab] = useState<IncomeTab>('overview')
 
-  const accountById = useMemo(
+  const accountLabelById = useMemo(
     () => accountsById(accounts),
     [
       accounts
@@ -198,7 +198,8 @@ function IncomePageContent({
         amount: inst.amount,
         accountId: inst.accountId,
         accountName:
-          accountById.get(inst.accountId) ?? t('common.uncategorized'),
+          accounts.find((a) => a.id === inst.accountId)?.name ??
+          t('common.uncategorized'),
         categoryId: inst.categoryId ?? null,
         categoryName:
           categoryById.get(inst.categoryId ?? '') ?? t('common.uncategorized'),
@@ -207,8 +208,8 @@ function IncomePageContent({
       } satisfies IncomeOverviewRow
     })
   }, [
+    accounts,
     rawInstances,
-    accountById,
     categoryById,
     incomeById,
     incomeSourceById,
@@ -221,7 +222,7 @@ function IncomePageContent({
     senders: new Map()
   })
   labelLookupRef.current = {
-    accounts: accountById,
+    accounts: accountLabelById,
     categories: categoryById,
     senders: incomeSourceById
   }
@@ -419,7 +420,8 @@ function IncomePageContent({
         accountsSeen.add(row.accountId)
         accounts.push({
           value: row.accountId,
-          label: row.accountName
+          label:
+            accountLabelById.get(row.accountId) ?? row.accountName
         })
       }
       const catKey = row.categoryId ?? '__uncategorized__'
@@ -449,6 +451,7 @@ function IncomePageContent({
       senders
     }
   }, [
+    accountLabelById,
     overviewRows,
     t
   ])
@@ -497,7 +500,8 @@ function IncomePageContent({
           amount: income.estimatedAmount,
           accountId: income.accountId,
           accountName:
-            accountById.get(income.accountId) ?? t('common.uncategorized'),
+            accounts.find((a) => a.id === income.accountId)?.name ??
+            t('common.uncategorized'),
           categoryId: income.categoryId,
           categoryName:
             categoryById.get(income.categoryId) ?? t('common.uncategorized'),
@@ -507,8 +511,8 @@ function IncomePageContent({
         }) satisfies IncomeSourceDataRow
     )
   }, [
+    accounts,
     incomes,
-    accountById,
     categoryById,
     incomeSourceById,
     t
@@ -520,7 +524,7 @@ function IncomePageContent({
     senders: new Map()
   })
   sourceDataLabelLookupRef.current = {
-    accounts: accountById,
+    accounts: accountLabelById,
     categories: categoryById,
     senders: incomeSourceById
   }
@@ -604,7 +608,8 @@ function IncomePageContent({
         accountsSeen.add(row.accountId)
         accountOpts.push({
           value: row.accountId,
-          label: row.accountName
+          label:
+            accountLabelById.get(row.accountId) ?? row.accountName
         })
       }
       if (!categoriesSeen.has(row.categoryId)) {
@@ -656,6 +661,7 @@ function IncomePageContent({
       senders: senderOpts
     }
   }, [
+    accountLabelById,
     sourceDataRows,
     t
   ])

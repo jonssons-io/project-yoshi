@@ -25,6 +25,7 @@ import {
   useUpdateIncome
 } from '@/hooks/api'
 import { getErrorMessage } from '@/lib/api-error'
+import { formatAccountLabel } from '@/lib/accounts'
 import { translateIfLikelyI18nKey } from '@/lib/form-validation'
 import { filterIncomeCategories } from '../create-income-drawer/types'
 
@@ -171,7 +172,7 @@ export function EditIncomeBlueprintDrawer({
     () =>
       accounts.map((a) => ({
         value: a.id,
-        label: a.name
+        label: formatAccountLabel(a)
       })),
     [
       accounts

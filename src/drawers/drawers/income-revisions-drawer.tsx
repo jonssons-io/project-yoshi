@@ -20,6 +20,7 @@ import {
 } from '@/hooks/api'
 import { invalidateByOperation } from '@/hooks/api/invalidate-by-operation'
 import { getErrorMessage } from '@/lib/api-error'
+import { accountsById } from '@/lib/accounts'
 
 export type IncomeRevisionsDrawerProps = {
   incomeId: string
@@ -70,12 +71,7 @@ export function IncomeRevisionsDrawer(
 
   const lookups = useMemo((): RevisionLabelLookups => {
     return {
-      accountById: new Map(
-        accounts.map((a) => [
-          a.id,
-          a.name
-        ])
-      ),
+      accountById: accountsById(accounts),
       categoryById: new Map(
         categories.map((c) => [
           c.id,

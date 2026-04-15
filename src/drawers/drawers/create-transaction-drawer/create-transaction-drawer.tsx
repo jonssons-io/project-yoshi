@@ -10,12 +10,14 @@ import { TransactionTypeSegmentedControl } from '@/components/transaction-type-s
 import { useAuth } from '@/contexts/auth-context'
 import {
   useAccountBalancesList,
+  useAccountsList,
   useBudgetsList,
   useCreateTransaction,
   useIncomeSourcesList,
   useRecipientsList
 } from '@/hooks/api'
 import { getErrorMessage } from '@/lib/api-error'
+import { accountsById } from '@/lib/accounts'
 import {
   applyZodIssuesToTanStackForm,
   clearTanStackFieldErrors,
@@ -93,6 +95,20 @@ export function CreateTransactionDrawer({
     enabled: Boolean(householdId),
     includeArchived: false
   })
+
+  const { data: accountsForLabels = [] } = useAccountsList({
+    householdId,
+    userId,
+    enabled: Boolean(householdId),
+    excludeArchived: false
+  })
+
+  const accountLabelById = useMemo(
+    () => accountsById(accountsForLabels),
+    [
+      accountsForLabels
+    ]
+  )
 
   const { data: budgets = [] } = useBudgetsList({
     householdId,
@@ -351,14 +367,17 @@ export function CreateTransactionDrawer({
   const accountOptions = useMemo(
     () =>
       accountBalances.map((b) => {
-        const name = b.account.name?.trim() || t('common.account')
+        const displayName =
+          accountLabelById.get(b.account.id) ??
+          (b.account.name?.trim() || t('common.account'))
         return {
           value: b.account.id,
-          label: `${name}: ${formatCurrency(b.currentBalance)} SEK`
+          label: `${displayName}: ${formatCurrency(b.currentBalance)} SEK`
         }
       }),
     [
       accountBalances,
+      accountLabelById,
       t
     ]
   )

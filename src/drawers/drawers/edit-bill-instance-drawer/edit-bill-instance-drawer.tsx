@@ -27,6 +27,7 @@ import {
   useUpdateBillInstance
 } from '@/hooks/api'
 import { getErrorMessage } from '@/lib/api-error'
+import { formatAccountLabel } from '@/lib/accounts'
 import { translateIfLikelyI18nKey } from '@/lib/form-validation'
 import { normalizeBackendSplits } from '@/lib/split-normalization'
 import { withSplitTotalsCoercedForValidation } from '../create-bill-drawer/bill-split-form-payload'
@@ -144,7 +145,7 @@ export function EditBillInstanceDrawer({
     () =>
       accounts.map((a) => ({
         value: a.id,
-        label: a.name
+        label: formatAccountLabel(a)
       })),
     [
       accounts
