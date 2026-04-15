@@ -131,7 +131,6 @@ export function useAccountBalancesList(params: {
     enabled: enabled && !!householdId,
     retry: false,
     staleTime: 60_000,
-    refetchOnMount: false,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
     select: (response) =>
@@ -191,7 +190,6 @@ export function useAccountBalanceChart(params: {
     enabled: Boolean(enabled && householdId && dateFromIso && dateToIso),
     retry: false,
     staleTime: 60_000,
-    refetchOnMount: false,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false
   })
