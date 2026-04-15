@@ -82,7 +82,7 @@ export function DataTable<TData>({
         actionButton={actionButton}
         labels={toolbarLabels}
       />
-      <div className="min-h-0 flex-1 overflow-x-auto">
+      <div className="min-h-0 flex-1 overflow-auto">
         <TableFrame>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (

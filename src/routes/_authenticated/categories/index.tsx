@@ -263,8 +263,8 @@ function CategoriesPage() {
       description={t('categories.pageDescription')}
       loadingContent={pageLoading}
     >
-      <div className="flex min-h-0 flex-1 flex-col gap-8 lg:flex-row lg:items-start">
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+      <div className="flex min-h-0 flex-1 flex-col gap-8 overflow-hidden lg:flex-row lg:items-stretch">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
           {showNoCategories ? (
             <NoData
               variant="no-category"
@@ -303,13 +303,14 @@ function CategoriesPage() {
         </div>
         {!showNoCategories ? (
           <aside
-            className="flex w-full shrink-0 flex-col gap-5 border-gray-200 border-t pt-6 lg:w-72 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-6"
+            className="flex min-h-0 w-full max-h-[42vh] shrink-0 flex-col gap-5 overflow-hidden border-gray-200 border-t pt-6 lg:max-h-none lg:w-72 lg:shrink-0 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-6"
             aria-label={t('categories.byBudget')}
           >
-            <h2 className="type-label text-gray-600">
+            <h2 className="type-label shrink-0 text-gray-600">
               {t('categories.byBudget')}
             </h2>
-            <div className="flex flex-col gap-5">
+            <div className="min-h-0 flex-1 overflow-y-auto">
+              <div className="flex flex-col gap-5 pb-1">
               {sortedBudgetsSidebar.map((b) => {
                 const cats = categoriesByBudget.byBudgetId.get(b.id) ?? []
                 const sortedCats = [
@@ -324,10 +325,10 @@ function CategoriesPage() {
                     key={b.id}
                     className="flex flex-col gap-2"
                   >
-                    <p className="type-label-small text-gray-500">{b.name}</p>
+                    <p className="type-label text-gray-500">{b.name}</p>
                     <div className="flex flex-row flex-wrap gap-1">
                       {sortedCats.length === 0 ? (
-                        <span className="type-body-small text-muted-foreground">
+                        <span className="type-label text-muted-foreground">
                           {'\u2014'}
                         </span>
                       ) : (
@@ -343,6 +344,7 @@ function CategoriesPage() {
                   </div>
                 )
               })}
+              </div>
             </div>
           </aside>
         ) : null}

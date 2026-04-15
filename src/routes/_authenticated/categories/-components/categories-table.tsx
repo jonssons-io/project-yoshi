@@ -144,7 +144,7 @@ export function createCategoriesTableColumns(params: {
         const linked = row.original.linkedBudgets
         if (linked.length === 0) {
           return (
-            <span className="type-body-small text-muted-foreground">
+            <span className="type-label text-muted-foreground">
               {'\u2014'}
             </span>
           )
@@ -154,7 +154,7 @@ export function createCategoriesTableColumns(params: {
             {linked.map((b) => (
               <span
                 key={b.id}
-                className="type-body-small text-foreground"
+                className="type-label text-foreground"
               >
                 {b.name}
               </span>
@@ -194,7 +194,7 @@ export function createCategoriesTableColumns(params: {
         }
         if (!categoryArchiveSupported) {
           return (
-            <span className="type-body-small text-muted-foreground">
+            <span className="type-label text-muted-foreground">
               {t('common.yes')}
             </span>
           )
