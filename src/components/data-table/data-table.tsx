@@ -1,4 +1,8 @@
-import { flexRender, type Table } from '@tanstack/react-table'
+import {
+  flexRender,
+  type PaginationState,
+  type Table
+} from '@tanstack/react-table'
 import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react'
 import type { ReactNode } from 'react'
 
@@ -39,6 +43,8 @@ export interface DataTableProps<TData> {
   toolbarLabels: DataTableToolbarLabels
   /** When true, pagination controls render below the table (table must use pagination in the hook). */
   showPagination?: boolean
+  /** When using `useDataTable` with `defaultPageSize`, pass `pagination` so the footer stays in sync with rows. */
+  pagination?: PaginationState
   /** When set, renders a single body row spanning visible columns */
   emptyMessage?: ReactNode
   getRowClassName?: (row: TData) => string | undefined
@@ -58,6 +64,7 @@ export function DataTable<TData>({
   actionButton,
   toolbarLabels,
   showPagination = false,
+  pagination,
   emptyMessage,
   getRowClassName
 }: DataTableProps<TData>) {
@@ -166,7 +173,12 @@ export function DataTable<TData>({
           </TableBody>
         </TableFrame>
       </div>
-      {showPagination ? <DataTablePagination table={table} /> : null}
+      {showPagination ? (
+        <DataTablePagination
+          pagination={pagination}
+          table={table}
+        />
+      ) : null}
     </div>
   )
 }

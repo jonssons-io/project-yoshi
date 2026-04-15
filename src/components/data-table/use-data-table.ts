@@ -28,6 +28,8 @@ export interface UseDataTableOptions<TData> {
 
 export interface UseDataTableReturn<TData> {
   table: Table<TData>
+  /** Present when `defaultPageSize` was set; use for pagination UI so it matches controlled table state. */
+  pagination?: PaginationState
   globalFilter: string
   setGlobalFilter: (value: string) => void
   columnFilters: ColumnFiltersState
@@ -246,6 +248,7 @@ export function useDataTable<TData>(
 
   return {
     table,
+    ...(enablePagination ? { pagination } : {}),
     globalFilter,
     setGlobalFilter,
     columnFilters,

@@ -287,6 +287,7 @@ function TransactionsPage() {
 
   const {
     table,
+    pagination,
     globalFilter,
     setGlobalFilter,
     columnFilters,
@@ -604,6 +605,7 @@ function TransactionsPage() {
                 pillRemoveAriaLabel: t('common.removeFilter')
               }}
               showPagination
+              pagination={pagination}
               emptyMessage={tableEmptyMessage}
               getRowClassName={(row) =>
                 row.status === TransactionStatus.PENDING
