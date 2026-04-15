@@ -11,6 +11,7 @@ import { useAuth } from '@/contexts/auth-context'
 import {
   useAccountBalancesList,
   useAccountsList,
+  useBillInstanceById,
   useBudgetsList,
   useCategoryById,
   useIncomeSourcesList,
@@ -18,8 +19,8 @@ import {
   useTransactionById,
   useUpdateTransaction
 } from '@/hooks/api'
-import { getErrorMessage } from '@/lib/api-error'
 import { accountsById } from '@/lib/accounts'
+import { getErrorMessage } from '@/lib/api-error'
 import {
   applyZodIssuesToTanStackForm,
   clearTanStackFieldErrors,
@@ -46,12 +47,25 @@ type TransactionWithUiDate = Omit<Transaction, 'date'> & {
   date: Date
 }
 
-function transactionToFormValues(tx: TransactionWithUiDate): DrawerFormValues {
+function transactionToFormValues(
+  tx: TransactionWithUiDate,
+  billInstanceDetail?: {
+    account?: {
+      id?: string | null
+      name?: string | null
+    } | null
+  } | null
+): DrawerFormValues {
+  const accountIdFromTx = tx.account?.id?.trim() ?? ''
+  const accountIdFromBillInstance =
+    billInstanceDetail?.account?.id?.trim() ?? ''
+  const accountId = accountIdFromTx || accountIdFromBillInstance
+
   const base: DrawerFormValues = {
     ...DRAWER_DEFAULT_VALUES,
     transactionType: tx.type,
     date: tx.date,
-    accountId: tx.account.id
+    accountId
   }
 
   if (tx.type === TransactionType.TRANSFER) {
@@ -140,6 +154,28 @@ export function EditTransactionDrawer({
     enabled: Boolean(transactionId)
   })
 
+  const needsBillInstanceAccountFallback = Boolean(
+    transaction?.billInstance?.id && !transaction.account.id.trim()
+  )
+
+  const {
+    data: billInstanceForAccount,
+    isFetched: billInstanceAccountFetched
+  } = useBillInstanceById({
+    instanceId: transaction?.billInstance?.id ?? null,
+    enabled: needsBillInstanceAccountFallback
+  })
+
+  const resolvedTransactionAccountId = useMemo(() => {
+    if (!transaction) return ''
+    const fromTx = transaction.account.id.trim()
+    if (fromTx) return fromTx
+    return billInstanceForAccount?.account?.id?.trim() ?? ''
+  }, [
+    transaction,
+    billInstanceForAccount
+  ])
+
   const { mutate: updateTransaction, isPending } = useUpdateTransaction()
 
   const { data: accountBalances = [], isFetched: accountBalancesFetched } =
@@ -189,7 +225,9 @@ export function EditTransactionDrawer({
     if ((transaction.splits?.length ?? 0) > 0) return null
     if (transaction.budget?.id) return null
     return transaction.category?.id ?? null
-  }, [transaction])
+  }, [
+    transaction
+  ])
 
   const { data: categoryDetailForBudget } = useCategoryById({
     categoryId: expenseCategoryIdForBudgetHydration,
@@ -347,8 +385,9 @@ export function EditTransactionDrawer({
   useEffect(() => {
     if (!transaction || hasInitializedForm) return
     if (householdId && !accountBalancesFetched) return
+    if (needsBillInstanceAccountFallback && !billInstanceAccountFetched) return
 
-    const v = transactionToFormValues(transaction)
+    const v = transactionToFormValues(transaction, billInstanceForAccount)
     form.setFieldValue('transactionType', v.transactionType)
     form.setFieldValue('name', v.name)
     form.setFieldValue('date', v.date)
@@ -383,7 +422,10 @@ export function EditTransactionDrawer({
     transaction,
     hasInitializedForm,
     householdId,
-    accountBalancesFetched
+    accountBalancesFetched,
+    needsBillInstanceAccountFallback,
+    billInstanceAccountFetched,
+    billInstanceForAccount
   ])
 
   /**
@@ -415,23 +457,41 @@ export function EditTransactionDrawer({
     form
   ])
 
-  const accountOptions = useMemo(
-    () =>
-      accountBalances.map((b) => {
-        const displayName =
-          accountLabelById.get(b.account.id) ??
-          (b.account.name?.trim() || t('common.account'))
-        return {
-          value: b.account.id,
-          label: `${displayName}: ${formatCurrency(b.currentBalance)} SEK`
-        }
-      }),
-    [
-      accountBalances,
-      accountLabelById,
-      t
+  const accountOptions = useMemo(() => {
+    const fromBalances = accountBalances.map((b) => {
+      const displayName =
+        accountLabelById.get(b.account.id) ??
+        (b.account.name?.trim() || t('common.account'))
+      return {
+        value: b.account.id,
+        label: `${displayName}: ${formatCurrency(b.currentBalance)} SEK`
+      }
+    })
+    const ids = new Set(fromBalances.map((o) => o.value))
+    const extraId = resolvedTransactionAccountId.trim()
+    if (!extraId || ids.has(extraId)) {
+      return fromBalances
+    }
+    const displayName =
+      accountLabelById.get(extraId) ??
+      transaction?.account?.name?.trim() ??
+      billInstanceForAccount?.account?.name?.trim() ??
+      t('common.account')
+    return [
+      ...fromBalances,
+      {
+        value: extraId,
+        label: `${displayName}: ${formatCurrency(0)} SEK`
+      }
     ]
-  )
+  }, [
+    accountBalances,
+    accountLabelById,
+    billInstanceForAccount?.account?.name,
+    resolvedTransactionAccountId,
+    t,
+    transaction?.account?.name
+  ])
 
   const budgetOptions = useMemo(
     () =>
@@ -546,7 +606,18 @@ export function EditTransactionDrawer({
     householdId && transaction && !accountBalancesFetched
   )
 
-  if ((isTransactionPending && !transaction) || waitingForAccountOptions) {
+  const waitingForBillInstanceAccount = Boolean(
+    householdId &&
+      transaction &&
+      needsBillInstanceAccountFallback &&
+      !billInstanceAccountFetched
+  )
+
+  if (
+    (isTransactionPending && !transaction) ||
+    waitingForAccountOptions ||
+    waitingForBillInstanceAccount
+  ) {
     return (
       <p className="type-body-medium text-gray-600">
         {t('transactions.loadingArgs')}
