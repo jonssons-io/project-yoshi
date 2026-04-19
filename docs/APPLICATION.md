@@ -10,22 +10,24 @@ See also: [Project Brief](./docs/PROJECT_BRIEF.md) ·
 
 ## Tech Stack
 
-| Layer          | Technology                                          |
-| -------------- | --------------------------------------------------- |
-| Framework      | TanStack Start (SSR, file-based routing)            |
-| UI             | React 19, shadcn/ui, Tailwind CSS v4                |
-| Forms          | TanStack Form + Zod validation                      |
-| Tables         | TanStack Table                                      |
-| Data fetching  | TanStack Query + generated REST client from OpenAPI |
-| State          | TanStack Store                                      |
-| Auth           | Clerk (email/password + SSO)                        |
-| Backend        | External backend API (OpenAPI-driven contract)      |
-| i18n           | i18next (Swedish locale)                            |
-| Charts         | Recharts                                            |
-| Date utilities | date-fns                                            |
-| Tooling        | Vite, Biome, Vitest                                 |
-| Mocking        | MSW (Mock Service Worker)                           |
-| Compiler       | React Compiler (babel plugin)                       |
+
+| Layer          | Technology                                           |
+| -------------- | ---------------------------------------------------- |
+| Framework      | TanStack Start (SSR, file-based routing)             |
+| UI             | React 19, shadcn/ui, Tailwind CSS v4                 |
+| Forms          | TanStack Form + Zod validation                       |
+| Tables         | TanStack Table ([data table system](./DATATABLE.md)) |
+| Data fetching  | TanStack Query + generated REST client from OpenAPI  |
+| State          | TanStack Store                                       |
+| Auth           | Clerk (email/password + SSO)                         |
+| Backend        | External backend API (OpenAPI-driven contract)       |
+| i18n           | i18next (Swedish locale)                             |
+| Charts         | Recharts                                             |
+| Date utilities | date-fns                                             |
+| Tooling        | Vite, Biome, Vitest                                  |
+| Mocking        | MSW (Mock Service Worker)                            |
+| Compiler       | React Compiler (babel plugin)                        |
+
 
 ## Data Model
 
@@ -58,65 +60,77 @@ erDiagram
     Category ||--o{ BlueprintSplit : "planned category"
 ```
 
+
+
 ### Key Entities
 
-| Entity               | Purpose                                                                                                          |
-| -------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| **Household**        | Top-level tenant. All data is scoped here.                                                                       |
-| **HouseholdUser**    | Join table linking users to households (multi-tenancy).                                                          |
-| **Account**          | A financial account (bank, cash, etc.) with a name, external identifier, and initial balance. Archivable.        |
-| **Budget**           | An envelope that holds allocated money for a spending purpose. Tracks `total_allocated` and `total_spent`.       |
-| **Category**         | A global label (household-scoped, not budget-scoped) for granular spending tracking. Usable across all budgets.  |
-| **Blueprint**        | A definition of a recurring or one-time bill or income. Generates instances based on recurrence rules.           |
-| **BlueprintSplit**   | A sub-line on a bill blueprint, splitting the total across budgets and optional categories.                      |
-| **Instance**         | A single expected occurrence of a blueprint at a specific date. Statuses: `upcoming`, `due`, `handled`.          |
-| **Transaction**      | The single source of truth for money movement. Types: `expense`, `income`, `transfer`.                           |
-| **TransactionSplit** | A sub-line on a transaction, splitting the total across budgets and optional categories.                         |
+
+| Entity               | Purpose                                                                                                         |
+| -------------------- | --------------------------------------------------------------------------------------------------------------- |
+| **Household**        | Top-level tenant. All data is scoped here.                                                                      |
+| **HouseholdUser**    | Join table linking users to households (multi-tenancy).                                                         |
+| **Account**          | A financial account (bank, cash, etc.) with a name, external identifier, and initial balance. Archivable.       |
+| **Budget**           | An envelope that holds allocated money for a spending purpose. Tracks `total_allocated` and `total_spent`.      |
+| **Category**         | A global label (household-scoped, not budget-scoped) for granular spending tracking. Usable across all budgets. |
+| **Blueprint**        | A definition of a recurring or one-time bill or income. Generates instances based on recurrence rules.          |
+| **BlueprintSplit**   | A sub-line on a bill blueprint, splitting the total across budgets and optional categories.                     |
+| **Instance**         | A single expected occurrence of a blueprint at a specific date. Statuses: `upcoming`, `due`, `handled`.         |
+| **Transaction**      | The single source of truth for money movement. Types: `expense`, `income`, `transfer`.                          |
+| **TransactionSplit** | A sub-line on a transaction, splitting the total across budgets and optional categories.                        |
 | **Allocation**       | A record of funds moved from the unallocated pool into a budget (or between budgets, or back to the pool).      |
-| **UnallocatedPool**  | A derived value: sum of all effective income transactions minus sum of all allocations. Not a stored entity.     |
-| **Invitation**       | Email-based invitation to join a household.                                                                      |
+| **UnallocatedPool**  | A derived value: sum of all effective income transactions minus sum of all allocations. Not a stored entity.    |
+| **Invitation**       | Email-based invitation to join a household.                                                                     |
+
 
 ### Entity Properties
 
 **Account**
+
 - `id`, `name`, `external_identifier`, `initial_balance`, `current_balance`,
-  `archived`
+`archived`
 
 **Budget**
+
 - `id`, `name`, `total_allocated`, `total_spent`
 
 **Category**
+
 - `id`, `name`, `archived`
 
 **Blueprint**
+
 - `id`, `name`, `type` (bill | income), `recurrence` (one_time | weekly |
-  monthly | yearly | custom), `start_date`, `end_date` (nullable),
-  `account_id` (nullable), `budget_id` (nullable), `category_id` (nullable)
+monthly | yearly | custom), `start_date`, `end_date` (nullable),
+`account_id` (nullable), `budget_id` (nullable), `category_id` (nullable)
 - Bill-specific: `recipient` (required)
 - Income-specific: `payer` (required)
 - Optional splits via `BlueprintSplit`
 
 **BlueprintSplit**
+
 - `id`, `blueprint_id`, `sub_name`, `sub_amount`, `budget_id`,
-  `category_id` (nullable)
+`category_id` (nullable)
 
 **Instance**
+
 - `id`, `blueprint_id`, `due_date`, `amount`, `status` (upcoming | due |
-  handled), `transaction_id` (nullable)
+handled), `transaction_id` (nullable)
 
 **Transaction**
+
 - `id`, `name`, `type` (expense | income | transfer), `amount`, `date`,
-  `account_id`, `note` (nullable), `instance_id` (nullable)
+`account_id`, `note` (nullable), `instance_id` (nullable)
 - Expense-specific: `recipient` (required), `budget_id` (required if no splits)
 - Income-specific: `source` (required)
 - Transfer-specific: `transfer_to_account_id`
 - Optional splits via `TransactionSplit`
 - Future-dated transactions are **pending** (no balance/allocation effect) until
-  their date arrives, at which point they become **effective**.
+their date arrives, at which point they become **effective**.
 
 **TransactionSplit**
+
 - `id`, `transaction_id`, `sub_name`, `sub_amount`, `budget_id`,
-  `category_id` (nullable)
+`category_id` (nullable)
 
 ### Enums
 
@@ -164,10 +178,12 @@ graph TD
 
     SidebarInset --> Header["Header<br/><small>Breadcrumbs · HeaderUserMenu<br/>Household selector</small>"]
     SidebarInset --> AuthProvider["AuthProvider<br/><small>userId · householdId</small>"]
-    AuthProvider --> Outlet["&lt;Outlet /&gt;<br/><small>Nested route content</small>"]
+    AuthProvider --> Outlet["<Outlet /><br/><small>Nested route content</small>"]
 
     DrawerProvider --> Drawer["Drawer<br/><small>Right-side panel for forms</small>"]
 ```
+
+
 
 ## User Flows
 
@@ -194,6 +210,8 @@ flowchart TD
     M --> N[App ready — show dashboard]
 ```
 
+
+
 ### Blueprint → Instance → Transaction Chain
 
 This is the core data flow for bills and income. See the project brief for full
@@ -216,6 +234,8 @@ flowchart TD
     J -->|Yes| K[Generate missing instances]
     J -->|No| L[No action]
 ```
+
+
 
 ### Transaction Creation
 
@@ -249,6 +269,8 @@ flowchart TD
     M --> O
 ```
 
+
+
 ### Budget Allocation
 
 ```mermaid
@@ -264,6 +286,8 @@ flowchart TD
     E --> H
     F --> H
 ```
+
+
 
 ### Pending Transaction Activation
 
@@ -286,28 +310,34 @@ flowchart TD
     I --> J
 ```
 
+
+
 ## State Management
 
-| Concern                        | Mechanism                                                    |
-| ------------------------------ | ------------------------------------------------------------ |
-| Server data (lists, entities)  | TanStack Query with automatic cache invalidation after mutations |
-| Auth tokens                    | Clerk `getToken()` injected into API client on mount         |
-| Household selection            | `localStorage` + React context (`HouseholdProvider`)         |
-| Budget selection (sidebar)     | `localStorage` + custom hook (`useSelectedBudget`)           |
-| Form state                     | TanStack Form (per-form instance, Zod validation)            |
-| Drawer open/close              | React context (`DrawerProvider`)                             |
+
+| Concern                       | Mechanism                                                        |
+| ----------------------------- | ---------------------------------------------------------------- |
+| Server data (lists, entities) | TanStack Query with automatic cache invalidation after mutations |
+| Auth tokens                   | Clerk `getToken()` injected into API client on mount             |
+| Household selection           | `localStorage` + React context (`HouseholdProvider`)             |
+| Budget selection (sidebar)    | `localStorage` + custom hook (`useSelectedBudget`)               |
+| Form state                    | TanStack Form (per-form instance, Zod validation)                |
+| Drawer open/close             | React context (`DrawerProvider`)                                 |
+
 
 ## API Layer
 
 The project uses a standalone REST API generated from an OpenAPI spec.
 
-| Component                                        | Detail                                                                |
-| ------------------------------------------------ | --------------------------------------------------------------------- |
-| OpenAPI spec (`src/api/luigi.yaml`)              | Contract between frontend and backend                                 |
-| Generated REST SDK (`src/api/generated/`)        | Generated via `@hey-api/openapi-ts` — **read-only, never edit**       |
-| API client config (`src/api/client-config.ts`)   | Configured with Clerk auth token                                      |
-| Hook layer (`src/hooks/api/`)                    | Generated TanStack Query options + app-specific wrappers              |
-| Mocking (`src/__mocks__/`)                       | Active for local development when `VITE_MOCK_API=true` (MSW-powered)  |
+
+| Component                                      | Detail                                                               |
+| ---------------------------------------------- | -------------------------------------------------------------------- |
+| OpenAPI spec (`src/api/luigi.yaml`)            | Contract between frontend and backend                                |
+| Generated REST SDK (`src/api/generated/`)      | Generated via `@hey-api/openapi-ts` — **read-only, never edit**      |
+| API client config (`src/api/client-config.ts`) | Configured with Clerk auth token                                     |
+| Hook layer (`src/hooks/api/`)                  | Generated TanStack Query options + app-specific wrappers             |
+| Mocking (`src/__mocks__/`)                     | Active for local development when `VITE_MOCK_API=true` (MSW-powered) |
+
 
 The generated SDK provides typed functions, Zod schemas, and TanStack Query hooks
 for every endpoint defined in the OpenAPI spec.
@@ -315,24 +345,25 @@ for every endpoint defined in the OpenAPI spec.
 ## Key Patterns
 
 - **Zero-Based Budgeting + Envelopes** — every dollar of income must be
-  allocated to a budget before it can be spent.
+allocated to a budget before it can be spent.
 - **Blueprint → Instance → Transaction** — recurring bills and income are
-  defined as blueprints, which generate instances, which are resolved by linking
-  real transactions.
+defined as blueprints, which generate instances, which are resolved by linking
+real transactions.
 - **Effective vs Pending transactions** — future-dated transactions are stored
-  but have no effect on balances or allocations until their date arrives.
+but have no effect on balances or allocations until their date arrives.
 - **Split transactions and blueprints** — a single payment can be split across
-  multiple budgets and categories.
+multiple budgets and categories.
 - **Household-scoped multi-tenancy** — all data belongs to a household; users
-  switch households at runtime.
+switch households at runtime.
 - **Drawer-based forms** — create/edit flows open in a right-side drawer panel.
 - **Inline entity creation** — combobox fields allow creating new categories and
-  recipients without leaving the current form.
+recipients without leaving the current form.
 - **Archive over delete** — accounts, categories, and blueprints with connected
-  data are archived, not permanently deleted.
+data are archived, not permanently deleted.
 - **Automatic query invalidation** — mutations invalidate related queries so the
-  UI stays fresh.
+UI stays fresh.
 - **File-based routing** — TanStack Router derives the route tree from the
-  filesystem under `src/routes/`.
+filesystem under `src/routes/`.
 - **Generated API boundary** — files in `src/api/generated/` are never edited
-  manually. Schema mismatches are resolved via backend handoff.
+manually. Schema mismatches are resolved via backend handoff.
+
