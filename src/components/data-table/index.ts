@@ -4,6 +4,10 @@ export {
   type DataTablePaginationProps
 } from './data-table-pagination'
 export {
+  DataTableQuickFilterSwitch,
+  type DataTableQuickFilterSwitchProps
+} from './data-table-quick-filter-switch'
+export {
   DataTableToolbar,
   type DataTableToolbarLabels,
   type DataTableToolbarProps

@@ -139,6 +139,7 @@ export function FilterMultiselect({
           placeholder={searchPlaceholder ?? t('common.search')}
           value={searchValue}
           onChange={(event) => setSearchValue(event.target.value)}
+          clearable
         />
         <div
           className="h-px w-full shrink-0 bg-gray-300"

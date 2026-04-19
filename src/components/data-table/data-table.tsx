@@ -48,6 +48,8 @@ export interface DataTableProps<TData> {
   /** When set, renders a single body row spanning visible columns */
   emptyMessage?: ReactNode
   getRowClassName?: (row: TData) => string | undefined
+  /** Toolbar region for table-specific quick filters (e.g. switches). */
+  quickFilters?: ReactNode
 }
 
 /**
@@ -66,7 +68,8 @@ export function DataTable<TData>({
   showPagination = false,
   pagination,
   emptyMessage,
-  getRowClassName
+  getRowClassName,
+  quickFilters
 }: DataTableProps<TData>) {
   'use no memo'
   const visibleColumnCount = table.getVisibleLeafColumns().length
@@ -79,6 +82,7 @@ export function DataTable<TData>({
         onFilterClick={onFilterClick}
         filterDisabled={filterDisabled}
         activeFilters={activeFilters}
+        quickFilters={quickFilters}
         actionButton={actionButton}
         labels={toolbarLabels}
       />

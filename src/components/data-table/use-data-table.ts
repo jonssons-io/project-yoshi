@@ -248,7 +248,11 @@ export function useDataTable<TData>(
 
   return {
     table,
-    ...(enablePagination ? { pagination } : {}),
+    ...(enablePagination
+      ? {
+          pagination
+        }
+      : {}),
     globalFilter,
     setGlobalFilter,
     columnFilters,

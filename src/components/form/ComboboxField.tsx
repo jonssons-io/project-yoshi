@@ -188,6 +188,7 @@ export function ComboboxField({
             placeholder={searchPlaceholder ?? textValues.searchPlaceholder}
             value={searchValue}
             onChange={(e) => setSearchValue(e.target.value)}
+            clearable
           />
           <div
             className="h-px w-full shrink-0 bg-gray-300"

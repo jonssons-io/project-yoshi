@@ -4,14 +4,26 @@
 
 import { createFileRoute } from '@tanstack/react-router'
 import type { ColumnFiltersState } from '@tanstack/react-table'
+import { isAfter, startOfDay } from 'date-fns'
 import { PlusIcon, Scale, TrendingDown, TrendingUp } from 'lucide-react'
-import { type ReactNode, useCallback, useMemo, useRef } from 'react'
+import {
+  type ReactNode,
+  useCallback,
+  useId,
+  useMemo,
+  useRef,
+  useState
+} from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { z } from 'zod'
 import { TransactionStatus, TransactionType } from '@/api/generated/types.gen'
 import { Button } from '@/components/button/button'
-import { DataTable, useDataTable } from '@/components/data-table'
+import {
+  DataTable,
+  DataTableQuickFilterSwitch,
+  useDataTable
+} from '@/components/data-table'
 import { PageLayout } from '@/components/page-layout/page-layout'
 import { useAuth } from '@/contexts/auth-context'
 import { useDrawer } from '@/drawers'
@@ -26,8 +38,8 @@ import {
 } from '@/hooks/api'
 import { useConfirmDialog } from '@/hooks/use-confirm-dialog'
 import { useDateRange } from '@/hooks/use-date-range'
-import { getErrorMessage } from '@/lib/api-error'
 import { accountsById } from '@/lib/accounts'
+import { getErrorMessage } from '@/lib/api-error'
 import { getAmountBounds } from '@/lib/column-filter-utils'
 import { formatCurrency } from '@/lib/utils'
 import {
@@ -61,6 +73,10 @@ function getTransactionType(
   return transaction.type
 }
 
+function isTransactionDateAfterToday(date: Date): boolean {
+  return isAfter(startOfDay(date), startOfDay(new Date()))
+}
+
 function readTransactionsDateRangeFilter(columnFilters: ColumnFiltersState):
   | {
       from?: Date
@@ -87,6 +103,8 @@ function TransactionsPage() {
   const { openDrawer } = useDrawer()
   const budgetFilter = urlBudgetId ?? ALL_BUDGETS_VALUE
   const budgetId = budgetFilter === ALL_BUDGETS_VALUE ? undefined : budgetFilter
+  const showUpcomingFilterId = useId()
+  const [showUpcomingTransactions, setShowUpcomingTransactions] = useState(true)
 
   const openCreateTransactionDrawer = useCallback(() => {
     openDrawer('createTransaction', {})
@@ -120,9 +138,12 @@ function TransactionsPage() {
     excludeArchived: false
   })
 
-  const accountLabelById = useMemo(() => accountsById(accounts), [
-    accounts
-  ])
+  const accountLabelById = useMemo(
+    () => accountsById(accounts),
+    [
+      accounts
+    ]
+  )
 
   const categoryById = useMemo(
     () =>
@@ -285,6 +306,16 @@ function TransactionsPage() {
 
   const tableData = transactions ?? []
 
+  const dataTableRows = useMemo(() => {
+    if (showUpcomingTransactions) return tableData
+    return tableData.filter(
+      (transaction) => !isTransactionDateAfterToday(transaction.date)
+    )
+  }, [
+    showUpcomingTransactions,
+    tableData
+  ])
+
   const {
     table,
     pagination,
@@ -294,7 +325,7 @@ function TransactionsPage() {
     setColumnFilters,
     activeFilters
   } = useDataTable({
-    data: tableData,
+    data: dataTableRows,
     columns,
     defaultPageSize: 15
   })
@@ -604,6 +635,15 @@ function TransactionsPage() {
                 filter: t('common.filter'),
                 pillRemoveAriaLabel: t('common.removeFilter')
               }}
+              quickFilters={
+                <DataTableQuickFilterSwitch
+                  id={showUpcomingFilterId}
+                  label={t('transactions.showUpcomingQuickFilter')}
+                  checked={showUpcomingTransactions}
+                  onCheckedChange={setShowUpcomingTransactions}
+                  disabled={filterDisabled}
+                />
+              }
               showPagination
               pagination={pagination}
               emptyMessage={tableEmptyMessage}

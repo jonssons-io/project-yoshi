@@ -36,6 +36,7 @@ export function PageDataTable({
             onChange={(e) => search.onChange(e.target.value)}
             placeholder={search.placeholder}
             className="min-w-48 max-w-md flex-1"
+            clearable
           />
           <Button
             variant="outlined"

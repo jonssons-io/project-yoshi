@@ -110,7 +110,8 @@
     "editInlineSenderNotSupported": "Nya avsändare kan inte skapas vid redigering. Välj en befintlig avsändare.",
     "deleteSuccess": "Transaktion borttagen",
     "cloneSuccess": "Transaktion klonad",
-    "scheduledLink": "Kopplad till räkning eller inkomst"
+    "scheduledLink": "Kopplad till räkning eller inkomst",
+    "showUpcomingQuickFilter": "Visa kommande"
   },
   "transfers": {
     "add": "Lägg till överföring",

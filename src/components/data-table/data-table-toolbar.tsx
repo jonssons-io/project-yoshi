@@ -24,6 +24,8 @@ export interface DataTableToolbarProps {
   /** When true, the filter control is non-interactive (e.g. no rows to filter). */
   filterDisabled?: boolean
   activeFilters: ActiveFilter[]
+  /** Optional switches or other controls that narrow rows before column/global filters. */
+  quickFilters?: ReactNode
   actionButton: {
     label: string
     onClick: () => void
@@ -43,6 +45,7 @@ export function DataTableToolbar({
   onFilterClick,
   filterDisabled = false,
   activeFilters,
+  quickFilters,
   actionButton,
   labels,
   searchInputClassName
@@ -74,6 +77,7 @@ export function DataTableToolbar({
           placeholder={labels.searchPlaceholder}
           className={cn('w-64 max-w-full shrink-0', searchInputClassName)}
           aria-label={labels.searchPlaceholder}
+          clearable
         />
         <Button
           type="button"
@@ -84,6 +88,11 @@ export function DataTableToolbar({
           onClick={onFilterClick}
           disabled={filterDisabled}
         />
+        {quickFilters ? (
+          <div className="flex shrink-0 flex-row flex-wrap items-center gap-3">
+            {quickFilters}
+          </div>
+        ) : null}
         <div className="flex min-h-9 min-w-0 flex-1 flex-row flex-nowrap items-center gap-2 overflow-x-auto overscroll-x-contain py-0.5">
           {activeFilters.map((filter) => {
             const pillText =
