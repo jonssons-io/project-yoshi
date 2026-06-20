@@ -95,7 +95,7 @@ function Sidebar({
       <aside
         data-slot="sidebar"
         className={cn(
-          'box-border flex h-svh w-fit shrink-0 flex-col border-r border-gray-300 bg-white pt-4',
+          'box-border flex h-svh w-fit shrink-0 flex-col border-r border-sidebar-border bg-sidebar pt-4',
           className
         )}
         {...props}
@@ -113,7 +113,7 @@ function Sidebar({
       <SheetContent
         side="left"
         data-slot="sidebar-mobile"
-        className="w-auto max-w-[calc(100vw-2rem)] bg-white p-0 [&>button]:hidden"
+        className="w-auto max-w-[calc(100vw-2rem)] bg-sidebar p-0 [&>button]:hidden"
       >
         <SheetHeader className="sr-only">
           <SheetTitle>{t('dashboard.sidebar')}</SheetTitle>
@@ -140,7 +140,7 @@ function SidebarInset({ className, ...props }: React.ComponentProps<'main'>) {
     <main
       data-slot="sidebar-inset"
       className={cn(
-        'flex h-svh min-h-0 min-w-0 flex-1 flex-col overflow-hidden',
+        'flex h-svh min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-background',
         className
       )}
       {...props}

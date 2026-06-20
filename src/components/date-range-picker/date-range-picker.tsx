@@ -127,20 +127,20 @@ export function DateRangePicker({
           <span
             className={cn(
               'min-w-0 flex-1 truncate text-left type-label',
-              display ? 'text-black' : 'text-gray-500'
+              display ? 'text-foreground' : 'text-muted-foreground'
             )}
           >
             {display || effectivePlaceholder}
           </span>
           <CalendarIcon
             strokeWidth={INPUT_ICON_STROKE}
-            className="size-4 shrink-0 text-gray-500"
+            className="size-4 shrink-0 text-muted-foreground"
             aria-hidden
           />
         </ShadcnButton>
       </PopoverTrigger>
       <PopoverContent
-        className="w-auto border border-gray-300 p-0"
+        className="w-auto border border-border bg-popover p-0 text-popover-foreground"
         align={align}
         side={side}
       >

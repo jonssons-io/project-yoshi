@@ -132,7 +132,7 @@ export function FilterMultiselect({
         </ShadcnButton>
       </PopoverTrigger>
       <PopoverContent
-        className="flex w-(--radix-popover-trigger-width) flex-col gap-0 overflow-hidden rounded-sm border border-gray-300 bg-white p-0 shadow-md"
+        className="flex w-(--radix-popover-trigger-width) flex-col gap-0 overflow-hidden rounded-sm border border-border bg-popover p-0 text-popover-foreground shadow-md"
         align="start"
       >
         <DropdownSearchInput

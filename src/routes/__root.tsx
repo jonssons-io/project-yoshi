@@ -9,6 +9,7 @@ import {
 } from '@tanstack/react-router'
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { MockProvider } from '@/__mocks__/MockProvider'
+import { ThemeProvider } from '@/components/theme-provider'
 import { Toaster } from '@/components/ui/sonner'
 import TanStackQueryDevtools from '../integrations/tanstack-query/devtools'
 
@@ -64,6 +65,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
     <html
       lang="sv"
       className="h-full w-full overflow-hidden"
+      suppressHydrationWarning
     >
       <head>
         <HeadContent />
@@ -71,24 +73,26 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       <body className="flex h-full w-full overflow-hidden justify-center items-center">
         <MockProvider>
           <QueryClientProvider client={context.queryClient}>
-            <ClerkProvider
-              publishableKey={import.meta.env.VITE_CLERK_PUBLISHABLE_KEY}
-            >
-              {children}
-              <Toaster />
-              <TanStackDevtools
-                config={{
-                  position: 'bottom-right'
-                }}
-                plugins={[
-                  {
-                    name: 'Tanstack Router',
-                    render: <TanStackRouterDevtoolsPanel />
-                  },
-                  TanStackQueryDevtools
-                ]}
-              />
-            </ClerkProvider>
+            <ThemeProvider>
+              <ClerkProvider
+                publishableKey={import.meta.env.VITE_CLERK_PUBLISHABLE_KEY}
+              >
+                {children}
+                <Toaster />
+                <TanStackDevtools
+                  config={{
+                    position: 'bottom-right'
+                  }}
+                  plugins={[
+                    {
+                      name: 'Tanstack Router',
+                      render: <TanStackRouterDevtoolsPanel />
+                    },
+                    TanStackQueryDevtools
+                  ]}
+                />
+              </ClerkProvider>
+            </ThemeProvider>
           </QueryClientProvider>
         </MockProvider>
         <Scripts />

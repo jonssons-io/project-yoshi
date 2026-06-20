@@ -111,7 +111,15 @@
     "deleteSuccess": "Transaktion borttagen",
     "cloneSuccess": "Transaktion klonad",
     "scheduledLink": "Kopplad till räkning eller inkomst",
-    "showUpcomingQuickFilter": "Visa kommande"
+    "showUpcomingQuickFilter": "Visa kommande",
+    "insufficientBudgetAllocateTitle": "Otillräckliga budgetmedel",
+    "insufficientBudgetAllocateIntro": "Vald budget har inte tillräckligt fördelade medel för denna utgift.",
+    "insufficientBudgetShortfallLine": "{{budgetName}}: {{remaining}} kvar, behöver {{shortfall}} till för denna utgift",
+    "unallocatedPoolAvailable": "Tillgängligt att fördela: {{amount}}",
+    "allocateAmountLabel": "Belopp att fördela",
+    "allocateAndCreate": "Fördela och skapa",
+    "allocateAndUpdate": "Fördela och spara",
+    "allocationAppliedSubmitFailed": "Medel fördelades men transaktionen kunde inte sparas. {{error}}"
   },
   "transfers": {
     "add": "Lägg till överföring",
@@ -470,6 +478,7 @@
     "accept": "Acceptera",
     "decline": "Avböj",
     "switchHousehold": "Byt hushåll",
+    "darkMode": "Mörkt läge",
     "signOut": "Logga ut",
     "profile": "Profil",
     "toggleSidebar": "Växla sidopanel",

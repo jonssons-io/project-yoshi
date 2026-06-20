@@ -80,7 +80,7 @@ export function LineChartMultiSeries({
 
   if (!data || data.length === 0) {
     return (
-      <div className="flex h-full min-h-40 w-full items-center justify-center rounded-lg border border-gray-200 bg-gray-50 text-muted-foreground">
+      <div className="flex h-full min-h-40 w-full items-center justify-center rounded-lg border border-border bg-muted text-muted-foreground">
         {emptyMessage}
       </div>
     )

@@ -116,8 +116,8 @@ export function PageLayout({
           <div className="flex min-h-0 flex-row items-stretch justify-between gap-4">
             <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-4">
               <div className="flex shrink-0 flex-col gap-3">
-                <h1 className="type-title-large text-black">{title}</h1>
-                <div className="type-body-medium text-gray-800">
+                <h1 className="type-title-large text-foreground">{title}</h1>
+                <div className="type-body-medium text-muted-foreground">
                   {description}
                 </div>
               </div>
@@ -155,7 +155,7 @@ export function PageLayout({
         </div>
       )}
       {tabs}
-      <div className="flex min-h-0 flex-1 flex-col border-t border-gray-300 p-4">
+      <div className="flex min-h-0 flex-1 flex-col border-t border-border p-4">
         {loadingContent ? <PageLayoutContentSkeleton /> : children}
       </div>
     </div>

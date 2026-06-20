@@ -93,7 +93,7 @@ export function AppSidebar({
             className="px-4"
           >
             <div className="flex items-center gap-3">
-              <div className="flex size-8 items-center justify-center rounded-md bg-purple-500 text-white">
+              <div className="flex size-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
                 <span
                   className="text-[1.5rem] leading-none font-medium"
                   style={{
@@ -105,7 +105,7 @@ export function AppSidebar({
               </div>
               <div className="flex flex-col">
                 <span
-                  className="leading-5 text-black"
+                  className="leading-5 text-foreground"
                   style={{
                     fontFamily: 'var(--font-nunito-sans)',
                     fontSize: '0.875rem',
@@ -115,7 +115,7 @@ export function AppSidebar({
                   {t('common.appName')}
                 </span>
                 <span
-                  className="leading-4 text-black"
+                  className="leading-4 text-muted-foreground"
                   style={{
                     fontFamily: 'var(--font-nunito-sans)',
                     fontSize: '0.75rem',
@@ -129,7 +129,9 @@ export function AppSidebar({
           </Link>
 
           <div className="flex flex-col gap-2 px-4">
-            <span className="type-label text-black">{t('common.date')}</span>
+            <span className="type-label text-foreground">
+              {t('common.date')}
+            </span>
             <DateRangePicker
               value={{
                 from: dateFrom,
@@ -155,12 +157,13 @@ export function AppSidebar({
                       exact: item.url === '/'
                     }}
                     activeProps={{
-                      className: 'bg-purple-800 text-white'
+                      className:
+                        'bg-sidebar-primary text-sidebar-primary-foreground'
                     }}
                     inactiveProps={{
-                      className: 'bg-transparent text-black'
+                      className: 'bg-transparent text-sidebar-foreground'
                     }}
-                    className="type-label flex w-full items-center gap-2 rounded-none px-4 py-2 outline-hidden focus-visible:ring-2 focus-visible:ring-purple-800"
+                    className="type-label flex w-full items-center gap-2 rounded-none px-4 py-2 outline-hidden focus-visible:ring-2 focus-visible:ring-sidebar-ring"
                   >
                     <item.icon className="size-4 shrink-0 stroke-[1.5]" />
                     <span>{item.title}</span>
@@ -171,7 +174,7 @@ export function AppSidebar({
           </nav>
         </div>
 
-        <div className="border-t border-gray-300">
+        <div className="border-t border-sidebar-border">
           <SidebarUserMenu
             user={user}
             households={households}

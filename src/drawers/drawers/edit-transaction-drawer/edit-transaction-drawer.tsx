@@ -11,14 +11,17 @@ import { useAuth } from '@/contexts/auth-context'
 import {
   useAccountBalancesList,
   useAccountsList,
+  useAllocationsQuery,
   useBillInstanceById,
   useBudgetsList,
   useCategoryById,
+  useCreateAllocationMutation,
   useIncomeSourcesList,
   useRecipientsList,
   useTransactionById,
   useUpdateTransaction
 } from '@/hooks/api'
+import { useBudgetAllocateOnDemandDialog } from '@/hooks/use-budget-allocate-on-demand-dialog'
 import { accountsById } from '@/lib/accounts'
 import { getErrorMessage } from '@/lib/api-error'
 import {
@@ -29,6 +32,12 @@ import {
 import { formatCurrency } from '@/lib/utils'
 
 import { ExpenseIncomeTransferFields } from '../create-transaction-drawer/expense-income-transfer-fields'
+import {
+  expenseLinesFromFormValues,
+  expenseLinesFromTransaction,
+  resolveExpenseBudgetShortfalls
+} from '../create-transaction-drawer/budget-allocation-shortfall'
+import { submitExpenseWithOptionalAllocation } from '../create-transaction-drawer/submit-expense-with-allocation'
 import { drawerFormSchema } from '../create-transaction-drawer/schema'
 import {
   DRAWER_DEFAULT_VALUES,
@@ -176,7 +185,22 @@ export function EditTransactionDrawer({
     billInstanceForAccount
   ])
 
-  const { mutate: updateTransaction, isPending } = useUpdateTransaction()
+  const { promptAllocation, allocateOnDemandDialog } =
+    useBudgetAllocateOnDemandDialog()
+
+  const { mutateAsync: updateTransactionAsync, isPending: isUpdating } =
+    useUpdateTransaction()
+  const { mutateAsync: createAllocationAsync, isPending: isAllocating } =
+    useCreateAllocationMutation()
+
+  const { data: allocationSummary } = useAllocationsQuery({
+    householdId: householdId ?? '',
+    userId: userId ?? '',
+    enabled: Boolean(householdId && userId)
+  })
+
+  const unallocatedAmount = allocationSummary?.unallocated ?? 0
+  const isPending = isUpdating || isAllocating
 
   const { data: accountBalances = [], isFetched: accountBalancesFetched } =
     useAccountBalancesList({
@@ -334,11 +358,13 @@ export function EditTransactionDrawer({
       const instanceId =
         transaction.billInstance?.id ?? transaction.incomeInstance?.id ?? null
 
+      const data = zodResult.data
+
       let body: ReturnType<typeof buildUpdateTransactionBody>
       try {
         body = buildUpdateTransactionBody({
           t,
-          data: zodResult.data,
+          data,
           hasSplits,
           instanceId
         })
@@ -347,28 +373,57 @@ export function EditTransactionDrawer({
         return
       }
 
-      updateTransaction(
-        {
-          id: transactionId,
-          userId,
-          date: zodResult.data.date,
-          ...body
-        },
-        {
-          onSuccess: () => {
-            const kind = loadedTypeRef.current
-            toast.success(
-              kind === TransactionType.TRANSFER
-                ? t('transfers.updateSuccess')
-                : t('transactions.updateSuccess')
-            )
-            onClose()
-          },
-          onError: (err) => {
-            toast.error(getErrorMessage(err))
-          }
+      const originalExpenseLines = expenseLinesFromTransaction({
+        type: transaction.type,
+        amount: transaction.amount,
+        budget: transaction.budget,
+        splits: transaction.splits
+      })
+      const newExpenseLines = expenseLinesFromFormValues({
+        hasSplits,
+        amount: data.amount,
+        budgetId: data.budgetId,
+        splits: data.splits
+      })
+      const shortfalls =
+        data.transactionType === TransactionType.EXPENSE
+          ? resolveExpenseBudgetShortfalls({
+              mode: 'edit',
+              budgets,
+              newExpenseLines,
+              newDate: data.date,
+              originalExpenseLines,
+              originalDate: transaction.date
+            })
+          : []
+
+      const didSubmit = await submitExpenseWithOptionalAllocation({
+        shortfalls,
+        unallocatedAmount,
+        userId,
+        confirmLabel: t('transactions.allocateAndUpdate'),
+        t,
+        promptAllocation,
+        createAllocationAsync,
+        submitTransaction: async () => {
+          await updateTransactionAsync({
+            id: transactionId,
+            userId,
+            date: data.date,
+            ...body
+          })
         }
-      )
+      })
+
+      if (didSubmit) {
+        const kind = loadedTypeRef.current
+        toast.success(
+          kind === TransactionType.TRANSFER
+            ? t('transfers.updateSuccess')
+            : t('transactions.updateSuccess')
+        )
+        onClose()
+      }
     }
   })
 
@@ -635,14 +690,16 @@ export function EditTransactionDrawer({
       : t('transactions.update')
 
   return (
-    <form
-      className="flex h-full min-h-0 flex-1 flex-col"
-      onSubmit={(e) => {
-        e.preventDefault()
-        e.stopPropagation()
-        void form.handleSubmit()
-      }}
-    >
+    <>
+      {allocateOnDemandDialog}
+      <form
+        className="flex h-full min-h-0 flex-1 flex-col"
+        onSubmit={(e) => {
+          e.preventDefault()
+          e.stopPropagation()
+          void form.handleSubmit()
+        }}
+      >
       <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto">
         <form.Subscribe
           selector={(s) => ({
@@ -699,5 +756,6 @@ export function EditTransactionDrawer({
         </form.Subscribe>
       </div>
     </form>
+    </>
   )
 }

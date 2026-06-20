@@ -6,6 +6,8 @@ import {
   Plus,
   Settings
 } from 'lucide-react'
+import { useTheme } from 'next-themes'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
@@ -20,6 +22,7 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
+import { Switch } from '@/components/ui/switch'
 
 interface LocalHousehold {
   id: string
@@ -53,6 +56,12 @@ export function SidebarUserMenu({
   onSignOut
 }: SidebarUserMenuProps) {
   const { t } = useTranslation()
+  const { theme, setTheme } = useTheme()
+  const [themeReady, setThemeReady] = useState(false)
+  useEffect(() => {
+    setThemeReady(true)
+  }, [])
+
   const userInitials =
     user.fullName
       ?.split(' ')
@@ -68,7 +77,7 @@ export function SidebarUserMenu({
       <DropdownMenuTrigger asChild>
         <button
           type="button"
-          className="flex w-full items-center gap-3 p-4 text-left outline-hidden transition-colors hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-purple-800"
+          className="flex w-full items-center gap-3 p-4 text-left outline-hidden transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
         >
           <Avatar className="size-12">
             <AvatarImage
@@ -81,7 +90,7 @@ export function SidebarUserMenu({
           </Avatar>
           <div className="flex min-w-0 flex-col gap-1">
             <p
-              className="truncate leading-5 text-black"
+              className="truncate leading-5 text-foreground"
               style={{
                 fontFamily: 'var(--font-nunito-sans)',
                 fontSize: '1rem',
@@ -91,7 +100,7 @@ export function SidebarUserMenu({
               {user.fullName}
             </p>
             <p
-              className="truncate leading-4 text-gray-800"
+              className="truncate leading-4 text-muted-foreground"
               style={{
                 fontFamily: 'var(--font-nunito-sans)',
                 fontSize: '0.75rem',
@@ -161,6 +170,18 @@ export function SidebarUserMenu({
             <span>{t('forms.invitations')}</span>
           </DropdownMenuItem>
         </DropdownMenuGroup>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          className="flex cursor-default items-center justify-between gap-3"
+          onSelect={(event) => event.preventDefault()}
+        >
+          <span className="type-label">{t('dashboard.darkMode')}</span>
+          <Switch
+            checked={themeReady && theme === 'dark'}
+            onCheckedChange={(checked) => setTheme(checked ? 'dark' : 'light')}
+            aria-label={t('dashboard.darkMode')}
+          />
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={onSignOut}>
           <LogOut className="size-4" />

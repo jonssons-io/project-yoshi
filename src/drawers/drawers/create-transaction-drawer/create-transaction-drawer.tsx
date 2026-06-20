@@ -11,11 +11,14 @@ import { useAuth } from '@/contexts/auth-context'
 import {
   useAccountBalancesList,
   useAccountsList,
+  useAllocationsQuery,
   useBudgetsList,
+  useCreateAllocationMutation,
   useCreateTransaction,
   useIncomeSourcesList,
   useRecipientsList
 } from '@/hooks/api'
+import { useBudgetAllocateOnDemandDialog } from '@/hooks/use-budget-allocate-on-demand-dialog'
 import { getErrorMessage } from '@/lib/api-error'
 import { accountsById } from '@/lib/accounts'
 import {
@@ -25,8 +28,13 @@ import {
 } from '@/lib/form-validation'
 import { formatCurrency } from '@/lib/utils'
 
+import {
+  expenseLinesFromFormValues,
+  resolveExpenseBudgetShortfalls
+} from './budget-allocation-shortfall'
 import { ExpenseIncomeTransferFields } from './expense-income-transfer-fields'
 import { buildCreateTransactionBody } from './map-to-request'
+import { submitExpenseWithOptionalAllocation } from './submit-expense-with-allocation'
 import { drawerFormSchema } from './schema'
 import {
   DRAWER_DEFAULT_VALUES,
@@ -87,7 +95,22 @@ export function CreateTransactionDrawer({
 
   const isInstanceLinked = !!incomeInstance || !!billInstance
 
-  const { mutate: createTransaction, isPending } = useCreateTransaction()
+  const { promptAllocation, allocateOnDemandDialog } =
+    useBudgetAllocateOnDemandDialog()
+
+  const { mutateAsync: createTransactionAsync, isPending: isCreating } =
+    useCreateTransaction()
+  const { mutateAsync: createAllocationAsync, isPending: isAllocating } =
+    useCreateAllocationMutation()
+
+  const { data: allocationSummary } = useAllocationsQuery({
+    householdId: householdId ?? '',
+    userId: userId ?? '',
+    enabled: Boolean(householdId && userId)
+  })
+
+  const unallocatedAmount = allocationSummary?.unallocated ?? 0
+  const isPending = isCreating || isAllocating
 
   const { data: accountBalances = [] } = useAccountBalancesList({
     householdId,
@@ -288,21 +311,41 @@ export function CreateTransactionDrawer({
         return
       }
 
-      createTransaction(
-        {
-          userId,
-          ...body
-        },
-        {
-          onSuccess: () => {
-            toast.success(t('transactions.createSuccess'))
-            onClose()
-          },
-          onError: (err) => {
-            toast.error(getErrorMessage(err))
-          }
+      const shortfalls =
+        data.transactionType === TransactionType.EXPENSE
+          ? resolveExpenseBudgetShortfalls({
+              mode: 'create',
+              budgets,
+              newExpenseLines: expenseLinesFromFormValues({
+                hasSplits,
+                amount: data.amount,
+                budgetId: data.budgetId,
+                splits: data.splits
+              }),
+              newDate: data.date
+            })
+          : []
+
+      const didSubmit = await submitExpenseWithOptionalAllocation({
+        shortfalls,
+        unallocatedAmount,
+        userId,
+        confirmLabel: t('transactions.allocateAndCreate'),
+        t,
+        promptAllocation,
+        createAllocationAsync,
+        submitTransaction: async () => {
+          await createTransactionAsync({
+            userId,
+            ...body
+          })
         }
-      )
+      })
+
+      if (didSubmit) {
+        toast.success(t('transactions.createSuccess'))
+        onClose()
+      }
     }
   })
 
@@ -504,14 +547,16 @@ export function CreateTransactionDrawer({
   )
 
   return (
-    <form
-      className="flex h-full min-h-0 flex-1 flex-col"
-      onSubmit={(e) => {
-        e.preventDefault()
-        e.stopPropagation()
-        void form.handleSubmit()
-      }}
-    >
+    <>
+      {allocateOnDemandDialog}
+      <form
+        className="flex h-full min-h-0 flex-1 flex-col"
+        onSubmit={(e) => {
+          e.preventDefault()
+          e.stopPropagation()
+          void form.handleSubmit()
+        }}
+      >
       <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto">
         {!isInstanceLinked && (
           <form.AppField name="transactionType">
@@ -583,5 +628,6 @@ export function CreateTransactionDrawer({
         </form.Subscribe>
       </div>
     </form>
+    </>
   )
 }

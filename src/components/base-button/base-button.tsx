@@ -7,7 +7,7 @@ export type ButtonVariant = 'filled' | 'outlined' | 'text'
 export type ButtonColor = 'primary' | 'destructive' | 'subtle'
 
 export const baseButtonVariants = cva(
-  'type-button inline-flex items-center justify-center whitespace-nowrap rounded-[0.25rem] border border-transparent bg-transparent text-center transition-colors disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-purple-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background aria-invalid:border-red-500 aria-invalid:ring-red-500/30 cursor-pointer',
+  'type-button inline-flex items-center justify-center whitespace-nowrap rounded-[0.25rem] border border-transparent bg-transparent text-center transition-colors disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background aria-invalid:border-red-500 aria-invalid:ring-red-500/30 cursor-pointer',
   {
     variants: {
       variant: {
@@ -29,47 +29,56 @@ export const baseButtonVariants = cva(
       {
         variant: 'filled',
         color: 'primary',
-        className: 'bg-purple-800 text-white hover:bg-purple-800/90'
+        className:
+          'bg-purple-800 text-white hover:bg-purple-800/90 dark:bg-primary dark:text-primary-foreground dark:hover:bg-primary/90'
       },
       {
         variant: 'outlined',
         color: 'primary',
-        className: 'border-purple-800 text-purple-800 hover:bg-purple-800/5'
+        className:
+          'border-purple-800 text-purple-800 hover:bg-purple-800/5 dark:border-primary dark:text-primary dark:hover:bg-primary/10'
       },
       {
         variant: 'text',
         color: 'primary',
-        className: 'text-purple-800 hover:bg-purple-800/5'
+        className:
+          'text-purple-800 hover:bg-purple-800/5 dark:text-primary dark:hover:bg-primary/10'
       },
       {
         variant: 'filled',
         color: 'destructive',
-        className: 'bg-red-500 text-white hover:bg-red-500/90'
+        className:
+          'bg-red-500 text-white hover:bg-red-500/90 dark:bg-destructive dark:text-destructive-foreground dark:hover:bg-destructive/90'
       },
       {
         variant: 'outlined',
         color: 'destructive',
-        className: 'border-red-500 text-red-500 hover:bg-red-100'
+        className:
+          'border-red-500 text-red-500 hover:bg-red-100 dark:border-destructive dark:text-destructive dark:hover:bg-destructive/10'
       },
       {
         variant: 'text',
         color: 'destructive',
-        className: 'text-red-500 hover:bg-red-100'
+        className:
+          'text-red-500 hover:bg-red-100 dark:text-destructive dark:hover:bg-destructive/10'
       },
       {
         variant: 'filled',
         color: 'subtle',
-        className: 'bg-gray-800 text-white hover:bg-gray-800/90'
+        className:
+          'bg-gray-800 text-white hover:bg-gray-800/90 dark:bg-secondary dark:text-secondary-foreground dark:hover:bg-secondary/80'
       },
       {
         variant: 'outlined',
         color: 'subtle',
-        className: 'border-gray-800 text-gray-800 hover:bg-gray-100'
+        className:
+          'border-gray-800 text-gray-800 hover:bg-gray-100 dark:border-border dark:text-foreground dark:hover:bg-muted'
       },
       {
         variant: 'text',
         color: 'subtle',
-        className: 'text-gray-800 hover:bg-gray-100'
+        className:
+          'text-gray-800 hover:bg-gray-100 dark:text-muted-foreground dark:hover:bg-muted'
       }
     ],
     defaultVariants: {

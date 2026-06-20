@@ -30,8 +30,8 @@ import { useAuth } from '@/contexts/auth-context'
 import { useDrawer } from '@/drawers'
 import { useAccountBalanceChart, useHouseholdPeriodSummary } from '@/hooks/api'
 import { useDateRange } from '@/hooks/use-date-range'
-import type { ChartDataPoint } from '@/lib/dashboard-utils'
 import { formatAccountLabel } from '@/lib/accounts'
+import type { ChartDataPoint } from '@/lib/dashboard-utils'
 import { formatCurrency } from '@/lib/utils'
 import type { UseDashboardSettingsResult } from './use-dashboard-settings'
 
@@ -327,11 +327,11 @@ export function DashboardContent({
         <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden">
           <div className="flex shrink-0 flex-row items-start justify-between gap-4">
             <div className="flex min-w-0 flex-1 flex-col gap-1">
-              <h2 className="type-body-medium text-black">
+              <h2 className="type-body-medium text-foreground">
                 {t('dashboard.accountBalanceTitle')}
               </h2>
               {hasStaleHistory ? (
-                <p className="type-label text-gray-800">
+                <p className="type-label text-muted-foreground">
                   {t('dashboard.staleHistory')}
                 </p>
               ) : null}
@@ -357,17 +357,17 @@ export function DashboardContent({
           </div>
         </div>
 
-        <div className="flex max-h-[35vh] shrink-0 flex-col overflow-y-auto border-t border-gray-300 pt-6 lg:flex-row lg:items-stretch lg:overflow-hidden">
+        <div className="flex max-h-[35vh] shrink-0 flex-col overflow-y-auto border-t border-border pt-6 lg:flex-row lg:items-stretch lg:overflow-hidden">
           <div className="flex w-full min-w-0 flex-col gap-6 lg:min-h-0 lg:w-0 lg:flex-1 lg:overflow-hidden lg:pr-6">
             <div className="flex shrink-0 flex-wrap items-center justify-between gap-2">
               <p className="min-w-0 flex-1">
-                <span className="type-body-medium text-black">
+                <span className="type-body-medium text-foreground">
                   {t('accounts.title')}
                 </span>
-                <span className="type-body-medium text-black">
+                <span className="type-body-medium text-foreground">
                   {t('common.sectionTitleSeparator')}
                 </span>
-                <span className="type-label text-gray-800">
+                <span className="type-label text-muted-foreground">
                   {t('dashboard.availableFundsInline')}{' '}
                   {formatCurrency(totalAvailableFunds)}
                 </span>
@@ -387,18 +387,18 @@ export function DashboardContent({
             </div>
             <div className="overflow-x-auto lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
               <Table>
-                <TableHeader className="sticky top-0 z-10 bg-white">
+                <TableHeader className="sticky top-0 z-10 bg-card">
                   <TableRow className="hover:bg-transparent">
-                    <TableHead className="type-label h-auto py-2 pr-2 pl-0 text-gray-800">
+                    <TableHead className="type-label h-auto py-2 pr-2 pl-0 text-muted-foreground">
                       {t('dashboard.accountNameColumn')}
                     </TableHead>
-                    <TableHead className="type-label h-auto py-2 pr-2 pl-0 text-gray-800">
+                    <TableHead className="type-label h-auto py-2 pr-2 pl-0 text-muted-foreground">
                       {t('accounts.externalId')}
                     </TableHead>
-                    <TableHead className="type-label h-auto py-2 pr-2 pl-0 text-gray-800">
+                    <TableHead className="type-label h-auto py-2 pr-2 pl-0 text-muted-foreground">
                       {t('dashboard.balanceColumn')}
                     </TableHead>
-                    <TableHead className="type-label h-auto w-10 py-2 pr-0 pl-0 text-end text-gray-800">
+                    <TableHead className="type-label h-auto w-10 py-2 pr-0 pl-0 text-end text-muted-foreground">
                       <span className="sr-only">{t('common.more')}</span>
                     </TableHead>
                   </TableRow>
@@ -406,13 +406,13 @@ export function DashboardContent({
                 <TableBody>
                   {accounts.map((account) => (
                     <TableRow key={account.id}>
-                      <TableCell className="type-body-medium py-2 pr-2 pl-0 text-black">
+                      <TableCell className="type-body-medium py-2 pr-2 pl-0 text-foreground">
                         {account.name}
                       </TableCell>
-                      <TableCell className="type-body-medium py-2 pr-2 pl-0 text-black">
+                      <TableCell className="type-body-medium py-2 pr-2 pl-0 text-foreground">
                         {account.externalIdentifier ?? '—'}
                       </TableCell>
-                      <TableCell className="type-body-medium py-2 pr-2 pl-0 text-black">
+                      <TableCell className="type-body-medium py-2 pr-2 pl-0 text-foreground">
                         {formatCurrency(account.currentBalance)}
                       </TableCell>
                       <TableCell className="py-2 pr-0 pl-0 text-end">
@@ -457,23 +457,23 @@ export function DashboardContent({
             </div>
           </div>
 
-          <hr className="h-px w-full shrink-0 border-0 bg-gray-300 lg:hidden" />
+          <hr className="h-px w-full shrink-0 border-0 bg-border lg:hidden" />
 
           <div
-            className="hidden w-px shrink-0 self-stretch bg-gray-300 lg:block"
+            className="hidden w-px shrink-0 self-stretch bg-border lg:block"
             aria-hidden={true}
           />
 
           <div className="flex w-full min-w-0 flex-col gap-6 lg:min-h-0 lg:w-0 lg:flex-1 lg:overflow-hidden lg:pl-6">
             <div className="flex shrink-0 flex-wrap items-center justify-between gap-2">
               <p className="min-w-0 flex-1">
-                <span className="type-body-medium text-black">
+                <span className="type-body-medium text-foreground">
                   {t('nav.budgets')}
                 </span>
-                <span className="type-body-medium text-black">
+                <span className="type-body-medium text-foreground">
                   {t('common.sectionTitleSeparator')}
                 </span>
-                <span className="type-label text-gray-800">
+                <span className="type-label text-muted-foreground">
                   {t('dashboard.unbudgetedInline')}{' '}
                   {formatCurrency(unallocatedAmount)}
                 </span>
@@ -505,7 +505,7 @@ export function DashboardContent({
                     className="flex flex-col gap-2"
                   >
                     <div className="flex flex-row items-start justify-between gap-2">
-                      <span className="type-body-medium text-black">
+                      <span className="type-body-medium text-foreground">
                         {budget.name}
                       </span>
                       <TableRowMenu
@@ -587,7 +587,7 @@ export function DashboardContent({
                       value={pct}
                       className={budgetProgressClass(tone)}
                     />
-                    <p className="type-label text-gray-800">
+                    <p className="type-label text-muted-foreground">
                       {t('dashboard.budgetRemainingStatus', {
                         remaining: formatCurrency(remaining),
                         allocated: formatCurrency(allocated)

@@ -49,7 +49,7 @@ export function DatePicker({
   const icon = (
     <CalendarIcon
       strokeWidth={INPUT_ICON_STROKE}
-      className="size-4 shrink-0 text-gray-500"
+      className="size-4 shrink-0 text-muted-foreground"
       aria-hidden
     />
   )
@@ -75,7 +75,7 @@ export function DatePicker({
           <span
             className={cn(
               'min-w-0 flex-1 truncate text-left type-label',
-              value ? 'text-black' : 'text-gray-500'
+              value ? 'text-foreground' : 'text-muted-foreground'
             )}
           >
             {value
@@ -88,7 +88,7 @@ export function DatePicker({
         </ShadcnButton>
       </PopoverTrigger>
       <PopoverContent
-        className="w-auto border border-gray-300 p-0"
+        className="w-auto border border-border bg-popover p-0 text-popover-foreground"
         align="start"
       >
         <Calendar
