@@ -13,7 +13,10 @@ export type TransactionDraft = {
   sourceRowNumber: number
   originalDescription: string
   date: string
+  /** Absolute value for display, matching, and API submission. */
   amount: number
+  /** Raw signed value from the statement (`Belopp` column). */
+  signedAmount: number
   type: ImportTransactionType
   name: string
   originAccountId: string

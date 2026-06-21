@@ -28,6 +28,7 @@ function draft(overrides: Partial<TransactionDraft>): TransactionDraft {
     originalDescription: 'GOTEBORG ENERGI AB',
     date: '2026-06-20',
     amount: 1487,
+    signedAmount: -1487,
     type: TransactionType.EXPENSE,
     name: 'GOTEBORG ENERGI AB',
     originAccountId: 'account',

@@ -7,6 +7,34 @@ import type {
   TransactionDraft
 } from './types'
 
+export function applyTransferAccountDefaults(
+  draft: Pick<
+    TransactionDraft,
+    'originalDescription' | 'signedAmount'
+  >,
+  accounts: ImportLookupItem[],
+  originAccountId: string
+): Pick<TransactionDraft, 'transferFromAccountId' | 'transferToAccountId'> {
+  const isTransferIn = draft.signedAmount > 0
+
+  return {
+    transferFromAccountId: isTransferIn
+      ? guessTransferAccountId(
+          draft.originalDescription,
+          accounts,
+          originAccountId
+        )
+      : originAccountId,
+    transferToAccountId: isTransferIn
+      ? originAccountId
+      : guessTransferAccountId(
+          draft.originalDescription,
+          accounts,
+          originAccountId
+        )
+  }
+}
+
 export function toLookupItems(
   items: Array<{
     id: string
@@ -56,22 +84,11 @@ export function buildDraftsFromStatement(
 
     return {
       ...assigned,
-      transferFromAccountId:
-        assigned.amount > 0
-          ? guessTransferAccountId(
-              assigned.originalDescription,
-              lookups.accounts,
-              originAccountId
-            )
-          : originAccountId,
-      transferToAccountId:
-        assigned.amount > 0
-          ? originAccountId
-          : guessTransferAccountId(
-              assigned.originalDescription,
-              lookups.accounts,
-              originAccountId
-            )
+      ...applyTransferAccountDefaults(
+        assigned,
+        lookups.accounts,
+        originAccountId
+      )
     }
   })
 

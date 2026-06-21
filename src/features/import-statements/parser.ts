@@ -113,6 +113,7 @@ function makeDraft(args: {
     originalDescription: args.description,
     date: args.date,
     amount: Math.abs(args.amount),
+    signedAmount: args.amount,
     type,
     name: args.description,
     originAccountId: '',

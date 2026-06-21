@@ -329,11 +329,11 @@ function ImportTransactionsPage() {
         ...draft,
         originAccountId: accountId,
         transferFromAccountId:
-          draft.type === TransactionType.TRANSFER && draft.amount < 0
+          draft.type === TransactionType.TRANSFER && draft.signedAmount < 0
             ? accountId
             : draft.transferFromAccountId,
         transferToAccountId:
-          draft.type === TransactionType.TRANSFER && draft.amount > 0
+          draft.type === TransactionType.TRANSFER && draft.signedAmount > 0
             ? accountId
             : draft.transferToAccountId
       }))

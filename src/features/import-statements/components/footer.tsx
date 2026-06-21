@@ -46,7 +46,9 @@ export function importValidationMessages(
     included.some(
       (draft) =>
         draft.type === TransactionType.TRANSFER &&
-        (!draft.transferToAccountId || draft.amount <= 0)
+        (draft.signedAmount === 0 ||
+          (draft.signedAmount > 0 && !draft.transferFromAccountId) ||
+          (draft.signedAmount < 0 && !draft.transferToAccountId))
     )
   ) {
     messages.push(t('statementImport.validation.transferInvalid'))

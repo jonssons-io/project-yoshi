@@ -12,6 +12,7 @@ function incomeDraft(
     originalDescription: 'Salary',
     date: '2026-06-20',
     amount: 1000,
+    signedAmount: 1000,
     type: TransactionType.INCOME,
     name: 'Salary',
     originAccountId: 'acc_1',
