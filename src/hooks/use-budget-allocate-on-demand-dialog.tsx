@@ -9,15 +9,6 @@ import {
   numberInputNoSpinnersClassName
 } from '@/components/input-shell/input-shell'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from '@/components/ui/select'
-import type { BudgetAllocationShortfall } from '@/drawers/drawers/create-transaction-drawer/budget-allocation-shortfall'
-import { formatCurrency, cn } from '@/lib/utils'
-import {
   AlertDialog,
   AlertDialogCancel,
   AlertDialogContent,
@@ -26,6 +17,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle
 } from '@/components/ui/alert-dialog'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select'
+import type { BudgetAllocationShortfall } from '@/drawers/drawers/create-transaction-drawer/budget-allocation-shortfall'
+import { cn, formatCurrency } from '@/lib/utils'
 
 export type BudgetAllocateOnDemandChoice = {
   budgetId: string
@@ -69,15 +69,18 @@ export function useBudgetAllocateOnDemandDialog() {
     []
   )
 
-  const closeDialog = useCallback((result: BudgetAllocateOnDemandChoice | null) => {
-    setDialogState((current) => {
-      current?.resolve(result)
-      return null
-    })
-    setAmount(null)
-    setAmountError(null)
-    setSelectedBudgetId('')
-  }, [])
+  const closeDialog = useCallback(
+    (result: BudgetAllocateOnDemandChoice | null) => {
+      setDialogState((current) => {
+        current?.resolve(result)
+        return null
+      })
+      setAmount(null)
+      setAmountError(null)
+      setSelectedBudgetId('')
+    },
+    []
+  )
 
   const shortfalls = dialogState?.shortfalls ?? []
   const unallocatedAmount = dialogState?.unallocatedAmount ?? 0
@@ -191,7 +194,10 @@ export function useBudgetAllocateOnDemandDialog() {
                   value={selectedBudgetId}
                   onValueChange={setSelectedBudgetId}
                 >
-                  <SelectTrigger id={budgetFieldId} className="w-full">
+                  <SelectTrigger
+                    id={budgetFieldId}
+                    className="w-full"
+                  >
                     <SelectValue placeholder={t('forms.selectBudget')} />
                   </SelectTrigger>
                   <SelectContent>
@@ -224,9 +230,7 @@ export function useBudgetAllocateOnDemandDialog() {
                   step="0.01"
                   min={0}
                   max={unallocatedAmount > 0 ? unallocatedAmount : undefined}
-                  value={
-                    amount == null || Number.isNaN(amount) ? '' : amount
-                  }
+                  value={amount == null || Number.isNaN(amount) ? '' : amount}
                   disabled={unallocatedAmount <= 0}
                   onChange={(event) => {
                     const value = event.target.value

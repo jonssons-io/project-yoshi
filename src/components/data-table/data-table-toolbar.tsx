@@ -20,7 +20,7 @@ export interface DataTableToolbarLabels {
 export interface DataTableToolbarProps {
   globalFilter: string
   onGlobalFilterChange: (value: string) => void
-  onFilterClick: () => void
+  onFilterClick?: () => void
   /** When true, the filter control is non-interactive (e.g. no rows to filter). */
   filterDisabled?: boolean
   activeFilters: ActiveFilter[]
@@ -79,15 +79,17 @@ export function DataTableToolbar({
           aria-label={labels.searchPlaceholder}
           clearable
         />
-        <Button
-          type="button"
-          variant="outlined"
-          color="primary"
-          label={labels.filter}
-          icon={<ListFilter size={16} />}
-          onClick={onFilterClick}
-          disabled={filterDisabled}
-        />
+        {onFilterClick ? (
+          <Button
+            type="button"
+            variant="outlined"
+            color="primary"
+            label={labels.filter}
+            icon={<ListFilter size={16} />}
+            onClick={onFilterClick}
+            disabled={filterDisabled}
+          />
+        ) : null}
         {quickFilters ? (
           <div className="flex shrink-0 flex-row flex-wrap items-center gap-3">
             {quickFilters}

@@ -141,6 +141,13 @@ export type BillPaymentHandling = typeof BillPaymentHandling[keyof typeof BillPa
 export type Household = {
     id: string;
     name: string;
+    /**
+     * IANA time zone identifier (for example `Europe/Stockholm`). Drives local civil dates for snapshots,
+     * balance history, and the account balance chart for this household. Default when omitted on create is
+     * `Europe/Stockholm`.
+     *
+     */
+    timeZone: string;
     createdAt: string;
     _count?: {
         users?: number;
@@ -737,9 +744,32 @@ export type BudgetAllocation = {
     createdAt: string;
 };
 
+/**
+ * Household cash (`totalFunds`) minus net cash still covering envelope balances. Gross allocation
+ * ledger totals (`totalAllocated`) are reduced by effective expense amounts already taken from those
+ * budgets (`totalBudgetExpense`, same rules as per-budget spent). So
+ * `unallocated` = `totalFunds` - `totalAllocated` + `totalBudgetExpense` (money available to assign
+ * to budgets without double-counting spending that already left accounts).
+ *
+ */
 export type UnallocatedFunds = {
+    /**
+     * Sum of current balances across accounts in the household.
+     */
     totalFunds: number;
+    /**
+     * Sum of all budget allocation line items (positive and negative) for the household.
+     */
     totalAllocated: number;
+    /**
+     * Sum of effective EXPENSE amounts attributed to household budgets (unsplit transaction amounts
+     * and split lines; matches per-budget spent aggregation across budgets).
+     *
+     */
+    totalBudgetExpense: number;
+    /**
+     * Funds available for new allocations — see schema description for the formula.
+     */
     unallocated: number;
 };
 
@@ -789,31 +819,32 @@ export type HouseholdAccountBalanceChartAccountMeta = {
 };
 
 /**
- * **Daily** balance series for dashboard charts. Query `dateFrom` / `dateTo` are UTC Zulu instants; the
- * chart spans every UTC calendar day from the UTC date of `dateFrom` through the UTC date of `dateTo`
- * (inclusive). Response fields `dateFrom` / `dateTo` echo those query instants as timestamps.
+ * **Daily** balance series for dashboard charts. Query `dateFrom` / `dateTo` are UTC Zulu instants. The
+ * chart spans every **household-local civil day** from the local date of `dateFrom` through the local date of
+ * `dateTo` (inclusive) using the household's **`timeZone`**. Response fields `dateFrom` / `dateTo` echo those
+ * query instants as timestamps.
  *
- * `dates` has one ISO calendar date per day in that range (in order). `series` maps each account id to
+ * `dates` has one `YYYY-MM-DD` per day in that **local** range (in order). `series` maps each account id to
  * an array of balances with the same length as `dates`.
  *
- * For each account and day **D**, the value is the **latest snapshot balance** with `snapshot.date <= D`
+ * For each account and local day **D**, the value is the **latest snapshot balance** with `snapshot.date <= D`
  * (forward-filled across days with no snapshot row, producing flat chart segments). If there is no snapshot
  * on or before **D**, the value is **`initialBalance`** until a snapshot applies.
  *
- * For the server's **current UTC calendar date** (`today`), values are **`currentBalance`** from live account
- * state (same as list account balances), so the chart matches real-time balances even when today's snapshot
- * row is missing. Days after `today` still appear when `dateTo` extends into the future; they forward-fill
- * from the last known balance as of each day (typically flat after the last in-range snapshot).
+ * For **today** (current calendar date in the household **`timeZone`**), values are **`currentBalance`** from
+ * live account state (same as list account balances), so the chart matches real-time balances even when today's
+ * snapshot row is missing. Days after **today** still appear when `dateTo` extends into the future; they
+ * forward-fill from the last known balance as of each day (typically flat after the last in-range snapshot).
  *
- * Optional query flag **`projectFromTransactions`**: when true, **pending** transactions whose UTC calendar
- * `date` falls in the chart day range adjust balances from **`today`** forward (and include pending on
- * **`today`**). **Effective** transactions are already reflected in snapshots and `currentBalance` and are
- * not applied again. Chart days before **`today`** are unchanged.
+ * Optional query flag **`projectFromTransactions`**: when true, **pending** transactions whose **local civil**
+ * `date` (in the household zone) falls in the chart day range adjust balances from **today** forward (and
+ * include pending on **today**). **Effective** transactions are already reflected in snapshots and
+ * `currentBalance` and are not applied again. Chart days before **today** are unchanged.
  *
  * Optional query flag **`projectFromBillAndIncomeEstimates`**: when true, **bill and income instances** whose
- * UTC calendar **due** or **expected** day falls in the chart range adjust balances from **`today`** forward (same
+ * local **due** or **expected** day falls in the chart range adjust balances from **today** forward (same
  * cumulative overlay rules as `projectFromTransactions`). Unlinked instances use the instance **amount**;
- * instances linked to a transaction use the **transaction** amount (and **transaction** UTC calendar day) when
+ * instances linked to a transaction use the **transaction** amount (and **transaction** local civil day) when
  * the transaction is **pending**; **effective** linked transactions are omitted here because they are already
  * reflected in snapshots and `currentBalance`. The two projection flags are **independent** and may be combined;
  * when both are true, pending transactions linked to an instance are applied only via the pending-transaction
@@ -900,10 +931,18 @@ export type PaginationMeta = {
 
 export type CreateHouseholdRequest = {
     name: string;
+    /**
+     * Optional IANA time zone; defaults to `Europe/Stockholm`.
+     */
+    timeZone?: string;
 };
 
 export type UpdateHouseholdRequest = {
     name?: string;
+    /**
+     * IANA time zone identifier. Changing it may trigger snapshot history recalculation.
+     */
+    timeZone?: string;
 };
 
 export type SetDefaultHouseholdRequest = {
@@ -930,7 +969,9 @@ export type UpdateAccountRequest = {
     externalIdentifier?: string | null;
     initialBalance?: number;
     /**
-     * Replace budget links with this set
+     * Replace budget links with this exact set. **Omit** this field to leave existing links unchanged.
+     * Send **`[]`** or JSON **`null`** to unlink all budgets from this account.
+     *
      */
     budgetIds?: Array<string>;
 };
@@ -958,6 +999,11 @@ export type UpdateBudgetRequest = {
 };
 
 export type CreateCategoryRequest = {
+    /**
+     * Display name. Duplicate categories in the same household are suppressed using a **case-insensitive**
+     * comparison after trimming and collapsing internal whitespace; an existing row is returned instead of creating another.
+     *
+     */
     name: string;
     types: Array<CategoryType>;
     /**
@@ -970,7 +1016,9 @@ export type UpdateCategoryRequest = {
     name?: string;
     types?: Array<CategoryType>;
     /**
-     * Replace budget links with this set
+     * Replace budget links with this exact set (order ignored). **Omit** this field to leave existing links
+     * unchanged. Send **`[]`** or JSON **`null`** to unlink all budgets from this category.
+     *
      */
     budgetIds?: Array<string>;
 };
@@ -1012,6 +1060,11 @@ export type TransactionSplitWrite = {
      * Required for each split when the parent transaction is an effective expense with splits.
      */
     budgetId?: string;
+    /**
+     * Split line amount. Zero is allowed for effective `EXPENSE` and `INCOME` transactions (including when the parent
+     * total is zero). `TRANSFER` transactions still require every amount to be greater than zero (422).
+     *
+     */
     amount: number;
     subtitle: string;
 };
@@ -1021,6 +1074,8 @@ export type TransactionSplitWrite = {
  * line carries its own `budgetId` for effective expenses.
  * Top-level `categoryId` / `newCategory` and `splits` are mutually exclusive: if `splits` is non-empty, omit
  * top-level category fields; each split line carries its own category.
+ * For `EXPENSE` and `INCOME`, `amount` may be zero (e.g. mark a bill/income instance handled when nothing is owed).
+ * `TRANSFER` still requires `amount` greater than zero (422).
  *
  */
 export type CreateTransactionRequest = {
@@ -1045,6 +1100,10 @@ export type CreateTransactionRequest = {
         type: CategoryType;
     };
     name: string;
+    /**
+     * Transaction amount. Zero is allowed for `EXPENSE` and `INCOME`. `TRANSFER` requires amount greater than zero (422).
+     *
+     */
     amount: number;
     date: string;
     notes?: string | null;
@@ -1071,6 +1130,7 @@ export type CreateTransactionRequest = {
  * `budgetId` and `splits` are mutually exclusive: if `splits` is non-empty, `budgetId` must be null.
  * Top-level `categoryId` and `splits` are mutually exclusive: if `splits` is non-empty (after the update),
  * `categoryId` must be null.
+ * For `EXPENSE` and `INCOME`, `amount` may be zero. `TRANSFER` still requires `amount` greater than zero (422).
  *
  */
 export type UpdateTransactionRequest = {
@@ -1093,6 +1153,10 @@ export type UpdateTransactionRequest = {
      */
     instanceId?: string | null;
     name?: string;
+    /**
+     * Transaction amount. Zero is allowed for `EXPENSE` and `INCOME`. `TRANSFER` requires amount greater than zero (422).
+     *
+     */
     amount?: number;
     date?: string;
     notes?: string | null;
@@ -1109,6 +1173,49 @@ export type UpdateTransactionRequest = {
 
 export type CloneTransactionRequest = {
     date?: string;
+};
+
+/**
+ * Positive allocation to a budget envelope before bulk transaction create. Uses the same unallocated-pool rules as
+ * **`POST /budgets/{budgetId}/allocations`**. Applied in request order before any transaction row is created.
+ *
+ */
+export type BulkAllocationAdjustment = {
+    budgetId: string;
+    amount: number;
+};
+
+export type BulkCreateTransactionItem = CreateTransactionRequest & {
+    /**
+     * Stable client-side row id echoed in the bulk response for UI mapping.
+     */
+    clientRowId: string;
+};
+
+export type BulkCreateTransactionsRequest = {
+    transactions: Array<BulkCreateTransactionItem>;
+    allocationAdjustments?: Array<BulkAllocationAdjustment>;
+};
+
+export type BulkCreateTransactionSuccess = {
+    clientRowId: string;
+    transactionId: string;
+};
+
+export type BulkCreateTransactionFailure = {
+    clientRowId: string;
+    message: string;
+    /**
+     * Optional field-level hints (e.g. `budgetId` → `["Required"]`).
+     */
+    fieldErrors?: {
+        [key: string]: Array<string>;
+    };
+};
+
+export type BulkCreateTransactionsResponse = {
+    created: Array<BulkCreateTransactionSuccess>;
+    failed: Array<BulkCreateTransactionFailure>;
 };
 
 /**
@@ -2155,7 +2262,7 @@ export type CreateCategoryData = {
 
 export type CreateCategoryResponses = {
     /**
-     * Created category
+     * Created category (or existing category when the name duplicates case-insensitively)
      */
     201: Category;
 };
@@ -2468,6 +2575,31 @@ export type CreateTransactionResponses = {
 };
 
 export type CreateTransactionResponse = CreateTransactionResponses[keyof CreateTransactionResponses];
+
+export type BulkCreateTransactionsData = {
+    body: BulkCreateTransactionsRequest;
+    path?: never;
+    query?: never;
+    url: '/transactions/bulk';
+};
+
+export type BulkCreateTransactionsErrors = {
+    /**
+     * Request-level validation failure (e.g. duplicate clientRowId, allocation adjustment rejected)
+     */
+    422: ProblemDetails;
+};
+
+export type BulkCreateTransactionsError = BulkCreateTransactionsErrors[keyof BulkCreateTransactionsErrors];
+
+export type BulkCreateTransactionsResponses = {
+    /**
+     * Per-row create results (may mix successes and failures)
+     */
+    200: BulkCreateTransactionsResponse;
+};
+
+export type BulkCreateTransactionsResponse2 = BulkCreateTransactionsResponses[keyof BulkCreateTransactionsResponses];
 
 export type GetTransactionsSummaryData = {
     body?: never;
@@ -3439,7 +3571,7 @@ export type ListHouseholdInvitationsError = ListHouseholdInvitationsErrors[keyof
 
 export type ListHouseholdInvitationsResponses = {
     /**
-     * List of pending invitations (empty list when no matches)
+     * List of pending and declined invitations (empty list when no matches)
      */
     200: {
         data?: Array<Invitation>;
@@ -3460,7 +3592,7 @@ export type CreateInvitationData = {
 
 export type CreateInvitationErrors = {
     /**
-     * Invitation already pending for this email
+     * Invitation already pending or accepted for this email (declined rows are reopened to pending)
      */
     409: ProblemDetails;
 };
@@ -3501,12 +3633,23 @@ export type DeclineInvitationData = {
     url: '/invitations/{invitationId}/decline';
 };
 
+export type DeclineInvitationErrors = {
+    /**
+     * Invitation already accepted or no longer pending
+     */
+    409: ProblemDetails;
+};
+
+export type DeclineInvitationError = DeclineInvitationErrors[keyof DeclineInvitationErrors];
+
 export type DeclineInvitationResponses = {
     /**
      * Invitation declined
      */
-    200: unknown;
+    200: Invitation;
 };
+
+export type DeclineInvitationResponse = DeclineInvitationResponses[keyof DeclineInvitationResponses];
 
 export type RevokeInvitationData = {
     body?: never;

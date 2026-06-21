@@ -88,6 +88,7 @@ export const zBillPaymentHandling = z.enum([
 export const zHousehold = z.object({
     id: z.string(),
     name: z.string(),
+    timeZone: z.string(),
     createdAt: z.iso.datetime(),
     _count: z.optional(z.object({
         users: z.optional(z.int()),
@@ -619,9 +620,18 @@ export const zBudgetAllocation = z.object({
     createdAt: z.iso.datetime()
 });
 
+/**
+ * Household cash (`totalFunds`) minus net cash still covering envelope balances. Gross allocation
+ * ledger totals (`totalAllocated`) are reduced by effective expense amounts already taken from those
+ * budgets (`totalBudgetExpense`, same rules as per-budget spent). So
+ * `unallocated` = `totalFunds` - `totalAllocated` + `totalBudgetExpense` (money available to assign
+ * to budgets without double-counting spending that already left accounts).
+ *
+ */
 export const zUnallocatedFunds = z.object({
     totalFunds: z.number(),
     totalAllocated: z.number(),
+    totalBudgetExpense: z.number(),
     unallocated: z.number()
 });
 
@@ -674,31 +684,32 @@ export const zHouseholdAccountBalanceChartAccountMeta = z.object({
 });
 
 /**
- * **Daily** balance series for dashboard charts. Query `dateFrom` / `dateTo` are UTC Zulu instants; the
- * chart spans every UTC calendar day from the UTC date of `dateFrom` through the UTC date of `dateTo`
- * (inclusive). Response fields `dateFrom` / `dateTo` echo those query instants as timestamps.
+ * **Daily** balance series for dashboard charts. Query `dateFrom` / `dateTo` are UTC Zulu instants. The
+ * chart spans every **household-local civil day** from the local date of `dateFrom` through the local date of
+ * `dateTo` (inclusive) using the household's **`timeZone`**. Response fields `dateFrom` / `dateTo` echo those
+ * query instants as timestamps.
  *
- * `dates` has one ISO calendar date per day in that range (in order). `series` maps each account id to
+ * `dates` has one `YYYY-MM-DD` per day in that **local** range (in order). `series` maps each account id to
  * an array of balances with the same length as `dates`.
  *
- * For each account and day **D**, the value is the **latest snapshot balance** with `snapshot.date <= D`
+ * For each account and local day **D**, the value is the **latest snapshot balance** with `snapshot.date <= D`
  * (forward-filled across days with no snapshot row, producing flat chart segments). If there is no snapshot
  * on or before **D**, the value is **`initialBalance`** until a snapshot applies.
  *
- * For the server's **current UTC calendar date** (`today`), values are **`currentBalance`** from live account
- * state (same as list account balances), so the chart matches real-time balances even when today's snapshot
- * row is missing. Days after `today` still appear when `dateTo` extends into the future; they forward-fill
- * from the last known balance as of each day (typically flat after the last in-range snapshot).
+ * For **today** (current calendar date in the household **`timeZone`**), values are **`currentBalance`** from
+ * live account state (same as list account balances), so the chart matches real-time balances even when today's
+ * snapshot row is missing. Days after **today** still appear when `dateTo` extends into the future; they
+ * forward-fill from the last known balance as of each day (typically flat after the last in-range snapshot).
  *
- * Optional query flag **`projectFromTransactions`**: when true, **pending** transactions whose UTC calendar
- * `date` falls in the chart day range adjust balances from **`today`** forward (and include pending on
- * **`today`**). **Effective** transactions are already reflected in snapshots and `currentBalance` and are
- * not applied again. Chart days before **`today`** are unchanged.
+ * Optional query flag **`projectFromTransactions`**: when true, **pending** transactions whose **local civil**
+ * `date` (in the household zone) falls in the chart day range adjust balances from **today** forward (and
+ * include pending on **today**). **Effective** transactions are already reflected in snapshots and
+ * `currentBalance` and are not applied again. Chart days before **today** are unchanged.
  *
  * Optional query flag **`projectFromBillAndIncomeEstimates`**: when true, **bill and income instances** whose
- * UTC calendar **due** or **expected** day falls in the chart range adjust balances from **`today`** forward (same
+ * local **due** or **expected** day falls in the chart range adjust balances from **today** forward (same
  * cumulative overlay rules as `projectFromTransactions`). Unlinked instances use the instance **amount**;
- * instances linked to a transaction use the **transaction** amount (and **transaction** UTC calendar day) when
+ * instances linked to a transaction use the **transaction** amount (and **transaction** local civil day) when
  * the transaction is **pending**; **effective** linked transactions are omitted here because they are already
  * reflected in snapshots and `currentBalance`. The two projection flags are **independent** and may be combined;
  * when both are true, pending transactions linked to an instance are applied only via the pending-transaction
@@ -801,11 +812,13 @@ export const zAccountBalanceHistory = z.object({
 });
 
 export const zCreateHouseholdRequest = z.object({
-    name: z.string().min(1)
+    name: z.string().min(1),
+    timeZone: z.optional(z.string())
 });
 
 export const zUpdateHouseholdRequest = z.object({
-    name: z.optional(z.string().min(1))
+    name: z.optional(z.string().min(1)),
+    timeZone: z.optional(z.string())
 });
 
 export const zSetDefaultHouseholdRequest = z.object({
@@ -896,7 +909,7 @@ export const zTransactionSplitWrite = z.object({
     newCategoryName: z.optional(z.string().min(1)),
     newCategory: z.optional(zSplitInlineNewCategory),
     budgetId: z.optional(z.string()),
-    amount: z.number().gt(0),
+    amount: z.number().gte(0),
     subtitle: z.string()
 });
 
@@ -905,6 +918,8 @@ export const zTransactionSplitWrite = z.object({
  * line carries its own `budgetId` for effective expenses.
  * Top-level `categoryId` / `newCategory` and `splits` are mutually exclusive: if `splits` is non-empty, omit
  * top-level category fields; each split line carries its own category.
+ * For `EXPENSE` and `INCOME`, `amount` may be zero (e.g. mark a bill/income instance handled when nothing is owed).
+ * `TRANSFER` still requires `amount` greater than zero (422).
  *
  */
 export const zCreateTransactionRequest = z.object({
@@ -931,7 +946,7 @@ export const zCreateTransactionRequest = z.object({
         type: zCategoryType
     })),
     name: z.string().min(1),
-    amount: z.number().gt(0),
+    amount: z.number().gte(0),
     date: z.iso.datetime(),
     notes: z.optional(z.union([
         z.string(),
@@ -954,6 +969,7 @@ export const zCreateTransactionRequest = z.object({
  * `budgetId` and `splits` are mutually exclusive: if `splits` is non-empty, `budgetId` must be null.
  * Top-level `categoryId` and `splits` are mutually exclusive: if `splits` is non-empty (after the update),
  * `categoryId` must be null.
+ * For `EXPENSE` and `INCOME`, `amount` may be zero. `TRANSFER` still requires `amount` greater than zero (422).
  *
  */
 export const zUpdateTransactionRequest = z.object({
@@ -976,7 +992,7 @@ export const zUpdateTransactionRequest = z.object({
         z.null()
     ])),
     name: z.optional(z.string().min(1)),
-    amount: z.optional(z.number().gt(0)),
+    amount: z.optional(z.number().gte(0)),
     date: z.optional(z.iso.datetime()),
     notes: z.optional(z.union([
         z.string(),
@@ -995,6 +1011,41 @@ export const zUpdateTransactionRequest = z.object({
 
 export const zCloneTransactionRequest = z.object({
     date: z.optional(z.iso.datetime())
+});
+
+/**
+ * Positive allocation to a budget envelope before bulk transaction create. Uses the same unallocated-pool rules as
+ * **`POST /budgets/{budgetId}/allocations`**. Applied in request order before any transaction row is created.
+ *
+ */
+export const zBulkAllocationAdjustment = z.object({
+    budgetId: z.string(),
+    amount: z.number().gt(0)
+});
+
+export const zBulkCreateTransactionItem = zCreateTransactionRequest.and(z.object({
+    clientRowId: z.string().min(1)
+}));
+
+export const zBulkCreateTransactionsRequest = z.object({
+    transactions: z.array(zBulkCreateTransactionItem).min(1),
+    allocationAdjustments: z.optional(z.array(zBulkAllocationAdjustment))
+});
+
+export const zBulkCreateTransactionSuccess = z.object({
+    clientRowId: z.string(),
+    transactionId: z.string()
+});
+
+export const zBulkCreateTransactionFailure = z.object({
+    clientRowId: z.string(),
+    message: z.string(),
+    fieldErrors: z.optional(z.record(z.string(), z.array(z.string())))
+});
+
+export const zBulkCreateTransactionsResponse = z.object({
+    created: z.array(zBulkCreateTransactionSuccess),
+    failed: z.array(zBulkCreateTransactionFailure)
 });
 
 /**
@@ -1697,7 +1748,7 @@ export const zCreateCategoryData = z.object({
 });
 
 /**
- * Created category
+ * Created category (or existing category when the name duplicates case-insensitively)
  */
 export const zCreateCategoryResponse = zCategory;
 
@@ -1881,6 +1932,17 @@ export const zCreateTransactionData = z.object({
  * Created transaction
  */
 export const zCreateTransactionResponse = zTransaction;
+
+export const zBulkCreateTransactionsData = z.object({
+    body: zBulkCreateTransactionsRequest,
+    path: z.optional(z.never()),
+    query: z.optional(z.never())
+});
+
+/**
+ * Per-row create results (may mix successes and failures)
+ */
+export const zBulkCreateTransactionsResponse2 = zBulkCreateTransactionsResponse;
 
 export const zGetTransactionsSummaryData = z.object({
     body: z.optional(z.never()),
@@ -2496,7 +2558,7 @@ export const zListHouseholdInvitationsData = z.object({
 });
 
 /**
- * List of pending invitations (empty list when no matches)
+ * List of pending and declined invitations (empty list when no matches)
  */
 export const zListHouseholdInvitationsResponse = z.object({
     data: z.optional(z.array(zInvitation)),
@@ -2531,6 +2593,11 @@ export const zDeclineInvitationData = z.object({
     }),
     query: z.optional(z.never())
 });
+
+/**
+ * Invitation declined
+ */
+export const zDeclineInvitationResponse = zInvitation;
 
 export const zRevokeInvitationData = z.object({
     body: z.optional(z.never()),

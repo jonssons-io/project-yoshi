@@ -30,15 +30,14 @@ import {
   translateIfLikelyI18nKey
 } from '@/lib/form-validation'
 import { formatCurrency } from '@/lib/utils'
-
-import { ExpenseIncomeTransferFields } from '../create-transaction-drawer/expense-income-transfer-fields'
 import {
   expenseLinesFromFormValues,
   expenseLinesFromTransaction,
   resolveExpenseBudgetShortfalls
 } from '../create-transaction-drawer/budget-allocation-shortfall'
-import { submitExpenseWithOptionalAllocation } from '../create-transaction-drawer/submit-expense-with-allocation'
+import { ExpenseIncomeTransferFields } from '../create-transaction-drawer/expense-income-transfer-fields'
 import { drawerFormSchema } from '../create-transaction-drawer/schema'
+import { submitExpenseWithOptionalAllocation } from '../create-transaction-drawer/submit-expense-with-allocation'
 import {
   DRAWER_DEFAULT_VALUES,
   type DrawerFormValues,
@@ -700,62 +699,62 @@ export function EditTransactionDrawer({
           void form.handleSubmit()
         }}
       >
-      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto">
-        <form.Subscribe
-          selector={(s) => ({
-            transactionType: s.values.transactionType,
-            accountId: s.values.accountId,
-            budgetId: s.values.budgetId
-          })}
-        >
-          {({ transactionType, accountId, budgetId }) => (
-            <ExpenseIncomeTransferFields
-              form={form}
-              transactionType={transactionType}
-              accountId={accountId}
-              budgetId={budgetId}
-              householdId={householdId ?? ''}
-              splitSwitchId={splitSwitchId}
-              userId={userId}
-              useSplits={useSplits}
-              onToggleSplit={toggleSplit}
-              accountOptions={accountOptions}
-              budgetOptions={budgetOptions}
-              recipientOptions={recipientOptions}
-              senderOptions={senderOptions}
-              expandedSplitIds={expandedSplitIds}
-              setExpandedSplitIds={setExpandedSplitIds}
-              addSplit={addSplit}
-              removeSplit={removeSplit}
-              turnOffSplits={turnOffSplits}
-            />
-          )}
-        </form.Subscribe>
-      </div>
+        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto">
+          <form.Subscribe
+            selector={(s) => ({
+              transactionType: s.values.transactionType,
+              accountId: s.values.accountId,
+              budgetId: s.values.budgetId
+            })}
+          >
+            {({ transactionType, accountId, budgetId }) => (
+              <ExpenseIncomeTransferFields
+                form={form}
+                transactionType={transactionType}
+                accountId={accountId}
+                budgetId={budgetId}
+                householdId={householdId ?? ''}
+                splitSwitchId={splitSwitchId}
+                userId={userId}
+                useSplits={useSplits}
+                onToggleSplit={toggleSplit}
+                accountOptions={accountOptions}
+                budgetOptions={budgetOptions}
+                recipientOptions={recipientOptions}
+                senderOptions={senderOptions}
+                expandedSplitIds={expandedSplitIds}
+                setExpandedSplitIds={setExpandedSplitIds}
+                addSplit={addSplit}
+                removeSplit={removeSplit}
+                turnOffSplits={turnOffSplits}
+              />
+            )}
+          </form.Subscribe>
+        </div>
 
-      <div className="mt-auto flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-gray-200 pt-4">
-        <Button
-          type="button"
-          variant="outlined"
-          color="subtle"
-          label={t('common.cancel')}
-          onClick={onClose}
-        />
-        <form.Subscribe selector={(s) => s.isSubmitting}>
-          {(isSubmitting) => (
-            <Button
-              type="submit"
-              variant="filled"
-              color="primary"
-              icon={<Check aria-hidden />}
-              label={submitLabel}
-              disabled={isSubmitting || isPending || !hasInitializedForm}
-              onClick={() => void 0}
-            />
-          )}
-        </form.Subscribe>
-      </div>
-    </form>
+        <div className="mt-auto flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-gray-200 pt-4">
+          <Button
+            type="button"
+            variant="outlined"
+            color="subtle"
+            label={t('common.cancel')}
+            onClick={onClose}
+          />
+          <form.Subscribe selector={(s) => s.isSubmitting}>
+            {(isSubmitting) => (
+              <Button
+                type="submit"
+                variant="filled"
+                color="primary"
+                icon={<Check aria-hidden />}
+                label={submitLabel}
+                disabled={isSubmitting || isPending || !hasInitializedForm}
+                onClick={() => void 0}
+              />
+            )}
+          </form.Subscribe>
+        </div>
+      </form>
     </>
   )
 }

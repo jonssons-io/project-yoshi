@@ -277,7 +277,12 @@ function CreateTransactionSplitSectionFields({
       </form.AppField>
 
       <form.AppField name={`splits[${index}].amount`}>
-        {(field) => <field.NumberField label={t('common.amount')} />}
+        {(field) => (
+          <field.NumberField
+            label={t('common.amount')}
+            min={0}
+          />
+        )}
       </form.AppField>
 
       <form.AppField name={`splits[${index}].budgetId`}>

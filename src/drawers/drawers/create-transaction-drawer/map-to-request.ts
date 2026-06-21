@@ -77,7 +77,7 @@ export function recipientToApi(
 /**
  * Maps a sender combobox value to `incomeSourceId` / `newIncomeSourceName`.
  */
-function incomeSourceToApi(
+export function incomeSourceToApi(
   s: ComboboxValue | null | undefined
 ): Pick<CreateTransactionRequest, 'incomeSourceId' | 'newIncomeSourceName'> {
   if (!s) return {}

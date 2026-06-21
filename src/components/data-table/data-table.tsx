@@ -31,7 +31,7 @@ export interface DataTableProps<TData> {
   columns: DataTableColumnDef<TData>[]
   globalFilter: string
   onGlobalFilterChange: (value: string) => void
-  onFilterClick: () => void
+  onFilterClick?: () => void
   filterDisabled?: boolean
   activeFilters: ActiveFilter[]
   actionButton: {
@@ -160,7 +160,7 @@ export function DataTable<TData>({
               <TableRow
                 key={row.id}
                 className={cn(
-                  'border-gray-300 hover:bg-transparent',
+                  'border-gray-300',
                   getRowClassName?.(row.original)
                 )}
               >

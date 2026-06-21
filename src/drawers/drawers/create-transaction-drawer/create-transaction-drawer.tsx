@@ -19,8 +19,8 @@ import {
   useRecipientsList
 } from '@/hooks/api'
 import { useBudgetAllocateOnDemandDialog } from '@/hooks/use-budget-allocate-on-demand-dialog'
-import { getErrorMessage } from '@/lib/api-error'
 import { accountsById } from '@/lib/accounts'
+import { getErrorMessage } from '@/lib/api-error'
 import {
   applyZodIssuesToTanStackForm,
   clearTanStackFieldErrors,
@@ -34,8 +34,8 @@ import {
 } from './budget-allocation-shortfall'
 import { ExpenseIncomeTransferFields } from './expense-income-transfer-fields'
 import { buildCreateTransactionBody } from './map-to-request'
-import { submitExpenseWithOptionalAllocation } from './submit-expense-with-allocation'
 import { drawerFormSchema } from './schema'
+import { submitExpenseWithOptionalAllocation } from './submit-expense-with-allocation'
 import {
   DRAWER_DEFAULT_VALUES,
   type DrawerFormValues,
@@ -557,77 +557,77 @@ export function CreateTransactionDrawer({
           void form.handleSubmit()
         }}
       >
-      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto">
-        {!isInstanceLinked && (
-          <form.AppField name="transactionType">
-            {(field) => (
-              <TransactionTypeSegmentedControl
-                value={field.state.value}
-                onChange={(v) => {
-                  field.handleChange(v)
-                  handleTypeChange(v)
-                }}
-                options={typeOptions}
+        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto">
+          {!isInstanceLinked && (
+            <form.AppField name="transactionType">
+              {(field) => (
+                <TransactionTypeSegmentedControl
+                  value={field.state.value}
+                  onChange={(v) => {
+                    field.handleChange(v)
+                    handleTypeChange(v)
+                  }}
+                  options={typeOptions}
+                />
+              )}
+            </form.AppField>
+          )}
+
+          <form.Subscribe
+            selector={(s) => ({
+              transactionType: s.values.transactionType,
+              accountId: s.values.accountId,
+              budgetId: s.values.budgetId
+            })}
+          >
+            {({ transactionType, accountId, budgetId }) => (
+              <ExpenseIncomeTransferFields
+                form={form}
+                transactionType={transactionType}
+                accountId={accountId}
+                budgetId={budgetId}
+                householdId={householdId ?? ''}
+                splitSwitchId={splitSwitchId}
+                userId={userId}
+                useSplits={useSplits}
+                onToggleSplit={toggleSplit}
+                accountOptions={accountOptions}
+                budgetOptions={budgetOptions}
+                recipientOptions={recipientOptions}
+                senderOptions={senderOptions}
+                expandedSplitIds={expandedSplitIds}
+                setExpandedSplitIds={setExpandedSplitIds}
+                addSplit={addSplit}
+                removeSplit={removeSplit}
+                turnOffSplits={turnOffSplits}
               />
             )}
-          </form.AppField>
-        )}
+          </form.Subscribe>
+        </div>
 
-        <form.Subscribe
-          selector={(s) => ({
-            transactionType: s.values.transactionType,
-            accountId: s.values.accountId,
-            budgetId: s.values.budgetId
-          })}
-        >
-          {({ transactionType, accountId, budgetId }) => (
-            <ExpenseIncomeTransferFields
-              form={form}
-              transactionType={transactionType}
-              accountId={accountId}
-              budgetId={budgetId}
-              householdId={householdId ?? ''}
-              splitSwitchId={splitSwitchId}
-              userId={userId}
-              useSplits={useSplits}
-              onToggleSplit={toggleSplit}
-              accountOptions={accountOptions}
-              budgetOptions={budgetOptions}
-              recipientOptions={recipientOptions}
-              senderOptions={senderOptions}
-              expandedSplitIds={expandedSplitIds}
-              setExpandedSplitIds={setExpandedSplitIds}
-              addSplit={addSplit}
-              removeSplit={removeSplit}
-              turnOffSplits={turnOffSplits}
-            />
-          )}
-        </form.Subscribe>
-      </div>
-
-      <div className="mt-auto flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-gray-200 pt-4">
-        <Button
-          type="button"
-          variant="outlined"
-          color="subtle"
-          label={t('common.cancel')}
-          onClick={onClose}
-        />
-        <form.Subscribe selector={(s) => s.isSubmitting}>
-          {(isSubmitting) => (
-            <Button
-              type="submit"
-              variant="filled"
-              color="primary"
-              icon={<PlusIcon aria-hidden />}
-              label={t('transactions.createTransaction')}
-              disabled={isSubmitting || isPending}
-              onClick={() => void 0}
-            />
-          )}
-        </form.Subscribe>
-      </div>
-    </form>
+        <div className="mt-auto flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-gray-200 pt-4">
+          <Button
+            type="button"
+            variant="outlined"
+            color="subtle"
+            label={t('common.cancel')}
+            onClick={onClose}
+          />
+          <form.Subscribe selector={(s) => s.isSubmitting}>
+            {(isSubmitting) => (
+              <Button
+                type="submit"
+                variant="filled"
+                color="primary"
+                icon={<PlusIcon aria-hidden />}
+                label={t('transactions.createTransaction')}
+                disabled={isSubmitting || isPending}
+                onClick={() => void 0}
+              />
+            )}
+          </form.Subscribe>
+        </div>
+      </form>
     </>
   )
 }

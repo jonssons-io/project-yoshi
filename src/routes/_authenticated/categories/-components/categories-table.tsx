@@ -144,9 +144,7 @@ export function createCategoriesTableColumns(params: {
         const linked = row.original.linkedBudgets
         if (linked.length === 0) {
           return (
-            <span className="type-label text-muted-foreground">
-              {'\u2014'}
-            </span>
+            <span className="type-label text-muted-foreground">{'\u2014'}</span>
           )
         }
         return (

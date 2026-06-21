@@ -140,7 +140,12 @@ export function ExpenseIncomeTransferFields({
         </form.AppField>
 
         <form.AppField name="amount">
-          {(field) => <field.NumberField label={t('common.amount')} />}
+          {(field) => (
+            <field.NumberField
+              label={t('common.amount')}
+              min={0.01}
+            />
+          )}
         </form.AppField>
       </>
     )
@@ -251,7 +256,12 @@ export function ExpenseIncomeTransferFields({
       {transactionType === TransactionType.EXPENSE && !useSplits ? (
         <>
           <form.AppField name="amount">
-            {(field) => <field.NumberField label={t('common.amount')} />}
+            {(field) => (
+              <field.NumberField
+                label={t('common.amount')}
+                min={0}
+              />
+            )}
           </form.AppField>
 
           <form.AppField name="budgetId">
@@ -283,7 +293,12 @@ export function ExpenseIncomeTransferFields({
       {transactionType === TransactionType.INCOME ? (
         <>
           <form.AppField name="amount">
-            {(field) => <field.NumberField label={t('common.amount')} />}
+            {(field) => (
+              <field.NumberField
+                label={t('common.amount')}
+                min={0}
+              />
+            )}
           </form.AppField>
 
           <form.AppField name="category">

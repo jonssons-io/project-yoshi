@@ -2,10 +2,16 @@
  * Transactions page — income, expense, and transfer transactions
  */
 
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import type { ColumnFiltersState } from '@tanstack/react-table'
-import { isAfter, startOfDay } from 'date-fns'
-import { PlusIcon, Scale, TrendingDown, TrendingUp } from 'lucide-react'
+import { format, isAfter, startOfDay } from 'date-fns'
+import {
+  PlusIcon,
+  Scale,
+  TrendingDown,
+  TrendingUp,
+  UploadIcon
+} from 'lucide-react'
 import {
   type ReactNode,
   useCallback,
@@ -27,6 +33,11 @@ import {
 import { PageLayout } from '@/components/page-layout/page-layout'
 import { useAuth } from '@/contexts/auth-context'
 import { useDrawer } from '@/drawers'
+import {
+  StatementFileInput,
+  type StatementFileInputHandle
+} from '@/features/import-statements/components/statement-file-input'
+import { setActiveStatement } from '@/features/import-statements/session'
 import { NoData } from '@/features/no-data/no-data'
 import {
   useAccountsList,
@@ -96,6 +107,7 @@ function readTransactionsDateRangeFilter(columnFilters: ColumnFiltersState):
 
 function TransactionsPage() {
   const { budgetId: urlBudgetId } = Route.useSearch()
+  const navigate = useNavigate()
   const { userId, householdId } = useAuth()
   const { dateFrom, dateTo } = useDateRange()
   const { confirm, confirmDialog } = useConfirmDialog()
@@ -104,12 +116,27 @@ function TransactionsPage() {
   const budgetFilter = urlBudgetId ?? ALL_BUDGETS_VALUE
   const budgetId = budgetFilter === ALL_BUDGETS_VALUE ? undefined : budgetFilter
   const showUpcomingFilterId = useId()
+  const statementFileInputRef = useRef<StatementFileInputHandle | null>(null)
   const [showUpcomingTransactions, setShowUpcomingTransactions] = useState(true)
 
   const openCreateTransactionDrawer = useCallback(() => {
     openDrawer('createTransaction', {})
   }, [
     openDrawer
+  ])
+
+  const navigateToImportPage = useCallback(() => {
+    navigate({
+      to: '/transactions/import',
+      search: {
+        from: format(dateFrom, 'yyyy-MM-dd'),
+        to: format(dateTo, 'yyyy-MM-dd')
+      }
+    })
+  }, [
+    dateFrom,
+    dateTo,
+    navigate
   ])
 
   const {
@@ -557,6 +584,14 @@ function TransactionsPage() {
       <PageLayout
         title={t('transactions.title')}
         description={t('transactions.pageSubtitle')}
+        quickActions={[
+          {
+            id: 'import-statement',
+            label: t('statementImport.page.quickAction'),
+            icon: <UploadIcon />,
+            onClick: () => statementFileInputRef.current?.open()
+          }
+        ]}
         loadingHeader={summaryIsLoading}
         loadingContent={transactionsIsLoading}
         infoCards={[
@@ -656,6 +691,13 @@ function TransactionsPage() {
           )}
         </div>
       </PageLayout>
+      <StatementFileInput
+        inputRef={statementFileInputRef}
+        onParsed={(result, fileName) => {
+          setActiveStatement(result, fileName)
+          navigateToImportPage()
+        }}
+      />
       {confirmDialog}
     </>
   )

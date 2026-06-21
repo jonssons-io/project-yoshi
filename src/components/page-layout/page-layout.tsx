@@ -155,7 +155,7 @@ export function PageLayout({
         </div>
       )}
       {tabs}
-      <div className="flex min-h-0 flex-1 flex-col border-t border-border p-4">
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto border-t border-border p-4">
         {loadingContent ? <PageLayoutContentSkeleton /> : children}
       </div>
     </div>

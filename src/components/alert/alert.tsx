@@ -54,7 +54,7 @@ export function Alert({ variant, children }: AlertProps) {
       >
         <Icon />
       </span>
-      <span className="min-w-0 text-black type-label-small">{children}</span>
+      <span className="min-w-0 flex-1 text-black type-label-small">{children}</span>
     </div>
   )
 }

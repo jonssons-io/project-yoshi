@@ -1,6 +1,7 @@
 import { HttpResponse, http } from 'msw'
 import {
   accounts,
+  allocations,
   billInstances,
   bills,
   budgets,
@@ -146,6 +147,196 @@ function listFilteredTransactions(url: URL) {
   })
 }
 
+type MockCreateTransactionBody = Partial<{
+  type: 'EXPENSE' | 'INCOME' | 'TRANSFER'
+  name: string
+  budgetId: string | null
+  accountId: string
+  categoryId: string | null
+  newCategory: {
+    name: string
+    type: 'EXPENSE' | 'INCOME' | 'TRANSFER'
+  }
+  recipientId: string | null
+  newRecipientName: string
+  newIncomeSourceName: string
+  incomeSourceId: string | null
+  transferToAccountId: string | null
+  instanceId: string | null
+  splits: Array<{
+    subtitle: string
+    amount: number
+    categoryId: string
+    budgetId?: string
+    newCategoryName?: string
+    newCategory?: {
+      name: string
+      type: 'EXPENSE' | 'INCOME'
+    }
+  }>
+  amount: number
+  date: string
+  notes: string
+}>
+
+function validateMockCreateTransactionBody(
+  body: MockCreateTransactionBody
+): string | null {
+  if (body.type === 'TRANSFER' && (body.amount ?? 0) <= 0) {
+    return 'Transfer amount must be greater than zero'
+  }
+  return null
+}
+
+function validateBulkImportRow(body: MockCreateTransactionBody): string | null {
+  return validateMockCreateTransactionBody(body)
+}
+
+function createStoredTransaction(body: MockCreateTransactionBody) {
+  const validationError = validateMockCreateTransactionBody(body)
+  if (validationError) {
+    throw new Error(validationError)
+  }
+
+  const account = accounts.find((item) => item.id === body.accountId)
+  const createdCategory =
+    body.newCategory && body.newCategory.type !== 'TRANSFER'
+      ? {
+          id: nextId('cat'),
+          householdId: account?.householdId ?? 'hh_1',
+          name: body.newCategory.name,
+          types: [
+            body.newCategory.type
+          ],
+          archived: false,
+          createdAt: nowIso()
+        }
+      : null
+  if (createdCategory) {
+    categories.push(createdCategory)
+  }
+  const createdRecipient = body.newRecipientName
+    ? {
+        id: nextId('rec'),
+        householdId: account?.householdId ?? 'hh_1',
+        name: body.newRecipientName,
+        archived: false,
+        createdAt: nowIso()
+      }
+    : null
+  if (createdRecipient) {
+    recipients.push(createdRecipient)
+  }
+  const createdIncomeSource = body.newIncomeSourceName
+    ? {
+        id: nextId('incsrc'),
+        householdId: account?.householdId ?? 'hh_1',
+        name: body.newIncomeSourceName,
+        archived: false,
+        createdAt: nowIso()
+      }
+    : null
+  if (createdIncomeSource) {
+    incomeSources.push(createdIncomeSource)
+  }
+  const transaction = {
+    id: nextId('txn'),
+    name: body.name ?? 'Transaction',
+    householdId: account?.householdId ?? 'hh_1',
+    type: body.type ?? 'EXPENSE',
+    status: 'EFFECTIVE' as const,
+    budgetId: body.budgetId ?? null,
+    accountId: body.accountId ?? 'acc_1',
+    categoryId: body.categoryId ?? createdCategory?.id ?? null,
+    recipientId: body.recipientId ?? createdRecipient?.id ?? null,
+    transferToAccountId: body.transferToAccountId ?? null,
+    instanceId: body.instanceId ?? null,
+    splits: body.splits ?? undefined,
+    amount: body.amount ?? 0,
+    date: body.date ?? nowIso().slice(0, 10),
+    notes: body.notes ?? '',
+    createdAt: nowIso()
+  }
+  transactions.push(transaction)
+  if (transaction.instanceId) {
+    const billInstanceIndex = billInstances.findIndex(
+      (item) => item.id === transaction.instanceId
+    )
+    if (billInstanceIndex !== -1) {
+      billInstances[billInstanceIndex] = {
+        ...billInstances[billInstanceIndex],
+        transactionId: transaction.id,
+        status: 'HANDLED'
+      }
+    }
+    const incomeInstanceIndex = incomeInstances.findIndex(
+      (item) => item.id === transaction.instanceId
+    )
+    if (incomeInstanceIndex !== -1) {
+      incomeInstances[incomeInstanceIndex] = {
+        ...incomeInstances[incomeInstanceIndex],
+        transactionId: transaction.id,
+        status: 'HANDLED'
+      }
+    }
+  }
+  return transaction
+}
+
+function getHouseholdUnallocated(householdId: string): number {
+  const householdBudgets = budgets.filter(
+    (item) => item.householdId === householdId
+  )
+  const allocated = householdBudgets.reduce((sum, budget) => {
+    const budgetAllocations = allocations.filter(
+      (item) => item.budgetId === budget.id
+    )
+    return (
+      sum +
+      budgetAllocations.reduce((budgetSum, item) => budgetSum + item.amount, 0)
+    )
+  }, 0)
+  const totalFunds = 5000
+  return Math.max(0, totalFunds - allocated)
+}
+
+function applyBulkAllocationAdjustments(
+  adjustments: Array<{
+    budgetId: string
+    amount: number
+  }>,
+  householdId: string
+): string | null {
+  const totalAdjustment = adjustments.reduce(
+    (sum, item) => sum + item.amount,
+    0
+  )
+  if (totalAdjustment <= 0) return null
+
+  const available = getHouseholdUnallocated(householdId)
+  if (totalAdjustment > available) {
+    return 'Allocation exceeds available unallocated funds'
+  }
+
+  for (const adjustment of adjustments) {
+    if (adjustment.amount <= 0) {
+      return 'Allocation amount must be greater than zero'
+    }
+
+    const timestamp = nowIso()
+    allocations.push({
+      id: nextId('alloc'),
+      budgetId: adjustment.budgetId,
+      categoryId: categories[0]?.id ?? 'cat_1',
+      amount: adjustment.amount,
+      date: timestamp,
+      createdAt: timestamp
+    })
+  }
+
+  return null
+}
+
 export const transactionHandlers = [
   http.get(`${BASE}/transactions`, ({ request }) => {
     const url = new URL(request.url)
@@ -205,105 +396,102 @@ export const transactionHandlers = [
   }),
 
   http.post(`${BASE}/transactions`, async ({ request }) => {
-    const body =
-      await readJson<
-        Partial<{
-          type: 'EXPENSE' | 'INCOME' | 'TRANSFER'
-          name: string
-          budgetId: string
-          accountId: string
-          categoryId: string
-          newCategory: {
-            name: string
-            type: 'EXPENSE' | 'INCOME' | 'TRANSFER'
+    const body = await readJson<MockCreateTransactionBody>(request)
+    try {
+      const transaction = createStoredTransaction(body)
+      return HttpResponse.json(enrichTransaction(transaction), {
+        status: 201
+      })
+    } catch (error) {
+      return HttpResponse.json(
+        {
+          error: {
+            code: 'VALIDATION_ERROR',
+            message:
+              error instanceof Error ? error.message : 'Invalid transaction'
           }
-          recipientId: string
-          newRecipientName: string
-          transferToAccountId: string
-          instanceId: string
-          splits: Array<{
-            subtitle: string
-            amount: number
-            categoryId: string
-            budgetId?: string
-          }>
-          amount: number
-          date: string
-          notes: string
-        }>
-      >(request)
-    const account = accounts.find((item) => item.id === body.accountId)
-    const createdCategory =
-      body.newCategory && body.newCategory.type !== 'TRANSFER'
-        ? {
-            id: nextId('cat'),
-            householdId: account?.householdId ?? 'hh_1',
-            name: body.newCategory.name,
-            types: [
-              body.newCategory.type
-            ],
-            archived: false,
-            createdAt: nowIso()
+        },
+        {
+          status: 422
+        }
+      )
+    }
+  }),
+
+  http.post(`${BASE}/transactions/bulk`, async ({ request }) => {
+    const body = await readJson<{
+      allocationAdjustments?: Array<{
+        budgetId: string
+        amount: number
+      }>
+      transactions: Array<
+        MockCreateTransactionBody & {
+          clientRowId: string
+        }
+      >
+    }>(request)
+
+    const firstAccountId = body.transactions[0]?.accountId
+    const householdId =
+      accounts.find((item) => item.id === firstAccountId)?.householdId ?? 'hh_1'
+
+    if (body.allocationAdjustments && body.allocationAdjustments.length > 0) {
+      const allocationError = applyBulkAllocationAdjustments(
+        body.allocationAdjustments,
+        householdId
+      )
+      if (allocationError) {
+        return HttpResponse.json(
+          {
+            error: {
+              code: 'VALIDATION_ERROR',
+              message: allocationError
+            }
+          },
+          {
+            status: 422
           }
-        : null
-    if (createdCategory) {
-      categories.push(createdCategory)
-    }
-    const createdRecipient = body.newRecipientName
-      ? {
-          id: nextId('rec'),
-          householdId: account?.householdId ?? 'hh_1',
-          name: body.newRecipientName,
-          archived: false,
-          createdAt: nowIso()
-        }
-      : null
-    if (createdRecipient) {
-      recipients.push(createdRecipient)
-    }
-    const transaction = {
-      id: nextId('txn'),
-      name: body.name ?? 'Transaction',
-      householdId: account?.householdId ?? 'hh_1',
-      type: body.type ?? 'EXPENSE',
-      status: 'EFFECTIVE' as const,
-      budgetId: body.budgetId ?? null,
-      accountId: body.accountId ?? 'acc_1',
-      categoryId: body.categoryId ?? createdCategory?.id ?? null,
-      recipientId: body.recipientId ?? createdRecipient?.id ?? null,
-      transferToAccountId: body.transferToAccountId ?? null,
-      instanceId: body.instanceId ?? null,
-      splits: body.splits ?? undefined,
-      amount: body.amount ?? 0,
-      date: body.date ?? nowIso().slice(0, 10),
-      notes: body.notes ?? '',
-      createdAt: nowIso()
-    }
-    transactions.push(transaction)
-    if (transaction.instanceId) {
-      const billInstanceIndex = billInstances.findIndex(
-        (item) => item.id === transaction.instanceId
-      )
-      if (billInstanceIndex !== -1) {
-        billInstances[billInstanceIndex] = {
-          ...billInstances[billInstanceIndex],
-          transactionId: transaction.id,
-          status: 'HANDLED'
-        }
-      }
-      const incomeInstanceIndex = incomeInstances.findIndex(
-        (item) => item.id === transaction.instanceId
-      )
-      if (incomeInstanceIndex !== -1) {
-        incomeInstances[incomeInstanceIndex] = {
-          ...incomeInstances[incomeInstanceIndex],
-          transactionId: transaction.id,
-          status: 'HANDLED'
-        }
+        )
       }
     }
-    return HttpResponse.json(enrichTransaction(transaction), {
-      status: 201
+
+    const created: Array<{
+      clientRowId: string
+      transactionId: string
+    }> = []
+    const failed: Array<{
+      clientRowId: string
+      message: string
+    }> = []
+
+    for (const row of body.transactions) {
+      const { clientRowId, ...createBody } = row
+      const validationError = validateBulkImportRow(createBody)
+      if (validationError) {
+        failed.push({
+          clientRowId,
+          message: validationError
+        })
+        continue
+      }
+      try {
+        const transaction = createStoredTransaction(createBody)
+        created.push({
+          clientRowId,
+          transactionId: transaction.id
+        })
+      } catch (error) {
+        failed.push({
+          clientRowId,
+          message:
+            error instanceof Error ? error.message : 'Invalid transaction'
+        })
+      }
+    }
+
+    return HttpResponse.json({
+      created,
+      failed
     })
   }),
 

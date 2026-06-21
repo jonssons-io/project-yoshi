@@ -36,7 +36,12 @@ export function computeBudgetAllocationShortfalls(params: {
     )
   }
 
-  const budgetById = new Map(budgets.map((budget) => [budget.id, budget]))
+  const budgetById = new Map(
+    budgets.map((budget) => [
+      budget.id,
+      budget
+    ])
+  )
   const shortfalls: BudgetAllocationShortfall[] = []
 
   for (const [budgetId, expenseAmount] of amountByBudgetId) {
@@ -88,7 +93,12 @@ export function computeEditBudgetAllocationShortfalls(params: {
   const { budgets, originalExpenseLines, newExpenseLines } = params
   const originalByBudgetId = sumExpenseLinesByBudget(originalExpenseLines)
   const newByBudgetId = sumExpenseLinesByBudget(newExpenseLines)
-  const budgetById = new Map(budgets.map((budget) => [budget.id, budget]))
+  const budgetById = new Map(
+    budgets.map((budget) => [
+      budget.id,
+      budget
+    ])
+  )
   const shortfalls: BudgetAllocationShortfall[] = []
 
   const budgetIds = new Set([
@@ -98,7 +108,8 @@ export function computeEditBudgetAllocationShortfalls(params: {
 
   for (const budgetId of budgetIds) {
     const additionalNeed =
-      (newByBudgetId.get(budgetId) ?? 0) - (originalByBudgetId.get(budgetId) ?? 0)
+      (newByBudgetId.get(budgetId) ?? 0) -
+      (originalByBudgetId.get(budgetId) ?? 0)
     if (additionalNeed <= 0) continue
 
     const budget = budgetById.get(budgetId)
@@ -165,11 +176,15 @@ export function resolveExpenseBudgetShortfalls(params: {
 export function expenseLinesFromTransaction(params: {
   type: string
   amount: number
-  budget?: { id?: string | null } | null
+  budget?: {
+    id?: string | null
+  } | null
   splits?: Array<{
     amount: number
     budgetId?: string | null
-    budget?: { id?: string | null } | null
+    budget?: {
+      id?: string | null
+    } | null
   }> | null
 }): ExpenseBudgetLine[] {
   const { type, amount, budget, splits } = params

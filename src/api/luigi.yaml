@@ -33,9 +33,9 @@ info:
     List endpoints support optional `limit` and `offset` (default 0) query parameters. If `limit` is **omitted**, the full dataset is returned. If provided, `limit` must be between 0 and 100: use `limit=0` to fetch only the total count in the pagination metadata; use 1–100 to cap the number of items. Responses include pagination metadata.
 
     ## Dates and timestamps
-    - **Dates** (`format: date`, `YYYY-MM-DD`) are plain calendar dates in **responses** where noted (for example snapshot rows and chart day keys).
+    - **Dates** (`format: date`, `YYYY-MM-DD`) in responses are **household-local civil dates** where noted (snapshot rows, chart `dates[]`, balance history filters on `snapshot.date`). They follow the household's IANA **`timeZone`** (default `Europe/Stockholm`).
     - **Timestamps** (`format: date-time`) must be ISO 8601 instants in **UTC** with a **`Z`** suffix (for example `2024-06-01T12:00:00.000Z`). Numeric offsets such as `+00:00` are not accepted on input.
-    - **Dashboard and snapshot history** query parameters `dateFrom` / `dateTo` use **`date-time`** (UTC Zulu). The server uses the instants **inclusively** for transaction aggregates (`period-summary`). For **daily** account/budget snapshot rows, each bound is mapped to its **UTC calendar date** for filtering; chart `dates` are still one ISO calendar date per day between those UTC dates (inclusive).
+    - **Dashboard** `period-summary` uses `dateFrom` / `dateTo` as **inclusive UTC instants** on `Transaction.date` (not civil-day bucketing). For **chart** and **balance snapshot history**, each Zulu bound is mapped to a **local civil date** in the account's household **`timeZone`**; clients should build those instants from the intended local date range (see household `timeZone`).
     - **Responses** serialize timestamps with a `Z` suffix and three fractional digits.
 
     ## Empty List Behavior
@@ -132,6 +132,12 @@ components:
           type: string
         name:
           type: string
+        timeZone:
+          type: string
+          description: |
+            IANA time zone identifier (for example `Europe/Stockholm`). Drives local civil dates for snapshots,
+            balance history, and the account balance chart for this household. Default when omitted on create is
+            `Europe/Stockholm`.
         createdAt:
           type: string
           format: date-time
@@ -146,7 +152,7 @@ components:
               type: integer
             accounts:
               type: integer
-      required: [id, name, createdAt]
+      required: [id, name, timeZone, createdAt]
 
     HouseholdUser:
       type: object
@@ -1110,17 +1116,32 @@ components:
 
     UnallocatedFunds:
       type: object
+      description: |
+        Household cash (`totalFunds`) minus net cash still covering envelope balances. Gross allocation
+        ledger totals (`totalAllocated`) are reduced by effective expense amounts already taken from those
+        budgets (`totalBudgetExpense`, same rules as per-budget spent). So
+        `unallocated` = `totalFunds` - `totalAllocated` + `totalBudgetExpense` (money available to assign
+        to budgets without double-counting spending that already left accounts).
       properties:
         totalFunds:
           type: number
           format: double
+          description: Sum of current balances across accounts in the household.
         totalAllocated:
           type: number
           format: double
+          description: Sum of all budget allocation line items (positive and negative) for the household.
+        totalBudgetExpense:
+          type: number
+          format: double
+          description: |
+            Sum of effective EXPENSE amounts attributed to household budgets (unsplit transaction amounts
+            and split lines; matches per-budget spent aggregation across budgets).
         unallocated:
           type: number
           format: double
-      required: [totalFunds, totalAllocated, unallocated]
+          description: Funds available for new allocations — see schema description for the formula.
+      required: [totalFunds, totalAllocated, totalBudgetExpense, unallocated]
 
     HouseholdPeriodSummary:
       type: object
@@ -1198,31 +1219,32 @@ components:
     HouseholdAccountBalanceChartResponse:
       type: object
       description: |
-        **Daily** balance series for dashboard charts. Query `dateFrom` / `dateTo` are UTC Zulu instants; the
-        chart spans every UTC calendar day from the UTC date of `dateFrom` through the UTC date of `dateTo`
-        (inclusive). Response fields `dateFrom` / `dateTo` echo those query instants as timestamps.
+        **Daily** balance series for dashboard charts. Query `dateFrom` / `dateTo` are UTC Zulu instants. The
+        chart spans every **household-local civil day** from the local date of `dateFrom` through the local date of
+        `dateTo` (inclusive) using the household's **`timeZone`**. Response fields `dateFrom` / `dateTo` echo those
+        query instants as timestamps.
 
-        `dates` has one ISO calendar date per day in that range (in order). `series` maps each account id to
+        `dates` has one `YYYY-MM-DD` per day in that **local** range (in order). `series` maps each account id to
         an array of balances with the same length as `dates`.
 
-        For each account and day **D**, the value is the **latest snapshot balance** with `snapshot.date <= D`
+        For each account and local day **D**, the value is the **latest snapshot balance** with `snapshot.date <= D`
         (forward-filled across days with no snapshot row, producing flat chart segments). If there is no snapshot
         on or before **D**, the value is **`initialBalance`** until a snapshot applies.
 
-        For the server's **current UTC calendar date** (`today`), values are **`currentBalance`** from live account
-        state (same as list account balances), so the chart matches real-time balances even when today's snapshot
-        row is missing. Days after `today` still appear when `dateTo` extends into the future; they forward-fill
-        from the last known balance as of each day (typically flat after the last in-range snapshot).
+        For **today** (current calendar date in the household **`timeZone`**), values are **`currentBalance`** from
+        live account state (same as list account balances), so the chart matches real-time balances even when today's
+        snapshot row is missing. Days after **today** still appear when `dateTo` extends into the future; they
+        forward-fill from the last known balance as of each day (typically flat after the last in-range snapshot).
 
-        Optional query flag **`projectFromTransactions`**: when true, **pending** transactions whose UTC calendar
-        `date` falls in the chart day range adjust balances from **`today`** forward (and include pending on
-        **`today`**). **Effective** transactions are already reflected in snapshots and `currentBalance` and are
-        not applied again. Chart days before **`today`** are unchanged.
+        Optional query flag **`projectFromTransactions`**: when true, **pending** transactions whose **local civil**
+        `date` (in the household zone) falls in the chart day range adjust balances from **today** forward (and
+        include pending on **today**). **Effective** transactions are already reflected in snapshots and
+        `currentBalance` and are not applied again. Chart days before **today** are unchanged.
 
         Optional query flag **`projectFromBillAndIncomeEstimates`**: when true, **bill and income instances** whose
-        UTC calendar **due** or **expected** day falls in the chart range adjust balances from **`today`** forward (same
+        local **due** or **expected** day falls in the chart range adjust balances from **today** forward (same
         cumulative overlay rules as `projectFromTransactions`). Unlinked instances use the instance **amount**;
-        instances linked to a transaction use the **transaction** amount (and **transaction** UTC calendar day) when
+        instances linked to a transaction use the **transaction** amount (and **transaction** local civil day) when
         the transaction is **pending**; **effective** linked transactions are omitted here because they are already
         reflected in snapshots and `currentBalance`. The two projection flags are **independent** and may be combined;
         when both are true, pending transactions linked to an instance are applied only via the pending-transaction
@@ -1403,6 +1425,9 @@ components:
         name:
           type: string
           minLength: 1
+        timeZone:
+          type: string
+          description: Optional IANA time zone; defaults to `Europe/Stockholm`.
       required: [name]
     UpdateHouseholdRequest:
       type: object
@@ -1410,6 +1435,9 @@ components:
         name:
           type: string
           minLength: 1
+        timeZone:
+          type: string
+          description: IANA time zone identifier. Changing it may trigger snapshot history recalculation.
     SetDefaultHouseholdRequest:
       type: object
       properties:
@@ -1457,7 +1485,9 @@ components:
           type: array
           items:
             type: string
-          description: Replace budget links with this set
+          description: |
+            Replace budget links with this exact set. **Omit** this field to leave existing links unchanged.
+            Send **`[]`** or JSON **`null`** to unlink all budgets from this account.
     ToggleAccountArchiveRequest:
       type: object
       properties:
@@ -1499,6 +1529,9 @@ components:
         name:
           type: string
           minLength: 1
+          description: |
+            Display name. Duplicate categories in the same household are suppressed using a **case-insensitive**
+            comparison after trimming and collapsing internal whitespace; an existing row is returned instead of creating another.
         types:
           type: array
           items:
@@ -1525,7 +1558,9 @@ components:
           type: array
           items:
             type: string
-          description: Replace budget links with this set
+          description: |
+            Replace budget links with this exact set (order ignored). **Omit** this field to leave existing links
+            unchanged. Send **`[]`** or JSON **`null`** to unlink all budgets from this category.
     CreateAllocationRequest:
       type: object
       properties:
@@ -1580,7 +1615,10 @@ components:
         amount:
           type: number
           format: double
-          exclusiveMinimum: 0
+          minimum: 0
+          description: |
+            Split line amount. Zero is allowed for effective `EXPENSE` and `INCOME` transactions (including when the parent
+            total is zero). `TRANSFER` transactions still require every amount to be greater than zero (422).
         subtitle:
           type: string
       required: [amount, subtitle]
@@ -1591,6 +1629,8 @@ components:
         line carries its own `budgetId` for effective expenses.
         Top-level `categoryId` / `newCategory` and `splits` are mutually exclusive: if `splits` is non-empty, omit
         top-level category fields; each split line carries its own category.
+        For `EXPENSE` and `INCOME`, `amount` may be zero (e.g. mark a bill/income instance handled when nothing is owed).
+        `TRANSFER` still requires `amount` greater than zero (422).
       properties:
         type:
           $ref: '#/components/schemas/TransactionType'
@@ -1625,7 +1665,9 @@ components:
         amount:
           type: number
           format: double
-          exclusiveMinimum: 0
+          minimum: 0
+          description: |
+            Transaction amount. Zero is allowed for `EXPENSE` and `INCOME`. `TRANSFER` requires amount greater than zero (422).
         date:
           type: string
           format: date-time
@@ -1658,6 +1700,7 @@ components:
         `budgetId` and `splits` are mutually exclusive: if `splits` is non-empty, `budgetId` must be null.
         Top-level `categoryId` and `splits` are mutually exclusive: if `splits` is non-empty (after the update),
         `categoryId` must be null.
+        For `EXPENSE` and `INCOME`, `amount` may be zero. `TRANSFER` still requires `amount` greater than zero (422).
       properties:
         type:
           $ref: '#/components/schemas/TransactionType'
@@ -1683,7 +1726,9 @@ components:
         amount:
           type: number
           format: double
-          exclusiveMinimum: 0
+          minimum: 0
+          description: |
+            Transaction amount. Zero is allowed for `EXPENSE` and `INCOME`. `TRANSFER` requires amount greater than zero (422).
         date:
           type: string
           format: date-time
@@ -1705,6 +1750,80 @@ components:
         date:
           type: string
           format: date-time
+    BulkAllocationAdjustment:
+      type: object
+      description: |
+        Positive allocation to a budget envelope before bulk transaction create. Uses the same unallocated-pool rules as
+        **`POST /budgets/{budgetId}/allocations`**. Applied in request order before any transaction row is created.
+      properties:
+        budgetId:
+          type: string
+        amount:
+          type: number
+          format: double
+          exclusiveMinimum: 0
+      required: [budgetId, amount]
+    BulkCreateTransactionItem:
+      allOf:
+        - $ref: '#/components/schemas/CreateTransactionRequest'
+        - type: object
+          description: |
+            One import row. Same create semantics as **`POST /transactions`** (inline recipient, category, income source,
+            splits, instance links, etc.). Requires **`clientRowId`** for mapping **`created`** / **`failed`** outcomes back to the UI.
+          properties:
+            clientRowId:
+              type: string
+              minLength: 1
+              description: Stable client-side row id echoed in the bulk response for UI mapping.
+          required: [clientRowId]
+    BulkCreateTransactionsRequest:
+      type: object
+      properties:
+        transactions:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/BulkCreateTransactionItem'
+        allocationAdjustments:
+          type: array
+          items:
+            $ref: '#/components/schemas/BulkAllocationAdjustment'
+      required: [transactions]
+    BulkCreateTransactionSuccess:
+      type: object
+      properties:
+        clientRowId:
+          type: string
+        transactionId:
+          type: string
+      required: [clientRowId, transactionId]
+    BulkCreateTransactionFailure:
+      type: object
+      properties:
+        clientRowId:
+          type: string
+        message:
+          type: string
+        fieldErrors:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+          description: Optional field-level hints (e.g. `budgetId` → `["Required"]`).
+      required: [clientRowId, message]
+    BulkCreateTransactionsResponse:
+      type: object
+      properties:
+        created:
+          type: array
+          items:
+            $ref: '#/components/schemas/BulkCreateTransactionSuccess'
+        failed:
+          type: array
+          items:
+            $ref: '#/components/schemas/BulkCreateTransactionFailure'
+      required: [created, failed]
     CreateBillRequest:
       type: object
       description: |
@@ -2500,8 +2619,9 @@ paths:
       summary: Get historical balance snapshots for an account
       description: |
         Daily snapshot history for an account. Optional `dateFrom` / `dateTo` are UTC Zulu instants; each is
-        mapped to its UTC calendar date to filter `snapshot.date`. If `staleHistory` is true, any dates on or after
-        `historyRecalcFrom` should be treated as provisional until the async rebuild completes.
+        mapped to a **household-local civil date** (account's household `timeZone`) to filter `snapshot.date`
+        inclusively. If `staleHistory` is true, any dates on or after `historyRecalcFrom` should be treated as
+        provisional until the async rebuild completes.
       tags: [Accounts]
       parameters:
         - name: dateFrom
@@ -2530,7 +2650,8 @@ paths:
       summary: Get balance snapshots for multiple accounts
       description: |
         Batch snapshot history for multiple accounts, including staleness flags per account. Optional `dateFrom` /
-        `dateTo` are UTC Zulu instants mapped to UTC calendar dates for `snapshot.date` filtering.
+        `dateTo` are UTC Zulu instants mapped to **household-local civil dates** (each account's household
+        `timeZone`) for `snapshot.date` filtering.
       tags: [Accounts]
       parameters:
         - name: accountIds
@@ -2860,6 +2981,11 @@ paths:
     post:
       operationId: createCategory
       summary: Create a new category
+      description: |
+        If a category with the same **normalized** name already exists in the household (leading/trailing
+        whitespace trimmed, internal whitespace collapsed to single spaces, **case-insensitive** match), the
+        server returns **that existing row** with `201` and does not insert a duplicate. Budget links from the
+        request are still applied to the returned category.
       tags: [Categories]
       requestBody:
         required: true
@@ -2869,7 +2995,7 @@ paths:
               $ref: '#/components/schemas/CreateCategoryRequest'
       responses:
         '201':
-          description: Created category
+          description: Created category (or existing category when the name duplicates case-insensitively)
           content:
             application/json:
               schema:
@@ -3085,7 +3211,7 @@ paths:
       summary: Daily account balance series for dashboard charts
       description: |
         Returns forward-filled **daily** balances for the requested accounts (see `HouseholdAccountBalanceChartResponse`).
-        Required `dateFrom` / `dateTo` are UTC Zulu instants; see that schema for how they map to chart days.
+        Required `dateFrom` / `dateTo` are UTC Zulu instants; chart **local civil days** use the household **`timeZone`**.
         When `accountIds` is omitted, all **non-archived** household accounts are included unless `includeArchived` is true.
         Optional **`projectFromTransactions`**: when true, extends the series using **pending** transactions in the
         chart date range (see response schema); effective rows are not double-counted.
@@ -3257,6 +3383,40 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Transaction'
+
+  /transactions/bulk:
+    post:
+      operationId: bulkCreateTransactions
+      summary: Create multiple transactions in one request
+      tags: [Transactions]
+      description: |
+        **Partial success:** each row is validated and created independently. The response always includes **`created`**
+        and **`failed`** arrays keyed by **`clientRowId`**.
+
+        Optional **`allocationAdjustments`** are applied **first** (same rules as single budget allocation). If any
+        adjustment fails, the whole request fails with **422** and no transaction rows are created.
+
+        Row validation and side effects match **`POST /transactions`** (balances, budget spend checks, instance links,
+        inline catalog creation, splits).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BulkCreateTransactionsRequest'
+      responses:
+        '200':
+          description: Per-row create results (may mix successes and failures)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BulkCreateTransactionsResponse'
+        '422':
+          description: Request-level validation failure (e.g. duplicate clientRowId, allocation adjustment rejected)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
 
   /transactions/summary:
     get:
@@ -4296,14 +4456,14 @@ paths:
       - $ref: '#/components/parameters/householdId'
     get:
       operationId: listHouseholdInvitations
-      summary: List pending invitations for a household
+      summary: List pending and declined invitations for a household
       tags: [Invitations]
       parameters:
         - $ref: '#/components/parameters/limit'
         - $ref: '#/components/parameters/offset'
       responses:
         '200':
-          description: List of pending invitations (empty list when no matches)
+          description: List of pending and declined invitations (empty list when no matches)
           content:
             application/json:
               schema:
@@ -4342,7 +4502,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Invitation'
         '409':
-          description: Invitation already pending for this email
+          description: Invitation already pending or accepted for this email (declined rows are reopened to pending)
           content:
             application/problem+json:
               schema:
@@ -4366,11 +4526,24 @@ paths:
       - $ref: '#/components/parameters/invitationId'
     post:
       operationId: declineInvitation
-      summary: Decline an invitation
+      summary: Decline an invitation (status becomes declined; resending an invite resets to pending)
       tags: [Invitations]
       responses:
         '200':
           description: Invitation declined
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Invitation'
+        '409':
+          description: Invitation already accepted or no longer pending
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
 
   /invitations/{invitationId}:
     parameters:

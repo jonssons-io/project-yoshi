@@ -66,6 +66,7 @@
     "notFound": "Hittades inte",
     "close": "Stäng",
     "confirm": "Bekräfta",
+    "apply": "Tillämpa",
     "confirmAction": "Bekräfta åtgärd",
     "cancelled": "Åtgärden avbröts",
     "has": "Har",
@@ -120,6 +121,132 @@
     "allocateAndCreate": "Fördela och skapa",
     "allocateAndUpdate": "Fördela och spara",
     "allocationAppliedSubmitFailed": "Medel fördelades men transaktionen kunde inte sparas. {{error}}"
+  },
+  "statementImport": {
+    "page": {
+      "title": "Importera kontoutdrag",
+      "description": "Ladda upp ett kontoutdrag i .xlsx-format, granska tolkade rader och förbered en samlad transaktionsimport.",
+      "quickAction": "Importera kontoutdrag"
+    },
+    "upload": {
+      "title": "Ladda upp kontoutdrag",
+      "description": "Filen tolkas lokalt i webbläsaren. Rådata från kalkylbladet laddas inte upp och sparas inte.",
+      "fileLabel": "XLSX-fil",
+      "parse": "Tolka kontoutdrag",
+      "parsing": "Tolkar..."
+    },
+    "sections": {
+      "uncategorized": "Okategoriserade",
+      "incomes": "Inkomster",
+      "transfers": "Överföringar",
+      "expenses": "Utgifter"
+    },
+    "transactionTypes": {
+      "uncategorized": "Okategoriserad"
+    },
+    "summary": {
+      "rows": "Rader",
+      "included": "Inkluderade",
+      "excluded": "Exkluderade"
+    },
+    "table": {
+      "include": "Inkludera",
+      "includeRowAria": "Inkludera rad {{row}}",
+      "row": "Rad",
+      "description": "Beskrivning",
+      "originAccount": "Ursprungskonto",
+      "type": "Typ",
+      "chooseAccount": "Välj konto",
+      "chooseSender": "Välj avsändare",
+      "chooseRecipient": "Välj mottagare",
+      "sender": "Avsändare",
+      "incomeInstance": "Inkomstinstans",
+      "billInstance": "Räkningsinstans",
+      "linkInstance": "Länka instans",
+      "unlinkInstance": "Ta bort instanslänk",
+      "noInstance": "Ingen instans",
+      "noBudget": "Ingen budget",
+      "noCategory": "Ingen kategori",
+      "startOver": "Börja om",
+      "changeFile": "Byt fil",
+      "skippedRows": "Överhoppade rader",
+      "skippedRowReason": "Rad {{row}}: {{reason}}",
+      "selectRowAria": "Välj rad {{row}} för massredigering",
+      "excludeRow": "Exkludera rad från import",
+      "includeRow": "Inkludera rad i import"
+    },
+    "bulkEdit": {
+      "title": "Massredigera rader",
+      "description": "Uppdatera {{count}} valda rader samtidigt. Tomma fält lämnas oförändrade.",
+      "noChange": "Ingen ändring",
+      "originAccountHint": "Ursprungskonto ändras ovan"
+    },
+    "instancePicker": {
+      "title": "Välj instans",
+      "description": "Välj en olänkad instans att koppla till raden.",
+      "empty": "Inga tillgängliga instanser matchar raden."
+    },
+    "validation": {
+      "originAccountRequired": "Ursprungskonto krävs.",
+      "expenseRequiredFields": "Utgiftsrader behöver budget, kategori och mottagare.",
+      "incomeRequiredFields": "Inkomstrader behöver kategori och avsändare.",
+      "transferDestinationRequired": "Överföringsrader behöver destinationskonto.",
+      "transferInvalid": "Överföringsrader behöver destinationskonto och belopp större än noll.",
+      "uncategorizedRows": "Okategoriserade rader måste klassificeras eller exkluderas.",
+      "noIncludedRows": "Inga rader är inkluderade i importen."
+    },
+    "footer": {
+      "title": "Importera transaktioner",
+      "description": "Granska valideringen nedan. När kön är redo kan du importera alla inkluderade rader i ett anrop.",
+      "ready": "Kön är redo att importeras.",
+      "submit": "Importera transaktioner",
+      "submitting": "Importerar..."
+    },
+    "import": {
+      "success": "{{count}} transaktioner importerades.",
+      "partialFailure": "{{created}} importerades, {{failed}} misslyckades. Rätta felen och försök igen.",
+      "rowFailed": "Rad {{row}}: {{message}}",
+      "incomePhaseFailed": "Inkomsterna kunde inte sparas. Övriga rader har inte importerats.",
+      "allocationPhaseFailed": "Budgetallokering misslyckades efter att inkomsterna sparats. Kontrollera kuvert och försök igen.",
+      "transfersExpensesPhaseFailed": "Överföringar och utgifter kunde inte sparas efter inkomster och allokering."
+    },
+    "allocation": {
+      "title": "Otillräcklig budgetallokering",
+      "intro": "Du har inte allokerat tillräckligt med pengar i dessa budgetar. Vill du allokera pengar nu?",
+      "unallocatedFunds": "Tillgängligt att fördela: {{amount}} (ofördelat + kommande inkomstimport - nedanstående fördelning)",
+      "budgetsColumn": "Budgetar",
+      "allocateColumn": "Allokera",
+      "submit": "Allokera och importera",
+      "totalExceedsUnallocated": "Totalt belopp överstiger tillgängliga ofördelade medel.",
+      "belowShortfall": "Allokera minst {{amount}} till {{budgetName}}.",
+      "amountRequired": "Ange ett belopp för {{budgetName}}."
+    },
+    "disabled": {
+      "title": "Import inte tillgänglig",
+      "description": "Backend-stöd för samlad transaktionsimport saknas fortfarande, så slutlig import är blockerad. Valideringen visas för att kön ska kunna förberedas.",
+      "ready": "Kön är redo när backend-stödet finns på plats.",
+      "submit": "Importera transaktioner"
+    },
+    "warnings": {
+      "reviewTransferDestination": "Granska destinationskonto före import."
+    },
+    "errors": {
+      "chooseXlsx": "Välj ett .xlsx-kontoutdrag.",
+      "couldNotParse": "Kunde inte tolka kontoutdraget.",
+      "onlyXlsxSupported": "Endast kontoutdrag i .xlsx-format stöds.",
+      "noTransactionHeader": "Ingen transaktionsrubrik hittades.",
+      "noWorksheets": "Kalkylbladet saknar arbetsblad.",
+      "emptyRow": "Tom rad",
+      "missingDescription": "Beskrivning saknas",
+      "malformedRow": "Felaktig rad",
+      "noTransactionsFound": "Inga transaktioner hittades i kalkylbladet.",
+      "invalidDate": "Ogiltigt datum",
+      "missingDate": "Datum saknas",
+      "invalidDateWithValue": "Ogiltigt datum",
+      "invalidAmount": "Ogiltigt belopp",
+      "missingAmount": "Belopp saknas",
+      "invalidAmountWithValue": "Ogiltigt belopp"
+    }
   },
   "transfers": {
     "add": "Lägg till överföring",
@@ -665,6 +792,7 @@
   "validation": {
     "required": "Obligatorisk",
     "positive": "Beloppet måste vara positivt",
+    "nonNegative": "Beloppet får inte vara negativt",
     "dateRequired": "Datum krävs",
     "categoryRequired": "Kategori krävs",
     "categoryNameRequired": "Kategorinamn krävs",

@@ -1,12 +1,12 @@
 import { z } from 'zod'
 
 import { TransactionType } from '@/api/generated/types.gen'
-import { nullablePositiveNumber } from '@/lib/zod-nullable-number'
+import { nullableNonNegativeNumber } from '@/lib/zod-nullable-number'
 
 export const splitRowSchema = z.object({
   id: z.string(),
   subtitle: z.string(),
-  amount: nullablePositiveNumber('validation.positive'),
+  amount: nullableNonNegativeNumber('validation.nonNegative'),
   budgetId: z.string().min(1, 'validation.required'),
   category: z.union([
     z.string().min(1),
@@ -24,7 +24,7 @@ export const drawerFormSchema = z
     date: z.date({
       message: 'validation.dateRequired'
     }),
-    amount: nullablePositiveNumber('validation.positive'),
+    amount: nullableNonNegativeNumber('validation.nonNegative'),
     transactionType: z.enum(TransactionType),
     accountId: z.string().min(1, 'validation.accountRequired'),
     transferToAccountId: z.string().optional(),
@@ -63,7 +63,7 @@ export const drawerFormSchema = z
   })
   .superRefine((data, ctx) => {
     if (data.transactionType === TransactionType.TRANSFER) {
-      if (data.amount == null) {
+      if (data.amount == null || data.amount <= 0) {
         ctx.addIssue({
           code: 'custom',
           message: 'validation.positive',
@@ -108,7 +108,7 @@ export const drawerFormSchema = z
         if (data.amount == null) {
           ctx.addIssue({
             code: 'custom',
-            message: 'validation.positive',
+            message: 'validation.nonNegative',
             path: [
               'amount'
             ]
@@ -150,7 +150,7 @@ export const drawerFormSchema = z
           if (row.amount == null) {
             ctx.addIssue({
               code: 'custom',
-              message: 'validation.positive',
+              message: 'validation.nonNegative',
               path: [
                 'splits',
                 i,
@@ -167,7 +167,7 @@ export const drawerFormSchema = z
       if (data.amount == null) {
         ctx.addIssue({
           code: 'custom',
-          message: 'validation.positive',
+          message: 'validation.nonNegative',
           path: [
             'amount'
           ]

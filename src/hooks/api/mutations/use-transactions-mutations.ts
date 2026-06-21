@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
+  bulkCreateTransactionsMutation,
   cloneTransactionMutation,
   createTransactionMutation,
   deleteTransactionMutation,
@@ -7,6 +8,8 @@ import {
   updateTransactionMutation
 } from '@/api/generated/@tanstack/react-query.gen'
 import type {
+  BulkCreateTransactionsRequest,
+  BulkCreateTransactionsResponse2,
   CloneTransactionResponse,
   CreateTransactionRequest,
   CreateTransactionResponse,
@@ -73,6 +76,56 @@ function updateTransactionCreatesCategory(
   v: UpdateTransactionVariables
 ): boolean {
   return v.splits?.some(splitCreatesCategory) ?? false
+}
+
+/**
+ * Hook to create multiple transactions in one bulk import request.
+ */
+export function useBulkCreateTransactions(
+  callbacks?: MutationCallbacks<
+    BulkCreateTransactionsResponse2,
+    BulkCreateTransactionsRequest
+  >
+) {
+  const queryClient = useQueryClient()
+  const mutationOptions = bulkCreateTransactionsMutation()
+  return useMutation<
+    BulkCreateTransactionsResponse2,
+    Error,
+    BulkCreateTransactionsRequest
+  >({
+    mutationFn: async (variables: BulkCreateTransactionsRequest) => {
+      const mutationFn = mutationOptions.mutationFn
+      if (!mutationFn) {
+        throw new Error('Missing bulkCreateTransactions mutation function')
+      }
+      return mutationFn(
+        {
+          body: variables
+        },
+        {} as never
+      )
+    },
+    onSuccess: (data, variables) => {
+      invalidateByOperation(queryClient, 'listTransactions')
+      invalidateByOperation(queryClient, 'getTransactionsSummary')
+      invalidateByOperation(queryClient, 'getHouseholdPeriodSummary')
+      invalidateByOperation(queryClient, 'listBudgets')
+      invalidateByOperation(queryClient, 'getUnallocatedFunds')
+      invalidateByOperation(queryClient, 'listAccounts')
+      invalidateByOperation(queryClient, 'listAccountBalances')
+      invalidateByOperation(queryClient, 'getHouseholdAccountBalanceChart')
+      if (variables.transactions.some((row) => row.instanceId)) {
+        invalidateByOperation(queryClient, 'listIncomeInstances')
+        invalidateByOperation(queryClient, 'listIncomeInstancesFiltered')
+        invalidateByOperation(queryClient, 'getIncomeInstancesSummary')
+        invalidateByOperation(queryClient, 'listBillInstances')
+        invalidateByOperation(queryClient, 'getBillInstancesSummary')
+      }
+      callbacks?.onSuccess?.(data, variables)
+    },
+    onError: (error, variables) => callbacks?.onError?.(error, variables)
+  })
 }
 
 /**

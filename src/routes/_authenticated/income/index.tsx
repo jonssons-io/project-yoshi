@@ -420,8 +420,7 @@ function IncomePageContent({
         accountsSeen.add(row.accountId)
         accounts.push({
           value: row.accountId,
-          label:
-            accountLabelById.get(row.accountId) ?? row.accountName
+          label: accountLabelById.get(row.accountId) ?? row.accountName
         })
       }
       const catKey = row.categoryId ?? '__uncategorized__'
@@ -608,8 +607,7 @@ function IncomePageContent({
         accountsSeen.add(row.accountId)
         accountOpts.push({
           value: row.accountId,
-          label:
-            accountLabelById.get(row.accountId) ?? row.accountName
+          label: accountLabelById.get(row.accountId) ?? row.accountName
         })
       }
       if (!categoriesSeen.has(row.categoryId)) {

@@ -311,39 +311,39 @@ function CategoriesPage() {
             </h2>
             <div className="min-h-0 flex-1 overflow-y-auto">
               <div className="flex flex-col gap-5 pb-1">
-              {sortedBudgetsSidebar.map((b) => {
-                const cats = categoriesByBudget.byBudgetId.get(b.id) ?? []
-                const sortedCats = [
-                  ...cats
-                ].sort((a, c2) =>
-                  a.name.localeCompare(c2.name, 'sv', {
-                    sensitivity: 'base'
-                  })
-                )
-                return (
-                  <div
-                    key={b.id}
-                    className="flex flex-col gap-2"
-                  >
-                    <p className="type-label text-gray-500">{b.name}</p>
-                    <div className="flex flex-row flex-wrap gap-1">
-                      {sortedCats.length === 0 ? (
-                        <span className="type-label text-muted-foreground">
-                          {'\u2014'}
-                        </span>
-                      ) : (
-                        sortedCats.map((c) => (
-                          <Badge
-                            key={c.id}
-                            color={categoryBadgeColor(c.id)}
-                            label={c.name}
-                          />
-                        ))
-                      )}
+                {sortedBudgetsSidebar.map((b) => {
+                  const cats = categoriesByBudget.byBudgetId.get(b.id) ?? []
+                  const sortedCats = [
+                    ...cats
+                  ].sort((a, c2) =>
+                    a.name.localeCompare(c2.name, 'sv', {
+                      sensitivity: 'base'
+                    })
+                  )
+                  return (
+                    <div
+                      key={b.id}
+                      className="flex flex-col gap-2"
+                    >
+                      <p className="type-label text-gray-500">{b.name}</p>
+                      <div className="flex flex-row flex-wrap gap-1">
+                        {sortedCats.length === 0 ? (
+                          <span className="type-label text-muted-foreground">
+                            {'\u2014'}
+                          </span>
+                        ) : (
+                          sortedCats.map((c) => (
+                            <Badge
+                              key={c.id}
+                              color={categoryBadgeColor(c.id)}
+                              label={c.name}
+                            />
+                          ))
+                        )}
+                      </div>
                     </div>
-                  </div>
-                )
-              })}
+                  )
+                })}
               </div>
             </div>
           </aside>
