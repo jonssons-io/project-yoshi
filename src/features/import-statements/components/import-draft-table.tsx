@@ -1,6 +1,6 @@
 import { createColumnHelper } from '@tanstack/react-table'
 import { EditIcon, Link2, SaveIcon, SaveOffIcon, Unlink } from 'lucide-react'
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   type BillInstance,
@@ -228,7 +228,10 @@ function createColumns({
   onOpenInstancePicker,
   onDraftChange,
   t
-}: Omit<ImportDraftTableProps, 'incomeInstances' | 'billInstances'> & {
+}: Omit<
+  ImportDraftTableProps,
+  'title' | 'rows' | 'incomeInstances' | 'billInstances'
+> & {
   selectedIds: Set<string>
   onSelectedChange: (id: string, selected: boolean) => void
   onOpenInstancePicker: (draft: InstancePickerDraft) => void
@@ -902,6 +905,9 @@ export function ImportDraftTable({
     })
   }, [])
 
+  const onDraftChangeRef = useRef(onDraftChange)
+  onDraftChangeRef.current = onDraftChange
+
   const handleDraftChange = useCallback(
     (id: string, patch: Partial<TransactionDraft>) => {
       if (patch.excluded) {
@@ -911,11 +917,9 @@ export function ImportDraftTable({
           return next
         })
       }
-      onDraftChange(id, patch)
+      onDraftChangeRef.current(id, patch)
     },
-    [
-      onDraftChange
-    ]
+    []
   )
 
   const handleBulkApply = (values: BulkEditValues) => {
@@ -936,9 +940,7 @@ export function ImportDraftTable({
   const columns = useMemo(
     () =>
       createColumns({
-        title,
         kind,
-        rows: sortedRows,
         accounts,
         budgets,
         categories,
@@ -959,16 +961,15 @@ export function ImportDraftTable({
       incomeSources,
       kind,
       recipients,
-      sortedRows,
       selectedIds,
-      t,
-      title
+      t
     ]
   )
 
   const { table, globalFilter, setGlobalFilter, activeFilters } = useDataTable({
     data: sortedRows,
-    columns
+    columns,
+    getRowId: (row) => row.id
   })
 
   return (

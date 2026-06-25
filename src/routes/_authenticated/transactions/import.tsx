@@ -3,7 +3,7 @@ import {
   getRouteApi,
   useNavigate
 } from '@tanstack/react-router'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { TransactionType } from '@/api/generated/types.gen'
@@ -340,26 +340,29 @@ function ImportTransactionsPage() {
     )
   }
 
-  const handleDraftChange = (id: string, patch: Partial<TransactionDraft>) => {
-    setImportFailures((current) => {
-      if (!(id in current)) return current
-      const next = {
-        ...current
-      }
-      delete next[id]
-      return next
-    })
-    setDrafts((current) =>
-      current.map((draft) =>
-        draft.id === id
-          ? {
-              ...draft,
-              ...patch
-            }
-          : draft
+  const handleDraftChange = useCallback(
+    (id: string, patch: Partial<TransactionDraft>) => {
+      setImportFailures((current) => {
+        if (!(id in current)) return current
+        const next = {
+          ...current
+        }
+        delete next[id]
+        return next
+      })
+      setDrafts((current) =>
+        current.map((draft) =>
+          draft.id === id
+            ? {
+                ...draft,
+                ...patch
+              }
+            : draft
+        )
       )
-    )
-  }
+    },
+    []
+  )
 
   const applyBulkFailures = (
     failed: Array<{
@@ -474,16 +477,28 @@ function ImportTransactionsPage() {
     }
   }
 
-  const commonTableProps = {
-    accounts,
-    budgets,
-    categories,
-    recipients,
-    incomeSources,
-    incomeInstances,
-    billInstances,
-    onDraftChange: handleDraftChange
-  }
+  const commonTableProps = useMemo(
+    () => ({
+      accounts,
+      budgets,
+      categories,
+      recipients,
+      incomeSources,
+      incomeInstances,
+      billInstances,
+      onDraftChange: handleDraftChange
+    }),
+    [
+      accounts,
+      billInstances,
+      budgets,
+      categories,
+      handleDraftChange,
+      incomeInstances,
+      incomeSources,
+      recipients
+    ]
+  )
 
   return (
     <PageLayout

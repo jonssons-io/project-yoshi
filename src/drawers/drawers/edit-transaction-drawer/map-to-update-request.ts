@@ -72,8 +72,7 @@ export function buildUpdateTransactionBody(params: {
       categoryId: null,
       recipientId: null,
       incomeSourceId: null,
-      instanceId: null,
-      splits: []
+      instanceId: null
     }
   }
 

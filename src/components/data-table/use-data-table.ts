@@ -21,6 +21,8 @@ import type {
 export interface UseDataTableOptions<TData> {
   data: TData[]
   columns: DataTableColumnDef<TData>[]
+  /** Stable row ids keep editable cells mounted when data updates. */
+  getRowId?: (row: TData) => string
   initialSorting?: SortingState
   /** When set, row pagination is enabled with this initial page size. */
   defaultPageSize?: number
@@ -101,7 +103,7 @@ export function useDataTable<TData>(
   options: UseDataTableOptions<TData>
 ): UseDataTableReturn<TData> {
   'use no memo'
-  const { data, columns, initialSorting, defaultPageSize } = options
+  const { data, columns, getRowId, initialSorting, defaultPageSize } = options
 
   const [sorting, setSorting] = useState<SortingState>(initialSorting ?? [])
   const [globalFilter, setGlobalFilter] = useState('')
@@ -215,6 +217,7 @@ export function useDataTable<TData>(
   const table = useReactTable({
     data,
     columns: columnsWithSort,
+    getRowId,
     autoResetPageIndex: false,
     state: {
       sorting,
