@@ -1,6 +1,12 @@
 import { createColumnHelper } from '@tanstack/react-table'
 import { EditIcon, Link2, SaveIcon, SaveOffIcon, Unlink } from 'lucide-react'
-import { useCallback, useMemo, useRef, useState } from 'react'
+import {
+  type RefObject,
+  useCallback,
+  useMemo,
+  useRef,
+  useState
+} from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   type BillInstance,
@@ -69,6 +75,25 @@ type ImportDraftTableProps = {
 }
 
 const columnHelper = createColumnHelper<TransactionDraft>()
+
+const getImportDraftRowId = (row: TransactionDraft) => row.id
+
+type ImportDraftColumnVolatileContext = {
+  selectedIds: Set<string>
+  onSelectedChange: (id: string, selected: boolean) => void
+  onOpenInstancePicker: (draft: InstancePickerDraft) => void
+  onDraftChange: (id: string, patch: Partial<TransactionDraft>) => void
+  t: (key: string, options?: Record<string, unknown>) => string
+}
+
+type ImportDraftColumnStableContext = {
+  kind: ImportDraftTableKind
+  accounts: ImportLookupItem[]
+  budgets: ImportLookupItem[]
+  categories: ImportLookupItem[]
+  recipients: ImportLookupItem[]
+  incomeSources: ImportLookupItem[]
+}
 
 type BillImportInstance = Omit<BillInstance, 'dueDate'> & {
   dueDate: string | Date
@@ -216,27 +241,18 @@ function getAvailableBillInstances({
   })
 }
 
-function createColumns({
-  kind,
-  selectedIds,
-  accounts,
-  budgets,
-  categories,
-  recipients,
-  incomeSources,
-  onSelectedChange,
-  onOpenInstancePicker,
-  onDraftChange,
-  t
-}: Omit<
-  ImportDraftTableProps,
-  'title' | 'rows' | 'incomeInstances' | 'billInstances'
-> & {
-  selectedIds: Set<string>
-  onSelectedChange: (id: string, selected: boolean) => void
-  onOpenInstancePicker: (draft: InstancePickerDraft) => void
-  t: (key: string, options?: Record<string, unknown>) => string
-}): DataTableColumnDef<TransactionDraft>[] {
+function createColumns(
+  volatileCtxRef: RefObject<ImportDraftColumnVolatileContext>,
+  {
+    kind,
+    accounts,
+    budgets,
+    categories,
+    recipients,
+    incomeSources
+  }: ImportDraftColumnStableContext
+): DataTableColumnDef<TransactionDraft>[] {
+  const { t } = volatileCtxRef.current
   const columns: DataTableColumnDef<TransactionDraft>[] = [
     columnHelper.display({
       id: 'selected',
@@ -244,12 +260,17 @@ function createColumns({
       enableSorting: false,
       cell: (ctx) => {
         const draft = ctx.row.original
+        const {
+          selectedIds,
+          onSelectedChange,
+          t: translate
+        } = volatileCtxRef.current
         return (
           <Checkbox
             id={`statement-import-select-${kind}-${draft.id}`}
             checked={selectedIds.has(draft.id)}
             disabled={draft.excluded}
-            aria-label={t('statementImport.table.selectRowAria', {
+            aria-label={translate('statementImport.table.selectRowAria', {
               row: draft.sourceRowNumber
             })}
             onCheckedChange={(checked) => onSelectedChange(draft.id, checked)}
@@ -274,6 +295,11 @@ function createColumns({
       enableSorting: false,
       cell: (ctx) => {
         const draft = ctx.row.original
+        const {
+          onDraftChange,
+          onOpenInstancePicker,
+          t: translate
+        } = volatileCtxRef.current
         if (
           draft.type !== TransactionType.INCOME &&
           draft.type !== TransactionType.EXPENSE
@@ -295,13 +321,13 @@ function createColumns({
             disabled={draft.excluded}
             title={
               linked
-                ? t('statementImport.table.unlinkInstance')
-                : t('statementImport.table.linkInstance')
+                ? translate('statementImport.table.unlinkInstance')
+                : translate('statementImport.table.linkInstance')
             }
             aria-label={
               linked
-                ? t('statementImport.table.unlinkInstance')
-                : t('statementImport.table.linkInstance')
+                ? translate('statementImport.table.unlinkInstance')
+                : translate('statementImport.table.linkInstance')
             }
             onClick={() => {
               if (linked) {
@@ -328,6 +354,7 @@ function createColumns({
       header: t('common.date'),
       cell: (ctx) => {
         const draft = ctx.row.original
+        const { onDraftChange } = volatileCtxRef.current
         return canEditDate(kind) ? (
           <DraftTextInput
             value={draft.date}
@@ -373,6 +400,7 @@ function createColumns({
         header: t('common.name'),
         cell: (ctx) => {
           const draft = ctx.row.original
+          const { onDraftChange } = volatileCtxRef.current
           return canEditName(kind) ? (
             <DraftTextInput
               value={draft.name}
@@ -415,6 +443,7 @@ function createColumns({
       header: t('statementImport.table.type'),
       cell: (ctx) => {
         const draft = ctx.row.original
+        const { onDraftChange, t: translate } = volatileCtxRef.current
         return (
           <DraftSelect
             value={draft.type}
@@ -428,17 +457,17 @@ function createColumns({
           >
             {kind === 'uncategorized' ? (
               <option value="uncategorized">
-                {t('statementImport.transactionTypes.uncategorized')}
+                {translate('statementImport.transactionTypes.uncategorized')}
               </option>
             ) : null}
             <option value={TransactionType.INCOME}>
-              {t('transactions.income')}
+              {translate('transactions.income')}
             </option>
             <option value={TransactionType.TRANSFER}>
-              {t('common.transfer')}
+              {translate('common.transfer')}
             </option>
             <option value={TransactionType.EXPENSE}>
-              {t('transactions.expense')}
+              {translate('transactions.expense')}
             </option>
           </DraftSelect>
         )
@@ -457,6 +486,7 @@ function createColumns({
         header: t('statementImport.table.sender'),
         cell: (ctx) => {
           const draft = ctx.row.original
+          const { onDraftChange, t: translate } = volatileCtxRef.current
           return (
             <DraftCombobox
               value={idOrNewNameToComboboxValue(
@@ -464,10 +494,10 @@ function createColumns({
                 draft.newIncomeSourceName
               )}
               disabled={draft.excluded}
-              placeholder={t('statementImport.table.chooseSender')}
+              placeholder={translate('statementImport.table.chooseSender')}
               options={lookupItemsToComboboxOptions(incomeSources)}
               allowCreate
-              createLabel={t('forms.addSender')}
+              createLabel={translate('forms.addSender')}
               onChange={(value) => {
                 const next = comboboxValueToIdAndNewName(value)
                 onDraftChange(draft.id, {
@@ -485,6 +515,7 @@ function createColumns({
         header: t('common.category'),
         cell: (ctx) => {
           const draft = ctx.row.original
+          const { onDraftChange, t: translate } = volatileCtxRef.current
           return (
             <DraftCombobox
               value={idOrNewNameToComboboxValue(
@@ -492,10 +523,10 @@ function createColumns({
                 draft.newCategoryName
               )}
               disabled={draft.excluded}
-              placeholder={t('statementImport.table.noCategory')}
+              placeholder={translate('statementImport.table.noCategory')}
               options={lookupItemsToComboboxOptions(categories)}
               allowCreate
-              createLabel={t('forms.createIncomeCategory')}
+              createLabel={translate('forms.createIncomeCategory')}
               onChange={(value) => {
                 const next = comboboxValueToIdAndNewName(value)
                 onDraftChange(draft.id, {
@@ -517,6 +548,7 @@ function createColumns({
         header: t('common.recipient'),
         cell: (ctx) => {
           const draft = ctx.row.original
+          const { onDraftChange, t: translate } = volatileCtxRef.current
           return (
             <DraftCombobox
               value={idOrNewNameToComboboxValue(
@@ -524,10 +556,10 @@ function createColumns({
                 draft.newRecipientName
               )}
               disabled={draft.excluded}
-              placeholder={t('statementImport.table.chooseRecipient')}
+              placeholder={translate('statementImport.table.chooseRecipient')}
               options={lookupItemsToComboboxOptions(recipients)}
               allowCreate
-              createLabel={t('forms.addRecipient')}
+              createLabel={translate('forms.addRecipient')}
               onChange={(value) => {
                 const next = comboboxValueToIdAndNewName(value)
                 onDraftChange(draft.id, {
@@ -545,6 +577,7 @@ function createColumns({
         header: t('common.budget'),
         cell: (ctx) => {
           const draft = ctx.row.original
+          const { onDraftChange, t: translate } = volatileCtxRef.current
           return (
             <DraftSelect
               value={draft.budgetId ?? ''}
@@ -555,7 +588,7 @@ function createColumns({
                 })
               }
             >
-              <option value="">{t('statementImport.table.noBudget')}</option>
+              <option value="">{translate('statementImport.table.noBudget')}</option>
               <SelectOptionList items={budgets} />
             </DraftSelect>
           )
@@ -566,6 +599,7 @@ function createColumns({
         header: t('common.category'),
         cell: (ctx) => {
           const draft = ctx.row.original
+          const { onDraftChange, t: translate } = volatileCtxRef.current
           return (
             <DraftCombobox
               value={idOrNewNameToComboboxValue(
@@ -573,10 +607,10 @@ function createColumns({
                 draft.newCategoryName
               )}
               disabled={draft.excluded}
-              placeholder={t('statementImport.table.noCategory')}
+              placeholder={translate('statementImport.table.noCategory')}
               options={lookupItemsToComboboxOptions(categories)}
               allowCreate
-              createLabel={t('forms.createExpenseCategory')}
+              createLabel={translate('forms.createExpenseCategory')}
               onChange={(value) => {
                 const next = comboboxValueToIdAndNewName(value)
                 onDraftChange(draft.id, {
@@ -598,6 +632,7 @@ function createColumns({
         header: t('transfers.fromAccount'),
         cell: (ctx) => {
           const draft = ctx.row.original
+          const { onDraftChange, t: translate } = volatileCtxRef.current
           const fromAccountId =
             draft.transferFromAccountId ?? draft.originAccountId
           if (fromAccountId === draft.originAccountId) {
@@ -619,7 +654,7 @@ function createColumns({
               }
             >
               <option value="">
-                {t('statementImport.table.chooseAccount')}
+                {translate('statementImport.table.chooseAccount')}
               </option>
               <SelectOptionList items={accounts} />
             </DraftSelect>
@@ -631,6 +666,7 @@ function createColumns({
         header: t('transfers.toAccount'),
         cell: (ctx) => {
           const draft = ctx.row.original
+          const { onDraftChange, t: translate } = volatileCtxRef.current
           const toAccountId = draft.transferToAccountId ?? draft.originAccountId
           if (toAccountId === draft.originAccountId) {
             return (
@@ -651,7 +687,7 @@ function createColumns({
               }
             >
               <option value="">
-                {t('statementImport.table.chooseAccount')}
+                {translate('statementImport.table.chooseAccount')}
               </option>
               <SelectOptionList items={accounts} />
             </DraftSelect>
@@ -669,6 +705,7 @@ function createColumns({
       cell: (ctx) => {
         const draft = ctx.row.original
         const excluded = draft.excluded
+        const { onDraftChange, t: translate } = volatileCtxRef.current
         return (
           <IconButton
             variant="text"
@@ -676,13 +713,13 @@ function createColumns({
             icon={excluded ? <SaveIcon /> : <SaveOffIcon />}
             title={
               excluded
-                ? t('statementImport.table.includeRow')
-                : t('statementImport.table.excludeRow')
+                ? translate('statementImport.table.includeRow')
+                : translate('statementImport.table.excludeRow')
             }
             aria-label={
               excluded
-                ? t('statementImport.table.includeRow')
-                : t('statementImport.table.excludeRow')
+                ? translate('statementImport.table.includeRow')
+                : translate('statementImport.table.excludeRow')
             }
             onClick={() =>
               onDraftChange(draft.id, {
@@ -937,39 +974,45 @@ export function ImportDraftTable({
     setBulkEditOpen(false)
   }
 
+  const volatileColumnCtxRef = useRef<ImportDraftColumnVolatileContext>({
+    selectedIds,
+    onSelectedChange: handleSelectedChange,
+    onOpenInstancePicker: setInstancePickerDraft,
+    onDraftChange: handleDraftChange,
+    t
+  })
+  volatileColumnCtxRef.current = {
+    selectedIds,
+    onSelectedChange: handleSelectedChange,
+    onOpenInstancePicker: setInstancePickerDraft,
+    onDraftChange: handleDraftChange,
+    t
+  }
+
   const columns = useMemo(
     () =>
-      createColumns({
+      createColumns(volatileColumnCtxRef, {
         kind,
         accounts,
         budgets,
         categories,
         recipients,
-        incomeSources,
-        onDraftChange: handleDraftChange,
-        selectedIds,
-        onSelectedChange: handleSelectedChange,
-        onOpenInstancePicker: setInstancePickerDraft,
-        t
+        incomeSources
       }),
     [
       accounts,
       budgets,
       categories,
-      handleDraftChange,
-      handleSelectedChange,
       incomeSources,
       kind,
-      recipients,
-      selectedIds,
-      t
+      recipients
     ]
   )
 
   const { table, globalFilter, setGlobalFilter, activeFilters } = useDataTable({
     data: sortedRows,
     columns,
-    getRowId: (row) => row.id
+    getRowId: getImportDraftRowId
   })
 
   return (
