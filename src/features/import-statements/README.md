@@ -163,12 +163,22 @@ longer teaches the key (step 4 still works through its recipient).
 ## Already Imported Rows
 
 `markAlreadyImported` excludes a row when a saved transaction on the same
-account has the same amount and direction on the row's booking date, else its
-purchase date, else (only for transactions linked to a bill/income instance,
-whose date moves to the due date) within seven days. One saved transaction
-covers one row. Excluded rows are labelled `Finns redan` and can be included
-again. The summary shows the latest saved transaction per account, so the same
-or an overlapping period can be uploaded without tracking dates.
+account has the same amount and direction, tried in this order:
+
+1. on the row's booking date;
+2. on the purchase date in the bank text (card purchases);
+3. saved on a Saturday or Sunday, when the row has no purchase date and was
+   booked on the Monday after (or the Tuesday, when Monday is a holiday).
+   Transfers and Swish payments entered on the day they were made are booked by
+   the bank on the next banking day and carry no purchase date;
+4. within seven days, for saved transactions linked to a bill/income instance.
+
+One saved transaction covers one row. Step 3 is limited to weekends on purpose:
+equal amounts a few days apart are common (repeated top-ups, the same lunch),
+so a general "within a few days" rule would hide real rows. Excluded rows are
+labelled `Finns redan` and can be included again. The summary shows the latest
+saved transaction per account, so the same or an overlapping period can be
+uploaded without tracking dates.
 
 ## Transfers Between Uploaded Statements
 
@@ -191,6 +201,22 @@ likely matches are the instance of each recurring bill/income closest in date
 (within 45 days) whose recipient/name matches the row or whose amount is within
 8 %. Without likely matches the five best-ranked are shown. `Visa alla` reveals
 the full ranked list.
+
+## Rows Linked To A Bill
+
+Linking an expense row to a bill instance (by hand or automatically) makes the
+row follow the bill: name, recipient, budget, and category are copied from it
+and those fields are locked. The row keeps the bank's booking date and amount.
+A lock button next to the link button unlocks the fields for one row so they
+can be overridden; locking again puts the bill's values back. Unlinking leaves
+the values but makes them editable. Bulk edits skip name, budget, and category
+on locked rows.
+
+A bill split over several lines has no single budget or category. A locked row
+then shows the lines and is saved with them (`bill-link.ts`). When the amount
+paid differs from the bill, each line keeps its share of the amount and the
+rounding difference goes to the largest line. Unlocking such a row switches it
+to one budget and category of its own.
 
 ## Account Matching
 

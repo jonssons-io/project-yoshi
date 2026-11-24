@@ -2,6 +2,7 @@ import type { TFunction } from 'i18next'
 import { useTranslation } from 'react-i18next'
 import { TransactionType } from '@/api/generated/types.gen'
 import { Button } from '@/components/button/button'
+import { activeBillSplits } from '../bill-link'
 import type { InvalidStatementRow, TransactionDraft } from '../types'
 import {
   hasImportCategory,
@@ -23,13 +24,17 @@ export function importValidationMessages(
     messages.push(t('statementImport.validation.originAccountRequired'))
   }
   if (
-    included.some(
-      (draft) =>
-        draft.type === TransactionType.EXPENSE &&
-        (!draft.budgetId ||
-          !hasImportCategory(draft) ||
-          !hasImportRecipient(draft))
-    )
+    included.some((draft) => {
+      if (draft.type !== TransactionType.EXPENSE) return false
+      if (!hasImportRecipient(draft)) return true
+
+      // A row following a split bill carries budget and category per line.
+      const splits = activeBillSplits(draft)
+      if (splits.length > 0) {
+        return splits.some((split) => !split.budgetId || !split.categoryId)
+      }
+      return !draft.budgetId || !hasImportCategory(draft)
+    })
   ) {
     messages.push(t('statementImport.validation.expenseRequiredFields'))
   }

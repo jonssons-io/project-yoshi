@@ -9,14 +9,30 @@ const MS_PER_DAY = 86_400_000
  * so those are matched within the same window instance matching uses.
  */
 const INSTANCE_DATE_WINDOW_DAYS = 7
-
 type Direction = 'in' | 'out'
 
 type Candidate = {
   transaction: HistoryTransaction
   days: number[]
+  /** Calendar day the user sees for the saved transaction. */
+  localDay: number | null
   linkedToInstance: boolean
   used: boolean
+}
+
+/**
+ * The bank books what happens on a weekend on the next banking day. Returns
+ * whether `bookingDay` is that day for something done on `day`: the Monday
+ * after a Saturday or Sunday, or the Tuesday when that Monday is a holiday.
+ */
+function isWeekendBookedOn(day: number, bookingDay: number): boolean {
+  // Day numbers count from 1970-01-01, a Thursday.
+  const weekday = (((day + 4) % 7) + 7) % 7
+  if (weekday !== 0 && weekday !== 6) return false
+
+  const daysUntilMonday = weekday === 6 ? 2 : 1
+  const delay = bookingDay - day
+  return delay === daysUntilMonday || delay === daysUntilMonday + 1
 }
 
 function dayFromParts(year: number, month: number, day: number): number {
@@ -95,9 +111,12 @@ function candidatesForAccount(
 
     const key = candidateKey(direction, toCents(transaction.amount))
     const list = byKey.get(key) ?? []
+    const days = daysOfTransaction(transaction.date)
     list.push({
       transaction,
-      days: daysOfTransaction(transaction.date),
+      days,
+      // The local day is listed last when it differs from the UTC day.
+      localDay: days.at(-1) ?? null,
       linkedToInstance: Boolean(
         transaction.billInstance || transaction.incomeInstance
       ),
@@ -114,10 +133,19 @@ function candidatesForAccount(
  * account and excludes them, so the same period can be imported again without
  * creating duplicates.
  *
- * A row matches a saved transaction with the same amount and direction on the
- * row's booking date, then its purchase date, then (for transactions linked to
- * a bill or income instance) within a week. Each saved transaction covers one
- * row, so two identical purchases on one day need two saved transactions.
+ * A row matches a saved transaction with the same amount and direction, tried
+ * in this order:
+ * 1. on the row's booking date;
+ * 2. on the purchase date in the bank text (card purchases);
+ * 3. saved on a Saturday or Sunday, when the row has no purchase date and was
+ *    booked on the following banking day — a transfer or Swish entered on the
+ *    day it was made, which the bank books on Monday;
+ * 4. within a week, for transactions linked to a bill or income instance.
+ *
+ * Each saved transaction covers one row, so two identical purchases on one day
+ * need two saved transactions. Step 3 is limited to weekends on purpose: equal
+ * amounts a few days apart are common (repeated top-ups, the same lunch), and
+ * a wider window would hide real rows.
  */
 export function markAlreadyImported(
   drafts: TransactionDraft[],
@@ -164,6 +192,14 @@ export function markAlreadyImported(
         cleanBankDescription(draft.originalDescription).purchaseDate
       )
       return day !== null && candidate.days.includes(day)
+    },
+    (draft, candidate) => {
+      const day = dayFromIsoDate(draft.date)
+      if (day === null || candidate.localDay === null) return false
+      if (cleanBankDescription(draft.originalDescription).purchaseDate) {
+        return false
+      }
+      return isWeekendBookedOn(candidate.localDay, day)
     },
     (draft, candidate) => {
       const day = dayFromIsoDate(draft.date)
