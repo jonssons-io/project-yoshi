@@ -1,5 +1,13 @@
 import { createColumnHelper } from '@tanstack/react-table'
-import { EditIcon, Link2, SaveIcon, SaveOffIcon, Unlink } from 'lucide-react'
+import {
+  EditIcon,
+  Link2,
+  Lock,
+  LockOpen,
+  SaveIcon,
+  SaveOffIcon,
+  Unlink
+} from 'lucide-react'
 import { type RefObject, useCallback, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
@@ -29,6 +37,7 @@ import {
   ImportBulkEditDialog,
   NO_CHANGE_VALUE
 } from '@/dialogs/import-statements/import-bulk-edit-dialog'
+import { activeBillSplits, isLockedToBill } from '../bill-link'
 import {
   buildBillInstancePatch,
   buildIncomeInstancePatch,
@@ -84,6 +93,8 @@ type ImportDraftColumnVolatileContext = {
   selectedIds: Set<string>
   onSelectedChange: (id: string, selected: boolean) => void
   onOpenInstancePicker: (draft: InstancePickerDraft) => void
+  /** Unlocks a bill-linked row for editing, or locks it to the bill again. */
+  onToggleBillLock: (draft: TransactionDraft) => void
   onDraftChange: (id: string, patch: Partial<TransactionDraft>) => void
   t: (key: string, options?: Record<string, unknown>) => string
 }
@@ -173,7 +184,41 @@ function buildBulkPatch(
     }
   }
 
+  // A row that stays linked to its bill keeps the bill's name, budget, and
+  // category; a bulk edit only reaches them once the row is unlocked.
+  if (isLockedToBill(draft) && patch.billInstanceId === undefined) {
+    delete patch.name
+    delete patch.budgetId
+    delete patch.categoryId
+    delete patch.newCategoryName
+  }
+
   return patch
+}
+
+/** Read-only cell for a row that follows a bill split over several lines. */
+function BillSplitsSummary({
+  label,
+  lines
+}: {
+  label: string
+  lines: string[]
+}) {
+  return (
+    <ul
+      className="type-label flex flex-col text-gray-600"
+      aria-label={label}
+    >
+      {lines.map((line) => (
+        <li
+          key={line}
+          className="whitespace-nowrap"
+        >
+          {line}
+        </li>
+      ))}
+    </ul>
+  )
 }
 
 function canEditDate(kind: ImportDraftTableKind): boolean {
@@ -329,6 +374,7 @@ function createColumns(
         const {
           onDraftChange,
           onOpenInstancePicker,
+          onToggleBillLock,
           t: translate
         } = volatileCtxRef.current
         if (
@@ -337,6 +383,10 @@ function createColumns(
         ) {
           return null
         }
+        const linkedToBill =
+          draft.type === TransactionType.EXPENSE &&
+          Boolean(draft.billInstanceId)
+        const locked = isLockedToBill(draft)
 
         const instanceId =
           draft.type === TransactionType.INCOME
@@ -345,38 +395,59 @@ function createColumns(
         const linked = Boolean(instanceId)
 
         return (
-          <IconButton
-            variant="text"
-            color={linked ? 'subtle' : 'primary'}
-            icon={linked ? <Unlink /> : <Link2 />}
-            disabled={draft.excluded}
-            title={
-              linked
-                ? translate('statementImport.table.unlinkInstance')
-                : translate('statementImport.table.linkInstance')
-            }
-            aria-label={
-              linked
-                ? translate('statementImport.table.unlinkInstance')
-                : translate('statementImport.table.linkInstance')
-            }
-            onClick={() => {
-              if (linked) {
-                onDraftChange(
-                  draft.id,
-                  draft.type === TransactionType.INCOME
-                    ? {
-                        incomeInstanceId: ''
-                      }
-                    : {
-                        billInstanceId: ''
-                      }
-                )
-                return
+          <span className="flex items-center">
+            <IconButton
+              variant="text"
+              color={linked ? 'subtle' : 'primary'}
+              icon={linked ? <Unlink /> : <Link2 />}
+              disabled={draft.excluded}
+              title={
+                linked
+                  ? translate('statementImport.table.unlinkInstance')
+                  : translate('statementImport.table.linkInstance')
               }
-              onOpenInstancePicker(draft as InstancePickerDraft)
-            }}
-          />
+              aria-label={
+                linked
+                  ? translate('statementImport.table.unlinkInstance')
+                  : translate('statementImport.table.linkInstance')
+              }
+              onClick={() => {
+                if (linked) {
+                  onDraftChange(
+                    draft.id,
+                    draft.type === TransactionType.INCOME
+                      ? {
+                          incomeInstanceId: ''
+                        }
+                      : {
+                          billInstanceId: ''
+                        }
+                  )
+                  return
+                }
+                onOpenInstancePicker(draft as InstancePickerDraft)
+              }}
+            />
+            {linkedToBill ? (
+              <IconButton
+                variant="text"
+                color="subtle"
+                icon={locked ? <Lock /> : <LockOpen />}
+                disabled={draft.excluded}
+                title={
+                  locked
+                    ? translate('statementImport.table.unlockBillFields')
+                    : translate('statementImport.table.lockBillFields')
+                }
+                aria-label={
+                  locked
+                    ? translate('statementImport.table.unlockBillFields')
+                    : translate('statementImport.table.lockBillFields')
+                }
+                onClick={() => onToggleBillLock(draft)}
+              />
+            ) : null}
+          </span>
         )
       }
     }),
@@ -456,7 +527,7 @@ function createColumns(
           return canEditName(kind) ? (
             <DraftTextInput
               value={draft.name}
-              disabled={draft.excluded}
+              disabled={draft.excluded || isLockedToBill(draft)}
               onChange={(name) =>
                 onDraftChange(draft.id, {
                   name
@@ -607,7 +678,7 @@ function createColumns(
                 draft.recipientId,
                 draft.newRecipientName
               )}
-              disabled={draft.excluded}
+              disabled={draft.excluded || isLockedToBill(draft)}
               placeholder={translate('statementImport.table.chooseRecipient')}
               options={lookupItemsToComboboxOptions(recipients)}
               allowCreate
@@ -630,10 +701,27 @@ function createColumns(
         cell: (ctx) => {
           const draft = ctx.row.original
           const { onDraftChange, t: translate } = volatileCtxRef.current
+          const splits = activeBillSplits(draft)
+          if (splits.length > 0) {
+            return (
+              <BillSplitsSummary
+                label={translate('statementImport.table.billSplits', {
+                  count: splits.length
+                })}
+                lines={splits.map((split) =>
+                  [
+                    lookupName(budgets, split.budgetId) ||
+                      translate('statementImport.table.noBudget'),
+                    formatSwedishMoney(split.amount)
+                  ].join(': ')
+                )}
+              />
+            )
+          }
           return (
             <DraftSelect
               value={draft.budgetId ?? ''}
-              disabled={draft.excluded}
+              disabled={draft.excluded || isLockedToBill(draft)}
               onChange={(budgetId) =>
                 onDraftChange(draft.id, {
                   budgetId
@@ -654,13 +742,30 @@ function createColumns(
         cell: (ctx) => {
           const draft = ctx.row.original
           const { onDraftChange, t: translate } = volatileCtxRef.current
+          const splits = activeBillSplits(draft)
+          if (splits.length > 0) {
+            return (
+              <BillSplitsSummary
+                label={translate('statementImport.table.billSplits', {
+                  count: splits.length
+                })}
+                lines={splits.map((split) =>
+                  [
+                    split.subtitle,
+                    lookupName(categories, split.categoryId) ||
+                      translate('statementImport.table.noCategory')
+                  ].join(': ')
+                )}
+              />
+            )
+          }
           return (
             <DraftCombobox
               value={idOrNewNameToComboboxValue(
                 draft.categoryId,
                 draft.newCategoryName
               )}
-              disabled={draft.excluded}
+              disabled={draft.excluded || isLockedToBill(draft)}
               placeholder={translate('statementImport.table.noCategory')}
               options={lookupItemsToComboboxOptions(categories)}
               allowCreate
@@ -1055,6 +1160,27 @@ export function ImportDraftTable({
     []
   )
 
+  const handleToggleBillLock = (draft: TransactionDraft) => {
+    if (isLockedToBill(draft)) {
+      handleDraftChange(draft.id, {
+        billFieldsUnlocked: true
+      })
+      return
+    }
+    // Locking again puts the bill's values back.
+    const instance = billInstances.find(
+      (item) => item.id === draft.billInstanceId
+    )
+    handleDraftChange(
+      draft.id,
+      instance
+        ? buildBillInstancePatch(instance)
+        : {
+            billFieldsUnlocked: false
+          }
+    )
+  }
+
   const handleBulkApply = (values: BulkEditValues) => {
     for (const draft of sortedRows) {
       if (!selectedIds.has(draft.id) || draft.excluded) continue
@@ -1074,6 +1200,7 @@ export function ImportDraftTable({
     selectedIds,
     onSelectedChange: handleSelectedChange,
     onOpenInstancePicker: setInstancePickerDraft,
+    onToggleBillLock: handleToggleBillLock,
     onDraftChange: handleDraftChange,
     t
   })
@@ -1081,6 +1208,7 @@ export function ImportDraftTable({
     selectedIds,
     onSelectedChange: handleSelectedChange,
     onOpenInstancePicker: setInstancePickerDraft,
+    onToggleBillLock: handleToggleBillLock,
     onDraftChange: handleDraftChange,
     t
   }

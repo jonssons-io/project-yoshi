@@ -1,5 +1,9 @@
 import Fuse from 'fuse.js'
-import type { BillInstance, IncomeInstance } from '@/api/generated/types.gen'
+import type {
+  BillInstance,
+  BillSplit,
+  IncomeInstance
+} from '@/api/generated/types.gen'
 import type { TransactionDraft } from '../types'
 import { cleanBankDescription, normalizeMatchText } from './bank-description'
 
@@ -30,6 +34,10 @@ type MatchableBillInstance = Omit<
   'dueDate'
 > & {
   dueDate: string | Date
+  /** Present only when the bill is split over several lines. */
+  splits?: Array<
+    Pick<BillSplit, 'subtitle' | 'amount' | 'budgetId' | 'categoryId'>
+  > | null
 }
 
 const MAX_DATE_DISTANCE_DAYS = 7
@@ -302,17 +310,34 @@ export function buildIncomeInstancePatch(
   }
 }
 
+/**
+ * What a row takes over from the bill it is linked to: name, recipient,
+ * budget, and category (or the bill's split lines). The date stays the bank's
+ * booking date — when the money actually moved — and the row is locked to
+ * these values until the user unlocks it.
+ */
 export function buildBillInstancePatch(
   instance: MatchableBillInstance
 ): Partial<TransactionDraft> {
+  const splits = instance.splits ?? []
+  const isSplit = splits.length > 1
+
   return {
     billInstanceId: instance.id,
+    billFieldsUnlocked: false,
+    billSplits: isSplit
+      ? splits.map((split) => ({
+          subtitle: split.subtitle,
+          amount: split.amount,
+          budgetId: split.budgetId ?? instance.budget?.id ?? null,
+          categoryId: split.categoryId
+        }))
+      : undefined,
     name: instance.name,
-    date: formatInstanceDate(instance.dueDate),
     recipientId: instance.recipient.id,
     newRecipientName: null,
-    budgetId: instance.budget?.id ?? null,
-    categoryId: instance.category?.id ?? null,
+    budgetId: isSplit ? null : (instance.budget?.id ?? null),
+    categoryId: isSplit ? null : (instance.category?.id ?? null),
     newCategoryName: null
   }
 }

@@ -34,6 +34,17 @@ export type TransactionDraft = {
   incomeSourceId?: string
   incomeInstanceId?: string
   billInstanceId?: string
+  /**
+   * Lines of the linked bill when it is split over several budgets or
+   * categories. Used instead of `budgetId`/`categoryId` while the row follows
+   * the bill.
+   */
+  billSplits?: DraftBillSplit[]
+  /**
+   * A row linked to a bill follows the bill's name, recipient, budget, and
+   * category and cannot be edited, until the user unlocks it to override them.
+   */
+  billFieldsUnlocked?: boolean
   budgetId?: string | null
   categoryId?: string | null
   newCategoryName?: string | null
@@ -51,6 +62,13 @@ export type TransactionDraft = {
    */
   pairedWithDraftId?: string
   parseWarnings?: string[]
+}
+
+export type DraftBillSplit = {
+  subtitle: string
+  amount: number
+  budgetId: string | null
+  categoryId: string
 }
 
 export type InvalidStatementRow = {

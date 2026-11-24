@@ -11,6 +11,7 @@ import {
   recipientToApi
 } from '@/drawers/drawers/create-transaction-drawer/map-to-request'
 import { toApiDateRequired } from '@/hooks/api/date-normalization'
+import { activeBillSplits } from './bill-link'
 import { idOrNewNameToComboboxValue } from './components/import-table-fields'
 import type { TransactionDraft } from './types'
 
@@ -30,6 +31,29 @@ function draftToBulkCreateItem(
   }
 
   if (draft.type === TransactionType.EXPENSE) {
+    const splits = activeBillSplits(draft)
+    if (splits.length > 0) {
+      // A row that follows a split bill is saved with the bill's lines; the
+      // API then wants budget and category on the lines only.
+      return {
+        ...base,
+        type: TransactionType.EXPENSE,
+        accountId: draft.originAccountId,
+        budgetId: null,
+        categoryId: null,
+        instanceId: optionalInstanceId(draft.billInstanceId),
+        splits: splits.map((split) => ({
+          subtitle: split.subtitle,
+          amount: split.amount,
+          budgetId: split.budgetId ?? undefined,
+          categoryId: split.categoryId
+        })),
+        ...recipientToApi(
+          idOrNewNameToComboboxValue(draft.recipientId, draft.newRecipientName)
+        )
+      }
+    }
+
     return {
       ...base,
       type: TransactionType.EXPENSE,

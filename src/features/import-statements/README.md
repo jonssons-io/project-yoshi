@@ -202,6 +202,22 @@ likely matches are the instance of each recurring bill/income closest in date
 8 %. Without likely matches the five best-ranked are shown. `Visa alla` reveals
 the full ranked list.
 
+## Rows Linked To A Bill
+
+Linking an expense row to a bill instance (by hand or automatically) makes the
+row follow the bill: name, recipient, budget, and category are copied from it
+and those fields are locked. The row keeps the bank's booking date and amount.
+A lock button next to the link button unlocks the fields for one row so they
+can be overridden; locking again puts the bill's values back. Unlinking leaves
+the values but makes them editable. Bulk edits skip name, budget, and category
+on locked rows.
+
+A bill split over several lines has no single budget or category. A locked row
+then shows the lines and is saved with them (`bill-link.ts`). When the amount
+paid differs from the bill, each line keeps its share of the amount and the
+rounding difference goes to the largest line. Unlocking such a row switches it
+to one budget and category of its own.
+
 ## Account Matching
 
 `accounts.ts` strips whitespace, dots, and dashes from both statement account

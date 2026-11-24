@@ -5,6 +5,7 @@ import {
   type ExpenseBudgetLine,
   isEffectiveTransactionDate
 } from '@/drawers/drawers/create-transaction-drawer/budget-allocation-shortfall'
+import { activeBillSplits } from './bill-link'
 import type { TransactionDraft } from './types'
 
 type BudgetLike = {
@@ -23,9 +24,22 @@ export function expenseLinesFromImportDrafts(
 
   for (const draft of drafts) {
     if (draft.excluded || draft.type !== TransactionType.EXPENSE) continue
-    if (!draft.budgetId) continue
     if (!isEffectiveTransactionDate(new Date(draft.date))) continue
 
+    const splits = activeBillSplits(draft)
+    if (splits.length > 0) {
+      // A row following a split bill draws on each line's budget.
+      for (const split of splits) {
+        if (!split.budgetId) continue
+        lines.push({
+          budgetId: split.budgetId,
+          amount: split.amount
+        })
+      }
+      continue
+    }
+
+    if (!draft.budgetId) continue
     lines.push({
       budgetId: draft.budgetId,
       amount: draft.amount
