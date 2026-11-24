@@ -2,7 +2,7 @@ import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { isSupportedStatementFile, parseStatementFile } from '../parser'
-import type { StatementParseResult } from '../types'
+import type { ImportStatement } from '../types'
 
 export type StatementFileInputHandle = {
   open: () => void
@@ -10,7 +10,8 @@ export type StatementFileInputHandle = {
 
 type StatementFileInputProps = {
   inputRef: React.RefObject<StatementFileInputHandle | null>
-  onParsed: (result: StatementParseResult, fileName: string) => void
+  /** Called with every file that could be parsed, in the order chosen. */
+  onParsed: (statements: ImportStatement[]) => void
 }
 
 export function StatementFileInput({
@@ -25,24 +26,36 @@ export function StatementFileInput({
     open: () => nativeInputRef.current?.click()
   }
 
-  const handleFile = async (file: File | null | undefined) => {
-    if (!file || isParsing) return
-
-    if (!isSupportedStatementFile(file)) {
-      toast.error(t('statementImport.errors.chooseXlsx'))
-      return
-    }
+  const handleFiles = async (fileList: FileList | null) => {
+    const files = Array.from(fileList ?? [])
+    if (files.length === 0 || isParsing) return
 
     setIsParsing(true)
     try {
-      const result = await parseStatementFile(file)
-      onParsed(result, file.name)
-    } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? t(error.message)
-          : t('statementImport.errors.couldNotParse')
-      )
+      const statements: ImportStatement[] = []
+
+      // One unreadable file should not throw away the others.
+      for (const file of files) {
+        if (!isSupportedStatementFile(file)) {
+          toast.error(`${file.name}: ${t('statementImport.errors.chooseXlsx')}`)
+          continue
+        }
+
+        try {
+          statements.push({
+            fileName: file.name,
+            result: await parseStatementFile(file)
+          })
+        } catch (error) {
+          const message =
+            error instanceof Error
+              ? t(error.message)
+              : t('statementImport.errors.couldNotParse')
+          toast.error(files.length > 1 ? `${file.name}: ${message}` : message)
+        }
+      }
+
+      if (statements.length > 0) onParsed(statements)
     } finally {
       setIsParsing(false)
       if (nativeInputRef.current) {
@@ -55,9 +68,10 @@ export function StatementFileInput({
     <input
       ref={nativeInputRef}
       type="file"
+      multiple={true}
       accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
       className="hidden"
-      onChange={(event) => void handleFile(event.target.files?.[0])}
+      onChange={(event) => void handleFiles(event.target.files)}
     />
   )
 }

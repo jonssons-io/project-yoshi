@@ -9,7 +9,15 @@ import { toast } from 'sonner'
 import { TransactionType } from '@/api/generated/types.gen'
 import { PageLayout } from '@/components/page-layout/page-layout'
 import { useAuth } from '@/contexts/auth-context'
+import { sumExpenseLinesByBudget } from '@/drawers/drawers/create-transaction-drawer/budget-allocation-shortfall'
+import {
+  findBudgetCoverDonors,
+  resolveBudgetCover
+} from '@/drawers/drawers/create-transaction-drawer/budget-cover-plan'
+import { describeAutoAllocations } from '@/drawers/drawers/create-transaction-drawer/submit-expense-with-allocation'
+import { findLatestAccountTransaction } from '@/features/import-statements/already-imported'
 import { buildBulkCreateRequest } from '@/features/import-statements/build-bulk-create-request'
+import type { HistoryTransaction } from '@/features/import-statements/classification/history-matching'
 import {
   buildBillInstancePatch,
   buildIncomeInstancePatch,
@@ -21,10 +29,6 @@ import {
   Footer,
   importValidationMessages
 } from '@/features/import-statements/components/footer'
-import {
-  type ImportAllocationChoice,
-  useImportBudgetAllocationDialog
-} from '@/features/import-statements/components/import-allocation-dialog'
 import { IncomesTable } from '@/features/import-statements/components/incomes-table'
 import {
   StatementFileInput,
@@ -36,21 +40,23 @@ import { UncategorizedTable } from '@/features/import-statements/components/unca
 import {
   computeImportAvailableToAllocate,
   computeImportBudgetShortfalls,
-  pendingIncomeTotalFromImportDrafts
+  expenseLinesFromImportDrafts
 } from '@/features/import-statements/import-budget-shortfalls'
 import {
-  buildDraftsFromStatement,
+  buildDraftsFromStatements,
+  changeOriginAccountInPlace,
+  importHistoryStartDate,
   toLookupItems
 } from '@/features/import-statements/import-drafts'
 import {
-  clearActiveStatement,
-  getActiveStatement,
-  getActiveStatementFileName,
-  setActiveStatement
+  clearActiveStatements,
+  getActiveStatements,
+  setActiveStatements
 } from '@/features/import-statements/session'
 import { submitImportInOrder } from '@/features/import-statements/submit-import'
 import type {
-  StatementParseResult,
+  ImportStatement,
+  InvalidStatementRow,
   TransactionDraft
 } from '@/features/import-statements/types'
 import {
@@ -63,8 +69,11 @@ import {
   useCreateAllocationMutation,
   useIncomeInstancesFilteredList,
   useIncomeSourcesList,
-  useRecipientsList
+  useRecipientsList,
+  useTransactionsList,
+  useTransferAllocationMutation
 } from '@/hooks/api'
+import { useBudgetCoverDialog } from '@/hooks/use-budget-cover-dialog'
 import { getErrorMessage } from '@/lib/api-error'
 
 export const Route = createFileRoute('/_authenticated/transactions/import')({
@@ -73,21 +82,26 @@ export const Route = createFileRoute('/_authenticated/transactions/import')({
 
 const authenticatedRouteApi = getRouteApi('/_authenticated')
 
+/** Stable empty list while earlier transactions are loading. */
+const NO_HISTORY: HistoryTransaction[] = []
+
 function ImportTransactionsPage() {
   const { householdId, userId } = useAuth()
   const { t } = useTranslation()
   const navigate = useNavigate()
   const { from, to } = authenticatedRouteApi.useSearch()
   const fileInputRef = useRef<StatementFileInputHandle | null>(null)
-  const [parseResult, setParseResult] = useState<StatementParseResult | null>(
-    () => getActiveStatement()
+  const [statements, setStatements] = useState<ImportStatement[]>(() =>
+    getActiveStatements()
   )
-  const [fileName, setFileName] = useState(() => getActiveStatementFileName())
-  const [appliedResult, setAppliedResult] =
-    useState<StatementParseResult | null>(null)
+  const [appliedStatements, setAppliedStatements] = useState<
+    ImportStatement[] | null
+  >(null)
   const [autoMatchedSignature, setAutoMatchedSignature] = useState('')
   const [drafts, setDrafts] = useState<TransactionDraft[]>([])
-  const [originAccountId, setOriginAccountId] = useState('')
+  const [originAccountIds, setOriginAccountIds] = useState<string[]>([])
+  // Once rows are edited by hand, changing an account must not rebuild them.
+  const hasManualEditsRef = useRef(false)
   const [importFailures, setImportFailures] = useState<Record<string, string>>(
     {}
   )
@@ -96,8 +110,9 @@ function ImportTransactionsPage() {
   const { mutateAsync: bulkCreateAsync, isPending: bulkCreatePending } =
     useBulkCreateTransactions()
   const { mutateAsync: createAllocationAsync } = useCreateAllocationMutation()
-  const { promptImportAllocations, importAllocationDialog } =
-    useImportBudgetAllocationDialog()
+  const { mutateAsync: transferAllocationAsync } =
+    useTransferAllocationMutation()
+  const { promptBudgetPulls, budgetCoverDialog } = useBudgetCoverDialog()
 
   const { data: accountsData = [], isLoading: accountsLoading } =
     useAccountsList({
@@ -187,16 +202,48 @@ function ImportTransactionsPage() {
       enabled: !!householdId && hasExpenseRows
     })
 
+  // Earlier transactions teach the import which recipient, category, budget,
+  // and transfer account a bank text had last time, and which rows of the
+  // statement are already saved.
+  const historyFrom = useMemo(
+    () => importHistoryStartDate(statements),
+    [
+      statements
+    ]
+  )
+  const {
+    data: historyData = NO_HISTORY,
+    isLoading: historyLoading,
+    isError: historyFailed
+  } = useTransactionsList({
+    householdId,
+    userId,
+    dateFrom: historyFrom,
+    enabled: !!householdId && !!historyFrom
+  })
+
+  // Without saved transactions nothing is recognized as already imported, so
+  // the user must know before importing an overlapping period.
+  useEffect(() => {
+    if (historyFailed) {
+      toast.error(t('statementImport.errors.historyUnavailable'))
+    }
+  }, [
+    historyFailed,
+    t
+  ])
+
   const lookupsLoading =
     accountsLoading ||
     budgetsLoading ||
     categoriesLoading ||
     recipientsLoading ||
-    incomeSourcesLoading
+    incomeSourcesLoading ||
+    historyLoading
 
   useEffect(() => {
     if (
-      !appliedResult ||
+      !appliedStatements ||
       autoMatchedSignature ===
         `${incomeInstances.length}:${billInstances.length}` ||
       incomeInstancesLoading ||
@@ -210,6 +257,12 @@ function ImportTransactionsPage() {
       const selectedBillIds = new Set<string>()
 
       return current.map((draft) => {
+        // Rows the import excluded itself should not take an instance away
+        // from a row that will actually be imported.
+        if (draft.duplicateOfTransactionId || draft.pairedWithDraftId) {
+          return draft
+        }
+
         if (draft.type === TransactionType.INCOME) {
           if (draft.incomeInstanceId) {
             selectedIncomeIds.add(draft.incomeInstanceId)
@@ -265,7 +318,7 @@ function ImportTransactionsPage() {
     })
     setAutoMatchedSignature(`${incomeInstances.length}:${billInstances.length}`)
   }, [
-    appliedResult,
+    appliedStatements,
     autoMatchedSignature,
     billInstances,
     billInstancesLoading,
@@ -274,26 +327,74 @@ function ImportTransactionsPage() {
   ])
 
   useEffect(() => {
-    if (!parseResult || appliedResult === parseResult || lookupsLoading) return
+    if (
+      statements.length === 0 ||
+      appliedStatements === statements ||
+      lookupsLoading
+    ) {
+      return
+    }
 
-    const next = buildDraftsFromStatement(parseResult, {
+    const next = buildDraftsFromStatements(statements, {
       accounts,
       recipients,
       incomeSources,
-      categories
+      categories,
+      budgets,
+      history: historyData
     })
-    setOriginAccountId(next.originAccountId)
+    setOriginAccountIds(next.originAccountIds)
     setDrafts(next.drafts)
-    setAppliedResult(parseResult)
+    setAppliedStatements(statements)
+    hasManualEditsRef.current = false
   }, [
     accounts,
-    appliedResult,
+    appliedStatements,
+    budgets,
     categories,
+    historyData,
     incomeSources,
     lookupsLoading,
-    parseResult,
-    recipients
+    recipients,
+    statements
   ])
+
+  const summaryStatements = useMemo(
+    () =>
+      statements.map((statement, statementIndex) => {
+        const originAccountId = originAccountIds[statementIndex] ?? ''
+        return {
+          fileName: statement.fileName,
+          originAccountId,
+          latestTransaction: findLatestAccountTransaction(
+            historyData,
+            originAccountId
+          )
+        }
+      }),
+    [
+      historyData,
+      originAccountIds,
+      statements
+    ]
+  )
+
+  const invalidRows = useMemo<InvalidStatementRow[]>(
+    () =>
+      statements.flatMap((statement) =>
+        statement.result.invalidRows.map((row) =>
+          statements.length > 1
+            ? {
+                ...row,
+                fileName: statement.fileName
+              }
+            : row
+        )
+      ),
+    [
+      statements
+    ]
+  )
 
   const validationMessages = useMemo(() => {
     const messages = importValidationMessages(drafts, t)
@@ -313,35 +414,52 @@ function ImportTransactionsPage() {
     t
   ])
 
-  const handleParsed = (result: StatementParseResult, nextFileName: string) => {
-    setActiveStatement(result, nextFileName)
-    setParseResult(result)
-    setFileName(nextFileName)
-    setAppliedResult(null)
+  const handleParsed = (nextStatements: ImportStatement[]) => {
+    setActiveStatements(nextStatements)
+    setStatements(nextStatements)
+    setAppliedStatements(null)
     setAutoMatchedSignature('')
     setImportFailures({})
   }
 
-  const handleOriginAccountChange = (accountId: string) => {
-    setOriginAccountId(accountId)
-    setDrafts((current) =>
-      current.map((draft) => ({
-        ...draft,
-        originAccountId: accountId,
-        transferFromAccountId:
-          draft.type === TransactionType.TRANSFER && draft.signedAmount < 0
-            ? accountId
-            : draft.transferFromAccountId,
-        transferToAccountId:
-          draft.type === TransactionType.TRANSFER && draft.signedAmount > 0
-            ? accountId
-            : draft.transferToAccountId
-      }))
+  const handleOriginAccountChange = (
+    statementIndex: number,
+    accountId: string
+  ) => {
+    const nextOriginAccountIds = statements.map((_, index) =>
+      index === statementIndex ? accountId : (originAccountIds[index] ?? '')
     )
+    setOriginAccountIds(nextOriginAccountIds)
+
+    if (hasManualEditsRef.current) {
+      // Keep the user's edits: only move the account fields.
+      setDrafts((current) =>
+        changeOriginAccountInPlace(current, statementIndex, accountId)
+      )
+      return
+    }
+
+    // Nothing edited yet, so redo the whole analysis for the new account:
+    // already-saved rows, transfer accounts, and pairing all depend on it.
+    const next = buildDraftsFromStatements(
+      statements,
+      {
+        accounts,
+        recipients,
+        incomeSources,
+        categories,
+        budgets,
+        history: historyData
+      },
+      nextOriginAccountIds
+    )
+    setDrafts(next.drafts)
+    setAutoMatchedSignature('')
   }
 
   const handleDraftChange = useCallback(
     (id: string, patch: Partial<TransactionDraft>) => {
+      hasManualEditsRef.current = true
       setImportFailures((current) => {
         if (!(id in current)) return current
         const next = {
@@ -393,34 +511,36 @@ function ImportTransactionsPage() {
       drafts,
       budgets: budgetsData
     })
-    const existingUnallocated = allocationSummary?.unallocated ?? 0
-    const pendingIncomeAmount = pendingIncomeTotalFromImportDrafts(drafts)
-    const availableToAllocate = computeImportAvailableToAllocate({
-      unallocatedAmount: existingUnallocated,
-      drafts
-    })
-
-    let allocationChoices: ImportAllocationChoice[] = []
-
-    if (shortfalls.length > 0) {
-      const choices = await promptImportAllocations({
+    // Budgets short of money are topped up from the unallocated pool (which
+    // will include the incomes in this import) without asking; the dialog only
+    // opens when the pool is not enough.
+    const cover = await resolveBudgetCover({
+      shortfalls,
+      poolAvailable: computeImportAvailableToAllocate({
+        unallocatedAmount: allocationSummary?.unallocated ?? 0,
+        drafts
+      }),
+      donors: findBudgetCoverDonors({
+        budgets: budgetsData,
         shortfalls,
-        unallocatedAmount: availableToAllocate,
-        existingUnallocated,
-        pendingIncomeAmount
-      })
-      if (!choices) return
-      allocationChoices = choices
-    }
+        demandByBudgetId: sumExpenseLinesByBudget(
+          expenseLinesFromImportDrafts(drafts)
+        )
+      }),
+      confirmLabel: t('statementImport.allocation.submit'),
+      promptPulls: promptBudgetPulls
+    })
+    if (!cover) return
 
     setIsImporting(true)
     try {
       const result = await submitImportInOrder({
         drafts,
-        allocationChoices,
+        budgetCoverPlan: cover.plan,
         userId,
         bulkCreateAsync,
-        createAllocationAsync
+        createAllocationAsync,
+        transferAllocationAsync
       })
 
       if (!result.ok) {
@@ -454,7 +574,7 @@ function ImportTransactionsPage() {
         return
       }
 
-      clearActiveStatement()
+      clearActiveStatements()
       const createdCount =
         (result.incomeResult?.created.length ?? 0) +
         (result.finalResult?.created.length ?? 0)
@@ -463,6 +583,13 @@ function ImportTransactionsPage() {
           count: createdCount
         })
       )
+      if (!cover.asked && cover.plan.allocations.length > 0) {
+        toast.info(
+          t('transactions.autoAllocated', {
+            details: describeAutoAllocations(cover.plan, shortfalls)
+          })
+        )
+      }
       navigate({
         to: '/transactions',
         search: {
@@ -486,6 +613,7 @@ function ImportTransactionsPage() {
       incomeSources,
       incomeInstances,
       billInstances,
+      showOriginAccount: statements.length > 1,
       onDraftChange: handleDraftChange
     }),
     [
@@ -496,7 +624,8 @@ function ImportTransactionsPage() {
       handleDraftChange,
       incomeInstances,
       incomeSources,
-      recipients
+      recipients,
+      statements.length
     ]
   )
 
@@ -510,13 +639,12 @@ function ImportTransactionsPage() {
         inputRef={fileInputRef}
         onParsed={handleParsed}
       />
-      {importAllocationDialog}
+      {budgetCoverDialog}
       <div className="flex flex-col gap-6">
         <Summary
           drafts={drafts}
-          fileName={fileName}
+          statements={summaryStatements}
           accounts={accounts}
-          originAccountId={originAccountId}
           onOriginAccountChange={handleOriginAccountChange}
           onChangeFile={() => fileInputRef.current?.open()}
         />
@@ -548,7 +676,7 @@ function ImportTransactionsPage() {
         />
         <Footer
           validationMessages={validationMessages}
-          invalidRows={parseResult?.invalidRows ?? []}
+          invalidRows={invalidRows}
           isSubmitting={isImporting || bulkCreatePending}
           onImport={handleImport}
         />

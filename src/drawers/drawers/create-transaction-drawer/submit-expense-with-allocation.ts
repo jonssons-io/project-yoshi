@@ -1,67 +1,104 @@
 import type { TFunction } from 'i18next'
 import { toast } from 'sonner'
 
-import type { BudgetAllocateOnDemandChoice } from '@/hooks/use-budget-allocate-on-demand-dialog'
 import { getErrorMessage } from '@/lib/api-error'
+import { formatCurrency } from '@/lib/utils'
 
 import type { BudgetAllocationShortfall } from './budget-allocation-shortfall'
+import {
+  type BudgetCoverDonor,
+  type BudgetCoverPlan,
+  executeBudgetCoverPlan,
+  type PromptBudgetPulls,
+  resolveBudgetCover
+} from './budget-cover-plan'
 
-type CreateAllocationAsync = (variables: {
-  budgetId: string
-  amount: number
-  userId?: string | null
-}) => Promise<unknown>
+type CoverMutations = Pick<
+  Parameters<typeof executeBudgetCoverPlan>[0],
+  'createAllocationAsync' | 'transferAllocationAsync'
+>
 
-type PromptAllocation = (params: {
+/** Tells the user what was allocated for them, since nothing was asked. */
+export function describeAutoAllocations(
+  plan: BudgetCoverPlan,
   shortfalls: BudgetAllocationShortfall[]
-  unallocatedAmount: number
-  confirmLabel: string
-}) => Promise<BudgetAllocateOnDemandChoice | null>
+): string {
+  const nameById = new Map(
+    shortfalls.map((item) => [
+      item.budgetId,
+      item.budgetName
+    ])
+  )
+  return plan.allocations
+    .map(
+      (allocation) =>
+        `${nameById.get(allocation.budgetId) ?? allocation.budgetId} ${formatCurrency(allocation.amount)}`
+    )
+    .join(', ')
+}
 
 /**
- * Prompt for optional budget allocation, then run allocation (if chosen) before submit.
+ * Covers the budgets an expense would overdraw, then saves it. While the
+ * unallocated pool is enough this happens without asking; when the pool runs
+ * out the user chooses which budgets to move the rest from.
  */
-export async function submitExpenseWithOptionalAllocation(params: {
-  shortfalls: BudgetAllocationShortfall[]
-  unallocatedAmount: number
-  userId?: string | null
-  confirmLabel: string
-  t: TFunction
-  promptAllocation: PromptAllocation
-  createAllocationAsync: CreateAllocationAsync
-  submitTransaction: () => Promise<void>
-}): Promise<boolean> {
+export async function submitExpenseWithOptionalAllocation(
+  params: {
+    shortfalls: BudgetAllocationShortfall[]
+    unallocatedAmount: number
+    /** Budgets with allocation to spare, offered when the pool runs out. */
+    donors: BudgetCoverDonor[]
+    userId?: string | null
+    confirmLabel: string
+    t: TFunction
+    promptBudgetPulls: PromptBudgetPulls
+    submitTransaction: () => Promise<void>
+  } & CoverMutations
+): Promise<boolean> {
   const {
     shortfalls,
     unallocatedAmount,
+    donors,
     userId,
     confirmLabel,
     t,
-    promptAllocation,
+    promptBudgetPulls,
     createAllocationAsync,
+    transferAllocationAsync,
     submitTransaction
   } = params
 
   if (shortfalls.length > 0) {
-    const choice = await promptAllocation({
+    const cover = await resolveBudgetCover({
       shortfalls,
-      unallocatedAmount,
-      confirmLabel
+      poolAvailable: unallocatedAmount,
+      donors,
+      confirmLabel,
+      promptPulls: promptBudgetPulls
     })
 
-    if (!choice) {
+    if (!cover) {
       return false
     }
 
     try {
-      await createAllocationAsync({
-        budgetId: choice.budgetId,
-        amount: choice.amount,
-        userId
+      await executeBudgetCoverPlan({
+        plan: cover.plan,
+        userId,
+        createAllocationAsync,
+        transferAllocationAsync
       })
     } catch (error) {
       toast.error(getErrorMessage(error))
       return false
+    }
+
+    if (!cover.asked) {
+      toast.info(
+        t('transactions.autoAllocated', {
+          details: describeAutoAllocations(cover.plan, shortfalls)
+        })
+      )
     }
   }
 

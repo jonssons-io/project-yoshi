@@ -1,19 +1,27 @@
+import { format } from 'date-fns'
 import { ArrowRightLeft, TrendingDown, TrendingUp } from 'lucide-react'
 import { useId } from 'react'
 import { useTranslation } from 'react-i18next'
 import { TransactionType } from '@/api/generated/types.gen'
 import { Button } from '@/components/button/button'
 import { InfoCard } from '@/components/info-card/info-card'
+import type { LatestAccountTransaction } from '../already-imported'
 import type { ImportLookupItem, TransactionDraft } from '../types'
 import { formatSwedishMoney } from '../utils/money'
 import { DraftSelect, SelectOptionList } from './import-table-fields'
 
+export type SummaryStatement = {
+  fileName: string
+  originAccountId: string
+  /** Newest saved transaction on the chosen account, when there is one. */
+  latestTransaction: LatestAccountTransaction | null
+}
+
 export type SummaryProps = {
   drafts: TransactionDraft[]
-  fileName: string
+  statements: SummaryStatement[]
   accounts: ImportLookupItem[]
-  originAccountId: string
-  onOriginAccountChange: (accountId: string) => void
+  onOriginAccountChange: (statementIndex: number, accountId: string) => void
   onChangeFile: () => void
 }
 
@@ -25,6 +33,16 @@ function summary(drafts: TransactionDraft[]) {
     totalRows: drafts.length,
     includedRows: included.length,
     excludedRows: drafts.length - included.length,
+    alreadyImportedRows: drafts.filter(
+      (draft) => draft.excluded && draft.duplicateOfTransactionId
+    ).length,
+    // Each pair has one excluded side, so this counts transfers, not rows.
+    pairedTransfers: drafts.filter(
+      (draft) =>
+        draft.excluded &&
+        draft.pairedWithDraftId &&
+        !draft.duplicateOfTransactionId
+    ).length,
     income: included
       .filter((draft) => draft.type === TransactionType.INCOME)
       .reduce((sum, draft) => sum + draft.amount, 0),
@@ -61,31 +79,88 @@ function RowsInfoCard({
   )
 }
 
+function StatementAccountField({
+  statement,
+  statementIndex,
+  accounts,
+  onOriginAccountChange
+}: {
+  statement: SummaryStatement
+  statementIndex: number
+  accounts: ImportLookupItem[]
+  onOriginAccountChange: SummaryProps['onOriginAccountChange']
+}) {
+  const inputId = useId()
+  const { t } = useTranslation()
+  const latest = statement.latestTransaction
+
+  return (
+    <div className="flex flex-col gap-1">
+      {statement.fileName ? (
+        <span
+          className="type-body-medium max-w-80 truncate text-gray-700"
+          title={statement.fileName}
+        >
+          {statement.fileName}
+        </span>
+      ) : null}
+      <label
+        className="type-label text-gray-800"
+        htmlFor={inputId}
+      >
+        {t('statementImport.table.originAccount')}
+      </label>
+      <DraftSelect
+        id={inputId}
+        value={statement.originAccountId}
+        onChange={(accountId) =>
+          onOriginAccountChange(statementIndex, accountId)
+        }
+      >
+        <option value="">{t('statementImport.table.chooseAccount')}</option>
+        <SelectOptionList items={accounts} />
+      </DraftSelect>
+      {statement.originAccountId ? (
+        <p className="type-label text-gray-600">
+          {latest
+            ? t('statementImport.summary.latestTransaction', {
+                date: format(latest.date, 'yyyy-MM-dd'),
+                name: latest.name,
+                amount: formatSwedishMoney(latest.amount)
+              })
+            : t('statementImport.summary.noSavedTransactions')}
+        </p>
+      ) : null}
+    </div>
+  )
+}
+
 export function Summary({
   drafts,
-  fileName,
+  statements,
   accounts,
-  originAccountId,
   onOriginAccountChange,
   onChangeFile
 }: SummaryProps) {
-  const originAccountInputId = useId()
   const { t } = useTranslation()
   const totals = summary(drafts)
 
   return (
     <section className="flex flex-col gap-4">
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="flex flex-col gap-2">
-          <div className="flex flex-wrap items-center gap-2">
-            {fileName ? (
-              <span
-                className="type-body-medium max-w-64 truncate text-gray-700"
-                title={fileName}
-              >
-                {fileName}
-              </span>
-            ) : null}
+        <div className="flex flex-col gap-4">
+          {statements.map((statement, statementIndex) => (
+            <StatementAccountField
+              // Files keep their position for as long as this upload is shown.
+              // biome-ignore lint/suspicious/noArrayIndexKey: position is the statement's identity
+              key={statementIndex}
+              statement={statement}
+              statementIndex={statementIndex}
+              accounts={accounts}
+              onOriginAccountChange={onOriginAccountChange}
+            />
+          ))}
+          <div className="flex">
             <Button
               variant="outlined"
               color="subtle"
@@ -93,20 +168,6 @@ export function Summary({
               onClick={onChangeFile}
             />
           </div>
-          <label
-            className="type-label text-gray-800"
-            htmlFor={originAccountInputId}
-          >
-            {t('statementImport.table.originAccount')}
-          </label>
-          <DraftSelect
-            id={originAccountInputId}
-            value={originAccountId}
-            onChange={onOriginAccountChange}
-          >
-            <option value="">{t('statementImport.table.chooseAccount')}</option>
-            <SelectOptionList items={accounts} />
-          </DraftSelect>
         </div>
 
         <div className="flex max-w-full flex-row flex-nowrap justify-end gap-2 overflow-x-auto">
@@ -151,6 +212,24 @@ export function Summary({
           />
         </div>
       </div>
+      {totals.alreadyImportedRows > 0 || totals.pairedTransfers > 0 ? (
+        <div className="flex flex-col gap-1">
+          {totals.alreadyImportedRows > 0 ? (
+            <p className="type-body-medium text-gray-700">
+              {t('statementImport.summary.alreadyImported', {
+                count: totals.alreadyImportedRows
+              })}
+            </p>
+          ) : null}
+          {totals.pairedTransfers > 0 ? (
+            <p className="type-body-medium text-gray-700">
+              {t('statementImport.summary.pairedTransfers', {
+                count: totals.pairedTransfers
+              })}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
     </section>
   )
 }

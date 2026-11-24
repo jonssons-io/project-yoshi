@@ -1,8 +1,11 @@
 import type { BulkCreateTransactionsResponse2 } from '@/api/generated/types.gen'
 import { TransactionType } from '@/api/generated/types.gen'
 
+import {
+  type BudgetCoverPlan,
+  executeBudgetCoverPlan
+} from '@/drawers/drawers/create-transaction-drawer/budget-cover-plan'
 import { buildBulkCreateRequest } from './build-bulk-create-request'
-import type { ImportAllocationChoice } from './components/import-allocation-dialog'
 import type { TransactionDraft } from './types'
 
 export type ImportBulkPhaseResult = {
@@ -28,11 +31,10 @@ type BulkCreateAsync = (
   body: ReturnType<typeof buildBulkCreateRequest>
 ) => Promise<BulkCreateTransactionsResponse2>
 
-type CreateAllocationAsync = (variables: {
-  budgetId: string
-  amount: number
-  userId?: string | null
-}) => Promise<unknown>
+type CoverMutations = Pick<
+  Parameters<typeof executeBudgetCoverPlan>[0],
+  'createAllocationAsync' | 'transferAllocationAsync'
+>
 
 function toPhaseResult(
   response: BulkCreateTransactionsResponse2
@@ -44,21 +46,25 @@ function toPhaseResult(
 }
 
 /**
- * Import order: incomes → budget allocations → transfers and expenses.
+ * Import order: incomes → budget cover (allocations from the pool, then moves
+ * between budgets) → transfers and expenses. Incomes go first because the
+ * cover plan may count on them being in the unallocated pool.
  */
-export async function submitImportInOrder(params: {
-  drafts: TransactionDraft[]
-  allocationChoices: ImportAllocationChoice[]
-  userId?: string | null
-  bulkCreateAsync: BulkCreateAsync
-  createAllocationAsync: CreateAllocationAsync
-}): Promise<ImportSubmitResult> {
+export async function submitImportInOrder(
+  params: {
+    drafts: TransactionDraft[]
+    budgetCoverPlan: BudgetCoverPlan
+    userId?: string | null
+    bulkCreateAsync: BulkCreateAsync
+  } & CoverMutations
+): Promise<ImportSubmitResult> {
   const {
     drafts,
-    allocationChoices,
+    budgetCoverPlan,
     userId,
     bulkCreateAsync,
-    createAllocationAsync
+    createAllocationAsync,
+    transferAllocationAsync
   } = params
 
   const incomeBody = buildBulkCreateRequest(drafts, {
@@ -81,17 +87,17 @@ export async function submitImportInOrder(params: {
     }
   }
 
-  if (allocationChoices.length > 0) {
+  if (
+    budgetCoverPlan.allocations.length > 0 ||
+    budgetCoverPlan.transfers.length > 0
+  ) {
     try {
-      await Promise.all(
-        allocationChoices.map((choice) =>
-          createAllocationAsync({
-            budgetId: choice.budgetId,
-            amount: choice.amount,
-            userId
-          })
-        )
-      )
+      await executeBudgetCoverPlan({
+        plan: budgetCoverPlan,
+        userId,
+        createAllocationAsync,
+        transferAllocationAsync
+      })
     } catch (allocationError) {
       return {
         ok: false,

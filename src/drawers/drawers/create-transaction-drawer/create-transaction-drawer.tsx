@@ -16,9 +16,10 @@ import {
   useCreateAllocationMutation,
   useCreateTransaction,
   useIncomeSourcesList,
-  useRecipientsList
+  useRecipientsList,
+  useTransferAllocationMutation
 } from '@/hooks/api'
-import { useBudgetAllocateOnDemandDialog } from '@/hooks/use-budget-allocate-on-demand-dialog'
+import { useBudgetCoverDialog } from '@/hooks/use-budget-cover-dialog'
 import { accountsById } from '@/lib/accounts'
 import { getErrorMessage } from '@/lib/api-error'
 import {
@@ -30,8 +31,10 @@ import { formatCurrency } from '@/lib/utils'
 
 import {
   expenseLinesFromFormValues,
+  resolveExpenseBudgetDemand,
   resolveExpenseBudgetShortfalls
 } from './budget-allocation-shortfall'
+import { findBudgetCoverDonors } from './budget-cover-plan'
 import { ExpenseIncomeTransferFields } from './expense-income-transfer-fields'
 import { buildCreateTransactionBody } from './map-to-request'
 import { drawerFormSchema } from './schema'
@@ -95,13 +98,14 @@ export function CreateTransactionDrawer({
 
   const isInstanceLinked = !!incomeInstance || !!billInstance
 
-  const { promptAllocation, allocateOnDemandDialog } =
-    useBudgetAllocateOnDemandDialog()
+  const { promptBudgetPulls, budgetCoverDialog } = useBudgetCoverDialog()
 
   const { mutateAsync: createTransactionAsync, isPending: isCreating } =
     useCreateTransaction()
   const { mutateAsync: createAllocationAsync, isPending: isAllocating } =
     useCreateAllocationMutation()
+  const { mutateAsync: transferAllocationAsync, isPending: isTransferring } =
+    useTransferAllocationMutation()
 
   const { data: allocationSummary } = useAllocationsQuery({
     householdId: householdId ?? '',
@@ -110,7 +114,7 @@ export function CreateTransactionDrawer({
   })
 
   const unallocatedAmount = allocationSummary?.unallocated ?? 0
-  const isPending = isCreating || isAllocating
+  const isPending = isCreating || isAllocating || isTransferring
 
   const { data: accountBalances = [] } = useAccountBalancesList({
     householdId,
@@ -311,17 +315,18 @@ export function CreateTransactionDrawer({
         return
       }
 
+      const newExpenseLines = expenseLinesFromFormValues({
+        hasSplits,
+        amount: data.amount,
+        budgetId: data.budgetId,
+        splits: data.splits
+      })
       const shortfalls =
         data.transactionType === TransactionType.EXPENSE
           ? resolveExpenseBudgetShortfalls({
               mode: 'create',
               budgets,
-              newExpenseLines: expenseLinesFromFormValues({
-                hasSplits,
-                amount: data.amount,
-                budgetId: data.budgetId,
-                splits: data.splits
-              }),
+              newExpenseLines,
               newDate: data.date
             })
           : []
@@ -329,11 +334,21 @@ export function CreateTransactionDrawer({
       const didSubmit = await submitExpenseWithOptionalAllocation({
         shortfalls,
         unallocatedAmount,
+        donors: findBudgetCoverDonors({
+          budgets,
+          shortfalls,
+          demandByBudgetId: resolveExpenseBudgetDemand({
+            mode: 'create',
+            newExpenseLines,
+            newDate: data.date
+          })
+        }),
         userId,
         confirmLabel: t('transactions.allocateAndCreate'),
         t,
-        promptAllocation,
+        promptBudgetPulls,
         createAllocationAsync,
+        transferAllocationAsync,
         submitTransaction: async () => {
           await createTransactionAsync({
             userId,
@@ -548,7 +563,7 @@ export function CreateTransactionDrawer({
 
   return (
     <>
-      {allocateOnDemandDialog}
+      {budgetCoverDialog}
       <form
         className="flex h-full min-h-0 flex-1 flex-col"
         onSubmit={(e) => {

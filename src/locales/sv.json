@@ -113,11 +113,19 @@
     "cloneSuccess": "Transaktion klonad",
     "scheduledLink": "Kopplad till räkning eller inkomst",
     "showUpcomingQuickFilter": "Visa kommande",
-    "insufficientBudgetAllocateTitle": "Otillräckliga budgetmedel",
-    "insufficientBudgetAllocateIntro": "Vald budget har inte tillräckligt fördelade medel för denna utgift.",
-    "insufficientBudgetShortfallLine": "{{budgetName}}: {{remaining}} kvar, behöver {{shortfall}} till för denna utgift",
-    "unallocatedPoolAvailable": "Tillgängligt att fördela: {{amount}}",
-    "allocateAmountLabel": "Belopp att fördela",
+    "autoAllocated": "Fördelade automatiskt från ofördelade medel: {{details}}",
+    "coverTitle": "Ofördelade medel räcker inte",
+    "coverIntro": "Budgetarna nedan saknar medel och det finns inte tillräckligt ofördelat. Välj vilka budgetar resten ska flyttas från.",
+    "coverShortfallLine": "{{budgetName}}: saknar {{shortfall}}",
+    "coverFromPool": "Från ofördelade medel används {{amount}}.",
+    "coverLeftToCover": "Kvar att täcka från andra budgetar: {{amount}}",
+    "coverDonorsColumn": "Flytta från",
+    "coverMoveColumn": "Belopp",
+    "coverDonorLine": "{{budgetName}}: {{amount}} tillgängligt",
+    "coverNoDonors": "Inga andra budgetar har medel att flytta. Minska utgiften eller registrera en inkomst först.",
+    "coverNotEnough": "Andra budgetar har bara {{amount}} att flytta, vilket inte räcker.",
+    "coverExceedsDonor": "{{budgetName}} har bara {{amount}} tillgängligt.",
+    "coverMustMatch": "Flytta sammanlagt exakt {{amount}}.",
     "allocateAndCreate": "Fördela och skapa",
     "allocateAndUpdate": "Fördela och spara",
     "allocationAppliedSubmitFailed": "Medel fördelades men transaktionen kunde inte sparas. {{error}}"
@@ -147,7 +155,11 @@
     "summary": {
       "rows": "Rader",
       "included": "Inkluderade",
-      "excluded": "Exkluderade"
+      "excluded": "Exkluderade",
+      "latestTransaction": "Senast sparade transaktion på kontot: {{date}} · {{name}} · {{amount}} kr",
+      "noSavedTransactions": "Inga sparade transaktioner på kontot ännu.",
+      "alreadyImported": "{{count}} rader finns redan sparade och har exkluderats.",
+      "pairedTransfers": "{{count}} överföringar mellan de uppladdade kontona har parats ihop."
     },
     "table": {
       "include": "Inkludera",
@@ -168,9 +180,14 @@
       "noBudget": "Ingen budget",
       "noCategory": "Ingen kategori",
       "startOver": "Börja om",
-      "changeFile": "Byt fil",
+      "changeFile": "Byt filer",
       "skippedRows": "Överhoppade rader",
       "skippedRowReason": "Rad {{row}}: {{reason}}",
+      "skippedRowReasonInFile": "{{fileName}}, rad {{row}}: {{reason}}",
+      "alreadyImported": "Finns redan",
+      "alreadyImportedHint": "Raden finns redan som sparad transaktion. Inkludera den bara om det är en ny transaktion.",
+      "pairedTransfer": "Ihopparad",
+      "pairedTransferHint": "Samma överföring finns i en annan uppladdad fil. Bara den ena sidan importeras.",
       "selectRowAria": "Välj rad {{row}} för massredigering",
       "excludeRow": "Exkludera rad från import",
       "includeRow": "Inkludera rad i import"
@@ -183,8 +200,10 @@
     },
     "instancePicker": {
       "title": "Välj instans",
-      "description": "Välj en olänkad instans att koppla till raden.",
-      "empty": "Inga tillgängliga instanser matchar raden."
+      "description": "De instanser som passar raden bäst på datum, belopp och mottagare visas först.",
+      "empty": "Inga tillgängliga instanser matchar raden.",
+      "showAll": "Visa alla ({{count}})",
+      "showLikely": "Visa bara troliga"
     },
     "validation": {
       "originAccountRequired": "Ursprungskonto krävs.",
@@ -211,15 +230,7 @@
       "transfersExpensesPhaseFailed": "Överföringar och utgifter kunde inte sparas efter inkomster och allokering."
     },
     "allocation": {
-      "title": "Otillräcklig budgetallokering",
-      "intro": "Du har inte allokerat tillräckligt med pengar i dessa budgetar. Vill du allokera pengar nu?",
-      "unallocatedFunds": "Tillgängligt att fördela: {{amount}} (ofördelat + kommande inkomstimport - nedanstående fördelning)",
-      "budgetsColumn": "Budgetar",
-      "allocateColumn": "Allokera",
-      "submit": "Allokera och importera",
-      "totalExceedsUnallocated": "Totalt belopp överstiger tillgängliga ofördelade medel.",
-      "belowShortfall": "Allokera minst {{amount}} till {{budgetName}}.",
-      "amountRequired": "Ange ett belopp för {{budgetName}}."
+      "submit": "Fördela och importera"
     },
     "disabled": {
       "title": "Import inte tillgänglig",
@@ -233,6 +244,7 @@
     "errors": {
       "chooseXlsx": "Välj ett .xlsx-kontoutdrag.",
       "couldNotParse": "Kunde inte tolka kontoutdraget.",
+      "historyUnavailable": "Sparade transaktioner kunde inte läsas. Rader som redan finns kan inte upptäckas och inget fylls i automatiskt.",
       "onlyXlsxSupported": "Endast kontoutdrag i .xlsx-format stöds.",
       "noTransactionHeader": "Ingen transaktionsrubrik hittades.",
       "noWorksheets": "Kalkylbladet saknar arbetsblad.",

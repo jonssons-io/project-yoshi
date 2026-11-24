@@ -1,12 +1,6 @@
 import { createColumnHelper } from '@tanstack/react-table'
 import { EditIcon, Link2, SaveIcon, SaveOffIcon, Unlink } from 'lucide-react'
-import {
-  type RefObject,
-  useCallback,
-  useMemo,
-  useRef,
-  useState
-} from 'react'
+import { type RefObject, useCallback, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   type BillInstance,
@@ -39,7 +33,10 @@ import {
   buildBillInstancePatch,
   buildIncomeInstancePatch,
   getBillInstanceLabel,
-  getIncomeInstanceLabel
+  getIncomeInstanceLabel,
+  type RankedInstance,
+  rankBillInstancesForDraft,
+  rankIncomeInstancesForDraft
 } from '../classification/instance-matching'
 import type { ImportLookupItem, TransactionDraft } from '../types'
 import { formatSwedishMoney } from '../utils/money'
@@ -71,8 +68,13 @@ type ImportDraftTableProps = {
   incomeSources: ImportLookupItem[]
   incomeInstances: IncomeInstance[]
   billInstances: BillImportInstance[]
+  /** Show which account each row belongs to (several statements at once). */
+  showOriginAccount?: boolean
   onDraftChange: (id: string, patch: Partial<TransactionDraft>) => void
 }
+
+/** Instances offered when none stands out as a likely match for the row. */
+const FALLBACK_INSTANCE_COUNT = 5
 
 const columnHelper = createColumnHelper<TransactionDraft>()
 
@@ -93,6 +95,7 @@ type ImportDraftColumnStableContext = {
   categories: ImportLookupItem[]
   recipients: ImportLookupItem[]
   incomeSources: ImportLookupItem[]
+  showOriginAccount: boolean
 }
 
 type BillImportInstance = Omit<BillInstance, 'dueDate'> & {
@@ -249,7 +252,8 @@ function createColumns(
     budgets,
     categories,
     recipients,
-    incomeSources
+    incomeSources,
+    showOriginAccount
   }: ImportDraftColumnStableContext
 ): DataTableColumnDef<TransactionDraft>[] {
   const { t } = volatileCtxRef.current
@@ -281,9 +285,36 @@ function createColumns(
     columnHelper.accessor('sourceRowNumber', {
       id: 'sourceRowNumber',
       header: t('statementImport.table.row'),
-      cell: (ctx) => (
-        <DraftPlainText>{ctx.row.original.sourceRowNumber}</DraftPlainText>
-      ),
+      cell: (ctx) => {
+        const draft = ctx.row.original
+        const { t: translate } = volatileCtxRef.current
+        // Say why the import excluded a row by itself, so it is not mistaken
+        // for a manual exclusion.
+        const marker = draft.duplicateOfTransactionId
+          ? {
+              label: translate('statementImport.table.alreadyImported'),
+              hint: translate('statementImport.table.alreadyImportedHint')
+            }
+          : draft.pairedWithDraftId
+            ? {
+                label: translate('statementImport.table.pairedTransfer'),
+                hint: translate('statementImport.table.pairedTransferHint')
+              }
+            : null
+        return (
+          <span className="flex flex-col gap-0.5">
+            <DraftPlainText>{draft.sourceRowNumber}</DraftPlainText>
+            {marker ? (
+              <span
+                className="type-label whitespace-nowrap text-gray-600"
+                title={marker.hint}
+              >
+                {marker.label}
+              </span>
+            ) : null}
+          </span>
+        )
+      },
       meta: {
         globalSearchable: true,
         searchValue: (row: TransactionDraft) => String(row.sourceRowNumber)
@@ -376,6 +407,27 @@ function createColumns(
       }
     })
   ]
+
+  // Transfers already show both accounts; other rows need it once several
+  // statements share one table.
+  if (showOriginAccount && kind !== TransactionType.TRANSFER) {
+    columns.push(
+      columnHelper.display({
+        id: 'originAccount',
+        header: t('common.account'),
+        cell: (ctx) => (
+          <DraftPlainText>
+            {lookupName(accounts, ctx.row.original.originAccountId)}
+          </DraftPlainText>
+        ),
+        meta: {
+          globalSearchable: true,
+          searchValue: (row: TransactionDraft) =>
+            lookupName(accounts, row.originAccountId)
+        }
+      })
+    )
+  }
 
   if (kind === TransactionType.TRANSFER) {
     columns.push(
@@ -588,7 +640,9 @@ function createColumns(
                 })
               }
             >
-              <option value="">{translate('statementImport.table.noBudget')}</option>
+              <option value="">
+                {translate('statementImport.table.noBudget')}
+              </option>
               <SelectOptionList items={budgets} />
             </DraftSelect>
           )
@@ -761,22 +815,33 @@ function InstancePickerDialog({
 }) {
   const { t } = useTranslation()
   const [selectedInstanceId, setSelectedInstanceId] = useState('')
+  const [showAll, setShowAll] = useState(false)
   const open = Boolean(draft)
 
-  const options = useMemo(() => {
+  // Best fit first: every recurring bill has an instance per coming month, so
+  // an unranked list buries the one the row belongs to.
+  const ranked = useMemo<
+    RankedInstance<IncomeInstance | BillImportInstance>[]
+  >(() => {
     if (!draft) return []
     if (draft.type === TransactionType.INCOME) {
-      return getAvailableIncomeInstances({
+      return rankIncomeInstancesForDraft(
+        draft,
+        getAvailableIncomeInstances({
+          draft,
+          rows,
+          incomeInstances
+        })
+      )
+    }
+    return rankBillInstancesForDraft(
+      draft,
+      getAvailableBillInstances({
         draft,
         rows,
-        incomeInstances
+        billInstances
       })
-    }
-    return getAvailableBillInstances({
-      draft,
-      rows,
-      billInstances
-    })
+    )
   }, [
     billInstances,
     draft,
@@ -784,8 +849,17 @@ function InstancePickerDialog({
     rows
   ])
 
+  const likely = ranked.filter((item) => item.likely)
+  const shortList =
+    likely.length > 0 ? likely : ranked.slice(0, FALLBACK_INSTANCE_COUNT)
+  const options = (showAll ? ranked : shortList).map((item) => item.instance)
+  const hiddenCount = ranked.length - shortList.length
+
   const closeDialog = (nextOpen: boolean) => {
-    if (!nextOpen) setSelectedInstanceId('')
+    if (!nextOpen) {
+      setSelectedInstanceId('')
+      setShowAll(false)
+    }
     onOpenChange(nextOpen)
   }
 
@@ -884,6 +958,23 @@ function InstancePickerDialog({
           </p>
         )}
 
+        {hiddenCount > 0 ? (
+          <div className="flex">
+            <Button
+              variant="text"
+              color="subtle"
+              label={
+                showAll
+                  ? t('statementImport.instancePicker.showLikely')
+                  : t('statementImport.instancePicker.showAll', {
+                      count: ranked.length
+                    })
+              }
+              onClick={() => setShowAll((current) => !current)}
+            />
+          </div>
+        ) : null}
+
         <DialogFooter>
           <Button
             variant="text"
@@ -913,6 +1004,7 @@ export function ImportDraftTable({
   incomeSources,
   incomeInstances,
   billInstances,
+  showOriginAccount = false,
   onDraftChange
 }: ImportDraftTableProps) {
   const { t } = useTranslation()
@@ -924,7 +1016,11 @@ export function ImportDraftTable({
     () =>
       [
         ...rows
-      ].sort((a, b) => a.sourceRowNumber - b.sourceRowNumber),
+      ].sort(
+        (a, b) =>
+          (a.statementIndex ?? 0) - (b.statementIndex ?? 0) ||
+          a.sourceRowNumber - b.sourceRowNumber
+      ),
     [
       rows
     ]
@@ -997,7 +1093,8 @@ export function ImportDraftTable({
         budgets,
         categories,
         recipients,
-        incomeSources
+        incomeSources,
+        showOriginAccount
       }),
     [
       accounts,
@@ -1005,7 +1102,8 @@ export function ImportDraftTable({
       categories,
       incomeSources,
       kind,
-      recipients
+      recipients,
+      showOriginAccount
     ]
   )
 

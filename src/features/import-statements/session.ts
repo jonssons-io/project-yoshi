@@ -1,25 +1,15 @@
-import type { StatementParseResult } from './types'
+import type { ImportStatement } from './types'
 
-let activeStatement: StatementParseResult | null = null
-let activeStatementFileName = ''
+let activeStatements: ImportStatement[] = []
 
-export function setActiveStatement(
-  result: StatementParseResult,
-  fileName = ''
-): void {
-  activeStatement = result
-  activeStatementFileName = fileName
+export function setActiveStatements(statements: ImportStatement[]): void {
+  activeStatements = statements
 }
 
-export function getActiveStatement(): StatementParseResult | null {
-  return activeStatement
+export function getActiveStatements(): ImportStatement[] {
+  return activeStatements
 }
 
-export function getActiveStatementFileName(): string {
-  return activeStatementFileName
-}
-
-export function clearActiveStatement(): void {
-  activeStatement = null
-  activeStatementFileName = ''
+export function clearActiveStatements(): void {
+  activeStatements = []
 }
