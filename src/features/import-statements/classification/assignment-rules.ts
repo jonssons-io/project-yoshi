@@ -1,6 +1,12 @@
 import Fuse from 'fuse.js'
 import { TransactionType } from '@/api/generated/types.gen'
 import type { ImportLookupItem, TransactionDraft } from '../types'
+import { cleanBankDescription, normalizeMatchText } from './bank-description'
+import {
+  applyHistoryByKey,
+  applyHistoryDefaults,
+  type ImportHistoryIndex
+} from './history-matching'
 
 type AssignmentRule = {
   pattern: RegExp
@@ -22,7 +28,8 @@ const ASSIGNMENT_RULES: AssignmentRule[] = [
     categoryName: 'Electricity'
   },
   {
-    pattern: /ica/i,
+    // Whole word only, so "Pharmacia" or "Mexicana" is not taken for ICA.
+    pattern: /\bica\b/i,
     recipientName: 'ICA',
     categoryName: 'Groceries'
   },
@@ -58,6 +65,36 @@ function findByName(
   )
 }
 
+/**
+ * Finds the recipient whose whole name appears in the vendor text, e.g.
+ * recipient "Coop" in "STORA COOP CENTRUM". The longest name wins so
+ * "Arken Zoo" beats a shorter "Zoo".
+ */
+export function findRecipientIdInDescription(
+  description: string,
+  recipients: ImportLookupItem[]
+): string {
+  const haystack = ` ${cleanBankDescription(description).key} `
+  let best: {
+    id: string
+    length: number
+  } | null = null
+
+  for (const recipient of recipients) {
+    if (recipient.archived) continue
+    const needle = normalizeMatchText(recipient.name)
+    if (needle.length < 2 || !haystack.includes(` ${needle} `)) continue
+    if (!best || needle.length > best.length) {
+      best = {
+        id: recipient.id,
+        length: needle.length
+      }
+    }
+  }
+
+  return best?.id ?? ''
+}
+
 export function findFuzzyRecipientId(
   description: string,
   recipients: ImportLookupItem[]
@@ -84,6 +121,9 @@ export function applyAssignmentRules(
     recipients: ImportLookupItem[]
     incomeSources: ImportLookupItem[]
     categories: ImportLookupItem[]
+    budgets?: ImportLookupItem[]
+    /** Earlier transactions; the user's own latest choice beats the rules. */
+    history?: ImportHistoryIndex
   }
 ): TransactionDraft {
   let next = draft
@@ -107,17 +147,32 @@ export function applyAssignmentRules(
     }
   }
 
+  if (lookups.history) {
+    next = applyHistoryByKey(next, lookups.history, lookups)
+  }
+
   if (next.type === TransactionType.EXPENSE && !next.recipientId) {
-    const fuzzyRecipientId = findFuzzyRecipientId(
-      draft.originalDescription,
-      lookups.recipients
-    )
-    if (fuzzyRecipientId) {
+    const recipientId =
+      findRecipientIdInDescription(
+        draft.originalDescription,
+        lookups.recipients
+      ) ||
+      // Fuzzy search needs the short vendor text; the purchase date and city
+      // around it would otherwise drown out the recipient name.
+      findFuzzyRecipientId(
+        cleanBankDescription(draft.originalDescription).merchant,
+        lookups.recipients
+      )
+    if (recipientId) {
       next = {
         ...next,
-        recipientId: fuzzyRecipientId
+        recipientId
       }
     }
+  }
+
+  if (lookups.history) {
+    next = applyHistoryDefaults(next, lookups.history, lookups)
   }
 
   return next

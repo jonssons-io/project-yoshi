@@ -16,6 +16,7 @@ type Props = {
       dueDate: string | Date
     }
   >
+  showOriginAccount?: boolean
   onDraftChange: (id: string, patch: Partial<TransactionDraft>) => void
 }
 

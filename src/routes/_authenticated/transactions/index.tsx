@@ -37,7 +37,7 @@ import {
   StatementFileInput,
   type StatementFileInputHandle
 } from '@/features/import-statements/components/statement-file-input'
-import { setActiveStatement } from '@/features/import-statements/session'
+import { setActiveStatements } from '@/features/import-statements/session'
 import { NoData } from '@/features/no-data/no-data'
 import {
   useAccountsList,
@@ -693,8 +693,8 @@ function TransactionsPage() {
       </PageLayout>
       <StatementFileInput
         inputRef={statementFileInputRef}
-        onParsed={(result, fileName) => {
-          setActiveStatement(result, fileName)
+        onParsed={(statements) => {
+          setActiveStatements(statements)
           navigateToImportPage()
         }}
       />

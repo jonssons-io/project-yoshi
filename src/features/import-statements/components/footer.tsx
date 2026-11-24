@@ -91,13 +91,19 @@ export function Footer({
           <div className="flex flex-col gap-1 text-red-700">
             {invalidRows.map((row) => (
               <p
-                key={row.sourceRowNumber}
+                key={`${row.fileName ?? ''}:${row.sourceRowNumber}`}
                 className="type-body-medium"
               >
-                {t('statementImport.table.skippedRowReason', {
-                  row: row.sourceRowNumber,
-                  reason: t(row.reason)
-                })}
+                {row.fileName
+                  ? t('statementImport.table.skippedRowReasonInFile', {
+                      fileName: row.fileName,
+                      row: row.sourceRowNumber,
+                      reason: t(row.reason)
+                    })
+                  : t('statementImport.table.skippedRowReason', {
+                      row: row.sourceRowNumber,
+                      reason: t(row.reason)
+                    })}
               </p>
             ))}
             {validationMessages.map((message) => (

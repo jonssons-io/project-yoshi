@@ -1,10 +1,12 @@
 import Fuse from 'fuse.js'
 import type { BillInstance, IncomeInstance } from '@/api/generated/types.gen'
 import type { TransactionDraft } from '../types'
+import { cleanBankDescription, normalizeMatchText } from './bank-description'
 
 type MatchableIncomeInstance = Pick<
   IncomeInstance,
   | 'id'
+  | 'incomeId'
   | 'name'
   | 'amount'
   | 'expectedDate'
@@ -17,6 +19,7 @@ type MatchableBillInstance = Omit<
   Pick<
     BillInstance,
     | 'id'
+    | 'bill'
     | 'name'
     | 'recipient'
     | 'amount'
@@ -66,6 +69,150 @@ function textScore(description: string, candidate: string): number {
   return fuse.search(description)[0]?.score ?? 1
 }
 
+/**
+ * Whether the bank text names one of the given parties, e.g. vendor text
+ * "TIBBER NORGE AS" for a bill called "Tibber".
+ */
+function descriptionNames(description: string, names: string[]): boolean {
+  const key = cleanBankDescription(description).key
+  if (!key) return false
+
+  return names.some((name) => {
+    const normalized = normalizeMatchText(name)
+    if (normalized.length < 2) return false
+    return (
+      ` ${key} `.includes(` ${normalized} `) ||
+      (key.length >= 3 && ` ${normalized} `.includes(` ${key} `))
+    )
+  })
+}
+
+/**
+ * 0 when the row clearly belongs to the same party as the instance (same
+ * recipient/sender already chosen, or its name is in the bank text); otherwise
+ * a fuzzy score on the vendor part of the bank text.
+ */
+function partyScore(
+  draft: TransactionDraft,
+  sameParty: boolean,
+  names: string[]
+): number {
+  if (sameParty || descriptionNames(draft.originalDescription, names)) return 0
+  return textScore(
+    cleanBankDescription(draft.originalDescription).merchant,
+    names.join(' ')
+  )
+}
+
+/** How far from a row's date an instance can be and still be a likely match. */
+const LIKELY_DATE_WINDOW_DAYS = 45
+
+export type RankedInstance<T> = {
+  instance: T
+  /** Close enough in date, and the same party or about the same amount. */
+  likely: boolean
+}
+
+type RankableInstance = {
+  /** Recurring bill/income the instance belongs to, when it has one. */
+  seriesId: string | null
+  date: string | Date
+  amount: number
+  sameParty: boolean
+  names: string[]
+}
+
+/**
+ * Orders instances by how well they fit a statement row. A recurring bill has
+ * an instance for every coming month, so only the one closest in date to the
+ * row counts as likely; the rest stay available further down the list.
+ */
+function rankInstances<
+  T extends {
+    id: string
+  }
+>(
+  draft: TransactionDraft,
+  instances: T[],
+  describe: (instance: T) => RankableInstance
+): RankedInstance<T>[] {
+  const scored = instances.map((instance) => {
+    const info = describe(instance)
+    return {
+      instance,
+      seriesId: info.seriesId ?? instance.id,
+      dateDays: dateDistanceDays(draft.date, info.date),
+      amountRatio:
+        draft.amount === 0 ? 0 : amountDistanceRatio(draft.amount, info.amount),
+      partyMatches:
+        info.sameParty ||
+        descriptionNames(draft.originalDescription, info.names)
+    }
+  })
+
+  const nearestBySeries = new Map<string, number>()
+  for (const item of scored) {
+    const nearest = nearestBySeries.get(item.seriesId)
+    if (nearest === undefined || item.dateDays < nearest) {
+      nearestBySeries.set(item.seriesId, item.dateDays)
+    }
+  }
+
+  return scored
+    .map((item) => ({
+      ...item,
+      likely:
+        item.dateDays <= LIKELY_DATE_WINDOW_DAYS &&
+        item.dateDays === nearestBySeries.get(item.seriesId) &&
+        (item.partyMatches || item.amountRatio <= MAX_AMOUNT_DISTANCE_RATIO),
+      score: item.dateDays / LIKELY_DATE_WINDOW_DAYS + item.amountRatio
+    }))
+    .sort(
+      (a, b) =>
+        Number(b.likely) - Number(a.likely) ||
+        Number(b.partyMatches) - Number(a.partyMatches) ||
+        a.score - b.score
+    )
+    .map(({ instance, likely }) => ({
+      instance,
+      likely
+    }))
+}
+
+export function rankBillInstancesForDraft<T extends MatchableBillInstance>(
+  draft: TransactionDraft,
+  instances: T[]
+): RankedInstance<T>[] {
+  return rankInstances(draft, instances, (instance) => ({
+    seriesId: instance.bill?.id ?? null,
+    date: instance.dueDate,
+    amount: instance.amount,
+    sameParty:
+      Boolean(draft.recipientId) && instance.recipient.id === draft.recipientId,
+    names: [
+      instance.name,
+      instance.recipient.name ?? ''
+    ]
+  }))
+}
+
+export function rankIncomeInstancesForDraft<T extends MatchableIncomeInstance>(
+  draft: TransactionDraft,
+  instances: T[]
+): RankedInstance<T>[] {
+  return rankInstances(draft, instances, (instance) => ({
+    seriesId: instance.incomeId ?? null,
+    date: instance.expectedDate,
+    amount: instance.amount,
+    sameParty:
+      Boolean(draft.incomeSourceId) &&
+      instance.incomeSourceId === draft.incomeSourceId,
+    names: [
+      instance.name
+    ]
+  }))
+}
+
 function instanceIsAvailable(
   instanceId: string,
   linkedTransactionId: string | null | undefined,
@@ -98,7 +245,14 @@ export function findMatchingIncomeInstanceId(
       draft.amount === 0
         ? 0
         : amountDistanceRatio(draft.amount, instance.amount)
-    const nameScore = textScore(draft.originalDescription, instance.name)
+    const nameScore = partyScore(
+      draft,
+      Boolean(draft.incomeSourceId) &&
+        instance.incomeSourceId === draft.incomeSourceId,
+      [
+        instance.name
+      ]
+    )
     if (
       dateScore > MAX_DATE_DISTANCE_DAYS ||
       amountScore > MAX_AMOUNT_DISTANCE_RATIO ||
@@ -186,9 +340,13 @@ export function findMatchingBillInstanceId(
       draft.amount === 0
         ? 0
         : amountDistanceRatio(draft.amount, instance.amount)
-    const nameScore = textScore(
-      draft.originalDescription,
-      `${instance.name} ${instance.recipient.name}`
+    const nameScore = partyScore(
+      draft,
+      Boolean(draft.recipientId) && instance.recipient.id === draft.recipientId,
+      [
+        instance.name,
+        instance.recipient.name ?? ''
+      ]
     )
     if (
       dateScore > MAX_DATE_DISTANCE_DAYS ||

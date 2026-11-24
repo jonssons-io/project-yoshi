@@ -69,7 +69,7 @@ export type ExpenseBudgetLine = {
   amount: number
 }
 
-function sumExpenseLinesByBudget(
+export function sumExpenseLinesByBudget(
   expenseLines: ExpenseBudgetLine[]
 ): Map<string, number> {
   const amountByBudgetId = new Map<string, number>()
@@ -171,6 +171,45 @@ export function resolveExpenseBudgetShortfalls(params: {
     budgets,
     expenseLines: newExpenseLines
   })
+}
+
+/**
+ * How much of each budget's remaining allocation the expense will use, by the
+ * same rules as `resolveExpenseBudgetShortfalls`. Budgets with spare allocation
+ * left after this can lend it to budgets that fall short.
+ */
+export function resolveExpenseBudgetDemand(params: {
+  mode: 'create' | 'edit'
+  newExpenseLines: ExpenseBudgetLine[]
+  newDate: Date
+  originalExpenseLines?: ExpenseBudgetLine[]
+  originalDate?: Date
+}): Map<string, number> {
+  const {
+    mode,
+    newExpenseLines,
+    newDate,
+    originalExpenseLines = [],
+    originalDate
+  } = params
+
+  if (!isEffectiveTransactionDate(newDate)) return new Map()
+
+  const demand = sumExpenseLinesByBudget(newExpenseLines)
+  if (
+    mode === 'edit' &&
+    originalDate &&
+    isEffectiveTransactionDate(originalDate)
+  ) {
+    // The saved transaction already holds its original amounts.
+    for (const [budgetId, amount] of sumExpenseLinesByBudget(
+      originalExpenseLines
+    )) {
+      demand.set(budgetId, (demand.get(budgetId) ?? 0) - amount)
+    }
+  }
+
+  return demand
 }
 
 export function expenseLinesFromTransaction(params: {
