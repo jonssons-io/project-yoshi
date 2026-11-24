@@ -9,21 +9,20 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as SignUpRouteImport } from './routes/sign-up'
-import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
+import { Route as SignInRouteImport } from './routes/sign-in'
+import { Route as SignUpRouteImport } from './routes/sign-up'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
-import { Route as SignUpSsoCallbackRouteImport } from './routes/sign-up/sso-callback'
 import { Route as SignInSsoCallbackRouteImport } from './routes/sign-in/sso-callback'
-import { Route as AuthenticatedTransactionsIndexRouteImport } from './routes/_authenticated/transactions/index'
-import { Route as AuthenticatedIncomeIndexRouteImport } from './routes/_authenticated/income/index'
-import { Route as AuthenticatedCategoriesIndexRouteImport } from './routes/_authenticated/categories/index'
+import { Route as SignUpSsoCallbackRouteImport } from './routes/sign-up/sso-callback'
 import { Route as AuthenticatedBillsIndexRouteImport } from './routes/_authenticated/bills/index'
+import { Route as AuthenticatedCategoriesIndexRouteImport } from './routes/_authenticated/categories/index'
+import { Route as AuthenticatedIncomeIndexRouteImport } from './routes/_authenticated/income/index'
+import { Route as AuthenticatedTransactionsIndexRouteImport } from './routes/_authenticated/transactions/index'
 import { Route as AuthenticatedTransactionsImportRouteImport } from './routes/_authenticated/transactions/import'
 
-const SignUpRoute = SignUpRouteImport.update({
-  id: '/sign-up',
-  path: '/sign-up',
+const AuthenticatedRoute = AuthenticatedRouteImport.update({
+  id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SignInRoute = SignInRouteImport.update({
@@ -31,8 +30,9 @@ const SignInRoute = SignInRouteImport.update({
   path: '/sign-in',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedRoute = AuthenticatedRouteImport.update({
-  id: '/_authenticated',
+const SignUpRoute = SignUpRouteImport.update({
+  id: '/sign-up',
+  path: '/sign-up',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
@@ -40,20 +40,25 @@ const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
-const SignUpSsoCallbackRoute = SignUpSsoCallbackRouteImport.update({
-  id: '/sso-callback',
-  path: '/sso-callback',
-  getParentRoute: () => SignUpRoute,
-} as any)
 const SignInSsoCallbackRoute = SignInSsoCallbackRouteImport.update({
   id: '/sso-callback',
   path: '/sso-callback',
   getParentRoute: () => SignInRoute,
 } as any)
-const AuthenticatedTransactionsIndexRoute =
-  AuthenticatedTransactionsIndexRouteImport.update({
-    id: '/transactions/',
-    path: '/transactions/',
+const SignUpSsoCallbackRoute = SignUpSsoCallbackRouteImport.update({
+  id: '/sso-callback',
+  path: '/sso-callback',
+  getParentRoute: () => SignUpRoute,
+} as any)
+const AuthenticatedBillsIndexRoute = AuthenticatedBillsIndexRouteImport.update({
+  id: '/bills/',
+  path: '/bills/',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedCategoriesIndexRoute =
+  AuthenticatedCategoriesIndexRouteImport.update({
+    id: '/categories/',
+    path: '/categories/',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
 const AuthenticatedIncomeIndexRoute =
@@ -62,17 +67,12 @@ const AuthenticatedIncomeIndexRoute =
     path: '/income/',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
-const AuthenticatedCategoriesIndexRoute =
-  AuthenticatedCategoriesIndexRouteImport.update({
-    id: '/categories/',
-    path: '/categories/',
+const AuthenticatedTransactionsIndexRoute =
+  AuthenticatedTransactionsIndexRouteImport.update({
+    id: '/transactions/',
+    path: '/transactions/',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
-const AuthenticatedBillsIndexRoute = AuthenticatedBillsIndexRouteImport.update({
-  id: '/bills/',
-  path: '/bills/',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
 const AuthenticatedTransactionsImportRoute =
   AuthenticatedTransactionsImportRouteImport.update({
     id: '/transactions/import',
@@ -166,11 +166,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/sign-up': {
-      id: '/sign-up'
-      path: '/sign-up'
-      fullPath: '/sign-up'
-      preLoaderRoute: typeof SignUpRouteImport
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sign-in': {
@@ -180,11 +180,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SignInRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated': {
-      id: '/_authenticated'
-      path: ''
-      fullPath: '/'
-      preLoaderRoute: typeof AuthenticatedRouteImport
+    '/sign-up': {
+      id: '/sign-up'
+      path: '/sign-up'
+      fullPath: '/sign-up'
+      preLoaderRoute: typeof SignUpRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/': {
@@ -194,13 +194,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/sign-up/sso-callback': {
-      id: '/sign-up/sso-callback'
-      path: '/sso-callback'
-      fullPath: '/sign-up/sso-callback'
-      preLoaderRoute: typeof SignUpSsoCallbackRouteImport
-      parentRoute: typeof SignUpRoute
-    }
     '/sign-in/sso-callback': {
       id: '/sign-in/sso-callback'
       path: '/sso-callback'
@@ -208,18 +201,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SignInSsoCallbackRouteImport
       parentRoute: typeof SignInRoute
     }
-    '/_authenticated/transactions/': {
-      id: '/_authenticated/transactions/'
-      path: '/transactions'
-      fullPath: '/transactions/'
-      preLoaderRoute: typeof AuthenticatedTransactionsIndexRouteImport
-      parentRoute: typeof AuthenticatedRoute
+    '/sign-up/sso-callback': {
+      id: '/sign-up/sso-callback'
+      path: '/sso-callback'
+      fullPath: '/sign-up/sso-callback'
+      preLoaderRoute: typeof SignUpSsoCallbackRouteImport
+      parentRoute: typeof SignUpRoute
     }
-    '/_authenticated/income/': {
-      id: '/_authenticated/income/'
-      path: '/income'
-      fullPath: '/income/'
-      preLoaderRoute: typeof AuthenticatedIncomeIndexRouteImport
+    '/_authenticated/bills/': {
+      id: '/_authenticated/bills/'
+      path: '/bills'
+      fullPath: '/bills/'
+      preLoaderRoute: typeof AuthenticatedBillsIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/categories/': {
@@ -229,11 +222,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCategoriesIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/bills/': {
-      id: '/_authenticated/bills/'
-      path: '/bills'
-      fullPath: '/bills/'
-      preLoaderRoute: typeof AuthenticatedBillsIndexRouteImport
+    '/_authenticated/income/': {
+      id: '/_authenticated/income/'
+      path: '/income'
+      fullPath: '/income/'
+      preLoaderRoute: typeof AuthenticatedIncomeIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/transactions/': {
+      id: '/_authenticated/transactions/'
+      path: '/transactions'
+      fullPath: '/transactions/'
+      preLoaderRoute: typeof AuthenticatedTransactionsIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/transactions/import': {
