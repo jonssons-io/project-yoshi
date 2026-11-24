@@ -162,6 +162,179 @@ describe('markAlreadyImported', () => {
     expect(marked.excluded).toBe(false)
   })
 
+  describe('entered on a weekend, booked on the next banking day', () => {
+    // 2026-10-24 is a Saturday; noon keeps the calendar day in any time zone.
+    const savedOnSaturday = saved({
+      type: TransactionType.TRANSFER,
+      amount: 1000,
+      date: '2026-10-24T12:00:00.000Z',
+      account: {
+        id: 'salary',
+        name: 'Salary'
+      },
+      transferToAccount: {
+        id: 'card',
+        name: 'Card'
+      }
+    })
+    const transferRow = (overrides: Partial<TransactionDraft>) =>
+      draft({
+        originalDescription: 'Överföring',
+        date: '2026-10-26',
+        amount: 1000,
+        signedAmount: 1000,
+        type: TransactionType.TRANSFER,
+        ...overrides
+      })
+
+    it('excludes a transfer saved on Saturday and booked on Monday', () => {
+      const [marked] = markAlreadyImported(
+        [
+          transferRow({})
+        ],
+        [
+          savedOnSaturday
+        ]
+      )
+
+      expect(marked).toMatchObject({
+        excluded: true,
+        duplicateOfTransactionId: 'saved'
+      })
+    })
+
+    it('excludes a Swish saved on Sunday and booked on Monday', () => {
+      const [marked] = markAlreadyImported(
+        [
+          draft({
+            originalDescription: 'Swish till Möbelhuset',
+            date: '2026-10-26',
+            amount: 198,
+            signedAmount: -198
+          })
+        ],
+        [
+          saved({
+            amount: 198,
+            date: '2026-10-25T12:00:00.000Z'
+          })
+        ]
+      )
+
+      expect(marked.excluded).toBe(true)
+    })
+
+    it('covers only one of several equal transfers that week', () => {
+      const marked = markAlreadyImported(
+        [
+          transferRow({
+            id: 'monday'
+          }),
+          transferRow({
+            id: 'tuesday',
+            date: '2026-10-27'
+          }),
+          transferRow({
+            id: 'thursday',
+            date: '2026-10-29'
+          })
+        ],
+        [
+          savedOnSaturday
+        ]
+      )
+
+      expect(marked.map((row) => row.excluded)).toEqual([
+        true,
+        false,
+        false
+      ])
+    })
+
+    it('still matches the exact day first', () => {
+      const marked = markAlreadyImported(
+        [
+          transferRow({
+            id: 'monday-new'
+          }),
+          transferRow({
+            id: 'monday-saved'
+          })
+        ],
+        [
+          savedOnSaturday,
+          {
+            ...savedOnSaturday,
+            id: 'saved-monday',
+            date: '2026-10-26T00:00:00.000Z'
+          }
+        ]
+      )
+
+      // Both Monday rows are covered: one by the Monday entry, one by Saturday's.
+      expect(marked.map((row) => row.duplicateOfTransactionId).sort()).toEqual([
+        'saved',
+        'saved-monday'
+      ])
+    })
+
+    it('does not reach back from a weekday to an earlier weekday', () => {
+      // Saved on Tuesday 3 Nov, new equal transfer booked Thursday 5 Nov.
+      const [marked] = markAlreadyImported(
+        [
+          transferRow({
+            date: '2026-11-05'
+          })
+        ],
+        [
+          {
+            ...savedOnSaturday,
+            date: '2026-11-03T12:00:00.000Z'
+          }
+        ]
+      )
+
+      expect(marked.excluded).toBe(false)
+    })
+
+    it('does not apply past the following Tuesday', () => {
+      const [marked] = markAlreadyImported(
+        [
+          transferRow({
+            date: '2026-10-28'
+          })
+        ],
+        [
+          savedOnSaturday
+        ]
+      )
+
+      expect(marked.excluded).toBe(false)
+    })
+
+    it('leaves card purchases to their purchase date', () => {
+      // Same sum two days apart is a new purchase, not Saturday's again.
+      const [marked] = markAlreadyImported(
+        [
+          draft({
+            originalDescription: '2026-10-25 LUNCHBAREN, GOTEBORG',
+            date: '2026-10-26',
+            amount: 280,
+            signedAmount: -280
+          })
+        ],
+        [
+          saved({
+            amount: 280,
+            date: '2026-10-24T12:00:00.000Z'
+          })
+        ]
+      )
+
+      expect(marked.excluded).toBe(false)
+    })
+  })
+
   it('recognizes a transfer saved from the other account', () => {
     const transfer = saved({
       type: TransactionType.TRANSFER,
