@@ -57,6 +57,13 @@ export function SelectField({
       <Select
         value={field.state.value ?? ''}
         onValueChange={(value) => {
+          // Radix mirrors the value into a hidden native <select> and reports
+          // that element's value back. When a value is set before the options
+          // are registered there — a form filled in right after it mounts —
+          // the native select cannot hold it and reports '', which would wipe
+          // the field. Nobody can pick '' (items need a non-empty value), so
+          // an empty report is never a real choice.
+          if (value === '') return
           field.handleChange(value)
           onValueChange?.(value)
         }}
